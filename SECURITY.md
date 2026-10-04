@@ -1,0 +1,65 @@
+# SECURITY.md
+
+These rules are mandatory. If a task conflicts with them, stop and flag it.
+
+## Secrets & environment
+
+- Secrets live only in Vercel env vars and a local `.env.local` (git-ignored). Never commit them.
+- Only variables prefixed `NEXT_PUBLIC_` may reach the browser. Exactly three are allowed: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (public by design; the secret stays server-side).
+- `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY` are server-only. Import them only in files with `import "server-only"`.
+- Keep a `.env.example` with names and no values.
+
+## Database (Supabase)
+
+- Row Level Security is **enabled on every table**, with no exceptions.
+- Public (anon) can only `select` rows where `status = 'published'`.
+- Agency owners can update only their own agency (`owner_id = auth.uid()`).
+- Leads are never readable by anon. Agencies see only leads routed to them.
+- Admin actions check `profiles.role = 'admin'` in policy, not just in UI.
+- Never build SQL with string concatenation. Use the Supabase client or parameterized RPCs.
+
+## Auth
+
+- Supabase Auth with email magic link + Google OAuth.
+- **Claiming a listing** requires verifying an email on the agency's own website domain (e.g. `@acmemedia.com`), or manual admin approval. Never auto-grant ownership.
+- Dashboard and admin routes are protected in middleware **and** re-checked in server actions.
+
+## Forms & input
+
+- Every public form (get-matched, contact agency, review, claim) has:
+  - Cloudflare Turnstile verified server-side.
+  - Zod validation on the server.
+  - Rate limiting per IP and per email (e.g. 5 submissions/hour), stored in a `rate_limits` table or Upstash.
+  - Honeypot field.
+- Reviews: plain text only, length-capped, held for moderation before publishing.
+- Never use `dangerouslySetInnerHTML` with user content. Render guides from trusted MDX only.
+
+## Uploads (logos, case-study images)
+
+- Storage bucket policies: owners write to `agencies/<agency_id>/` only.
+- Allowed types: png, jpg, webp, svg is **not** allowed (XSS risk). Max 2 MB.
+- Re-validate MIME type server-side; don't trust the file extension.
+
+## HTTP headers (next.config)
+
+- `Content-Security-Policy` (allow self, Supabase, Turnstile, Vercel analytics).
+  - `script-src` allows `'unsafe-inline'`: Next.js injects inline hydration scripts, and a nonce-based CSP would force every page to render dynamically, breaking ISR. Revisit if Next supports hashes for static pages.
+  - Everything else stays strict: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, and only the Supabase, Turnstile and Vercel origins that are needed.
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+- `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy` restricting camera/mic/geolocation.
+
+## External links
+
+- Links to agency websites use `rel="nofollow noopener"` (`rel="sponsored"` for paid placements) and open in a new tab.
+
+## Privacy
+
+- Leads contain personal data: collect only what matching needs, show a privacy notice on the form, and support deletion on request.
+- Don't log full lead payloads or tokens.
+- Publish a Privacy Policy and Terms before launch.
+
+## Dependencies & ops
+
+- Run `pnpm audit` before every release; enable Dependabot/Renovate.
+- Enable Supabase daily backups and point-in-time recovery when on a paid plan.
+- Separate Supabase projects for development and production.

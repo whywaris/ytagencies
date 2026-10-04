@@ -1,0 +1,85 @@
+# DESIGN.md
+
+## Direction
+
+Simple, calm, professional, in the spirit of Apple's product pages. That means generous whitespace, large confident type, few colors, and nothing decorative. The content (agencies and their results) does the talking.
+
+**The one memorable element:** the home hero is a sentence-style search:
+
+> I need a YouTube **[Ads ▾]** agency for **[Doctors ▾]** [Find agencies]
+
+The two bracketed words are inline selects, styled as large underlined text, not boxes. Everything else on the site stays quiet.
+
+## Color tokens
+
+| Token       | Light     | Dark      | Use                                |
+| ----------- | --------- | --------- | ---------------------------------- |
+| `--bg`      | `#FFFFFF` | `#000000` | Page background                    |
+| `--surface` | `#F5F5F7` | `#1C1C1E` | Section bands, cards               |
+| `--text`    | `#1D1D1F` | `#F5F5F7` | Primary text                       |
+| `--text-2`  | `#6E6E73` | `#A1A1A6` | Secondary text, meta               |
+| `--line`    | `#D2D2D7` | `#38383A` | Borders, dividers                  |
+| `--accent`  | `#0B57D0` | `#4C8DF6` | Links, primary buttons, focus ring |
+
+One accent only. Green `#1E8E3E` is reserved for "Verified" badges. No gradients.
+
+## Typography
+
+- Font stack: `-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif` (SF Pro on Apple devices, Inter elsewhere, zero layout shift).
+- Scale (desktop / mobile):
+  - Display: 64 / 40px, weight 600, letter-spacing -0.02em
+  - H1: 48 / 32px, 600, -0.015em
+  - H2: 32 / 24px, 600
+  - H3: 21 / 19px, 600
+  - Body: 17px, 400, line-height 1.5
+  - Small: 14px, `--text-2`
+- Sentence case everywhere. No all-caps labels, no eyebrow text above headings.
+- Line length ≤ 70 characters for paragraphs.
+
+## Layout
+
+- Max content width 1120px; reading pages (guides, profile about) 680px.
+- Spacing scale: 4, 8, 12, 16, 24, 32, 48, 80, 120px. Sections are separated by 80–120px.
+- Left-aligned content, except the home hero, which is centered.
+- Grid: agency results in a list (not a card grid) on desktop, one row per agency, so they're easy to compare.
+
+```
+┌──────────────────────────────────────────────────────┐
+│ Logo   Services  Industries  Guides      Get matched │  sticky, frosted
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│     I need a YouTube [Ads ▾] agency for [Doctors ▾]  │
+│                  [ Find agencies ]                   │
+│                                                      │
+│     Browse by service:  Ads · SEO · Channel mgmt ... │
+├──────────────────────────────────────────────────────┤
+│  Directory page                                      │
+│  H1 + intro          │ Filters (budget, size, lang)  │
+│  ┌ logo  Name  ✓ Verified        from $2k/mo  View ┐ │
+│  │ Specialties · Rating · Location                   │ │
+│  └──────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────┘
+```
+
+## Components
+
+- **Nav:** 52px tall, sticky, `backdrop-filter: blur(20px)` over a translucent `--bg`; hairline bottom border.
+- **Buttons:** primary = `--accent` fill, white text, fully rounded (pill), 44px tall. Secondary = text link in `--accent`. Labels say exactly what happens ("Find agencies", "Send inquiry", "Claim this listing").
+- **Agency row:** white on `--bg`, 1px `--line` border, 16px radius, no shadow. Hover: border darkens only.
+- **Inputs:** 44px, 12px radius, `--surface` fill, no border until focus.
+- **Badges:** small text pills: "Verified" (green), "Featured" (neutral outline, clearly labeled as paid).
+- Radius hierarchy: pills for buttons/badges, 16px for rows/cards, 12px for inputs, 8px for logos.
+
+## Motion
+
+- Only response motion: menu open, filter apply, form confirmation (150–250ms ease-out).
+- No scroll-triggered fade-ins. Respect `prefers-reduced-motion`.
+
+## Accessibility floor
+
+- Text contrast ≥ 4.5:1; visible 2px `--accent` focus ring with offset.
+- Tap targets ≥ 44px. Full keyboard navigation. Alt text for every logo ("{Agency} logo").
+
+## Copy voice
+
+Plain and specific. "Agencies that run YouTube ads for clinics and private practices", not "Unlock explosive growth". Empty states tell people what to do next: "No agencies match these filters yet. Try removing the budget filter."
