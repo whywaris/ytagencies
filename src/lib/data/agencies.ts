@@ -240,16 +240,24 @@ export const getAgencySlugs = cache(async () => {
 // ponytail: aggregated in JS from one query, capped at PostgREST max rows (1000 published
 // agencies by default). Move to a SQL view when the directory grows past that.
 export const getDirectoryIndex = cache(async () => {
-  const [{ data, error }, locations] = await Promise.all([
-    createStaticClient()
+  const supabase = createStaticClient();
+  const [{ data, error }, locations, services, industries, comboCopy] = await Promise.all([
+    supabase
       .from("agencies")
       .select(
         "updated_at, agency_services(services(slug)), agency_industries(industries(slug)), agency_locations(location_id)",
       )
       .eq("status", "published"),
     getLocations(),
+    // Copy on these pages has its own updated_at (trigger-maintained, schema.sql).
+    supabase.from("services").select("slug, updated_at"),
+    supabase.from("industries").select("slug, updated_at"),
+    supabase
+      .from("service_industry_content")
+      .select("updated_at, services(slug), industries(slug)"),
   ]);
   if (error) throw error;
+  for (const r of [services, industries, comboCopy]) if (r.error) throw r.error;
 
   const byId = new Map(locations.map((l) => [l.id, l]));
   const pages = new Map<string, { count: number; lastModified: string }>(); // "service|segment"
@@ -281,11 +289,30 @@ export const getDirectoryIndex = cache(async () => {
     }
   }
 
+  // Hubs show the service intro; industry pages show the industry intro or their own copy.
+  for (const svc of services.data!) {
+    hubs.set(svc.slug, newer(hubs.get(svc.slug), svc.updated_at));
+    siteLastModified = newer(siteLastModified ?? undefined, svc.updated_at);
+  }
+  const industryDate = new Map(industries.data!.map((i) => [i.slug, i.updated_at]));
+  const copyDate = new Map(
+    comboCopy.data!.map((c) => [`${c.services.slug}|for-${c.industries.slug}`, c.updated_at]),
+  );
+  for (const date of industryDate.values())
+    siteLastModified = newer(siteLastModified ?? undefined, date);
+
   const combos = [...pages]
     .filter(([, p]) => p.count >= MIN_AGENCIES_TO_INDEX)
     .map(([key, p]) => {
       const [serviceSlug, segment] = key.split("|");
-      return { serviceSlug, segment, count: p.count, lastModified: p.lastModified };
+      let lastModified = p.lastModified;
+      if (segment.startsWith("for-")) {
+        const industry = industryDate.get(segment.slice(4));
+        if (industry) lastModified = newer(lastModified, industry);
+        const copy = copyDate.get(key);
+        if (copy) lastModified = newer(lastModified, copy);
+      }
+      return { serviceSlug, segment, count: p.count, lastModified };
     });
   return { combos, hubs, siteLastModified };
 });

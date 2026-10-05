@@ -187,6 +187,7 @@ export type Database = {
       };
       case_studies: {
         Row: {
+          updated_at: string;
           agency_id: string;
           channel_url: string | null;
           client_industry_id: number | null;
@@ -197,6 +198,7 @@ export type Database = {
           title: string;
         };
         Insert: {
+          updated_at?: string;
           agency_id: string;
           channel_url?: string | null;
           client_industry_id?: number | null;
@@ -207,6 +209,7 @@ export type Database = {
           title: string;
         };
         Update: {
+          updated_at?: string;
           agency_id?: string;
           channel_url?: string | null;
           client_industry_id?: number | null;
@@ -270,6 +273,7 @@ export type Database = {
       };
       industries: {
         Row: {
+          updated_at: string;
           id: number;
           intro: string | null;
           name: string;
@@ -277,6 +281,7 @@ export type Database = {
           sort_order: number | null;
         };
         Insert: {
+          updated_at?: string;
           id?: number;
           intro?: string | null;
           name: string;
@@ -284,6 +289,7 @@ export type Database = {
           sort_order?: number | null;
         };
         Update: {
+          updated_at?: string;
           id?: number;
           intro?: string | null;
           name?: string;
@@ -449,6 +455,7 @@ export type Database = {
       };
       reviews: {
         Row: {
+          updated_at: string;
           agency_id: string;
           author_company: string | null;
           author_id: string | null;
@@ -460,6 +467,7 @@ export type Database = {
           status: string;
         };
         Insert: {
+          updated_at?: string;
           agency_id: string;
           author_company?: string | null;
           author_id?: string | null;
@@ -471,6 +479,7 @@ export type Database = {
           status?: string;
         };
         Update: {
+          updated_at?: string;
           agency_id?: string;
           author_company?: string | null;
           author_id?: string | null;
@@ -493,6 +502,7 @@ export type Database = {
       };
       service_industry_content: {
         Row: {
+          updated_at: string;
           faqs: Json | null;
           how_to_choose: string | null;
           industry_id: number;
@@ -500,6 +510,7 @@ export type Database = {
           service_id: number;
         };
         Insert: {
+          updated_at?: string;
           faqs?: Json | null;
           how_to_choose?: string | null;
           industry_id: number;
@@ -507,6 +518,7 @@ export type Database = {
           service_id: number;
         };
         Update: {
+          updated_at?: string;
           faqs?: Json | null;
           how_to_choose?: string | null;
           industry_id?: number;
@@ -532,6 +544,7 @@ export type Database = {
       };
       services: {
         Row: {
+          updated_at: string;
           id: number;
           intro: string | null;
           name: string;
@@ -539,6 +552,7 @@ export type Database = {
           sort_order: number | null;
         };
         Insert: {
+          updated_at?: string;
           id?: number;
           intro?: string | null;
           name: string;
@@ -546,6 +560,7 @@ export type Database = {
           sort_order?: number | null;
         };
         Update: {
+          updated_at?: string;
           id?: number;
           intro?: string | null;
           name?: string;
