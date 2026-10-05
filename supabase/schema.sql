@@ -183,32 +183,45 @@ create policy "admin write" on locations for all using (is_admin()) with check (
 create policy "admin write" on service_industry_content for all using (is_admin()) with check (is_admin());
 
 -- Agencies
-create policy "public read published" on agencies for select
+-- anon can't read owner_id (column grants below), so no policy anon evaluates may mention it:
+-- Postgres checks column privileges inside policy expressions too. Owner/admin policies are
+-- therefore scoped to authenticated, and anon gets status-only policies.
+create policy "anon read published" on agencies for select to anon
+  using (status = 'published');
+create policy "read published or own" on agencies for select to authenticated
   using (status = 'published' or owner_id = auth.uid() or is_admin());
-create policy "owner update" on agencies for update
+create policy "owner update" on agencies for update to authenticated
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid() and is_featured = false and is_verified = false); -- paid/verified flags are admin-only
-create policy "admin all" on agencies for all using (is_admin()) with check (is_admin());
+create policy "admin all" on agencies for all to authenticated using (is_admin()) with check (is_admin());
 
 -- Agency join tables & case studies: public read if agency is published; owner manages
-create policy "public read" on agency_services for select using (
+create policy "anon read published" on agency_services for select to anon using (
+  exists (select 1 from agencies a where a.id = agency_id and a.status = 'published'));
+create policy "public read" on agency_services for select to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.status = 'published' or a.owner_id = auth.uid() or is_admin())));
-create policy "owner manage" on agency_services for all using (
+create policy "owner manage" on agency_services for all to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.owner_id = auth.uid() or is_admin())));
 
-create policy "public read" on agency_industries for select using (
+create policy "anon read published" on agency_industries for select to anon using (
+  exists (select 1 from agencies a where a.id = agency_id and a.status = 'published'));
+create policy "public read" on agency_industries for select to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.status = 'published' or a.owner_id = auth.uid() or is_admin())));
-create policy "owner manage" on agency_industries for all using (
+create policy "owner manage" on agency_industries for all to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.owner_id = auth.uid() or is_admin())));
 
-create policy "public read" on agency_locations for select using (
+create policy "anon read published" on agency_locations for select to anon using (
+  exists (select 1 from agencies a where a.id = agency_id and a.status = 'published'));
+create policy "public read" on agency_locations for select to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.status = 'published' or a.owner_id = auth.uid() or is_admin())));
-create policy "owner manage" on agency_locations for all using (
+create policy "owner manage" on agency_locations for all to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.owner_id = auth.uid() or is_admin())));
 
-create policy "public read" on case_studies for select using (
+create policy "anon read published" on case_studies for select to anon using (
+  exists (select 1 from agencies a where a.id = agency_id and a.status = 'published'));
+create policy "public read" on case_studies for select to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.status = 'published' or a.owner_id = auth.uid() or is_admin())));
-create policy "owner manage" on case_studies for all using (
+create policy "owner manage" on case_studies for all to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.owner_id = auth.uid() or is_admin())));
 
 -- Reviews: public sees published; inserts go through a server action (Turnstile + rate limit)
@@ -216,11 +229,11 @@ create policy "public read published" on reviews for select using (status = 'pub
 create policy "admin moderate" on reviews for all using (is_admin()) with check (is_admin());
 
 -- Leads: never public. Inserted server-side with the service role after Turnstile + rate limit.
-create policy "admin read" on leads for select using (is_admin());
-create policy "agency reads routed leads" on leads for select using (
+create policy "admin read" on leads for select to authenticated using (is_admin());
+create policy "agency reads routed leads" on leads for select to authenticated using (
   exists (select 1 from lead_routes lr join agencies a on a.id = lr.agency_id
           where lr.lead_id = leads.id and a.owner_id = auth.uid()));
-create policy "agency reads own routes" on lead_routes for select using (
+create policy "agency reads own routes" on lead_routes for select to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and a.owner_id = auth.uid()) or is_admin());
 
 -- Claims
@@ -283,11 +296,18 @@ create trigger on_auth_user_created after insert on auth.users
 -- so owners of verified or featured agencies could never save. Column privileges protect the
 -- admin-only fields (status, flags, owner_id, slug, website) instead. Admin writes use the service role.
 drop policy "owner update" on agencies;
-create policy "owner update" on agencies for update
+create policy "owner update" on agencies for update to authenticated
   using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 revoke update on agencies from anon, authenticated;
 grant update (tagline, description, logo_path, min_budget_usd, pricing_model, team_size,
   founded_year, languages, hq_location_id, updated_at) on agencies to authenticated;
+
+-- anon (the public anon key) reads every agencies column except owner_id, so visitors can't
+-- learn which account owns a listing. New agencies columns must be added to this grant.
+revoke select on agencies from anon;
+grant select (id, slug, name, tagline, description, website, logo_path, founded_year, team_size,
+  min_budget_usd, pricing_model, languages, hq_location_id, status, is_claimed, is_verified,
+  is_featured, search, created_at, updated_at) on agencies to anon;
 
 -- One open claim per user per agency.
 create unique index claims_one_pending on claims (agency_id, user_id) where status = 'pending';
