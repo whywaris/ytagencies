@@ -1,4 +1,12 @@
 {
-  "plugins": ["prettier-plugin-tailwindcss"],
-  "printWidth": 100
+  "plugins": [
+    "prettier-plugin-tailwindcss"
+  ],
+  "tailwindStylesheet": "./src/app/globals.css",
+  "tailwindFunctions": [
+    "cn",
+    "cva"
+  ],
+  "printWidth": 100,
+  "endOfLine": "lf"
 }

@@ -1,10 +1,12 @@
+import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
 // Lock CSP to this environment's Supabase project; wildcard only when the env var is missing (e.g. CI build).
-const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
-  : "*.supabase.co";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
+  : null;
+const supabaseHost = supabaseUrl?.host ?? "*.supabase.co";
 
 // Vercel Analytics is same-origin (/_vercel/insights) in production; va.vercel-scripts.com is its dev-only debug script.
 // ponytail: static CSP with 'unsafe-inline' scripts, because a nonce CSP forces every page dynamic and breaks ISR.
@@ -34,9 +36,29 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Logo uploads go through a server action: 2 MB file + multipart overhead (default is 1 MB).
+    serverActions: { bodySizeLimit: "3mb" },
+  },
+  images: {
+    // Agency logos from Supabase Storage (public bucket).
+    // Local Supabase (CLI or a dev mock) runs on 127.0.0.1; Next 16 refuses local IPs unless allowed.
+    dangerouslyAllowLocalIP: isDev,
+    remotePatterns: [
+      {
+        protocol: supabaseUrl?.protocol === "http:" ? "http" : "https",
+        hostname: supabaseUrl?.hostname ?? "*.supabase.co",
+        port: supabaseUrl?.port ?? "",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
 };
 
-export default nextConfig;
+// MDX is only imported by /guides/[slug] (trusted files in src/content), never routed directly.
+const withMDX = createMDX();
+
+export default withMDX(nextConfig);

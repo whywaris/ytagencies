@@ -1,0 +1,137 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { DirectoryPage } from "@/components/directory/directory-page";
+import { getAgenciesForCombo, getIndexableCombos } from "@/lib/data/agencies";
+import {
+  getComboContent,
+  getIndustries,
+  getLocations,
+  getServiceBySlug,
+  getServices,
+  resolveSegment,
+} from "@/lib/data/taxonomy";
+import {
+  defaultFaqs,
+  defaultHowToChoose,
+  directoryDescription,
+  directoryHeading,
+  directoryTitle,
+  segmentName,
+  segmentPhrase,
+} from "@/lib/directory";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { MIN_AGENCIES_TO_INDEX } from "@/lib/site";
+
+export const revalidate = 3600;
+
+// Pre-render indexable combos; thin ones render on first request and are then cached the same way.
+export async function generateStaticParams() {
+  return (await getIndexableCombos()).map((c) => ({ service: c.serviceSlug, segment: c.segment }));
+}
+
+async function load(params: PageProps<"/[service]/[segment]">["params"]) {
+  const { service: serviceSlug, segment: segmentSlug } = await params;
+  const [service, segment] = await Promise.all([
+    serviceSlug.endsWith("-agencies") ? getServiceBySlug(serviceSlug) : null,
+    resolveSegment(segmentSlug), // null for anything but for-<industry> / in-<location>
+  ]);
+  if (!service || !segment) notFound();
+  const [agencies, content] = await Promise.all([
+    getAgenciesForCombo(service.id, segment),
+    segment.kind === "industry" ? getComboContent(service.id, segment.industry.id) : null,
+  ]);
+  return { service, segment, segmentSlug, agencies, content };
+}
+
+export async function generateMetadata({ params }: PageProps<"/[service]/[segment]">) {
+  const { service, segment, segmentSlug, agencies } = await load(params);
+  return buildMetadata({
+    image: `/og/service/${service.slug}/${segmentSlug}`,
+    title: directoryTitle(service, segment),
+    description: directoryDescription(service, agencies.length, segment),
+    path: `/${service.slug}/${segmentSlug}`,
+    // docs/SEO.md thin-page rule: noindex,follow until the combo has enough published agencies.
+    noindex: agencies.length < MIN_AGENCIES_TO_INDEX,
+  });
+}
+
+export default async function ComboPage({ params }: PageProps<"/[service]/[segment]">) {
+  const { service, segment, segmentSlug, agencies, content } = await load(params);
+  const [combos, services, industries, locations] = await Promise.all([
+    getIndexableCombos(),
+    getServices(),
+    getIndustries(),
+    getLocations(),
+  ]);
+
+  const serviceName = new Map(services.map((s) => [s.slug, s.name]));
+  const segmentLabel = new Map<string, string>([
+    ...industries.map((i) => [`for-${i.slug}`, i.name] as const),
+    ...locations.map((l) => [`in-${l.slug}`, l.name] as const),
+  ]);
+  const prefix = segment.kind === "industry" ? "for-" : "in-";
+
+  // Related links only point at indexable pages, so crawl budget isn't spent on noindex ones.
+  const sameService = combos
+    .filter(
+      (c) =>
+        c.serviceSlug === service.slug && c.segment !== segmentSlug && c.segment.startsWith(prefix),
+    )
+    .map((c) => ({
+      href: `/${c.serviceSlug}/${c.segment}`,
+      label: segmentLabel.get(c.segment) ?? c.segment,
+    }));
+  const sameSegment = combos
+    .filter((c) => c.segment === segmentSlug && c.serviceSlug !== service.slug)
+    .map((c) => ({
+      href: `/${c.serviceSlug}/${c.segment}`,
+      label: `${serviceName.get(c.serviceSlug) ?? c.serviceSlug} agencies`,
+    }));
+
+  const fallbackIntro =
+    segment.kind === "industry"
+      ? segment.industry.intro
+      : `These ${service.name} agencies are based ${segmentPhrase(segment)} or work with businesses there. Compare minimum budgets, team sizes, languages and reviews, then contact the ones that fit.`;
+  const paragraphs = (text: string | null | undefined) =>
+    (text ?? "").split(/\n\s*\n/).filter(Boolean);
+  const howToChoose = paragraphs(content?.howToChoose);
+
+  return (
+    <DirectoryPage
+      heading={directoryHeading(service, segment)}
+      intro={paragraphs(content?.intro ?? fallbackIntro)}
+      breadcrumbs={[
+        { name: "Home", path: "/" },
+        { name: `${service.name} agencies`, path: `/${service.slug}` },
+        { name: segmentName(segment), path: `/${service.slug}/${segmentSlug}` },
+      ]}
+      agencies={agencies}
+      emptyHint={
+        <p>
+          No {service.name} agencies {segmentPhrase(segment)} are listed yet. See{" "}
+          <Link href={`/${service.slug}`} className="text-accent hover:underline">
+            all {service.name} agencies
+          </Link>{" "}
+          or{" "}
+          <Link href="/get-matched" className="text-accent hover:underline">
+            tell us what you need
+          </Link>
+          .
+        </p>
+      }
+      howToChoose={howToChoose.length ? howToChoose : defaultHowToChoose(service, segment)}
+      faqs={content?.faqs.length ? content.faqs : defaultFaqs(service, agencies, segment)}
+      related={[
+        {
+          title:
+            segment.kind === "industry"
+              ? `${service.name} agencies for other industries`
+              : `${service.name} agencies in other locations`,
+          links: sameService,
+        },
+        { title: `Other services ${segmentPhrase(segment)}`, links: sameSegment },
+      ]}
+    />
+  );
+}

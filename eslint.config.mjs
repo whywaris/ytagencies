@@ -7,6 +7,8 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   prettier,
+  // Email templates render to standalone HTML documents, not Next pages.
+  { files: ["src/emails/**"], rules: { "@next/next/no-head-element": "off" } },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

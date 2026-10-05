@@ -21,7 +21,7 @@ The two bracketed words are inline selects, styled as large underlined text, not
 | `--line`    | `#D2D2D7` | `#38383A` | Borders, dividers                  |
 | `--accent`  | `#0B57D0` | `#4C8DF6` | Links, primary buttons, focus ring |
 
-One accent only. Green `#1E8E3E` is reserved for "Verified" badges. No gradients.
+One accent only. Green `#188038` (dark mode `#34A853`) is reserved for "Verified" badges; it was `#1E8E3E`, which fails 4.5:1 contrast on white. Form errors use `--danger`: `#D70015` (dark `#FF6961`). No gradients.
 
 ## Typography
 
