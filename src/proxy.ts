@@ -1,11 +1,25 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { publicPathExists } from "@/lib/public-slugs";
 import type { Database } from "@/lib/supabase/types";
 
-// Refreshes the Supabase session cookie and gates /dashboard and /admin (SECURITY.md).
-// This is the optimistic check; every page and server action re-checks on the server.
+// 1. Unknown public slugs → full server-rendered 404 (see lib/public-slugs.ts for why).
+// 2. Private routes: refresh the Supabase session and gate /dashboard and /admin (SECURITY.md).
+//    That's the optimistic check; every page and server action re-checks on the server.
+
+// Any path this resolves to matches no route, so Next serves the root not-found with status 404.
+const NOT_FOUND_REWRITE = "/not-found/unknown/slug";
+const PRIVATE = /^\/(dashboard|admin|login|auth|claim)(\/|$)|^\/agency\/[^/]+\/claim$/;
+
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  if ((await publicPathExists(path)) === false) {
+    return NextResponse.rewrite(new URL(NOT_FOUND_REWRITE, request.url));
+  }
+  // Public pages stay cookie-free and cacheable: no session work.
+  if (!PRIVATE.test(path)) return NextResponse.next();
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -34,7 +48,6 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
   const isDashboard = path === "/dashboard" || path.startsWith("/dashboard/");
   const isAdmin = path === "/admin" || path.startsWith("/admin/");
 
@@ -63,14 +76,7 @@ function redirectKeepingCookies(request: NextRequest, from: NextResponse, to: st
   return redirect;
 }
 
-// Only routes that read the session. Public directory pages stay static and cookie-free.
+// Every page path. Static assets, social images, sitemaps and robots skip the proxy entirely.
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/admin/:path*",
-    "/login",
-    "/auth/:path*",
-    "/claim/:path*",
-    "/agency/:slug/claim",
-  ],
+  matcher: ["/((?!_next/|og/|sitemaps/|api/|favicon.ico|robots.txt|opengraph-image).*)"],
 };

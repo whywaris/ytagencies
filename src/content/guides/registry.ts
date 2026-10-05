@@ -1,5 +1,7 @@
 import type { MDXContent } from "mdx/types";
 
+import type { GuideSlug } from "@/content/guides/slugs";
+
 // Trusted, repo-reviewed guides only (SECURITY.md). Add a guide: create <slug>.mdx exporting `meta`,
 // then list it here. Slugs never change after publish.
 
@@ -19,4 +21,4 @@ const guide = (load: () => Promise<unknown>) => load as () => Promise<GuideModul
 
 export const GUIDES: Record<string, () => Promise<GuideModule>> = {
   "youtube-ads-agency-cost": guide(() => import("./youtube-ads-agency-cost.mdx")),
-};
+} satisfies Record<GuideSlug, () => Promise<GuideModule>>;
