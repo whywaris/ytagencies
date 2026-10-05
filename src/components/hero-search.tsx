@@ -1,16 +1,10 @@
 "use client";
 
+import { ChevronDownIcon } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type Option = { slug: string; label: string };
 
@@ -21,8 +15,51 @@ type HeroSearchProps = {
   defaultIndustry: string;
 };
 
+/**
+ * A native <select> that reads as a large underlined word in the sentence (DESIGN.md hero).
+ * Native, so keyboard, screen readers and mobile pickers work with no library JS.
+ * A native select is as wide as its longest option, so the visible word is a plain span that sets
+ * the width, and the real select sits transparently on top of it (clicks and keys hit the select).
+ * The focus ring is drawn on the wrapper, since the select itself is transparent.
+ */
+function InlineSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Option[];
+  onChange: (value: string) => void;
+}) {
+  const id = useId();
+  const current = options.find((o) => o.slug === value)?.label ?? "";
+  return (
+    <span className="relative inline-flex items-baseline gap-[0.12em] border-b-[0.06em] border-current font-semibold whitespace-nowrap text-accent outline-offset-4 transition-colors duration-150 ease-out hover:text-accent/80 has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-accent">
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <span aria-hidden>{current}</span>
+      <ChevronDownIcon aria-hidden className="size-[0.5em] shrink-0 self-center" />
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 size-full cursor-pointer appearance-none text-[17px] opacity-0 outline-none"
+      >
+        {options.map((o) => (
+          <option key={o.slug} value={o.slug}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+}
+
 // DESIGN.md "one memorable element": the sentence is the search. The button is a real link, so the
-// default combo is crawlable and works before hydration.
+// default combination is crawlable and works before hydration.
 export function HeroSearch({
   services,
   industries,
@@ -31,40 +68,19 @@ export function HeroSearch({
 }: HeroSearchProps) {
   const [service, setService] = useState(defaultService);
   const [industry, setIndustry] = useState(defaultIndustry);
-  // Explicit labels: Radix only knows an item's text after the menu mounts, so without these
-  // the server HTML (what crawlers and pre-hydration visitors see) would show empty selects.
-  const serviceLabel = services.find((s) => s.slug === service)?.label;
-  const industryLabel = industries.find((i) => i.slug === industry)?.label;
 
   return (
     <div role="search" aria-label="Find agencies" className="flex flex-col items-center gap-10">
       <p className="text-display text-balance">
         I need a YouTube{" "}
-        <Select value={service} onValueChange={setService}>
-          <SelectTrigger variant="inline" aria-label="Service">
-            <SelectValue>{serviceLabel}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {services.map((s) => (
-              <SelectItem key={s.slug} value={s.slug}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>{" "}
+        <InlineSelect label="Service" value={service} options={services} onChange={setService} />{" "}
         agency for{" "}
-        <Select value={industry} onValueChange={setIndustry}>
-          <SelectTrigger variant="inline" aria-label="Industry">
-            <SelectValue>{industryLabel}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {industries.map((i) => (
-              <SelectItem key={i.slug} value={i.slug}>
-                {i.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <InlineSelect
+          label="Industry"
+          value={industry}
+          options={industries}
+          onChange={setIndustry}
+        />
       </p>
       <Button asChild>
         <Link href={`/${service}/for-${industry}`}>Find agencies</Link>
