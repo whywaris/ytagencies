@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { SITE_URL } from "@/lib/site";
+import { absoluteUrl } from "@/lib/site";
 
 // docs/SEO.md: keep private areas and parameterized (filtered) URLs out of the crawl.
 export default function robots(): MetadataRoute.Robots {
@@ -12,6 +12,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: ["/", "/_next/image"],
       disallow: ["/dashboard", "/admin", "/api", "/auth", "/*?"],
     },
-    sitemap: ["agencies", "categories", "guides"].map((s) => `${SITE_URL}/sitemaps/${s}.xml`),
+    sitemap: ["agencies", "categories", "guides"].map((s) => absoluteUrl(`/sitemaps/${s}.xml`)),
   };
 }

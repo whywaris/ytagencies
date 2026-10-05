@@ -76,7 +76,8 @@ function redirectKeepingCookies(request: NextRequest, from: NextResponse, to: st
   return redirect;
 }
 
-// Every page path. Static assets, social images, sitemaps and robots skip the proxy entirely.
+// Every page path. Static assets, files with an extension (icon.svg, logo.png, manifest…), icons,
+// social images, sitemaps and robots skip the proxy entirely. No page slug contains a dot.
 export const config = {
-  matcher: ["/((?!_next/|og/|sitemaps/|api/|favicon.ico|robots.txt|opengraph-image).*)"],
+  matcher: ["/((?!_next/|og/|sitemaps/|api/|apple-icon|opengraph-image|.*\\.).*)"],
 };

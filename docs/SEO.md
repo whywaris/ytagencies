@@ -1,5 +1,12 @@
 # SEO.md
 
+## Brand and domain
+
+- Brand: **YT Agencies**. Production: `https://ytagencies.com` (apex, https, no www). `www.ytagencies.com` 308-redirects to the apex (`next.config.ts`).
+- Brand, domain and contact email live only in `src/lib/site.ts`. Every absolute URL (canonical, `og:url`, sitemap, robots, JSON-LD, emails) is built with `absoluteUrl()` from `SITE_URL`; never hardcode a host.
+- Organization JSON-LD on home: name, url, `logo` (`/logo.png`, 512×512 PNG) and email. WebSite JSON-LD: name and url.
+- Not affiliated with YouTube or Google: the logo avoids play buttons and red, and the footer and emails say so.
+
 ## URL map
 
 | Page type                               | URL                                 | Indexed?                        |
@@ -27,7 +34,7 @@
 
 ## Metadata (every page, via `generateMetadata`)
 
-- Title ≤ 60 chars: `Best YouTube Ads Agencies for Doctors (2026) | {Brand}`
+- Title ≤ 60 chars: `Best YouTube Ads Agencies for Doctors (2026) | YT Agencies`. Template `%s | YT Agencies`; home is `YT Agencies: Find the right YouTube agency for your business`
 - Description 140–160 chars, specific, includes agency count.
 - `alternates.canonical` always set to the clean absolute URL.
 - Open Graph + Twitter image (generated with `next/og`).
@@ -66,7 +73,7 @@
 
 ## Off-page
 
-- "Featured on {Brand}" embeddable badge for every claimed agency, linking to their profile.
+- "Featured on YT Agencies" embeddable badge for every claimed agency, linking to their profile.
 - Annual "YouTube agency pricing report" for PR links.
 
 ## Monitoring

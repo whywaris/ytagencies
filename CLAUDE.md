@@ -1,8 +1,10 @@
 @AGENTS.md
 
-# CLAUDE.md — YouTube Agency Directory
+# CLAUDE.md — YT Agencies
 
 ## What this is
+
+**YT Agencies** (`https://ytagencies.com`, apex, no www). Brand name, domain and contact email live only in `src/lib/site.ts`; build absolute URLs with `absoluteUrl()`. Independent: never use YouTube's logo, play buttons or red in the brand.
 
 A directory that helps businesses find the right YouTube agency by **service** (Ads, SEO, channel management, production, Shorts, influencer marketing) and **industry** (crypto, doctors/healthcare, dentists, real estate, SaaS, e-commerce, coaches, law…) and **location**.
 Two sides: businesses search and send inquiries (free); agencies claim listings and pay for visibility and leads.

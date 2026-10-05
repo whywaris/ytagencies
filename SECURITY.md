@@ -45,6 +45,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 - `Content-Security-Policy` (allow self, Supabase, Turnstile, Vercel analytics).
   - `script-src` allows `'unsafe-inline'`: Next.js injects inline hydration scripts, and a nonce-based CSP would force every page to render dynamically, breaking ISR. Revisit if Next supports hashes for static pages.
   - Everything else stays strict: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, and only the Supabase, Turnstile and Vercel origins that are needed.
+- No CSP entry is needed for the site's own domain (`'self'`). Production is `https://ytagencies.com`; `www` redirects to it with a 308, so cookies and the session only ever live on the apex.
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
 - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy` restricting camera/mic/geolocation.
 

@@ -53,6 +53,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // www → apex, 308. Keep the domain in sync with SITE_DOMAIN in src/lib/site.ts.
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.ytagencies.com" }],
+        destination: "https://ytagencies.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

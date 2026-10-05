@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { BRAND_NAME } from "@/lib/site";
 
@@ -17,8 +18,8 @@ export function Nav() {
         aria-label="Main"
         className="mx-auto flex h-13 max-w-content items-center gap-8 px-4 md:px-6"
       >
-        <Link href="/" className="flex min-h-11 items-center text-[19px] font-semibold">
-          {BRAND_NAME}
+        <Link href="/" aria-label={`${BRAND_NAME} home`} className="flex min-h-11 items-center">
+          <Logo className="h-7 w-auto" />
         </Link>
         {/* ponytail: links hidden when the nav is narrow, the footer repeats them; add a menu if mobile nav data says so */}
         <ul className="hidden items-center gap-6 @xl:flex">

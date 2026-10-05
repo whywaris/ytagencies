@@ -7,7 +7,7 @@ import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 
 export const metadata = buildMetadata({
   title: `Terms of use | ${BRAND_NAME}`,
-  description: `The terms for using ${BRAND_NAME}: how the directory works, what agencies agree to when they list, how paid Featured placements are labeled, and review moderation.`,
+  description: `Terms for using ${BRAND_NAME}: how the directory works, what agencies agree to when they list, how paid Featured placements are labeled, and review moderation.`,
   path: "/terms",
 });
 

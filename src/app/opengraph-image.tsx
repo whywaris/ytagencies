@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 
+import { OgBrand } from "@/lib/seo/og";
 import { BRAND_NAME } from "@/lib/site";
 
 // Default social image for every route. Routes can override with their own opengraph-image.tsx.
@@ -21,7 +22,7 @@ export default function OpengraphImage() {
         color: "#1d1d1f",
       }}
     >
-      <div style={{ fontSize: 40, fontWeight: 600, color: "#0b57d0" }}>{BRAND_NAME}</div>
+      <OgBrand size={40} />
       <div style={{ fontSize: 80, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 24 }}>
         Find the right YouTube agency
       </div>

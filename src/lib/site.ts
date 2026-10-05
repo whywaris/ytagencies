@@ -1,15 +1,16 @@
-export const BRAND_NAME = "AgencyTube";
+export const BRAND_NAME = "YT Agencies";
+export const SITE_DOMAIN = "ytagencies.com";
+export const CONTACT_EMAIL = "hello@ytagencies.com";
 
-// LAUNCH: replace with a real, monitored inbox (shown on /privacy and /terms).
-export const CONTACT_EMAIL = "hello@agencytube.example";
-
-// Absolute base for canonicals, sitemap and JSON-LD. Set SITE_URL in production (server-side, not secret).
+// Absolute base for canonicals, sitemap, robots, JSON-LD and email links. Set SITE_URL per environment
+// (server-side, not secret). Without it, production builds use the real domain and dev uses localhost.
 export const SITE_URL = (
   process.env.SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "http://localhost:3000")
+  (process.env.NODE_ENV === "production" ? `https://${SITE_DOMAIN}` : "http://localhost:3000")
 ).replace(/\/$/, "");
+
+/** The one way to build an absolute URL: absoluteUrl("/agency/acme") → https://ytagencies.com/agency/acme */
+export const absoluteUrl = (path: string) => `${SITE_URL}${path === "/" ? "" : path}`;
 
 // docs/SEO.md thin-page rule: combination pages need this many published agencies to be indexed.
 export const MIN_AGENCIES_TO_INDEX = 3;

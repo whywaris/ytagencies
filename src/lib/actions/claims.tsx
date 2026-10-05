@@ -9,7 +9,7 @@ import { getUser } from "@/lib/auth";
 import { getMailer, oneLine } from "@/lib/email";
 import { approveClaim, createClaimToken, emailMatchesWebsite, readClaimToken } from "@/lib/claims";
 import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
-import { SITE_URL } from "@/lib/site";
+import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { claimSchema } from "@/lib/validation/auth";
@@ -86,7 +86,7 @@ export async function startClaim(raw: unknown): Promise<FormResult<ClaimStarted>
       console.warn("Email not configured; claim left for admin review", { claimId: claim.id });
       return { ok: true, data: { kind: "review", workEmail } };
     }
-    const url = `${SITE_URL}/claim/verify?token=${encodeURIComponent(createClaimToken(claim.id))}`;
+    const url = absoluteUrl(`/claim/verify?token=${encodeURIComponent(createClaimToken(claim.id))}`);
     const { error: sendError } = await mail.resend.emails.send({
       from: mail.from,
       to: workEmail,

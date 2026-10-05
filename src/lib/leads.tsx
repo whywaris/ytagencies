@@ -5,7 +5,7 @@ import { AdminLeadEmail } from "@/emails/admin-lead";
 import { AgencyLeadEmail } from "@/emails/agency-lead";
 import { LeadConfirmationEmail } from "@/emails/lead-confirmation";
 import { getMailer, oneLine } from "@/lib/email";
-import { SITE_URL } from "@/lib/site";
+import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Lead storage, routing and notification. Call only after every form check has passed:
@@ -136,7 +136,7 @@ export function queueLeadEmails(input: LeadEmailInput) {
 async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) {
   const mailer = getMailer();
   if (!mailer) {
-    console.warn("Email not configured (RESEND_API_KEY / EMAIL_FROM); skipped", { leadId });
+    console.warn("Email not configured (RESEND_API_KEY); skipped", { leadId });
     return;
   }
   const { resend, from } = mailer;
@@ -172,7 +172,7 @@ async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) 
       <LeadConfirmationEmail
         name={lead.name}
         need={direct ? undefined : (lead.need ?? undefined)}
-        agencies={agencies.map((a) => ({ name: a.name, url: `${SITE_URL}/agency/${a.slug}` }))}
+        agencies={agencies.map((a) => ({ name: a.name, url: absoluteUrl(`/agency/${a.slug}`) }))}
       />
     ),
   });

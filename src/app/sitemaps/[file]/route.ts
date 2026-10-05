@@ -1,7 +1,7 @@
 import { GUIDES } from "@/content/guides/registry";
 import { getAgencySlugs, getDirectoryIndex } from "@/lib/data/agencies";
 import { getServices } from "@/lib/data/taxonomy";
-import { SITE_URL } from "@/lib/site";
+import { absoluteUrl } from "@/lib/site";
 
 // Segmented sitemaps at the paths in docs/SEO.md: /sitemaps/{agencies,categories,guides}.xml.
 // Only indexable pages, with lastmod from real data (omitted where we don't have a real date).
@@ -65,7 +65,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/sitemaps
     return new Response("Not found", { status: 404 });
   const urls = (await entries(file as (typeof FILES)[number]))
     .map(({ path, lastModified }) => {
-      const loc = `<loc>${escapeXml(SITE_URL + (path === "/" ? "" : path))}</loc>`;
+      const loc = `<loc>${escapeXml(absoluteUrl(path))}</loc>`;
       const lastmod = lastModified
         ? `<lastmod>${new Date(lastModified).toISOString()}</lastmod>`
         : "";

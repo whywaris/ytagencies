@@ -1,6 +1,4 @@
-import { BRAND_NAME, SITE_URL } from "@/lib/site";
-
-const absolute = (path: string) => `${SITE_URL}${path === "/" ? "" : path}`;
+import { absoluteUrl as absolute, BRAND_NAME, CONTACT_EMAIL, SITE_URL } from "@/lib/site";
 
 export function websiteJsonLd() {
   return {
@@ -17,6 +15,9 @@ export function organizationJsonLd() {
     "@type": "Organization",
     name: BRAND_NAME,
     url: SITE_URL,
+    // Google wants a raster logo of at least 112×112 (src/app/logo.png/route.tsx renders 512×512).
+    logo: absolute("/logo.png"),
+    email: CONTACT_EMAIL,
   };
 }
 
