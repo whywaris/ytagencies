@@ -314,7 +314,8 @@ export const getDirectoryIndex = cache(async () => {
       }
       return { serviceSlug, segment, count: p.count, lastModified };
     });
-  return { combos, hubs, siteLastModified };
+  // Every page with at least one agency (indexable or not), for the admin SEO pages report.
+  return { combos, hubs, siteLastModified, pages };
 });
 
 /** Indexable combination pages (sitemap + internal links). */

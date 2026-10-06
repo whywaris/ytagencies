@@ -20,6 +20,7 @@ const PAGES = [
   { href: "/admin/reviews", label: "Reviews" },
   { href: "/admin/verification", label: "Verification" },
   { href: "/admin/leads", label: "Leads" },
+  { href: "/admin/seo-pages", label: "SEO pages" },
   { href: "/admin/taxonomy", label: "Taxonomy" },
 ];
 const ACTIONS = [{ href: "/admin/agencies/new", label: "New agency" }];

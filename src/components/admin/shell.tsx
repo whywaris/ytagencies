@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   BadgeCheck,
   Bell,
+  FileSearch,
   Building2,
   ChevronRight,
   FolderTree,
@@ -51,7 +52,7 @@ export type Queue = {
 
 type Item = { href: string; label: string; icon: LucideIcon; external?: boolean };
 
-// Only pages that exist. Later phases add SEO pages, Plans, Sponsored, Guides and Settings here as they're built (ADMIN_V2_SPEC §4, §10).
+// Only pages that exist. Later phases add Plans, Sponsored, Guides and Settings here as they're built (ADMIN_V2_SPEC §4, §10).
 const GROUPS: { heading: string; items: Item[] }[] = [
   { heading: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
   {
@@ -64,7 +65,13 @@ const GROUPS: { heading: string; items: Item[] }[] = [
       { href: "/admin/verification", label: "Verification", icon: BadgeCheck },
     ],
   },
-  { heading: "Growth", items: [{ href: "/admin/leads", label: "Leads", icon: Users }] },
+  {
+    heading: "Growth",
+    items: [
+      { href: "/admin/leads", label: "Leads", icon: Users },
+      { href: "/admin/seo-pages", label: "SEO pages", icon: FileSearch },
+    ],
+  },
   { heading: "Content", items: [{ href: "/admin/taxonomy", label: "Taxonomy", icon: FolderTree }] },
 ];
 const VIEW_SITE: Item = { href: "/", label: "View site", icon: ArrowUpRight, external: true };
@@ -364,6 +371,7 @@ const CRUMBS: Record<string, string> = {
   taxonomy: "Taxonomy",
   combo: "Combination copy",
   verification: "Verification",
+  "seo-pages": "SEO pages",
 };
 
 function Breadcrumbs({ pathname }: { pathname: string }) {
