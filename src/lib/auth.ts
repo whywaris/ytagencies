@@ -1,6 +1,7 @@
 import "server-only";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 
+import { safeNext } from "@/lib/redirects";
 import { createClient } from "@/lib/supabase/server";
 
 // Server-side auth checks. Pages and server actions call these even though the proxy gates
@@ -14,16 +15,9 @@ export async function getUser() {
   return user;
 }
 
-/** Only same-site relative paths, so ?next= can't send people to another site. */
-export function safeNext(next: string | null | undefined, fallback = "/dashboard") {
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")
-    ? next
-    : fallback;
-}
-
 export async function requireUser(next = "/dashboard") {
   const user = await getUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(safeNext(next))}`);
+  if (!user) redirect(`/login?next=${encodeURIComponent(safeNext(next) ?? "/dashboard")}`);
   return user;
 }
 
@@ -57,10 +51,10 @@ export async function getAdminUser() {
   return data?.role === "admin" ? user : null;
 }
 
-/** For admin pages: signed-out → login, signed-in non-admin → 404 (doesn't reveal the area). */
+/** For admin pages: signed-out → login, signed-in non-admin → the "no access" page. */
 export async function requireAdmin(next = "/admin") {
   await requireUser(next);
   const admin = await getAdminUser();
-  if (!admin) notFound();
+  if (!admin) redirect("/no-access");
   return admin;
 }

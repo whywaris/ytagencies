@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 
-import { safeNext } from "@/lib/auth";
 import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { callbackUrl } from "@/lib/redirects";
 import { absoluteUrl } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { loginSchema } from "@/lib/validation/auth";
@@ -35,7 +35,7 @@ export async function sendMagicLink(raw: unknown): Promise<FormResult> {
   }
 
   const supabase = await createClient();
-  const callback = absoluteUrl(`/auth/callback?next=${encodeURIComponent(safeNext(next))}`);
+  const callback = absoluteUrl(callbackUrl(next));
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: callback, shouldCreateUser: true },

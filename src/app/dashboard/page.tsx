@@ -1,24 +1,37 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
   const user = await requireUser("/dashboard");
   const supabase = await createClient();
-  const [{ data: agencies }, { data: claims }] = await Promise.all([
+  const [{ data: agencies }, { data: claims }, { data: submissions }] = await Promise.all([
     supabase.from("agencies").select("id, name, status").eq("owner_id", user.id).order("name"),
     supabase
       .from("claims")
-      .select("id, status, work_email, created_at, agencies(name, slug)")
+      .select("id, status, work_email, created_at, agencies(id, name, slug)")
       .eq("user_id", user.id)
       .eq("status", "pending")
       .order("created_at", { ascending: false }),
+    // Agencies they added via /list-your-agency that they don't own yet (owned ones are above).
+    supabase
+      .from("agencies")
+      .select("id, name")
+      .eq("submitted_by", user.id)
+      .eq("status", "draft")
+      .is("owner_id", null)
+      .order("created_at", { ascending: false }),
   ]);
+  // A submission's own claim is covered by "Waiting for review".
+  const submittedIds = new Set(submissions?.map((s) => s.id));
+  const openClaims = claims?.filter((c) => !submittedIds.has(c.agencies?.id ?? "")) ?? [];
 
   // Most owners manage one listing: skip the list.
-  if (agencies?.length === 1 && !claims?.length) redirect(`/dashboard/${agencies[0].id}`);
+  if (agencies?.length === 1 && !openClaims.length && !submissions?.length)
+    redirect(`/dashboard/${agencies[0].id}`);
 
   return (
     <div className="flex flex-col gap-12">
@@ -39,22 +52,46 @@ export default async function DashboardPage() {
           ))}
         </ul>
       ) : (
-        <div className="flex max-w-reading flex-col gap-2 rounded-lg bg-surface p-6">
-          <p className="font-medium">You don&apos;t manage a listing yet.</p>
-          <p className="text-text-2">
-            Find your agency in the directory and choose &ldquo;Claim this listing&rdquo; on its
-            profile. If it isn&apos;t listed, reply to any of our emails and we&apos;ll add it.
-          </p>
+        <div className="flex max-w-reading flex-col gap-4 rounded-lg bg-surface p-6">
+          <div className="flex flex-col gap-2">
+            <p className="font-medium">You don&apos;t manage a listing yet.</p>
+            <p className="text-text-2">
+              If your agency is already listed, claim it. If not, add it and we&apos;ll review it.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Button asChild>
+              <Link href="/list-your-agency">Find and claim your agency</Link>
+            </Button>
+            <Button asChild variant="link">
+              <Link href="/list-your-agency/new">Add your agency</Link>
+            </Button>
+          </div>
         </div>
       )}
 
-      {claims && claims.length > 0 && (
+      {submissions && submissions.length > 0 && (
+        <section aria-labelledby="submissions" className="flex flex-col gap-4">
+          <h2 id="submissions" className="text-h3">
+            Waiting for review
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {submissions.map((s) => (
+              <li key={s.id} className="text-text-2">
+                {s.name} · we&apos;ll email you when it&apos;s published
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {openClaims.length > 0 && (
         <section aria-labelledby="claims" className="flex flex-col gap-4">
           <h2 id="claims" className="text-h3">
             Open claims
           </h2>
           <ul className="flex flex-col gap-2">
-            {claims.map((c) => (
+            {openClaims.map((c) => (
               <li key={c.id} className="text-text-2">
                 {c.agencies?.name} · {c.work_email} · waiting for email confirmation or our review
               </li>

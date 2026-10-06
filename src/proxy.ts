@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { publicPathExists } from "@/lib/public-slugs";
+import { privateGate } from "@/lib/redirects";
 import type { Database } from "@/lib/supabase/types";
 
 // 1. Unknown public slugs → full server-rendered 404 (see lib/public-slugs.ts for why).
@@ -10,7 +11,8 @@ import type { Database } from "@/lib/supabase/types";
 
 // Any path this resolves to matches no route, so Next serves the root not-found with status 404.
 const NOT_FOUND_REWRITE = "/not-found/unknown/slug";
-const PRIVATE = /^\/(dashboard|admin|login|auth|claim)(\/|$)|^\/agency\/[^/]+\/claim$/;
+const PRIVATE =
+  /^\/(dashboard|admin|login|auth|claim)(\/|$)|^\/agency\/[^/]+\/claim$|^\/list-your-agency\/new$/;
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -48,20 +50,25 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isDashboard = path === "/dashboard" || path.startsWith("/dashboard/");
-  const isAdmin = path === "/admin" || path.startsWith("/admin/");
-
-  if ((isDashboard || isAdmin) && !user) {
-    return redirectKeepingCookies(request, response, `/login?next=${encodeURIComponent(path)}`);
-  }
-
-  if (isAdmin && user) {
+  const isAdminArea = path === "/admin" || path.startsWith("/admin/");
+  let isAdmin = false;
+  if (isAdminArea && user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .maybeSingle();
-    if (profile?.role !== "admin") return redirectKeepingCookies(request, response, "/dashboard");
+    isAdmin = profile?.role === "admin";
+  }
+
+  const gate = privateGate(path, !!user, isAdmin);
+  if (gate.action === "login") return redirectKeepingCookies(request, response, gate.to);
+  if (gate.action === "no-access") {
+    // Same URL, clear message (src/app/(marketing)/no-access) instead of a silent redirect.
+    const denied = NextResponse.rewrite(new URL("/no-access", request.url), { status: 403 });
+    response.cookies.getAll().forEach((c) => denied.cookies.set(c));
+    denied.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return denied;
   }
 
   // Private pages: never indexed, never cached by shared caches.

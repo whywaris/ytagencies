@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { safeNext } from "@/lib/auth";
+import { callbackUrl, safeNext } from "@/lib/redirects";
 import { absoluteUrl } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,11 +10,11 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: absoluteUrl(`/auth/callback?next=${encodeURIComponent(next)}`) },
+    options: { redirectTo: absoluteUrl(callbackUrl(next)) },
   });
   if (error || !data.url) {
     return NextResponse.redirect(
-      new URL(`/login?error=google&next=${encodeURIComponent(next)}`, request.url),
+      new URL(`/login?error=google${next ? `&next=${encodeURIComponent(next)}` : ""}`, request.url),
     );
   }
   return NextResponse.redirect(data.url);

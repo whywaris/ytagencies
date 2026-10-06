@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { safeNext } from "@/lib/auth";
+import { postLoginPath, safeNext } from "@/lib/redirects";
 import { createClient } from "@/lib/supabase/server";
 
-// Magic link and Google both land here with a PKCE code.
+// Magic link and Google both land here with a PKCE code and, if the visitor came from a gated
+// page, ?next=. Without one, admins go to /admin and everyone else to /dashboard.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
@@ -11,10 +12,15 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(next, origin));
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      const { data: profile } = next
+        ? { data: null }
+        : await supabase.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+      return NextResponse.redirect(new URL(postLoginPath(next, profile?.role === "admin"), origin));
+    }
   }
   return NextResponse.redirect(
-    new URL(`/login?error=link&next=${encodeURIComponent(next)}`, origin),
+    new URL(`/login?error=link${next ? `&next=${encodeURIComponent(next)}` : ""}`, origin),
   );
 }

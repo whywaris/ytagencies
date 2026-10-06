@@ -9,7 +9,7 @@
    ```
 3. Auth settings:
    - Site URL: `https://ytagencies.com`
-   - Redirect URLs: `https://ytagencies.com/auth/callback` (plus `http://localhost:3000/auth/callback` on the dev project only)
+   - Redirect URLs: `https://ytagencies.com/auth/callback**` (plus `http://localhost:3000/auth/callback**` on the dev project only). Keep the trailing `**`: sign-in links carry `?next=`, and without the wildcard Supabase drops the URL and sends people to the Site URL instead.
    - Enable Google (OAuth client in Google Cloud; authorized domain `ytagencies.com`)
    - Custom SMTP through Resend, sender `hello@ytagencies.com`
 4. Make yourself admin: `update profiles set role = 'admin' where id = '<your user id>';`

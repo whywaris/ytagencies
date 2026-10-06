@@ -7,6 +7,7 @@
     "build": "next build",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "test": "node --test \"tests/**/*.test.mjs\" && node supabase/tests/access.mjs && node supabase/tests/access.mjs --migrations",
     "format": "prettier --write .",
     "start": "next start"
   },
@@ -33,6 +34,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/postcss": "^4",
     "@types/mdx": "^2.0.14",
     "@types/node": "^20",
