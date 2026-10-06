@@ -328,3 +328,12 @@ from (values
   ('00000000-0000-4000-8000-000000000011', 'Anonymous', null, 2,
    'Pending review used to test moderation. It should never appear on the public site.', 'pending')
 ) as v(agency_id, author_name, author_company, rating, body, status);
+
+-- Verified badges come from approved verifications (a trigger keeps agencies.is_verified in sync).
+-- The sample rows above set the flag directly, so record the matching approvals.
+insert into verifications (agency_id, status, checklist, reviewed_at)
+select a.id, 'approved', '{"seeded": true}', now()
+from agencies a
+where a.is_verified
+  and a.id::text like '00000000-0000-4000-8000-%'
+  and not exists (select 1 from verifications v where v.agency_id = a.id and v.status = 'approved');

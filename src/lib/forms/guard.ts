@@ -49,3 +49,13 @@ export async function underRateLimit(ip: string, email: string) {
   for (const r of results) if (r.error) throw r.error;
   return results.every((r) => r.data === true);
 }
+
+/** One hashed bucket (e.g. "beacon" per IP) with its own limit; false once it's over. Fails closed. */
+export async function hitRateLimit(kind: string, value: string, limit: number, window: string) {
+  const { data, error } = await createAdminClient().rpc("hit_rate_limit", {
+    p_key: hashKey(kind, value),
+    p_limit: limit,
+    p_window: window,
+  });
+  return !error && data === true;
+}

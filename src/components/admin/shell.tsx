@@ -32,6 +32,7 @@ import {
   setPrefCookie,
   type Theme,
 } from "@/components/admin/shell-prefs";
+import { markNotificationsSeen } from "@/lib/actions/admin";
 import { signOut } from "@/lib/actions/auth";
 import { formatCount, formatDateTime, formatRelative } from "@/lib/format";
 import { BRAND_NAME } from "@/lib/site";
@@ -75,15 +76,19 @@ const floating =
 const menuRow =
   "flex h-8 cursor-default items-center gap-2 rounded-md px-2 outline-none select-none data-[highlighted]:bg-surface-2";
 
+export type NewLeads = { count: number; latest: string | null };
+
 export function AdminShell({
   email,
   queues,
+  newLeads,
   initialTheme,
   initialCollapsed,
   children,
 }: {
   email: string;
   queues: Queue[];
+  newLeads: NewLeads;
   initialTheme: Theme;
   initialCollapsed: boolean;
   children: React.ReactNode;
@@ -183,7 +188,7 @@ export function AdminShell({
                   <Search className={icon} aria-hidden />
                 </button>
                 <ThemeMenu theme={theme} onChange={changeTheme} />
-                <Notifications queues={queues} />
+                <Notifications queues={queues} newLeads={newLeads} />
                 <ProfileMenu email={email} />
               </div>
             </header>
@@ -423,14 +428,25 @@ function ThemeMenu({ theme, onChange }: { theme: Theme; onChange: (t: Theme) => 
   );
 }
 
-function Notifications({ queues }: { queues: Queue[] }) {
+function Notifications({ queues, newLeads }: { queues: Queue[]; newLeads: NewLeads }) {
+  // Opening the popover marks new leads as seen (profiles.notifications_seen_at). They stay listed
+  // until it closes, then drop off; pending queues stay until they're dealt with.
+  const [leadsSeen, setLeadsSeen] = useState(false);
+  const leads = leadsSeen ? 0 : newLeads.count;
   const pending = queues.filter((q) => q.count > 0);
-  const total = pending.reduce((n, q) => n + q.count, 0);
+  const total = pending.reduce((n, q) => n + q.count, 0) + leads;
   const container = usePortalContainer();
   return (
-    <Popover.Root>
+    <Popover.Root
+      onOpenChange={(open) => {
+        if (open && newLeads.count > 0 && !leadsSeen) void markNotificationsSeen();
+        if (!open && newLeads.count > 0) setLeadsSeen(true);
+      }}
+    >
       <Popover.Trigger
-        aria-label={total ? `Notifications, ${total} waiting` : "Notifications"}
+        aria-label={
+          total ? `Notifications, ${total} ${total === 1 ? "item" : "items"}` : "Notifications"
+        }
         className={cn(iconButton, "relative")}
       >
         <Bell className={icon} aria-hidden />
@@ -441,8 +457,32 @@ function Notifications({ queues }: { queues: Queue[] }) {
       <Popover.Portal container={container}>
         <Popover.Content align="end" sideOffset={6} className={cn(floating, "w-80 p-0")}>
           <p className="border-b border-line px-4 py-3 text-admin-section">Waiting for you</p>
-          {pending.length ? (
+          {pending.length || leads ? (
             <ul className="p-1">
+              {leads > 0 && (
+                <li>
+                  <Popover.Close asChild>
+                    <Link
+                      href="/admin/leads"
+                      className="flex items-baseline gap-3 rounded-md px-3 py-2.5 hover:bg-surface-2"
+                    >
+                      <span>
+                        <span className="num">{formatCount(leads)}</span>{" "}
+                        {leads === 1 ? "new lead" : "new leads"}
+                      </span>
+                      {newLeads.latest && (
+                        <time
+                          dateTime={newLeads.latest}
+                          title={formatDateTime(newLeads.latest)}
+                          className="ml-auto shrink-0 text-admin-meta num"
+                        >
+                          latest {formatRelative(newLeads.latest)}
+                        </time>
+                      )}
+                    </Link>
+                  </Popover.Close>
+                </li>
+              )}
               {pending.map((q) => (
                 <li key={q.href}>
                   <Popover.Close asChild>
@@ -469,7 +509,7 @@ function Notifications({ queues }: { queues: Queue[] }) {
               ))}
             </ul>
           ) : (
-            <p className="px-4 py-6 text-text-2">Nothing is waiting for review.</p>
+            <p className="px-4 py-6 text-text-2">No new leads, and nothing waiting for review.</p>
           )}
         </Popover.Content>
       </Popover.Portal>

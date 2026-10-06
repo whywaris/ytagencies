@@ -21,8 +21,9 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await requireAdmin();
   const db = createAdminClient();
   const oldestFirst = { ascending: true } as const;
-  const [store, submissions, claims, reviews] = await Promise.all([
+  const [store, profile, submissions, claims, reviews] = await Promise.all([
     cookies(),
+    db.from("profiles").select("notifications_seen_at").eq("id", user.id).maybeSingle(),
     db
       .from("agencies")
       .select("created_at", { count: "exact" })
@@ -67,6 +68,16 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
     oldest: res.data?.[0]?.created_at ?? null,
   }));
 
+  // New leads since this admin last opened the notifications popover (§4).
+  const seenAt = profile.data?.notifications_seen_at ?? null;
+  let newLeadsQuery = db
+    .from("leads")
+    .select("created_at", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (seenAt) newLeadsQuery = newLeadsQuery.gt("created_at", seenAt);
+  const newLeads = await newLeadsQuery;
+
   const theme = parseTheme(store.get(THEME_COOKIE)?.value);
   return (
     <div
@@ -77,6 +88,10 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       <AdminShell
         email={user.email ?? ""}
         queues={queues}
+        newLeads={{
+          count: newLeads.count ?? 0,
+          latest: newLeads.data?.[0]?.created_at ?? null,
+        }}
         initialTheme={theme}
         initialCollapsed={store.get(SIDEBAR_COOKIE)?.value === "1"}
       >

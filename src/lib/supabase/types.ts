@@ -9,6 +9,36 @@ export type Database = {
   };
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action: string;
+          admin_id: string | null;
+          created_at: string;
+          details: Json;
+          entity_id: string | null;
+          entity_type: string;
+          id: number;
+        };
+        Insert: {
+          action: string;
+          admin_id?: string | null;
+          created_at?: string;
+          details?: Json;
+          entity_id?: string | null;
+          entity_type: string;
+          id?: never;
+        };
+        Update: {
+          action?: string;
+          admin_id?: string | null;
+          created_at?: string;
+          details?: Json;
+          entity_id?: string | null;
+          entity_type?: string;
+          id?: never;
+        };
+        Relationships: [];
+      };
       agencies: {
         Row: {
           created_at: string;
@@ -88,6 +118,70 @@ export type Database = {
             columns: ["hq_location_id"];
             isOneToOne: false;
             referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agency_event_daily: {
+        Row: {
+          agency_id: string;
+          count: number;
+          day: string;
+          type: string;
+        };
+        Insert: {
+          agency_id: string;
+          count?: number;
+          day: string;
+          type: string;
+        };
+        Update: {
+          agency_id?: string;
+          count?: number;
+          day?: string;
+          type?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agency_event_daily_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agency_events: {
+        Row: {
+          agency_id: string;
+          created_at: string;
+          id: number;
+          page_path: string | null;
+          type: string;
+          visitor_hash: string;
+        };
+        Insert: {
+          agency_id: string;
+          created_at?: string;
+          id?: never;
+          page_path?: string | null;
+          type: string;
+          visitor_hash: string;
+        };
+        Update: {
+          agency_id?: string;
+          created_at?: string;
+          id?: never;
+          page_path?: string | null;
+          type?: string;
+          visitor_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agency_events_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
             referencedColumns: ["id"];
           },
         ];
@@ -184,6 +278,53 @@ export type Database = {
             columns: ["service_id"];
             isOneToOne: false;
             referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agency_subscriptions: {
+        Row: {
+          agency_id: string;
+          created_at: string;
+          ends_at: string | null;
+          external_id: string | null;
+          id: string;
+          plan_id: string;
+          source: string;
+          starts_at: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          agency_id: string;
+          created_at?: string;
+          ends_at?: string | null;
+          external_id?: string | null;
+          id?: string;
+          plan_id: string;
+          source: string;
+          starts_at?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          agency_id?: string;
+          created_at?: string;
+          ends_at?: string | null;
+          external_id?: string | null;
+          id?: string;
+          plan_id?: string;
+          source?: string;
+          starts_at?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agency_subscriptions_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
             referencedColumns: ["id"];
           },
         ];
@@ -417,23 +558,47 @@ export type Database = {
           },
         ];
       };
+      plans: {
+        Row: {
+          id: string;
+          name: string;
+          price_monthly: number | null;
+          price_yearly: number | null;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          price_monthly?: number | null;
+          price_yearly?: number | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          price_monthly?: number | null;
+          price_yearly?: number | null;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           created_at: string;
           full_name: string | null;
           id: string;
+          notifications_seen_at: string | null;
           role: string;
         };
         Insert: {
           created_at?: string;
           full_name?: string | null;
           id: string;
+          notifications_seen_at?: string | null;
           role?: string;
         };
         Update: {
           created_at?: string;
           full_name?: string | null;
           id?: string;
+          notifications_seen_at?: string | null;
           role?: string;
         };
         Relationships: [];
@@ -572,6 +737,103 @@ export type Database = {
         };
         Relationships: [];
       };
+      sponsored_slots: {
+        Row: {
+          agency_id: string;
+          created_at: string;
+          ends_at: string;
+          id: string;
+          industry_id: number | null;
+          location_id: number | null;
+          position: number;
+          price_usd: number | null;
+          service_id: number;
+          starts_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          agency_id: string;
+          created_at?: string;
+          ends_at: string;
+          id?: string;
+          industry_id?: number | null;
+          location_id?: number | null;
+          position: number;
+          price_usd?: number | null;
+          service_id: number;
+          starts_at: string;
+          updated_at?: string;
+        };
+        Update: {
+          agency_id?: string;
+          created_at?: string;
+          ends_at?: string;
+          id?: string;
+          industry_id?: number | null;
+          location_id?: number | null;
+          position?: number;
+          price_usd?: number | null;
+          service_id?: number;
+          starts_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sponsored_slots_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      verifications: {
+        Row: {
+          agency_id: string;
+          channels: Json;
+          checklist: Json;
+          created_at: string;
+          id: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          stats_snapshot: Json | null;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          agency_id: string;
+          channels?: Json;
+          checklist?: Json;
+          created_at?: string;
+          id?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          stats_snapshot?: Json | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          agency_id?: string;
+          channels?: Json;
+          checklist?: Json;
+          created_at?: string;
+          id?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          stats_snapshot?: Json | null;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "verifications_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       combo_counts: {
@@ -589,6 +851,10 @@ export type Database = {
         Returns: boolean;
       };
       is_admin: { Args: never; Returns: boolean };
+      record_agency_event: {
+        Args: { p_agency: string; p_type: string; p_path: string; p_visitor: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;

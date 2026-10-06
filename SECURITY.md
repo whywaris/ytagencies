@@ -6,7 +6,8 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 
 - Secrets live only in Vercel env vars and a local `.env.local` (git-ignored). Never commit them.
 - Only variables prefixed `NEXT_PUBLIC_` may reach the browser. Exactly three are allowed: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (public by design; the secret stays server-side).
-- `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY` are server-only. Import them only in files with `import "server-only"`.
+- `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `CLAIM_TOKEN_SECRET` and `YOUTUBE_API_KEY` (YouTube Data API v3, used only by admin verification) are server-only. Import them only in files with `import "server-only"` or route handlers, and never log them.
+- `PAYMENTS_ENABLED` is a server-side switch, not a secret. Anything that charges money stays off unless it is exactly `"true"`; while it's off the billing interface is a no-op.
 - Keep a `.env.example` with names and no values.
 
 ## Database (Supabase)
@@ -17,6 +18,9 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 - Leads are never readable by anon. Agencies see only leads routed to them.
 - Admin actions check `profiles.role = 'admin'` in policy, not just in UI.
 - Never build SQL with string concatenation. Use the Supabase client or parameterized RPCs.
+- Plans, subscriptions, sponsored slots, verifications, agency events and the admin audit log are admin-write only. Owners may read their own subscription, verification and daily event rollups; anon reads none of them (public pages read what they need server-side with the service role).
+- `agencies.is_verified` is derived from an approved row in `verifications` by a trigger. Don't write the flag directly.
+- Every admin mutation writes one row to `admin_actions` (ids and field names, never personal data). The log is append-only, even for admins.
 
 ## Auth
 
@@ -32,7 +36,15 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
   - Rate limiting per IP and per email (e.g. 5 submissions/hour), stored in a `rate_limits` table or Upstash.
   - Honeypot field.
 - Reviews: plain text only, length-capped, held for moderation before publishing.
-- Never use `dangerouslySetInnerHTML` with user content. Render guides from trusted MDX only.
+- Never use `dangerouslySetInnerHTML` with user content.
+- Guides (stored as Markdown in the database) are rendered server-side with remark/rehype and **rehype-sanitize**: no raw HTML, no scripts or event handlers, links get `rel="noopener"` and external ones open in a new tab. Never render guide Markdown in the browser or skip the sanitizer.
+
+## Analytics beacon (`POST /api/events`)
+
+- Accepts only `profile_view`, `website_click` and `contact_open` for a published agency, from the same origin (checked `Origin`). Inquiries are counted server-side when a lead is routed, never from the browser.
+- Ignores bots (user-agent check) and is rate-limited per IP (hashed key, 120 an hour). Always answers 204, so it reveals nothing.
+- Stores `visitor_hash` only: an HMAC of IP + user agent with a key that changes every UTC day (derived from `CLAIM_TOKEN_SECRET`). No raw IP or user agent is stored, and visitors can't be linked across days.
+- One event per visitor, agency, type and day. Raw events are pruned after 90 days; daily rollups (`agency_event_daily`) are kept.
 
 ## Uploads (logos, case-study images)
 

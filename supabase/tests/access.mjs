@@ -3,6 +3,7 @@
 //   node supabase/tests/access.mjs               fresh project: supabase/schema.sql
 //   node supabase/tests/access.mjs --migrations  existing project: initial schema + migrations/
 import { PGlite } from "@electric-sql/pglite";
+import { btree_gist } from "@electric-sql/pglite/contrib/btree_gist";
 import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -11,7 +12,7 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const MIGRATIONS = process.argv.includes("--migrations");
 // The schema as first committed, before any migration (scaffold commit).
 const INITIAL_SCHEMA_COMMIT = "9b2e225";
-const db = new PGlite();
+const db = new PGlite({ extensions: { btree_gist } });
 await db.exec(`
   create role anon; create role authenticated;
   alter default privileges in schema public grant all on tables to anon, authenticated;
@@ -355,6 +356,229 @@ await as("anon", null, async () => {
     "anon: submission invisible",
   );
 });
+
+console.log("— plans, subscriptions, sponsored slots, verifications, events, audit (§7) —");
+const ADMIN = "44444444-4444-4444-8444-444444444444";
+const idOf = async (slug) => (await rows(`select id from agencies where slug = '${slug}'`))[0].id;
+const QUILL = await idOf("quillfern-media"); // owned by OWNER
+const PINE = await idOf("pinecask-creative");
+const SALT = await idOf("saltmere-studios");
+await db.exec(`
+  insert into auth.users (id, email) values ('${ADMIN}', 'admin@x.example');
+  update profiles set role = 'admin' where id = '${ADMIN}';
+  insert into agency_subscriptions (agency_id, plan_id, source, ends_at)
+    values ('${QUILL}', 'founding', 'founding', now() + interval '6 months'),
+           ('${PINE}', 'verified', 'manual', null);
+  insert into verifications (agency_id, status) values ('${PINE}', 'requested');
+  insert into admin_actions (admin_id, action, entity_type, entity_id) values ('${ADMIN}', 'agency.publish', 'agency', '${QUILL}');
+  insert into sponsored_slots (service_id, industry_id, agency_id, position, starts_at, ends_at)
+    values (1, 1, '${QUILL}', 1, now(), now() + interval '30 days');
+`);
+const rec = async (agency, type, visitor) =>
+  (
+    await db.query(`select record_agency_event($1, $2, '/agency/x', $3) ok`, [
+      agency,
+      type,
+      visitor,
+    ])
+  ).rows[0].ok;
+ok((await rec(QUILL, "profile_view", "v1")) === true, "events: first view recorded");
+ok(
+  (await rec(QUILL, "profile_view", "v1")) === false,
+  "events: same visitor, same day, not counted twice",
+);
+ok((await rec(QUILL, "profile_view", "v2")) === true, "events: another visitor counted");
+await rec(PINE, "website_click", "v1");
+const [daily] = await rows(
+  `select count from agency_event_daily where agency_id = '${QUILL}' and type = 'profile_view'`,
+);
+ok(daily?.count === 2, "events: daily rollup counts unique visitors (2)");
+await db.exec(
+  `insert into agency_events (agency_id, type, visitor_hash, created_at) values ('${QUILL}', 'contact_open', 'old', now() - interval '91 days')`,
+);
+await rec(QUILL, "contact_open", "v1");
+ok(
+  (await rows("select 1 from agency_events where visitor_hash = 'old'")).length === 0,
+  "events: raw events older than 90 days pruned",
+);
+const inquiries = async () =>
+  (
+    await rows(
+      `select coalesce(sum(count), 0)::int n from agency_event_daily where agency_id = '${QUILL}' and type = 'inquiry'`,
+    )
+  )[0].n;
+const before = await inquiries();
+await db.exec(`insert into leads (id, name, email) values ('aaaaaaaa-0000-4000-8000-000000000003', 'Inquiry', 'i@x.example');
+  insert into lead_routes (lead_id, agency_id) values ('aaaaaaaa-0000-4000-8000-000000000003', '${QUILL}')`);
+ok((await inquiries()) === before + 1, "events: a routed lead counts as one inquiry");
+
+await as("anon", null, async () => {
+  for (const t of [
+    "plans",
+    "agency_subscriptions",
+    "sponsored_slots",
+    "verifications",
+    "agency_events",
+    "agency_event_daily",
+    "admin_actions",
+  ]) {
+    ok(await denied(`select * from ${t}`), `anon: ${t} not readable`);
+  }
+  ok(
+    await denied(`select record_agency_event('${QUILL}', 'profile_view', '/x', 'anon')`),
+    "anon: can't call record_agency_event",
+  );
+  ok(
+    await denied(
+      `insert into agency_events (agency_id, type, visitor_hash) values ('${QUILL}', 'profile_view', 'x')`,
+    ),
+    "anon: can't insert events directly",
+  );
+});
+await as("authenticated", OWNER, async () => {
+  ok((await rows("select * from plans")).length === 3, "owner: plans readable (3)");
+  const subs = await rows("select agency_id from agency_subscriptions");
+  ok(subs.length === 1 && subs[0].agency_id === QUILL, "owner: only their own subscription");
+  ok(
+    (await rows("select * from verifications")).every((v) => v.agency_id === QUILL),
+    "owner: only their own verifications",
+  );
+  const roll = await rows("select distinct agency_id from agency_event_daily");
+  ok(roll.length === 1 && roll[0].agency_id === QUILL, "owner: only their own event rollups");
+  ok((await rows("select * from agency_events")).length === 0, "owner: raw events hidden");
+  ok((await rows("select * from admin_actions")).length === 0, "owner: audit log hidden");
+  ok((await rows("select * from sponsored_slots")).length === 0, "owner: sponsored slots hidden");
+  ok(
+    await denied(
+      `insert into agency_subscriptions (agency_id, plan_id, source) values ('${QUILL}', 'verified', 'manual')`,
+    ),
+    "owner: can't give themselves a plan",
+  );
+  ok(
+    await denied(`update agency_subscriptions set ends_at = null where agency_id = '${QUILL}'`),
+    "owner: can't extend their plan",
+  );
+  ok(
+    await denied(`insert into verifications (agency_id, status) values ('${QUILL}', 'approved')`),
+    "owner: can't approve their own verification",
+  );
+  ok(
+    await denied(`update agencies set is_verified = true where id = '${QUILL}'`),
+    "owner: can't set is_verified",
+  );
+  ok(
+    await denied(
+      `insert into sponsored_slots (service_id, agency_id, position, starts_at, ends_at) values (2, '${QUILL}', 1, now(), now() + interval '1 day')`,
+    ),
+    "owner: can't buy a slot directly",
+  );
+  ok(
+    await denied(
+      `insert into agency_event_daily (agency_id, day, type, count) values ('${QUILL}', current_date, 'profile_view', 999)`,
+    ),
+    "owner: can't inflate their stats",
+  );
+  ok(
+    await denied(`select record_agency_event('${QUILL}', 'profile_view', '/x', 'self')`),
+    "owner: can't call record_agency_event",
+  );
+  ok(await denied(`delete from admin_actions`), "owner: can't touch the audit log");
+});
+await as("authenticated", OTHER, async () => {
+  ok(
+    (await rows("select * from agency_subscriptions")).length === 0,
+    "other user: no subscriptions visible",
+  );
+  ok(
+    (await rows("select * from agency_event_daily")).length === 0,
+    "other user: no rollups visible",
+  );
+  ok(
+    (await rows("select * from verifications")).length === 0,
+    "other user: no verifications visible",
+  );
+});
+await as("authenticated", ADMIN, async () => {
+  ok(
+    (await rows("select * from agency_subscriptions")).length === 2,
+    "admin: reads all subscriptions",
+  );
+  ok((await rows("select * from admin_actions")).length === 1, "admin: reads the audit log");
+  ok((await rows("select * from agency_events")).length > 0, "admin: reads raw events");
+  ok(
+    !(await denied(
+      `update agency_subscriptions set status = 'cancelled' where agency_id = '${PINE}'`,
+    )),
+    "admin: can change a plan",
+  );
+  ok(await denied(`delete from admin_actions`), "admin: audit log is append-only, even for admins");
+  ok(await denied(`update admin_actions set action = 'x'`), "admin: can't rewrite the audit log");
+});
+
+// Constraints (as the service role would hit them).
+const fails = async (sql) => {
+  try {
+    await db.exec(sql);
+    return false;
+  } catch {
+    return true;
+  }
+};
+ok(
+  await fails(
+    `insert into agency_subscriptions (agency_id, plan_id, source) values ('${QUILL}', 'verified', 'manual')`,
+  ),
+  "subscriptions: one active row per agency",
+);
+ok(
+  !(await fails(
+    `insert into agency_subscriptions (agency_id, plan_id, status, source) values ('${QUILL}', 'free', 'expired', 'manual')`,
+  )),
+  "subscriptions: past rows can sit alongside the active one",
+);
+ok(
+  await fails(
+    `insert into agency_subscriptions (agency_id, plan_id, source) values ('${SALT}', 'gold', 'manual')`,
+  ),
+  "subscriptions: unknown plan refused",
+);
+const slot = (agency, pos, from, to, industry = "1", location = "null") =>
+  `insert into sponsored_slots (service_id, industry_id, location_id, agency_id, position, starts_at, ends_at)
+   values (1, ${industry}, ${location}, '${agency}', ${pos}, now() + interval '${from} days', now() + interval '${to} days')`;
+ok(await fails(slot(PINE, 1, 10, 40)), "slots: same page and position can't overlap in time");
+ok(!(await fails(slot(PINE, 2, 10, 40))), "slots: another position on the same page is fine");
+ok(
+  await fails(slot(QUILL, 3, 5, 6)),
+  "slots: one agency can't hold two positions on a page at once",
+);
+ok(
+  !(await fails(slot(SALT, 1, 31, 60))),
+  "slots: same position after the previous one ends is fine",
+);
+ok(!(await fails(slot(SALT, 1, 0, 10, "2"))), "slots: same position on a different page is fine");
+ok(
+  !(await fails(slot(PINE, 1, 0, 5, "null"))) && (await fails(slot(SALT, 1, 2, 3, "null"))),
+  "slots: hub pages (no industry) are checked too",
+);
+ok(await fails(slot(SALT, 3, 0, 5, "1", "1")), "slots: a page is industry or location, not both");
+ok(await fails(slot(SALT, 4, 100, 101)), "slots: max 3 positions");
+
+// agencies.is_verified follows approved verifications.
+const verified = async (id) =>
+  (await rows(`select is_verified from agencies where id = '${id}'`))[0].is_verified;
+await db.exec(
+  `update verifications set status = 'approved' where agency_id = '${PINE}' and status = 'requested'`,
+);
+ok((await verified(PINE)) === true, "verification: approving sets the agency's badge");
+await db.exec(`update verifications set status = 'rejected' where agency_id = '${PINE}'`);
+ok((await verified(PINE)) === false, "verification: revoking clears the badge");
+const drift = await rows(
+  `select a.slug from agencies a where a.is_verified <> exists (select 1 from verifications v where v.agency_id = a.id and v.status = 'approved')`,
+);
+ok(
+  drift.length === 0,
+  `verification: every badge matches an approved verification${drift.length ? " — drift: " + drift.map((d) => d.slug).join(", ") : ""}`,
+);
 
 await db.exec("reset role");
 const rlsOff = await rows(

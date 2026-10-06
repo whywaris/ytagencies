@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AgencyLogo, logoUrl } from "@/components/agency-logo";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { AgencyTracker } from "@/components/agency-tracker";
 import { LazyContactForm } from "@/components/forms/lazy-contact-form";
 import { JsonLd } from "@/components/json-ld";
 import { Badge } from "@/components/ui/badge";
@@ -98,6 +99,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
 
   return (
     <>
+      <AgencyTracker agencyId={agency.id} />
       <JsonLd data={breadcrumbJsonLd(breadcrumbs)} />
       <JsonLd
         data={professionalServiceJsonLd({
@@ -140,12 +142,15 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <Button asChild>
-                <a href="#contact">Contact agency</a>
+                <a href="#contact" data-track="contact_open">
+                  Contact agency
+                </a>
               </Button>
               {website && (
                 <a
                   href={website.href}
                   target="_blank"
+                  data-track="website_click"
                   // SECURITY.md: nofollow for listings, sponsored for paid placements.
                   rel={agency.isFeatured ? "sponsored noopener" : "nofollow noopener"}
                   className="flex min-h-11 items-center text-accent hover:underline"
