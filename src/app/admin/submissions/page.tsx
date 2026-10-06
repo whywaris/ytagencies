@@ -37,7 +37,7 @@ export default async function AdminSubmissionsPage() {
 
   return (
     <section className="flex flex-col gap-4" aria-labelledby="submissions">
-      <h1 id="submissions" className="text-h2">
+      <h1 id="submissions" className="text-admin-title">
         New submissions
       </h1>
       <p className="max-w-reading text-text-2">
@@ -86,8 +86,9 @@ export default async function AdminSubmissionsPage() {
                           : "Doesn't match website"}
                     </div>
                     <div className="text-small">
-                      {accounts.get(a.submitted_by!) ?? "Unknown"} · {date(a.created_at)}
+                      Signed in as {accounts.get(a.submitted_by!) ?? "unknown"}
                     </div>
+                    <div className="text-small num">Submitted {date(a.created_at)}</div>
                   </td>
                   <td>
                     <div className="flex gap-4">

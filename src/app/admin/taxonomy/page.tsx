@@ -42,7 +42,7 @@ export default async function AdminTaxonomyPage() {
   return (
     <div className="flex flex-col gap-14">
       <section aria-labelledby="combos" className="flex flex-col gap-4">
-        <h1 id="combos" className="text-h2">
+        <h1 id="combos" className="text-admin-title">
           Combination pages
         </h1>
         <p className="max-w-reading text-text-2">
@@ -136,7 +136,7 @@ export default async function AdminTaxonomyPage() {
       </section>
 
       <section aria-labelledby="service-intros" className="flex flex-col gap-4">
-        <h2 id="service-intros" className="text-h2">
+        <h2 id="service-intros" className="text-admin-section">
           Service intros
         </h2>
         <p className="max-w-reading text-text-2">Shown at the top of each service hub page.</p>
@@ -148,7 +148,7 @@ export default async function AdminTaxonomyPage() {
       </section>
 
       <section aria-labelledby="industry-intros" className="flex flex-col gap-4">
-        <h2 id="industry-intros" className="text-h2">
+        <h2 id="industry-intros" className="text-admin-section">
           Industry intros
         </h2>
         <p className="max-w-reading text-text-2">

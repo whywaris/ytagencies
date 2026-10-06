@@ -18,7 +18,7 @@ export default async function AdminReviewsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-h2">Reviews to moderate</h1>
+      <h1 className="text-admin-title">Reviews to moderate</h1>
       <p className="max-w-reading text-text-2">
         Publish only genuine reviews from real clients. Published reviews count towards the
         agency&apos;s rating and its structured data.

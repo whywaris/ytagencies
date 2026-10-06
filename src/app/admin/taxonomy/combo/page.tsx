@@ -53,7 +53,7 @@ export default async function ComboCopyPage({ searchParams }: PageProps<"/admin/
         <Link href="/admin/taxonomy" className="self-start text-small hover:text-text">
           ← Taxonomy
         </Link>
-        <h1 className="text-h2">
+        <h1 className="text-admin-title">
           {service.name} for {industry.name}
         </h1>
         <Link href={path} className="self-start text-accent hover:underline">

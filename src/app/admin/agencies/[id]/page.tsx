@@ -56,7 +56,7 @@ export default async function AdminAgencyPage({ params }: PageProps<"/admin/agen
         <Link href="/admin/agencies" className="self-start text-small hover:text-text">
           ← All agencies
         </Link>
-        <h1 className="text-h2">{agency.name}</h1>
+        <h1 className="text-admin-title">{agency.name}</h1>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-small">
           <span>
             Status: <strong className="text-text">{agency.status}</strong>
@@ -90,7 +90,7 @@ export default async function AdminAgencyPage({ params }: PageProps<"/admin/agen
       </header>
 
       <section aria-labelledby="details" className="flex max-w-reading flex-col gap-6">
-        <h2 id="details" className="text-h3">
+        <h2 id="details" className="text-admin-section">
           Details
         </h2>
         <AgencyForm
@@ -102,7 +102,7 @@ export default async function AdminAgencyPage({ params }: PageProps<"/admin/agen
       </section>
 
       <section aria-labelledby="profile" className="flex flex-col gap-6">
-        <h2 id="profile" className="text-h3">
+        <h2 id="profile" className="text-admin-section">
           Profile, services and locations
         </h2>
         <ProfileForm save={adminUpdateProfile} agencyId={agency.id} {...form} />

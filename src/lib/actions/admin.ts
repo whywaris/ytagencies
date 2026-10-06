@@ -330,3 +330,40 @@ export async function deleteLead(leadId: string): Promise<FormResult> {
   revalidatePath("/admin/leads");
   return { ok: true, data: undefined };
 }
+
+// ───────── Command palette search ─────────
+
+export type AdminSearchResults = {
+  agencies: { id: string; name: string; slug: string; website: string | null }[];
+  leads: { id: string; name: string; email: string }[];
+};
+
+/** Agencies by name, website or slug; leads by email. Admin only. */
+export async function adminSearch(raw: string): Promise<AdminSearchResults> {
+  const db = await adminClient();
+  if (!db) return { agencies: [], leads: [] };
+  // Only characters that can't break PostgREST's or() syntax or act as LIKE wildcards.
+  const term = z
+    .string()
+    .max(100)
+    .catch("")
+    .parse(raw)
+    .replace(/[^\p{L}\p{N} @.+-]/gu, " ")
+    .trim();
+  if (term.length < 2) return { agencies: [], leads: [] };
+  const [agencies, leads] = await Promise.all([
+    db
+      .from("agencies")
+      .select("id, name, slug, website")
+      .or(`name.ilike.*${term}*,website.ilike.*${term}*,slug.ilike.*${term}*`)
+      .order("name")
+      .limit(6),
+    db
+      .from("leads")
+      .select("id, name, email")
+      .ilike("email", `%${term}%`)
+      .order("created_at", { ascending: false })
+      .limit(6),
+  ]);
+  return { agencies: agencies.data ?? [], leads: leads.data ?? [] };
+}

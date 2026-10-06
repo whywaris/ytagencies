@@ -8,7 +8,7 @@ export default async function NewAgencyPage() {
   await requireAdmin("/admin/agencies/new");
   return (
     <div className="flex max-w-reading flex-col gap-6">
-      <h1 className="text-h2">New agency</h1>
+      <h1 className="text-admin-title">New agency</h1>
       <p className="text-text-2">
         New agencies start as drafts. After creating it, add services, industries and locations,
         then publish.

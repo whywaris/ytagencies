@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Inter } from "next/font/google";
+import { cookies } from "next/headers";
 
-import { AdminNav } from "@/components/admin/nav";
-import { signOut } from "@/lib/actions/auth";
+import { AdminShell, type Queue } from "@/components/admin/shell";
+import { SIDEBAR_COOKIE, THEME_COOKIE, parseTheme } from "@/components/admin/shell-prefs";
 import { requireAdmin } from "@/lib/auth";
 import { BRAND_NAME } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { cn } from "@/lib/utils";
+
+// Inter is scoped to admin (ADMIN_V2_SPEC §2); the public site keeps the system stack.
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: { absolute: `Admin | ${BRAND_NAME}`, template: `%s | Admin | ${BRAND_NAME}` },
@@ -15,48 +20,68 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await requireAdmin();
   const db = createAdminClient();
-  const [submissions, claims, reviews] = await Promise.all([
+  const oldestFirst = { ascending: true } as const;
+  const [store, submissions, claims, reviews] = await Promise.all([
+    cookies(),
     db
       .from("agencies")
-      .select("id", { count: "exact", head: true })
+      .select("created_at", { count: "exact" })
       .eq("status", "draft")
-      .not("submitted_by", "is", null),
-    // Claims on new submissions are decided in New submissions instead.
+      .not("submitted_by", "is", null)
+      .order("created_at", oldestFirst)
+      .limit(1),
+    // Claims on new submissions are decided in Submissions instead.
     db
       .from("claims")
-      .select("id, agencies!inner(status)", { count: "exact", head: true })
+      .select("created_at, agencies!inner(status)", { count: "exact" })
       .eq("status", "pending")
-      .neq("agencies.status", "draft"),
-    db.from("reviews").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      .neq("agencies.status", "draft")
+      .order("created_at", oldestFirst)
+      .limit(1),
+    db
+      .from("reviews")
+      .select("created_at", { count: "exact" })
+      .eq("status", "pending")
+      .order("created_at", oldestFirst)
+      .limit(1),
   ]);
 
+  // Pending work: sidebar badges and the notifications popover. Real counts only.
+  const queues: Queue[] = [
+    {
+      href: "/admin/submissions",
+      one: "new agency to review",
+      many: "new agencies to review",
+      res: submissions,
+    },
+    { href: "/admin/claims", one: "claim to review", many: "claims to review", res: claims },
+    {
+      href: "/admin/reviews",
+      one: "review to moderate",
+      many: "reviews to moderate",
+      res: reviews,
+    },
+  ].map(({ res, ...q }) => ({
+    ...q,
+    count: res.count ?? 0,
+    oldest: res.data?.[0]?.created_at ?? null,
+  }));
+
+  const theme = parseTheme(store.get(THEME_COOKIE)?.value);
   return (
-    <>
-      <header className="border-b border-line">
-        <div className="mx-auto flex h-13 max-w-content items-center justify-between gap-4 px-4 md:px-6">
-          <Link href="/" className="flex min-h-11 items-center text-[19px] font-semibold">
-            {BRAND_NAME} <span className="ml-2 font-normal text-text-2">Admin</span>
-          </Link>
-          <div className="flex min-w-0 items-center gap-4 text-small">
-            <span className="hidden truncate sm:inline">{user.email}</span>
-            <form action={signOut}>
-              <button type="submit" className="min-h-11 text-accent hover:underline">
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-      <main id="main" className="mx-auto flex max-w-content flex-col gap-8 px-4 py-10 md:px-6">
-        <AdminNav
-          counts={{
-            "/admin/submissions": submissions.count ?? 0,
-            "/admin/claims": claims.count ?? 0,
-            "/admin/reviews": reviews.count ?? 0,
-          }}
-        />
+    <div
+      data-admin=""
+      data-theme={theme === "system" ? undefined : theme}
+      className={cn(inter.className, "min-h-dvh bg-bg text-text")}
+    >
+      <AdminShell
+        email={user.email ?? ""}
+        queues={queues}
+        initialTheme={theme}
+        initialCollapsed={store.get(SIDEBAR_COOKIE)?.value === "1"}
+      >
         {children}
-      </main>
-    </>
+      </AdminShell>
+    </div>
   );
 }

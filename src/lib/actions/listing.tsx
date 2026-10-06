@@ -185,24 +185,20 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
   }
 
   const links = await Promise.all([
-    supabase
-      .from("agency_services")
-      .insert(
-        services.data.map((s) => ({
-          agency_id: id,
-          service_id: s.id,
-          is_primary: s.slug === input.services[0],
-        })),
-      ),
-    supabase
-      .from("agency_industries")
-      .insert(
-        industries.data.map((i) => ({
-          agency_id: id,
-          industry_id: i.id,
-          is_primary: i.slug === input.industries[0],
-        })),
-      ),
+    supabase.from("agency_services").insert(
+      services.data.map((s) => ({
+        agency_id: id,
+        service_id: s.id,
+        is_primary: s.slug === input.services[0],
+      })),
+    ),
+    supabase.from("agency_industries").insert(
+      industries.data.map((i) => ({
+        agency_id: id,
+        industry_id: i.id,
+        is_primary: i.slug === input.industries[0],
+      })),
+    ),
     locations.data.length
       ? supabase
           .from("agency_locations")

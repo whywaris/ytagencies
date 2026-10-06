@@ -102,7 +102,7 @@ export default async function AdminClaimsPage() {
   return (
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4" aria-labelledby="pending-claims">
-        <h1 id="pending-claims" className="text-h2">
+        <h1 id="pending-claims" className="text-admin-title">
           Claims to review
         </h1>
         <p className="max-w-reading text-text-2">
@@ -120,7 +120,7 @@ export default async function AdminClaimsPage() {
       </section>
       {decided.length > 0 && (
         <section className="flex flex-col gap-4" aria-labelledby="decided-claims">
-          <h2 id="decided-claims" className="text-h3">
+          <h2 id="decided-claims" className="text-admin-section">
             Recently decided
           </h2>
           <Table>

@@ -21,7 +21,7 @@ export default async function AdminLeadsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-h2">Leads</h1>
+      <h1 className="text-admin-title">Leads</h1>
       <p className="max-w-reading text-text-2">
         Personal data: use it only to route and follow up on these requests. When someone asks for
         their details to be deleted, delete their lead here (routes go with it), and ask the
@@ -48,7 +48,7 @@ export default async function AdminLeadsPage() {
               const need = [l.services?.name, l.industries?.name].filter(Boolean).join(" for ");
               const budget = BUDGET_RANGES.find((b) => b.value === l.budget_range)?.label;
               return (
-                <tr key={l.id}>
+                <tr key={l.id} id={`lead-${l.id}`} className="target:bg-surface-2">
                   <td className="whitespace-nowrap text-text-2">
                     {new Date(l.created_at).toLocaleDateString("en-US", {
                       day: "numeric",

@@ -52,6 +52,27 @@
   --verified: #34a853;
 }
 
+/* Admin only (docs/ADMIN_V2_SPEC.md §3): hover/active tint and status colors, scoped to [data-admin]
+   so the public site is untouched. --danger here replaces the public form-error red. */
+[data-admin] {
+  --surface-2: color-mix(in srgb, var(--text) 5%, transparent);
+  --success: #188038;
+  --warning: #b06000;
+  --danger: #c5221f;
+}
+@media (prefers-color-scheme: dark) {
+  [data-admin]:not([data-theme="light"]) {
+    --success: #34a853;
+    --warning: #f2b33d;
+    --danger: #f28b82;
+  }
+}
+[data-admin][data-theme="dark"] {
+  --success: #34a853;
+  --warning: #f2b33d;
+  --danger: #f28b82;
+}
+
 @theme inline {
   /* Design tokens as utilities: bg-bg, bg-surface, text-text, text-text-2, border-line, text-accent… */
   --color-bg: var(--bg);
@@ -62,6 +83,9 @@
   --color-accent: var(--accent);
   --color-verified: var(--verified);
   --color-on-accent: var(--on-accent);
+  --color-surface-2: var(--surface-2);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
 
   /* shadcn semantic names mapped onto the design tokens */
   --color-background: var(--bg);
@@ -145,6 +169,35 @@
   color: var(--text-2);
 }
 
+/* Admin type scale (ADMIN_V2_SPEC §2). Every number in admin gets .num. */
+@utility num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+@utility text-admin-title {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+@utility text-admin-section {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+@utility text-admin-kpi {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+@utility text-admin-meta {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-2);
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -154,6 +207,11 @@
   }
   body {
     @apply bg-background text-[17px] leading-normal text-foreground antialiased;
+  }
+  [data-admin] {
+    font-size: 14px;
+    line-height: 20px;
+    font-feature-settings: "cv11", "ss01", "ss03";
   }
   :focus-visible {
     outline: 2px solid var(--accent);
@@ -167,4 +225,13 @@
       transition-duration: 0.01ms !important;
     }
   }
+}
+
+/* Admin controls are denser than the public pills (ADMIN_V2_SPEC §3): 8px radius. Unlayered on
+   purpose, so it wins over the rounded-full utility on the shared Button. */
+[data-admin] [data-slot="button"],
+[data-admin] [data-slot="input"],
+[data-admin] select,
+[data-admin] textarea {
+  border-radius: 8px;
 }

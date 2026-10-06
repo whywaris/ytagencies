@@ -1,11 +1,15 @@
+import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 
-// Plain admin tables. Wide tables scroll inside their wrapper; the page itself never scrolls sideways.
+// Admin building blocks (ADMIN_V2_SPEC §3): hairlines, no shadows, 44px rows, sticky header.
+// Narrow screens: wide tables scroll sideways in their frame. Desktop: the frame doesn't clip, so
+// the header sticks under the 56px top bar while the page scrolls.
 
 export function Table({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-line">
-      <table className="w-full border-collapse text-left text-[15px] [&_td]:border-t [&_td]:border-line [&_td]:px-4 [&_td]:py-3 [&_td]:align-top [&_th]:bg-surface [&_th]:px-4 [&_th]:py-3 [&_th]:text-[14px] [&_th]:font-medium [&_th]:whitespace-nowrap [&_th]:text-text-2">
+    <div className="overflow-x-auto rounded-xl border border-line lg:overflow-visible">
+      <table className="w-full border-collapse text-left [&_tbody_tr]:transition-colors [&_tbody_tr]:duration-150 [&_tbody_tr:hover]:bg-surface-2 [&_td]:h-11 [&_td]:border-t [&_td]:border-line [&_td]:px-4 [&_td]:py-2.5 [&_td]:align-middle [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:h-9 [&_th]:bg-bg [&_th]:px-4 [&_th]:text-[12px] [&_th]:leading-4 [&_th]:font-medium [&_th]:whitespace-nowrap [&_th]:text-text-2 [&_th]:shadow-[inset_0_-1px_0_var(--line)] lg:[&_th]:top-14 [&_th:first-child]:rounded-tl-xl [&_th:last-child]:rounded-tr-xl">
         {children}
       </table>
     </div>
@@ -27,8 +31,9 @@ export function ActionButton({
       <button
         type="submit"
         className={cn(
-          "min-h-11 whitespace-nowrap hover:underline",
-          tone === "danger" ? "text-destructive" : "text-accent",
+          "min-h-9 whitespace-nowrap hover:underline",
+          // No loud red in rows (ADMIN_V2_SPEC §1): destructive actions turn red on hover only.
+          tone === "danger" ? "text-text-2 hover:text-destructive" : "text-accent",
         )}
       >
         {children}
@@ -41,8 +46,8 @@ export function Pill({ on, children }: { on: boolean; children: React.ReactNode 
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center rounded-full px-2.5 text-[14px] whitespace-nowrap",
-        on ? "bg-text text-bg" : "border border-line text-text-2",
+        "inline-flex h-5 items-center rounded-md px-1.5 text-[12px] font-medium whitespace-nowrap capitalize",
+        on ? "bg-surface-2 text-text" : "border border-line text-text-2",
       )}
     >
       {children}
@@ -50,6 +55,32 @@ export function Pill({ on, children }: { on: boolean; children: React.ReactNode 
   );
 }
 
-export function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-lg bg-surface p-6 text-text-2">{children}</p>;
+/** Designed zero state: what's empty, and what to do next when there's something to do. */
+export function Empty({
+  children,
+  action,
+}: {
+  children: React.ReactNode;
+  action?: { href: string; label: string };
+}) {
+  return (
+    <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed border-line px-6 py-10">
+      <p className="text-text-2">{children}</p>
+      {action && (
+        <Link href={action.href} className="font-medium text-accent hover:underline">
+          {action.label}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+/** Placeholder block shaped like the content it stands in for. */
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={cn("animate-pulse rounded-md bg-surface-2 motion-reduce:animate-none", className)}
+    />
+  );
 }

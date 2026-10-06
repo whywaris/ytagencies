@@ -1,34 +1,33 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { deleteLead } from "@/lib/actions/admin";
 
 export function DeleteLeadButton({ id, name }: { id: string; name: string }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
   return (
-    <div className="flex flex-col">
-      <button
-        type="button"
-        disabled={pending}
-        className="min-h-11 self-start text-[14px] text-destructive hover:underline"
-        onClick={() => {
-          if (!window.confirm(`Delete ${name}'s request permanently? This can't be undone.`))
-            return;
-          startTransition(async () => {
-            const res = await deleteLead(id);
-            if (res.ok) router.refresh();
-            else setError(res.error);
-          });
-        }}
-      >
-        {pending ? "Deleting…" : "Delete"}
-        <span className="sr-only"> lead from {name}</span>
-      </button>
-      {error && <span className="text-[14px] text-destructive">{error}</span>}
-    </div>
+    <ConfirmDialog
+      trigger={
+        <button
+          type="button"
+          className="min-h-9 self-start text-text-2 hover:text-destructive hover:underline"
+        >
+          Delete<span className="sr-only"> lead from {name}</span>
+        </button>
+      }
+      title={`Delete ${name}'s request?`}
+      description="This removes the lead and its routing record permanently. It can't be undone."
+      confirmLabel="Delete lead"
+      onConfirm={async () => {
+        const res = await deleteLead(id);
+        if (!res.ok) return res.error;
+        toast.success(`Deleted ${name}'s request`);
+        router.refresh();
+        return null;
+      }}
+    />
   );
 }

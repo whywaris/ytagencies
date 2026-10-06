@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ActionButton, Pill, Table } from "@/components/admin/ui";
+import { Button } from "@/components/ui/button";
 import { setAgencyStatus, toggleAgencyFlag } from "@/lib/actions/admin";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,13 +27,10 @@ export default async function AdminAgenciesPage({ searchParams }: PageProps<"/ad
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-h2">Agencies</h1>
-        <Link
-          href="/admin/agencies/new"
-          className="inline-flex h-11 items-center rounded-full bg-accent px-6 font-medium text-on-accent hover:bg-accent/90"
-        >
-          New agency
-        </Link>
+        <h1 className="text-admin-title">Agencies</h1>
+        <Button asChild className="h-9 px-4 text-[14px]">
+          <Link href="/admin/agencies/new">New agency</Link>
+        </Button>
       </div>
 
       <nav aria-label="Filter by status" className="flex flex-wrap gap-x-6 text-small">
@@ -77,19 +75,25 @@ export default async function AdminAgenciesPage({ searchParams }: PageProps<"/ad
                   <Pill on={published}>{a.status}</Pill>
                 </td>
                 <td>
-                  <ActionButton action={toggleAgencyFlag.bind(null, a.id, "is_verified")}>
-                    {a.is_verified ? "Yes · remove" : "No · verify"}
-                    <span className="sr-only"> {a.name}</span>
-                  </ActionButton>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 text-text-2">{a.is_verified ? "Yes" : "No"}</span>
+                    <ActionButton action={toggleAgencyFlag.bind(null, a.id, "is_verified")}>
+                      {a.is_verified ? "Remove" : "Verify"}
+                      <span className="sr-only"> {a.name}</span>
+                    </ActionButton>
+                  </div>
                 </td>
                 <td>
-                  <ActionButton action={toggleAgencyFlag.bind(null, a.id, "is_featured")}>
-                    {a.is_featured ? "Yes · remove" : "No · feature"}
-                    <span className="sr-only"> {a.name}</span>
-                  </ActionButton>
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 text-text-2">{a.is_featured ? "Yes" : "No"}</span>
+                    <ActionButton action={toggleAgencyFlag.bind(null, a.id, "is_featured")}>
+                      {a.is_featured ? "Remove" : "Feature"}
+                      <span className="sr-only"> {a.name}</span>
+                    </ActionButton>
+                  </div>
                 </td>
                 <td className="text-text-2">{a.is_claimed ? "Yes" : "No"}</td>
-                <td className="whitespace-nowrap text-text-2">
+                <td className="whitespace-nowrap text-text-2 num">
                   {new Date(a.updated_at).toLocaleDateString("en-US", {
                     day: "numeric",
                     month: "short",
