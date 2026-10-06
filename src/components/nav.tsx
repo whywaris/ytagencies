@@ -1,16 +1,18 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
+import { MobileMenu, NavAccount } from "@/components/nav-account";
 import { BRAND_NAME } from "@/lib/site";
 
 const links = [
   { href: "/#services", label: "Services" },
   { href: "/#industries", label: "Industries" },
   { href: "/guides", label: "Guides" },
+  { href: "/get-matched", label: "Get matched" },
 ];
 
-// DESIGN.md: 52px, sticky, frosted, hairline bottom border.
+// DESIGN.md: 52px, sticky, frosted, hairline bottom border. Server-rendered and cookie-free so
+// pages stay static; the account area is a client component (see nav-account.tsx).
 export function Nav() {
   return (
     <header className="@container sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-[20px]">
@@ -21,8 +23,7 @@ export function Nav() {
         <Link href="/" aria-label={`${BRAND_NAME} home`} className="flex min-h-11 items-center">
           <Logo className="h-7 w-auto" />
         </Link>
-        {/* ponytail: links hidden when the nav is narrow, the footer repeats them; add a menu if mobile nav data says so */}
-        <ul className="hidden items-center gap-6 @xl:flex">
+        <ul className="hidden items-center gap-6 @4xl:flex">
           {links.map((l) => (
             <li key={l.href}>
               <Link
@@ -34,9 +35,12 @@ export function Nav() {
             </li>
           ))}
         </ul>
-        <Button asChild className="ml-auto">
-          <Link href="/get-matched">Get matched</Link>
-        </Button>
+        <div className="ml-auto hidden @4xl:block">
+          <NavAccount />
+        </div>
+        <div className="ml-auto @4xl:hidden">
+          <MobileMenu links={links} />
+        </div>
       </nav>
     </header>
   );

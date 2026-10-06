@@ -210,6 +210,45 @@ export async function decideClaim(claimId: string, decision: string) {
   revalidatePath("/admin/claims");
 }
 
+// ───────── New submissions (/list-your-agency) ─────────
+
+/**
+ * Approve: publish the draft and, if nobody owns it yet, approve the submitter's pending claim
+ * (the admin's review stands in for the domain check). Reject: delete the draft; claims cascade.
+ */
+export async function decideSubmission(agencyId: string, decision: string) {
+  const db = await adminClientOrThrow();
+  const d = z.enum(["approve", "reject"]).parse(decision);
+  const { data: agency } = await db
+    .from("agencies")
+    .select("id, slug, status, owner_id, submitted_by")
+    .eq("id", uuid.parse(agencyId))
+    .maybeSingle();
+  if (!agency || agency.status !== "draft" || !agency.submitted_by) return;
+
+  if (d === "reject") {
+    await db.from("agencies").delete().eq("id", agency.id).eq("status", "draft");
+  } else {
+    if (!agency.owner_id) {
+      const { data: claim } = await db
+        .from("claims")
+        .select("id")
+        .eq("agency_id", agency.id)
+        .eq("user_id", agency.submitted_by)
+        .eq("status", "pending")
+        .maybeSingle();
+      if (claim)
+        await approveClaim({ id: claim.id, agencyId: agency.id, userId: agency.submitted_by });
+    }
+    await db
+      .from("agencies")
+      .update({ status: "published", updated_at: new Date().toISOString() })
+      .eq("id", agency.id);
+    revalidateAgency(agency.slug);
+  }
+  revalidatePath("/admin/submissions");
+}
+
 // ───────── Reviews ─────────
 
 export async function decideReview(reviewId: string, decision: string) {

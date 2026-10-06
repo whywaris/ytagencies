@@ -17,6 +17,7 @@
 | Service × location                      | `/youtube-seo-agencies/in-usa`      | If ≥ 3 published agencies       |
 | Agency profile                          | `/agency/acme-media`                | Yes, if published               |
 | Guide                                   | `/guides/youtube-ads-agency-cost`   | Yes                             |
+| List your agency                        | `/list-your-agency`                 | Yes                             |
 | Filters (`?budget=`, `?sort=`)          | same path + params                  | No; canonical to the clean path |
 | Dashboard / admin / get-matched success | —                                   | No (`noindex`)                  |
 

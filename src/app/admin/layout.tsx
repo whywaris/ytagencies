@@ -15,8 +15,18 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await requireAdmin();
   const db = createAdminClient();
-  const [claims, reviews] = await Promise.all([
-    db.from("claims").select("id", { count: "exact", head: true }).eq("status", "pending"),
+  const [submissions, claims, reviews] = await Promise.all([
+    db
+      .from("agencies")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "draft")
+      .not("submitted_by", "is", null),
+    // Claims on new submissions are decided in New submissions instead.
+    db
+      .from("claims")
+      .select("id, agencies!inner(status)", { count: "exact", head: true })
+      .eq("status", "pending")
+      .neq("agencies.status", "draft"),
     db.from("reviews").select("id", { count: "exact", head: true }).eq("status", "pending"),
   ]);
 
@@ -39,7 +49,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       </header>
       <main id="main" className="mx-auto flex max-w-content flex-col gap-8 px-4 py-10 md:px-6">
         <AdminNav
-          counts={{ "/admin/claims": claims.count ?? 0, "/admin/reviews": reviews.count ?? 0 }}
+          counts={{
+            "/admin/submissions": submissions.count ?? 0,
+            "/admin/claims": claims.count ?? 0,
+            "/admin/reviews": reviews.count ?? 0,
+          }}
         />
         {children}
       </main>

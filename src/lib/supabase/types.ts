@@ -24,6 +24,7 @@ export type Database = {
           min_budget_usd: number | null;
           name: string;
           owner_id: string | null;
+          submitted_by: string | null;
           pricing_model: string | null;
           search: unknown;
           slug: string;
@@ -47,6 +48,7 @@ export type Database = {
           min_budget_usd?: number | null;
           name: string;
           owner_id?: string | null;
+          submitted_by?: string | null;
           pricing_model?: string | null;
           search?: never;
           slug: string;
@@ -70,6 +72,7 @@ export type Database = {
           min_budget_usd?: number | null;
           name?: string;
           owner_id?: string | null;
+          submitted_by?: string | null;
           pricing_model?: string | null;
           search?: never;
           slug?: string;

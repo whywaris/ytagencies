@@ -4,7 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import { a11yProps, Field, selectClasses, textareaClasses } from "@/components/forms/field";
+import {
+  a11yProps,
+  checkboxRow,
+  CheckboxGroup,
+  Field,
+  selectClasses,
+  textareaClasses,
+} from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PRICING_LABEL } from "@/lib/profile";
@@ -13,27 +20,6 @@ import type { FormResult } from "@/lib/validation/lead";
 
 type Option = { slug: string; name: string };
 type Country = Option & { cities: Option[] };
-
-const checkboxRow =
-  "flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 hover:bg-surface [&>input]:size-5 [&>input]:accent-[var(--accent)]";
-
-function CheckboxGroup({
-  legend,
-  error,
-  children,
-}: {
-  legend: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 text-[14px] font-medium">{legend}</legend>
-      {children}
-      {error && <p className="text-[14px] text-destructive">{error}</p>}
-    </fieldset>
-  );
-}
 
 export function ProfileForm({
   save,

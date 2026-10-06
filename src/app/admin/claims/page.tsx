@@ -17,8 +17,10 @@ export default async function AdminClaimsPage() {
   const { data: claims, error } = await db
     .from("claims")
     .select(
-      "id, status, work_email, user_id, created_at, agencies(id, name, slug, website, is_claimed)",
+      "id, status, work_email, user_id, created_at, agencies!inner(id, name, slug, website, is_claimed, status)",
     )
+    // Claims on new submissions are decided in New submissions instead.
+    .neq("agencies.status", "draft")
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) throw new Error("Couldn't load claims");

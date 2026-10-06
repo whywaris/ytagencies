@@ -86,7 +86,9 @@ export async function startClaim(raw: unknown): Promise<FormResult<ClaimStarted>
       console.warn("Email not configured; claim left for admin review", { claimId: claim.id });
       return { ok: true, data: { kind: "review", workEmail } };
     }
-    const url = absoluteUrl(`/claim/verify?token=${encodeURIComponent(createClaimToken(claim.id))}`);
+    const url = absoluteUrl(
+      `/claim/verify?token=${encodeURIComponent(createClaimToken(claim.id))}`,
+    );
     const { error: sendError } = await mail.resend.emails.send({
       from: mail.from,
       to: workEmail,
@@ -140,7 +142,7 @@ export async function confirmClaim(token: string): Promise<FormResult<{ agencyId
   const { data: claim } = await admin
     .from("claims")
     .select(
-      "id, user_id, agency_id, status, work_email, agencies(slug, website, is_claimed, status)",
+      "id, user_id, agency_id, status, work_email, agencies(slug, website, is_claimed, status, submitted_by)",
     )
     .eq("id", claimId)
     .maybeSingle();
@@ -155,11 +157,11 @@ export async function confirmClaim(token: string): Promise<FormResult<{ agencyId
     };
   }
   // Re-check: the website could have changed since the email was sent.
-  if (
-    agency.status !== "published" ||
-    agency.is_claimed ||
-    !emailMatchesWebsite(claim.work_email, agency.website)
-  ) {
+  // Published listings, or the draft this user submitted via /list-your-agency (stays a draft
+  // until an admin publishes it).
+  const claimable =
+    agency.status === "published" || (agency.status === "draft" && agency.submitted_by === user.id);
+  if (!claimable || agency.is_claimed || !emailMatchesWebsite(claim.work_email, agency.website)) {
     return { ok: false, error: "This listing can't be claimed this way any more. Contact us." };
   }
 

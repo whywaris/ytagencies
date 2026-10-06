@@ -36,6 +36,27 @@ export function Field({
   );
 }
 
+export const checkboxRow =
+  "flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-2 hover:bg-surface [&>input]:size-5 [&>input]:accent-[var(--accent)]";
+
+export function CheckboxGroup({
+  legend,
+  error,
+  children,
+}: {
+  legend: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-2 text-[14px] font-medium">{legend}</legend>
+      {children}
+      {error && <p className="text-[14px] text-destructive">{error}</p>}
+    </fieldset>
+  );
+}
+
 export const errorId = (id: string) => `${id}-error`;
 
 export function a11yProps(id: string, error?: string) {
