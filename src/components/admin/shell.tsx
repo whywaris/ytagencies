@@ -8,6 +8,7 @@ import {
   FolderTree,
   Inbox,
   KeyRound,
+  LayoutDashboard,
   Menu,
   Monitor,
   Moon,
@@ -49,9 +50,10 @@ export type Queue = {
 
 type Item = { href: string; label: string; icon: LucideIcon; external?: boolean };
 
-// Only pages that exist. Later phases add Dashboard, Verification, SEO pages, Plans, Sponsored,
-// Guides and Settings here as they're built (ADMIN_V2_SPEC §4, §10).
+// Only pages that exist. Later phases add Verification, SEO pages, Plans, Sponsored, Guides and
+// Settings here as they're built (ADMIN_V2_SPEC §4, §10).
 const GROUPS: { heading: string; items: Item[] }[] = [
+  { heading: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
   {
     heading: "Directory",
     items: [
@@ -269,7 +271,11 @@ function SidebarContent({
                 key={item.href}
                 item={item}
                 count={counts[item.href] ?? 0}
-                active={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+                // /admin is the dashboard only, not every page under it.
+                active={
+                  pathname === item.href ||
+                  (item.href !== "/admin" && pathname.startsWith(`${item.href}/`))
+                }
                 collapsed={collapsed}
                 touch={touch}
               />

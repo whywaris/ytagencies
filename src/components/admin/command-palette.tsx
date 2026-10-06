@@ -13,6 +13,7 @@ import { adminSearch, type AdminSearchResults } from "@/lib/actions/admin";
 // quick action. Pages and actions filter locally; agencies and leads come from the server.
 
 const PAGES = [
+  { href: "/admin", label: "Dashboard" },
   { href: "/admin/agencies", label: "Agencies" },
   { href: "/admin/submissions", label: "Submissions" },
   { href: "/admin/claims", label: "Claims" },
