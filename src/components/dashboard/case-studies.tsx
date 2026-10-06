@@ -8,21 +8,29 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { a11yProps, Field, selectClasses, textareaClasses } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { deleteCaseStudy, saveCaseStudy } from "@/lib/actions/dashboard";
+import type { FormResult } from "@/lib/validation/lead";
 import { caseStudySchema, METRIC_UNITS, type CaseStudyInput } from "@/lib/validation/dashboard";
 
 type Option = { slug: string; name: string };
 
 const EMPTY: CaseStudyInput = { title: "", industry: "", channelUrl: "", summary: "", metrics: [] };
 
+/** Server actions, so the owner dashboard and admin can share this editor with their own checks. */
+export type CaseStudyActions = {
+  save: (agencyId: string, raw: unknown) => Promise<FormResult<{ id: string }>>;
+  remove: (agencyId: string, caseStudyId: string) => Promise<FormResult>;
+};
+
 export function CaseStudies({
   agencyId,
   items,
   industries,
+  actions,
 }: {
   agencyId: string;
   items: CaseStudyInput[];
   industries: Option[];
+  actions: CaseStudyActions;
 }) {
   const router = useRouter();
   // null = closed, "new" = adding, otherwise the id being edited
@@ -33,7 +41,7 @@ export function CaseStudies({
   function remove(id: string, title: string) {
     if (!window.confirm(`Delete "${title}"? This can't be undone.`)) return;
     startTransition(async () => {
-      const res = await deleteCaseStudy(agencyId, id);
+      const res = await actions.remove(agencyId, id);
       if (res.ok) router.refresh();
       else setError(res.error);
     });
@@ -61,6 +69,7 @@ export function CaseStudies({
           editing === item.id ? (
             <li key={item.id}>
               <CaseStudyForm
+                save={actions.save}
                 agencyId={agencyId}
                 industries={industries}
                 initial={item}
@@ -102,6 +111,7 @@ export function CaseStudies({
       </ul>
       {editing === "new" ? (
         <CaseStudyForm
+          save={actions.save}
           agencyId={agencyId}
           industries={industries}
           initial={EMPTY}
@@ -126,10 +136,12 @@ function CaseStudyForm({
   agencyId,
   industries,
   initial,
+  save,
   onDone,
   onCancel,
 }: {
   agencyId: string;
+  save: CaseStudyActions["save"];
   industries: Option[];
   initial: CaseStudyInput;
   onDone: () => void;
@@ -148,7 +160,7 @@ function CaseStudyForm({
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
-    const res = await saveCaseStudy(agencyId, values);
+    const res = await save(agencyId, values);
     if (res.ok) return onDone();
     setFormError(res.error);
     for (const [k, m] of Object.entries(res.fieldErrors ?? {}))

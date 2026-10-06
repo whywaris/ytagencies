@@ -2,6 +2,7 @@
 
 import {
   ArrowUpRight,
+  BadgeCheck,
   Bell,
   Building2,
   ChevronRight,
@@ -50,8 +51,7 @@ export type Queue = {
 
 type Item = { href: string; label: string; icon: LucideIcon; external?: boolean };
 
-// Only pages that exist. Later phases add Verification, SEO pages, Plans, Sponsored, Guides and
-// Settings here as they're built (ADMIN_V2_SPEC §4, §10).
+// Only pages that exist. Later phases add SEO pages, Plans, Sponsored, Guides and Settings here as they're built (ADMIN_V2_SPEC §4, §10).
 const GROUPS: { heading: string; items: Item[] }[] = [
   { heading: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
   {
@@ -61,6 +61,7 @@ const GROUPS: { heading: string; items: Item[] }[] = [
       { href: "/admin/submissions", label: "Submissions", icon: Inbox },
       { href: "/admin/claims", label: "Claims", icon: KeyRound },
       { href: "/admin/reviews", label: "Reviews", icon: Star },
+      { href: "/admin/verification", label: "Verification", icon: BadgeCheck },
     ],
   },
   { heading: "Growth", items: [{ href: "/admin/leads", label: "Leads", icon: Users }] },
@@ -362,13 +363,16 @@ const CRUMBS: Record<string, string> = {
   leads: "Leads",
   taxonomy: "Taxonomy",
   combo: "Combination copy",
+  verification: "Verification",
 };
 
 function Breadcrumbs({ pathname }: { pathname: string }) {
   const parts = pathname.split("/").filter(Boolean);
   const crumbs = parts.map((p, i) => ({
     href: "/" + parts.slice(0, i + 1).join("/"),
-    label: CRUMBS[p] ?? (/^[0-9a-f-]{36}$/i.test(p) ? "Edit" : p),
+    label:
+      CRUMBS[p] ??
+      (/^[0-9a-f-]{36}$/i.test(p) ? (parts[i - 1] === "verification" ? "Agency" : "Edit") : p),
   }));
   return (
     <nav aria-label="Breadcrumb" className="min-w-0">

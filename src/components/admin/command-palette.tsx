@@ -18,6 +18,7 @@ const PAGES = [
   { href: "/admin/submissions", label: "Submissions" },
   { href: "/admin/claims", label: "Claims" },
   { href: "/admin/reviews", label: "Reviews" },
+  { href: "/admin/verification", label: "Verification" },
   { href: "/admin/leads", label: "Leads" },
   { href: "/admin/taxonomy", label: "Taxonomy" },
 ];

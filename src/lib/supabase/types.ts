@@ -836,6 +836,26 @@ export type Database = {
       };
     };
     Views: {
+      admin_agency_list: {
+        Row: {
+          created_at: string;
+          id: string;
+          industry_ids: number[];
+          is_claimed: boolean;
+          is_featured: boolean;
+          is_verified: boolean;
+          leads_30d: number;
+          logo_path: string | null;
+          name: string;
+          plan: string;
+          service_ids: number[];
+          slug: string;
+          status: string;
+          updated_at: string;
+          website: string | null;
+        };
+        Relationships: [];
+      };
       combo_counts: {
         Row: {
           agency_count: number | null;

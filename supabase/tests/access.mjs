@@ -14,10 +14,10 @@ const MIGRATIONS = process.argv.includes("--migrations");
 const INITIAL_SCHEMA_COMMIT = "9b2e225";
 const db = new PGlite({ extensions: { btree_gist } });
 await db.exec(`
-  create role anon; create role authenticated;
+  create role anon; create role authenticated; create role service_role;
   alter default privileges in schema public grant all on tables to anon, authenticated;
   alter default privileges in schema public grant all on sequences to anon, authenticated;
-  grant usage on schema public to anon, authenticated;
+  grant usage on schema public to anon, authenticated, service_role;
   create schema auth; create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}');
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub', true), '')::uuid $$;
   grant usage on schema auth to anon, authenticated;
@@ -82,10 +82,12 @@ async function as(role, uid, fn) {
   }
 }
 const rows = async (sql) => (await db.query(sql)).rows;
+// Refused (an error) or had no effect: no rows returned and none changed. A SELECT reports
+// 0 affected rows even when it returns data, so rows are checked too.
 const denied = async (sql) => {
   try {
     const r = await db.query(sql);
-    return r.affectedRows === 0;
+    return r.rows.length === 0 && (r.affectedRows ?? 0) === 0;
   } catch {
     return true;
   }
@@ -579,6 +581,42 @@ ok(
   drift.length === 0,
   `verification: every badge matches an approved verification${drift.length ? " — drift: " + drift.map((d) => d.slug).join(", ") : ""}`,
 );
+
+console.log("— admin agencies list view (§5.2) —");
+for (const [role, uid, who] of [
+  ["anon", null, "anon"],
+  ["authenticated", OWNER, "owner"],
+  ["authenticated", ADMIN, "admin user (service role only)"],
+]) {
+  await as(role, uid, async () => {
+    ok(await denied("select * from admin_agency_list"), `admin_agency_list: ${who} can't read it`);
+  });
+}
+await db.exec("reset role");
+const [quillRow] = await rows(
+  `select plan, leads_30d, service_ids from admin_agency_list where id = '${QUILL}'`,
+);
+ok(quillRow.plan === "founding", "admin_agency_list: current plan from the active subscription");
+ok(quillRow.leads_30d >= 2, "admin_agency_list: counts leads routed in the last 30 days");
+ok(
+  Array.isArray(quillRow.service_ids) && quillRow.service_ids.length > 0,
+  "admin_agency_list: service ids as an array",
+);
+const [saltRow] = await rows(`select plan from admin_agency_list where id = '${SALT}'`);
+ok(saltRow.plan === "free", "admin_agency_list: no subscription reads as free");
+await db.exec(
+  `update lead_routes set sent_at = now() - interval '31 days' where agency_id = '${QUILL}'`,
+);
+ok(
+  (await rows(`select leads_30d from admin_agency_list where id = '${QUILL}'`))[0].leads_30d === 0,
+  "admin_agency_list: older leads drop out of the 30-day count",
+);
+await db.exec("set role service_role");
+ok(
+  !(await denied("select id from admin_agency_list limit 1")),
+  "admin_agency_list: the service role can read it",
+);
+await db.exec("reset role");
 
 await db.exec("reset role");
 const rlsOff = await rows(

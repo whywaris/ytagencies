@@ -4,8 +4,9 @@ import type { z } from "zod";
 
 import { applyProfile } from "@/lib/agency-profile";
 import { getOwnedAgency } from "@/lib/auth";
+import { removeCaseStudy, writeCaseStudy } from "@/lib/case-studies";
 import { revalidateAgency } from "@/lib/revalidate";
-import { caseStudySchema, metricsToJson, profileSchema } from "@/lib/validation/dashboard";
+import { caseStudySchema, profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
 
 // Agency dashboard mutations. Each one re-checks ownership (SECURITY.md) and writes with the
@@ -92,57 +93,17 @@ export async function saveCaseStudy(
   if (!owned) return { ok: false, error: NOT_OWNER };
   const parsed = caseStudySchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
-  const input = parsed.data;
-  const { supabase, agency } = owned;
-
-  let industryId: number | null = null;
-  if (input.industry) {
-    const { data } = await supabase
-      .from("industries")
-      .select("id")
-      .eq("slug", input.industry)
-      .maybeSingle();
-    if (!data) return { ok: false, error: "That industry no longer exists. Reload the page." };
-    industryId = data.id;
-  }
-  const row = {
-    title: input.title,
-    client_industry_id: industryId,
-    channel_url: input.channelUrl || null,
-    summary: input.summary || null,
-    metrics: metricsToJson(input.metrics),
-  };
-
-  // Updates are scoped to this agency, so an id from another agency matches nothing.
-  const { data, error } = input.id
-    ? await supabase
-        .from("case_studies")
-        .update(row)
-        .eq("id", input.id)
-        .eq("agency_id", agency.id)
-        .select("id")
-        .maybeSingle()
-    : await supabase
-        .from("case_studies")
-        .insert({ ...row, agency_id: agency.id })
-        .select("id")
-        .single();
-  if (error || !data) return { ok: false, error: SAVE_FAILED };
-
-  revalidateAgency(agency.slug);
-  return { ok: true, data: { id: data.id } };
+  const res = await writeCaseStudy(owned.supabase, owned.agency.id, parsed.data);
+  if (!res.ok) return res;
+  revalidateAgency(owned.agency.slug);
+  return { ok: true, data: { id: res.id } };
 }
 
 export async function deleteCaseStudy(agencyId: string, caseStudyId: string): Promise<FormResult> {
   const owned = await getOwnedAgency(agencyId);
   if (!owned) return { ok: false, error: NOT_OWNER };
-  const { supabase, agency } = owned;
-  const { error } = await supabase
-    .from("case_studies")
-    .delete()
-    .eq("id", caseStudyId)
-    .eq("agency_id", agency.id);
-  if (error) return { ok: false, error: SAVE_FAILED };
-  revalidateAgency(agency.slug);
+  if (!(await removeCaseStudy(owned.supabase, owned.agency.id, caseStudyId)))
+    return { ok: false, error: SAVE_FAILED };
+  revalidateAgency(owned.agency.slug);
   return { ok: true, data: undefined };
 }

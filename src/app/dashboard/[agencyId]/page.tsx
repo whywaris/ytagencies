@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CaseStudies } from "@/components/dashboard/case-studies";
 import { LogoForm } from "@/components/dashboard/logo-form";
 import { ProfileForm } from "@/components/dashboard/profile-form";
-import { updateProfile } from "@/lib/actions/dashboard";
+import { deleteCaseStudy, saveCaseStudy, updateProfile } from "@/lib/actions/dashboard";
 import { getOwnedAgency } from "@/lib/auth";
 import { profileFormProps } from "@/lib/agency-profile";
 import { getIndustries } from "@/lib/data/taxonomy";
@@ -50,6 +50,7 @@ export default async function EditAgencyPage({ params }: PageProps<"/dashboard/[
           Case studies
         </h2>
         <CaseStudies
+          actions={{ save: saveCaseStudy, remove: deleteCaseStudy }}
           agencyId={agency.id}
           industries={options(industries)}
           items={caseStudies.data.map((c) => ({

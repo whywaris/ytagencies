@@ -10,6 +10,7 @@ export function logoUrl(logoPath: string) {
 }
 
 const SIZES = {
+  xs: { px: 32, className: "size-8 text-[13px]" },
   sm: { px: 48, className: "size-12 text-[17px]" },
   lg: { px: 80, className: "size-20 text-h3" },
 };

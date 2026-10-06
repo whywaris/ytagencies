@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { ActionButton, Empty, Table } from "@/components/admin/ui";
-import { decideReview } from "@/lib/actions/admin";
+import { Queue, type QueueItem } from "@/components/admin/queue";
+import { DetailList } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -11,75 +11,75 @@ export default async function AdminReviewsPage() {
   await requireAdmin("/admin/reviews");
   const { data: reviews, error } = await createAdminClient()
     .from("reviews")
-    .select("id, author_name, author_company, rating, body, created_at, agencies(id, name)")
+    .select(
+      "id, author_name, author_company, author_id, rating, body, created_at, agencies(id, name)",
+    )
     .eq("status", "pending")
     .order("created_at", { ascending: true }); // oldest first
   if (error) throw new Error("Couldn't load reviews");
 
+  const items: QueueItem[] = reviews.map((r) => ({
+    id: r.id,
+    title: `${r.author_name} on ${r.agencies?.name ?? "a deleted agency"}`,
+    meta: `${r.rating} out of 5`,
+    since: r.created_at,
+    detail: (
+      <>
+        <DetailList
+          rows={[
+            [
+              "Agency",
+              r.agencies ? (
+                <Link
+                  href={`/admin/agencies/${r.agencies.id}`}
+                  className="text-accent hover:underline"
+                >
+                  {r.agencies.name}
+                </Link>
+              ) : (
+                "Deleted agency"
+              ),
+            ],
+            [
+              "Rating",
+              <span key="r" className="num">
+                {r.rating} out of 5
+              </span>,
+            ],
+            ["Author", r.author_name],
+            ["Company", r.author_company],
+            [
+              "Account",
+              r.author_id
+                ? "Linked, so a rejection reason is emailed"
+                : "No account, nothing is emailed",
+            ],
+          ]}
+        />
+        <blockquote className="max-w-reading border-l-2 border-line pl-4 whitespace-pre-line">
+          {r.body}
+        </blockquote>
+      </>
+    ),
+  }));
+
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-admin-title">Reviews to moderate</h1>
-      <p className="max-w-reading text-text-2">
-        Publish only genuine reviews from real clients. Published reviews count towards the
-        agency&apos;s rating and its structured data.
-      </p>
-      {reviews.length === 0 ? (
-        <Empty>No reviews waiting.</Empty>
-      ) : (
-        <Table>
-          <thead>
-            <tr>
-              <th scope="col">Agency</th>
-              <th scope="col">Rating</th>
-              <th scope="col">Review</th>
-              <th scope="col">Author</th>
-              <th scope="col">
-                <span className="sr-only">Decision</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {reviews.map((r) => (
-              <tr key={r.id}>
-                <td>
-                  {r.agencies ? (
-                    <Link
-                      href={`/admin/agencies/${r.agencies.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {r.agencies.name}
-                    </Link>
-                  ) : (
-                    "Deleted agency"
-                  )}
-                </td>
-                <td className="whitespace-nowrap">{r.rating} / 5</td>
-                <td className="max-w-[40ch] whitespace-pre-line">{r.body}</td>
-                <td className="text-text-2">
-                  {r.author_name}
-                  {r.author_company && <div className="text-small">{r.author_company}</div>}
-                  <div className="text-small">
-                    {new Date(r.created_at).toLocaleDateString("en-US", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </div>
-                </td>
-                <td>
-                  <div className="flex gap-4">
-                    <ActionButton action={decideReview.bind(null, r.id, "published")}>
-                      Publish<span className="sr-only"> review by {r.author_name}</span>
-                    </ActionButton>
-                    <ActionButton action={decideReview.bind(null, r.id, "rejected")} tone="danger">
-                      Reject<span className="sr-only"> review by {r.author_name}</span>
-                    </ActionButton>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      )}
+    <div className="flex flex-col gap-6">
+      <div className="flex max-w-reading flex-col gap-1">
+        <h1 className="text-admin-title">Reviews</h1>
+        <p className="text-text-2">
+          Publish only genuine reviews from real clients. Published reviews count towards the
+          agency&apos;s rating and its structured data.
+        </p>
+      </div>
+      <Queue
+        kind="review"
+        items={items}
+        approveLabel="Publish review"
+        rejectLabel="Reject review"
+        rejectWarning="The review stays hidden. If it's linked to an account, the author is told by email."
+        empty="No reviews waiting for moderation."
+      />
     </div>
   );
 }

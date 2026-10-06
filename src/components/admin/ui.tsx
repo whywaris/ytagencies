@@ -16,32 +16,6 @@ export function Table({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** A one-button form for a bound server action. Works without JavaScript. */
-export function ActionButton({
-  action,
-  children,
-  tone = "default",
-}: {
-  action: () => Promise<void>;
-  children: React.ReactNode;
-  tone?: "default" | "danger";
-}) {
-  return (
-    <form action={action}>
-      <button
-        type="submit"
-        className={cn(
-          "min-h-9 whitespace-nowrap hover:underline",
-          // No loud red in rows (ADMIN_V2_SPEC §1): destructive actions turn red on hover only.
-          tone === "danger" ? "text-text-2 hover:text-destructive" : "text-accent",
-        )}
-      >
-        {children}
-      </button>
-    </form>
-  );
-}
-
 export function Pill({ on, children }: { on: boolean; children: React.ReactNode }) {
   return (
     <span
@@ -82,5 +56,57 @@ export function Skeleton({ className }: { className?: string }) {
       aria-hidden
       className={cn("animate-pulse rounded-md bg-surface-2 motion-reduce:animate-none", className)}
     />
+  );
+}
+
+const STATUS: Record<string, { label: string; dot: string }> = {
+  published: { label: "Published", dot: "bg-success" },
+  draft: { label: "Draft", dot: "bg-text-2" },
+  archived: { label: "Archived", dot: "bg-warning" },
+};
+
+/** Agency status: a colored dot (status colors only mean status, §1) and a plain label. */
+export function StatusBadge({ status }: { status: string }) {
+  const s = STATUS[status] ?? { label: status, dot: "bg-text-2" };
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span aria-hidden className={cn("size-1.5 rounded-full", s.dot)} />
+      {s.label}
+    </span>
+  );
+}
+
+export const PLAN_LABEL: Record<string, string> = {
+  free: "Free",
+  founding: "Founding",
+  verified: "Verified",
+};
+
+export function PlanBadge({ plan }: { plan: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-5 items-center rounded-md px-1.5 text-[12px] font-medium whitespace-nowrap",
+        plan === "free" ? "border border-line text-text-2" : "bg-surface-2 text-text",
+      )}
+    >
+      {PLAN_LABEL[plan] ?? plan}
+    </span>
+  );
+}
+
+/** Label/value rows for detail panels. Empty values are skipped. */
+export function DetailList({ rows }: { rows: [string, React.ReactNode][] }) {
+  return (
+    <dl className="grid grid-cols-[minmax(0,140px)_minmax(0,1fr)] gap-x-4 gap-y-2">
+      {rows
+        .filter(([, v]) => v !== null && v !== undefined && v !== "")
+        .map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-text-2">{k}</dt>
+            <dd className="min-w-0 break-words">{v}</dd>
+          </div>
+        ))}
+    </dl>
   );
 }

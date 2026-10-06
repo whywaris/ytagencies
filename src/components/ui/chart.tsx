@@ -229,7 +229,7 @@ function ChartTooltipContent({
                         </span>
                       </div>
                       {item.value != null && (
-                        <span className="num font-medium text-foreground">
+                        <span className="font-medium text-foreground num">
                           {typeof item.value === "number"
                             ? item.value.toLocaleString()
                             : String(item.value)}

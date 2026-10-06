@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await requireAdmin();
   const db = createAdminClient();
   const oldestFirst = { ascending: true } as const;
-  const [store, profile, submissions, claims, reviews] = await Promise.all([
+  const [store, profile, submissions, claims, reviews, verifications] = await Promise.all([
     cookies(),
     db.from("profiles").select("notifications_seen_at").eq("id", user.id).maybeSingle(),
     db
@@ -45,6 +45,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       .eq("status", "pending")
       .order("created_at", oldestFirst)
       .limit(1),
+    db
+      .from("verifications")
+      .select("created_at", { count: "exact" })
+      .eq("status", "requested")
+      .order("created_at", oldestFirst)
+      .limit(1),
   ]);
 
   // Pending work: sidebar badges and the notifications popover. Real counts only.
@@ -61,6 +67,12 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
       one: "review to moderate",
       many: "reviews to moderate",
       res: reviews,
+    },
+    {
+      href: "/admin/verification",
+      one: "verification request",
+      many: "verification requests",
+      res: verifications,
     },
   ].map(({ res, ...q }) => ({
     ...q,

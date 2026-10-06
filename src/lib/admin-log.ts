@@ -13,8 +13,8 @@ export type AdminLog = (
   details?: { [key: string]: Json | undefined },
 ) => Promise<void>;
 
-/** A logger bound to one admin. Failures are reported but never undo the action itself. */
-export function adminLogger(db: SupabaseClient<Database>, adminId: string): AdminLog {
+/** A logger bound to one admin (null for system jobs). Failures are reported, never undo the action. */
+export function adminLogger(db: SupabaseClient<Database>, adminId: string | null): AdminLog {
   return async (action, entityType, entityId, details = {}) => {
     const { error } = await db.from("admin_actions").insert({
       admin_id: adminId,

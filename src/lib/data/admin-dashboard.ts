@@ -196,15 +196,14 @@ export async function getDashboard(period: PeriodId, now = new Date()) {
       })),
     },
     {
-      // No verification queue page until Phase 4: link to the agency.
       type: "verification",
       heading: "Verification requests",
-      href: "/admin/agencies",
+      href: "/admin/verification",
       total: verifications.count ?? 0,
       items: verifications.data!.map((v) => ({
         id: v.id,
         label: v.agencies?.name ?? "Deleted agency",
-        href: `/admin/agencies/${v.agency_id}`,
+        href: `/admin/verification/${v.agency_id}`,
         since: v.created_at,
       })),
     },

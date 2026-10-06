@@ -4,11 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { applyProfile } from "@/lib/agency-profile";
-import { adminLogger } from "@/lib/admin-log";
-import { getAdminUser } from "@/lib/auth";
-import { approveClaim } from "@/lib/claims";
+import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { revalidateAgency, revalidateDirectory } from "@/lib/revalidate";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { agencySchema, comboContentSchema, introSchema } from "@/lib/validation/admin";
 import { profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
@@ -17,24 +14,8 @@ import type { FormResult } from "@/lib/validation/lead";
 // service role: admin-only columns (status, flags) are blocked for normal users by column grants.
 // Arguments are validated too, since bound ids from forms can be tampered with.
 
-const NOT_ADMIN = "You need admin access for this.";
 const SAVE_FAILED = "We couldn't save that. Please try again.";
 const uuid = z.uuid();
-
-/** After the admin check: the service-role client and an audit logger for this admin, or null. */
-async function adminContext() {
-  const admin = await getAdminUser();
-  if (!admin) return null;
-  const db = createAdminClient();
-  return { db, adminId: admin.id, log: adminLogger(db, admin.id) };
-}
-
-/** For plain <form action> buttons: no UI for errors, so refuse loudly. */
-async function adminContextOrThrow() {
-  const ctx = await adminContext();
-  if (!ctx) throw new Error(NOT_ADMIN);
-  return ctx;
-}
 
 function invalid(error: z.ZodError) {
   const fieldErrors: Record<string, string> = {};
@@ -156,160 +137,6 @@ export async function adminUpdateProfile(agencyId: string, raw: unknown): Promis
   await log("agency.profile_update", "agency", agencyId);
   revalidateAgency(agency.slug);
   return { ok: true, data: undefined };
-}
-
-const statusSchema = z.enum(["published", "draft"]);
-const flagSchema = z.enum(["is_verified", "is_featured"]);
-
-export async function setAgencyStatus(id: string, status: string) {
-  const { db, log } = await adminContextOrThrow();
-  const s = statusSchema.parse(status);
-  const { data } = await db
-    .from("agencies")
-    .update({ status: s, updated_at: new Date().toISOString() })
-    .eq("id", uuid.parse(id))
-    .select("slug")
-    .single();
-  if (data) {
-    await log(s === "published" ? "agency.publish" : "agency.unpublish", "agency", id);
-    revalidateAgency(data.slug); // unpublishing must drop it from cached pages too
-  }
-  revalidatePath("/admin/agencies");
-}
-
-export async function toggleAgencyFlag(id: string, flag: string) {
-  const { db, adminId, log } = await adminContextOrThrow();
-  const f = flagSchema.parse(flag);
-  const { data: current } = await db
-    .from("agencies")
-    .select("slug, is_verified, is_featured")
-    .eq("id", uuid.parse(id))
-    .single();
-  if (!current) return;
-  const now = new Date().toISOString();
-  if (f === "is_verified") {
-    // The badge follows approved verifications (a DB trigger sets agencies.is_verified).
-    // Interim until the Phase 4 verification flow replaces this toggle.
-    const review = { reviewed_by: adminId, reviewed_at: now };
-    if (current.is_verified) {
-      await db
-        .from("verifications")
-        .update({ status: "rejected", ...review })
-        .eq("agency_id", id)
-        .eq("status", "approved");
-    } else {
-      const { data: open } = await db
-        .from("verifications")
-        .update({ status: "approved", ...review })
-        .eq("agency_id", id)
-        .eq("status", "requested")
-        .select("id");
-      if (!open?.length) {
-        await db.from("verifications").insert({
-          agency_id: id,
-          status: "approved",
-          checklist: { source: "agencies list" },
-          ...review,
-        });
-      }
-    }
-    await log(current.is_verified ? "agency.unverify" : "agency.verify", "agency", id);
-  } else {
-    await db
-      .from("agencies")
-      .update({ is_featured: !current.is_featured, updated_at: now })
-      .eq("id", id);
-    await log(current.is_featured ? "agency.unfeature" : "agency.feature", "agency", id);
-  }
-  revalidateAgency(current.slug);
-  revalidatePath("/admin/agencies");
-}
-
-// ───────── Claims ─────────
-
-export async function decideClaim(claimId: string, decision: string) {
-  const { db, log } = await adminContextOrThrow();
-  const d = z.enum(["approve", "reject"]).parse(decision);
-  const { data: claim } = await db
-    .from("claims")
-    .select("id, agency_id, user_id, status, agencies(slug)")
-    .eq("id", uuid.parse(claimId))
-    .maybeSingle();
-  if (!claim || claim.status !== "pending") return;
-  if (d === "approve") {
-    // false = someone else claimed it first; the claim stays pending for a manual look.
-    if (await approveClaim({ id: claim.id, agencyId: claim.agency_id, userId: claim.user_id })) {
-      await log("claim.approve", "claim", claim.id, { agency_id: claim.agency_id });
-      if (claim.agencies) revalidateAgency(claim.agencies.slug);
-    }
-  } else {
-    await db
-      .from("claims")
-      .update({ status: "rejected" })
-      .eq("id", claim.id)
-      .eq("status", "pending");
-    await log("claim.reject", "claim", claim.id, { agency_id: claim.agency_id });
-  }
-  revalidatePath("/admin/claims");
-}
-
-// ───────── New submissions (/list-your-agency) ─────────
-
-/**
- * Approve: publish the draft and, if nobody owns it yet, approve the submitter's pending claim
- * (the admin's review stands in for the domain check). Reject: delete the draft; claims cascade.
- */
-export async function decideSubmission(agencyId: string, decision: string) {
-  const { db, log } = await adminContextOrThrow();
-  const d = z.enum(["approve", "reject"]).parse(decision);
-  const { data: agency } = await db
-    .from("agencies")
-    .select("id, slug, status, owner_id, submitted_by")
-    .eq("id", uuid.parse(agencyId))
-    .maybeSingle();
-  if (!agency || agency.status !== "draft" || !agency.submitted_by) return;
-
-  if (d === "reject") {
-    await db.from("agencies").delete().eq("id", agency.id).eq("status", "draft");
-    await log("submission.reject", "agency", agency.id, { slug: agency.slug });
-  } else {
-    if (!agency.owner_id) {
-      const { data: claim } = await db
-        .from("claims")
-        .select("id")
-        .eq("agency_id", agency.id)
-        .eq("user_id", agency.submitted_by)
-        .eq("status", "pending")
-        .maybeSingle();
-      if (claim)
-        await approveClaim({ id: claim.id, agencyId: agency.id, userId: agency.submitted_by });
-    }
-    await db
-      .from("agencies")
-      .update({ status: "published", updated_at: new Date().toISOString() })
-      .eq("id", agency.id);
-    await log("submission.approve", "agency", agency.id);
-    revalidateAgency(agency.slug);
-  }
-  revalidatePath("/admin/submissions");
-}
-
-// ───────── Reviews ─────────
-
-export async function decideReview(reviewId: string, decision: string) {
-  const { db, log } = await adminContextOrThrow();
-  const status = z.enum(["published", "rejected"]).parse(decision);
-  const { data } = await db
-    .from("reviews")
-    .update({ status })
-    .eq("id", uuid.parse(reviewId))
-    .eq("status", "pending")
-    .select("agencies(slug)")
-    .maybeSingle();
-  if (data)
-    await log(status === "published" ? "review.publish" : "review.reject", "review", reviewId);
-  if (data?.agencies) revalidateAgency(data.agencies.slug);
-  revalidatePath("/admin/reviews");
 }
 
 // ───────── Taxonomy copy ─────────

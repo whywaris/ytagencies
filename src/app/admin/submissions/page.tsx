@@ -1,15 +1,13 @@
 import Link from "next/link";
 
-import { ActionButton, Empty, Table } from "@/components/admin/ui";
-import { decideSubmission } from "@/lib/actions/admin";
+import { Queue, type QueueItem } from "@/components/admin/queue";
+import { DetailList } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/auth";
 import { emailMatchesWebsite } from "@/lib/claims";
+import { formatCount } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export const metadata = { title: "New submissions" };
-
-const date = (d: string) =>
-  new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+export const metadata = { title: "Submissions" };
 
 export default async function AdminSubmissionsPage() {
   await requireAdmin("/admin/submissions");
@@ -17,7 +15,7 @@ export default async function AdminSubmissionsPage() {
   const { data: agencies, error } = await db
     .from("agencies")
     .select(
-      "id, name, website, description, owner_id, submitted_by, created_at, agency_services(services(name)), agency_industries(industries(name)), claims(user_id, work_email, status)",
+      "id, name, slug, website, description, min_budget_usd, owner_id, submitted_by, created_at, agency_services(services(name)), agency_industries(industries(name)), agency_locations(locations(name)), claims(user_id, work_email, status)",
     )
     .eq("status", "draft")
     .not("submitted_by", "is", null)
@@ -35,82 +33,78 @@ export default async function AdminSubmissionsPage() {
     ),
   );
 
+  const items: QueueItem[] = agencies.map((a) => {
+    const claim = a.claims.find((c) => c.user_id === a.submitted_by && c.status !== "rejected");
+    const match = claim ? emailMatchesWebsite(claim.work_email, a.website) : false;
+    return {
+      id: a.id,
+      title: a.name,
+      meta: a.website?.replace(/^https?:\/\/(www\.)?/, "") ?? "No website",
+      since: a.created_at,
+      detail: (
+        <>
+          <DetailList
+            rows={[
+              [
+                "Website",
+                a.website && (
+                  <a
+                    href={a.website}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="text-accent hover:underline"
+                  >
+                    {a.website}
+                  </a>
+                ),
+              ],
+              ["Work email", claim?.work_email ?? "None given"],
+              [
+                "Domain check",
+                a.owner_id
+                  ? "Confirmed by email link"
+                  : match
+                    ? "Matches the website, not confirmed yet"
+                    : "Doesn't match the website",
+              ],
+              ["Signed in as", accounts.get(a.submitted_by!) ?? "Unknown"],
+              ["Services", a.agency_services.map((s) => s.services.name).join(", ")],
+              ["Industries", a.agency_industries.map((i) => i.industries.name).join(", ")],
+              ["Locations", a.agency_locations.map((l) => l.locations.name).join(", ")],
+              [
+                "Minimum budget",
+                a.min_budget_usd !== null && (
+                  <span className="num">${formatCount(a.min_budget_usd)} a month</span>
+                ),
+              ],
+            ]}
+          />
+          {a.description && <p className="max-w-reading whitespace-pre-wrap">{a.description}</p>}
+          <Link href={`/admin/agencies/${a.id}`} className="self-start text-accent hover:underline">
+            Edit before publishing
+          </Link>
+        </>
+      ),
+    };
+  });
+
   return (
-    <section className="flex flex-col gap-4" aria-labelledby="submissions">
-      <h1 id="submissions" className="text-admin-title">
-        New submissions
-      </h1>
-      <p className="max-w-reading text-text-2">
-        Agencies added through List your agency. Approving publishes the listing and, if the
-        submitter hasn&apos;t confirmed their work email yet, gives them control of it. Rejecting
-        deletes the draft.
-      </p>
-      {agencies.length ? (
-        <Table>
-          <thead>
-            <tr>
-              <th scope="col">Agency</th>
-              <th scope="col">Services and industries</th>
-              <th scope="col">Submitted by</th>
-              <th scope="col">
-                <span className="sr-only">Decision</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {agencies.map((a) => {
-              const claim = a.claims.find(
-                (c) => c.user_id === a.submitted_by && c.status !== "rejected",
-              );
-              const match = claim ? emailMatchesWebsite(claim.work_email, a.website) : false;
-              return (
-                <tr key={a.id}>
-                  <td className="max-w-80">
-                    <Link href={`/admin/agencies/${a.id}`} className="font-medium hover:underline">
-                      {a.name}
-                    </Link>
-                    <div className="text-small">{a.website ?? "No website"}</div>
-                    <p className="mt-2 line-clamp-3 text-small">{a.description}</p>
-                  </td>
-                  <td className="text-small">
-                    {a.agency_services.map((s) => s.services.name).join(", ")}
-                    <div>{a.agency_industries.map((i) => i.industries.name).join(", ")}</div>
-                  </td>
-                  <td>
-                    {claim?.work_email ?? "No work email"}
-                    <div className="text-small">
-                      {a.owner_id
-                        ? "Confirmed via work email"
-                        : match
-                          ? "Matches website, not confirmed yet"
-                          : "Doesn't match website"}
-                    </div>
-                    <div className="text-small">
-                      Signed in as {accounts.get(a.submitted_by!) ?? "unknown"}
-                    </div>
-                    <div className="text-small num">Submitted {date(a.created_at)}</div>
-                  </td>
-                  <td>
-                    <div className="flex gap-4">
-                      <ActionButton action={decideSubmission.bind(null, a.id, "approve")}>
-                        Publish<span className="sr-only"> {a.name}</span>
-                      </ActionButton>
-                      <ActionButton
-                        action={decideSubmission.bind(null, a.id, "reject")}
-                        tone="danger"
-                      >
-                        Reject<span className="sr-only"> {a.name}</span>
-                      </ActionButton>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
-      ) : (
-        <Empty>No new submissions.</Empty>
-      )}
-    </section>
+    <div className="flex flex-col gap-6">
+      <div className="flex max-w-reading flex-col gap-1">
+        <h1 className="text-admin-title">Submissions</h1>
+        <p className="text-text-2">
+          Agencies added through List your agency. Publishing makes the listing live and, if the
+          submitter hasn&apos;t confirmed their work email yet, gives them control of it.
+        </p>
+      </div>
+      <Queue
+        kind="submission"
+        items={items}
+        approveLabel="Publish agency"
+        rejectLabel="Reject submission"
+        rejectWarning="The draft is deleted and the submitter is told by email."
+        empty="No new agencies waiting. Submissions from List your agency appear here."
+      />
+    </div>
   );
 }
