@@ -9,6 +9,7 @@ export function ChangePlanButton(props: {
   agencyId: string;
   agencyName: string;
   currentPlan: string;
+  foundingMonths: number;
 }) {
   const [open, setOpen] = useState(false);
   return (

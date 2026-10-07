@@ -39,7 +39,15 @@ const VERB = { published: "Publish", draft: "Unpublish", archived: "Archive" } a
 const DONE = { published: "Published", draft: "Unpublished", archived: "Archived" } as const;
 
 /** Agencies table body with selection, bulk actions and row menus (ADMIN_V2_SPEC §5.2). */
-export function AgenciesTable({ rows, header }: { rows: AgencyRow[]; header: React.ReactNode }) {
+export function AgenciesTable({
+  rows,
+  header,
+  foundingMonths,
+}: {
+  rows: AgencyRow[];
+  header: React.ReactNode;
+  foundingMonths: number;
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<Pending | null>(null);
@@ -209,6 +217,7 @@ export function AgenciesTable({ rows, header }: { rows: AgencyRow[]; header: Rea
           agencyId={planFor.id}
           agencyName={planFor.name}
           currentPlan={planFor.plan}
+          foundingMonths={foundingMonths}
           open
           onOpenChange={(o) => !o && setPlanFor(null)}
         />

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChangePlanButton } from "@/components/admin/change-plan-button";
 import { Empty, PLAN_LABEL, Table } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/auth";
+import { getFoundingProgram } from "@/lib/data/settings";
 import { formatCount, formatDate } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -24,6 +25,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
   const now = new Date();
   const in30 = new Date(now.getTime() + 30 * 86_400_000).toISOString();
 
+  const founding = await getFoundingProgram();
   const [counts, expiring, rows] = await Promise.all([
     Promise.all(
       TABS.map((p) =>
@@ -148,7 +150,12 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
                       </td>
                       <td className="text-text-2 capitalize">{a.status}</td>
                       <td className="text-right">
-                        <ChangePlanButton agencyId={a.id} agencyName={a.name} currentPlan="free" />
+                        <ChangePlanButton
+                          agencyId={a.id}
+                          agencyName={a.name}
+                          currentPlan="free"
+                          foundingMonths={founding.freeMonths}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -209,6 +216,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
                       agencyId={s.agency_id}
                       agencyName={s.agencies?.name ?? "this agency"}
                       currentPlan={tab}
+                      foundingMonths={founding.freeMonths}
                     />
                   </td>
                 </tr>

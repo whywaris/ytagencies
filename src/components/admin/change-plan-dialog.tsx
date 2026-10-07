@@ -27,19 +27,23 @@ export function ChangePlanDialog({
   agencyId,
   agencyName,
   currentPlan,
+  foundingMonths,
   open,
   onOpenChange,
 }: {
   agencyId: string;
   agencyName: string;
   currentPlan: string;
+  /** Default Founding term, from Settings (§5.10). */
+  foundingMonths: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
   const container = usePortalContainer();
   const [plan, setPlan] = useState(currentPlan === "free" ? "founding" : currentPlan);
-  const [endsOn, setEndsOn] = useState(monthsFromNow(6));
+  const termFor = (p: string) => monthsFromNow(p === "founding" ? foundingMonths : 6);
+  const [endsOn, setEndsOn] = useState(termFor(plan));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -77,7 +81,10 @@ export function ChangePlanDialog({
                     name="plan"
                     value={p.id}
                     checked={plan === p.id}
-                    onChange={() => setPlan(p.id)}
+                    onChange={() => {
+                      setPlan(p.id);
+                      setEndsOn(termFor(p.id));
+                    }}
                     className="mt-1 accent-[var(--accent)]"
                   />
                   <span className="flex flex-col">

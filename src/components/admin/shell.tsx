@@ -19,6 +19,7 @@ import {
   Moon,
   PanelLeft,
   Search,
+  Settings,
   Star,
   Sun,
   Users,
@@ -55,7 +56,7 @@ export type Queue = {
 
 type Item = { href: string; label: string; icon: LucideIcon; external?: boolean };
 
-// Only pages that exist. Settings is added when it's built as they're built (ADMIN_V2_SPEC §4, §10).
+// The sidebar (ADMIN_V2_SPEC §4). Settings and View site sit below the groups.
 const GROUPS: { heading: string; items: Item[] }[] = [
   { heading: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
   {
@@ -90,6 +91,7 @@ const GROUPS: { heading: string; items: Item[] }[] = [
     ],
   },
 ];
+const SETTINGS: Item = { href: "/admin/settings", label: "Settings", icon: Settings };
 const VIEW_SITE: Item = { href: "/", label: "View site", icon: ArrowUpRight, external: true };
 
 const noSubscribe = () => () => {};
@@ -307,7 +309,14 @@ function SidebarContent({
           </div>
         ))}
       </nav>
-      <div className="border-t border-line px-3 py-3">
+      <div className="flex flex-col gap-0.5 border-t border-line px-3 py-3">
+        <NavItem
+          item={SETTINGS}
+          count={0}
+          active={pathname === SETTINGS.href}
+          collapsed={collapsed}
+          touch={touch}
+        />
         <NavItem item={VIEW_SITE} count={0} active={false} collapsed={collapsed} touch={touch} />
       </div>
     </>
@@ -392,6 +401,7 @@ const CRUMBS: Record<string, string> = {
   guides: "Guides",
   preview: "Preview",
   sponsored: "Sponsored",
+  settings: "Settings",
 };
 
 function Breadcrumbs({ pathname }: { pathname: string }) {

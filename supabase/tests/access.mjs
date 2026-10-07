@@ -755,6 +755,43 @@ await db.exec("alter table agencies enable trigger set_updated_at");
 await db.exec("update agencies set description = 'edited' where slug = 'pinecask-creative'");
 ok((await agencyTs()) > stale, "editing the agency sets its updated_at");
 
+console.log("— settings (§5.10) —");
+for (const [role, uid, who] of [
+  ["anon", null, "anon"],
+  ["authenticated", OWNER, "signed-in user"],
+]) {
+  await as(role, uid, async () => {
+    ok(await denied("select * from app_settings"), `app_settings: ${who} can't read`);
+    ok(
+      await denied("update app_settings set founding_open = false"),
+      `app_settings: ${who} can't edit`,
+    );
+  });
+}
+await as("authenticated", ADMIN, async () => {
+  ok(
+    (await rows("select * from app_settings")).length === 1,
+    "app_settings: admin reads the one row",
+  );
+  ok(
+    (await db.query("update app_settings set founding_max_spots = 20")).affectedRows === 1,
+    "app_settings: admin can edit",
+  );
+  ok(
+    await denied("insert into app_settings (id) values (true)"),
+    "app_settings: admin can't add a second row",
+  );
+  ok(await denied("delete from app_settings"), "app_settings: admin can't delete the row");
+});
+ok(
+  await fails("insert into app_settings (id) values (false)"),
+  "app_settings: only one row is possible",
+);
+ok(
+  await fails("update app_settings set founding_free_months = 0"),
+  "app_settings: free months must be at least 1",
+);
+
 // Rate limiter: 6th hit refused, and expired rows for any key are pruned (privacy policy claim).
 const hit = async (k) =>
   (await db.query(`select hit_rate_limit($1, 5, '1 hour') ok`, [k])).rows[0].ok;

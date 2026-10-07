@@ -58,7 +58,7 @@ export type EditorGuide = {
 };
 
 type Values = GuideInput;
-type SaveState = "saved" | "dirty" | "saving" | "error";
+type SaveState = "new" | "saved" | "dirty" | "untitled" | "saving" | "error";
 
 const AUTOSAVE_MS = 2500;
 const STORAGE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/agency-media/`;
@@ -117,7 +117,7 @@ export function GuideEditor({
     author: guide.author,
     related: guide.related,
   });
-  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [saveState, setSaveState] = useState<SaveState>(guide.id ? "saved" : "new");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -138,7 +138,10 @@ export function GuideEditor({
   const save = useCallback(async (): Promise<string | null> => {
     if (saving.current) await saving.current;
     const snapshot = latest.current;
-    if (!snapshot.title.trim()) return id;
+    if (!snapshot.title.trim()) {
+      setSaveState("untitled"); // saving needs a title; typing one makes it dirty again
+      return id;
+    }
     const run = (async () => {
       setSaveState("saving");
       const res = await saveGuide(id, snapshot);
@@ -172,7 +175,7 @@ export function GuideEditor({
 
   // Warn before leaving with unsaved changes.
   useEffect(() => {
-    if (saveState === "saved") return;
+    if (saveState === "saved" || saveState === "new") return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
@@ -625,8 +628,10 @@ export function GuideEditor({
 
 function SaveIndicator({ state, error }: { state: SaveState; error: string | null }) {
   const text = {
+    new: "Not saved yet",
     saved: "Saved",
     dirty: "Unsaved changes",
+    untitled: "Add a title to save",
     saving: "Saving…",
     error: "Couldn't save",
   }[state];

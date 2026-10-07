@@ -42,12 +42,13 @@ export default async function AdminTaxonomyPage() {
   return (
     <div className="flex flex-col gap-14">
       <section aria-labelledby="combos" className="flex flex-col gap-4">
-        <h1 id="combos" className="text-admin-title">
+        <h1 className="text-admin-title">Taxonomy</h1>
+        <h2 id="combos" className="mt-4 text-admin-section">
           Combination pages
-        </h1>
+        </h2>
         <p className="max-w-reading text-text-2">
-          docs/SEO.md asks for unique copy on every indexed service × industry page. Pages without
-          their own copy fall back to the industry intro and generic text.
+          Every indexed service × industry page needs its own copy. Pages without it fall back to
+          the industry intro and generic text.
         </p>
         <form
           action="/admin/taxonomy/combo"

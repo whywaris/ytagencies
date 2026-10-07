@@ -235,3 +235,15 @@
 [data-admin] textarea {
   border-radius: 8px;
 }
+/* The theme's radius scale is the public one (lg = xl = 16px, inlined by @theme inline), so the
+   admin remaps the utilities it uses to §3: 8px controls (lg), 12px panels (xl), 6px badges and
+   menu rows (md). */
+[data-admin] .rounded-lg {
+  border-radius: 8px;
+}
+[data-admin] .rounded-xl {
+  border-radius: 12px;
+}
+[data-admin] .rounded-md {
+  border-radius: 6px;
+}

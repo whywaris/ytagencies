@@ -8,6 +8,7 @@ import { NotApprovedEmail } from "@/emails/not-approved";
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { removeCaseStudy, writeCaseStudy } from "@/lib/case-studies";
 import { approveClaim } from "@/lib/claims";
+import { foundingAvailable, getFoundingProgram } from "@/lib/data/settings";
 import { getMailer, oneLine } from "@/lib/email";
 import { revalidateAgency } from "@/lib/revalidate";
 import type { Json } from "@/lib/supabase/types";
@@ -94,6 +95,25 @@ export async function changePlan(agencyId: string, raw: unknown): Promise<FormRe
     .eq("id", agencyId)
     .maybeSingle();
   if (!agency) return { ok: false, error: "Unknown agency." };
+  if (plan === "founding") {
+    // §5.10: new Founding agencies only while the programme is open and has spots. An agency that
+    // has been Founding before already holds a spot, so it can be extended.
+    const { data: before } = await ctx.db
+      .from("agency_subscriptions")
+      .select("id")
+      .eq("agency_id", agencyId)
+      .eq("plan_id", "founding")
+      .limit(1);
+    if (!before?.length) {
+      const program = await getFoundingProgram();
+      if (!program.open) {
+        return { ok: false, error: "The Founding programme is closed. Open it in Settings." };
+      }
+      if (!foundingAvailable(program)) {
+        return { ok: false, error: "All Founding spots are taken. Add spots in Settings." };
+      }
+    }
+  }
 
   const now = new Date().toISOString();
   const { error: endError } = await ctx.db
@@ -115,6 +135,7 @@ export async function changePlan(agencyId: string, raw: unknown): Promise<FormRe
   }
   await ctx.log("agency.change_plan", "agency", agencyId, { plan, ends_on: endsOn || null });
   revalidateAgency(agency.slug);
+  if (plan === "founding") revalidatePath("/for-agencies/pricing"); // may have filled the last spot
   revalidatePath("/admin/agencies");
   revalidatePath(`/admin/agencies/${agencyId}`);
   return { ok: true, data: undefined };

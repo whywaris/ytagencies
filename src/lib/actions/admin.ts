@@ -211,6 +211,48 @@ export async function deleteLead(leadId: string): Promise<FormResult> {
   return { ok: true, data: undefined };
 }
 
+// ───────── Settings ─────────
+
+const settingsSchema = z.object({
+  foundingOpen: z.boolean(),
+  maxSpots: z.coerce
+    .number()
+    .int("Use a whole number.")
+    .min(1, "At least 1.")
+    .max(1000, "At most 1,000."),
+  freeMonths: z.coerce
+    .number()
+    .int("Use a whole number.")
+    .min(1, "At least 1 month.")
+    .max(36, "At most 36 months."),
+});
+
+/** §5.10 Founding programme settings. Lowering max spots below those used just stops new grants. */
+export async function saveSettings(raw: unknown): Promise<FormResult> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  const parsed = settingsSchema.safeParse(raw);
+  if (!parsed.success) return invalid(parsed.error);
+  const { foundingOpen, maxSpots, freeMonths } = parsed.data;
+  const { error } = await ctx.db
+    .from("app_settings")
+    .update({
+      founding_open: foundingOpen,
+      founding_max_spots: maxSpots,
+      founding_free_months: freeMonths,
+    })
+    .eq("id", true);
+  if (error) return { ok: false, error: SAVE_FAILED };
+  await ctx.log("settings.update", "settings", null, {
+    founding_open: foundingOpen,
+    founding_max_spots: maxSpots,
+    founding_free_months: freeMonths,
+  });
+  revalidatePath("/for-agencies/pricing");
+  revalidatePath("/admin/settings");
+  return { ok: true, data: undefined };
+}
+
 // ───────── Notifications ─────────
 
 /** Called when an admin opens the notifications popover: leads before now are no longer "new". */

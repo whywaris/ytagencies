@@ -326,6 +326,30 @@ export type Database = {
           },
         ];
       };
+      app_settings: {
+        Row: {
+          founding_free_months: number;
+          founding_max_spots: number;
+          founding_open: boolean;
+          id: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          founding_free_months?: number;
+          founding_max_spots?: number;
+          founding_open?: boolean;
+          id?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          founding_free_months?: number;
+          founding_max_spots?: number;
+          founding_open?: boolean;
+          id?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       case_studies: {
         Row: {
           updated_at: string;

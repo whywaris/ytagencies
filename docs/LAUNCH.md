@@ -22,6 +22,7 @@
      ```
      `{{ .RedirectTo }}` is the full `/auth/callback?next=…` URL the app sends; `/auth/confirm` accepts it only for this site's own origin and keeps just the path. Do this on the dev project too.
 4. Make yourself admin: `update profiles set role = 'admin' where id = '<your user id>';`
+   Then open Admin → Settings and set the Founding programme (open/closed, max spots, free months; defaults: open, 50, 6).
 5. Daily backups and point-in-time recovery (paid plan).
 6. Regenerate types: `pnpm dlx supabase gen types typescript --project-id <ref> --schema public > src/lib/supabase/types.ts`
 
@@ -40,13 +41,29 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 ## Vercel
 
 1. Domains: add `ytagencies.com` as the primary domain and `www.ytagencies.com` redirecting to it (the app also 308s www → apex).
-2. Environment variables for Production (Preview points at the dev project):
-   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `CLAIM_TOKEN_SECRET` (`openssl rand -base64 48`)
-   - `SITE_URL=https://ytagencies.com` (production builds fall back to it; set it anyway, and set the preview URL on Preview)
-   - `EMAIL_FROM` optional, defaults to `YT Agencies <hello@ytagencies.com>`
-   - `ADMIN_EMAIL`
+2. Environment variables. Set all of them on **Production** (pointing at the production Supabase project) and on **Preview** (pointing at the dev project); copy the same names into `.env.local` for local work (`.env.example` lists them). Only the three `NEXT_PUBLIC_` ones reach the browser (SECURITY.md).
+
+   | Variable | Scope | Required | What it does / how to get it |
+   |---|---|---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | public | yes | Supabase → Project Settings → API. |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | yes | Same page, `anon` key. |
+   | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | public | yes | Cloudflare Turnstile widget for `ytagencies.com`. |
+   | `SUPABASE_SERVICE_ROLE_KEY` | server | yes | Same Supabase page, `service_role` key. Admin, cron and public data functions use it. |
+   | `TURNSTILE_SECRET_KEY` | server | yes | The widget's secret key. Every public form checks it. |
+   | `RESEND_API_KEY` | server | yes | Resend API key (sending access, `ytagencies.com`). Without it no lead or rejection emails go out. |
+   | `CLAIM_TOKEN_SECRET` | server | yes | `openssl rand -base64 48`. Signs claim links and keys the daily visitor hash of the analytics beacon. Changing it voids pending claim links. Unset: claims fail and the beacon records nothing. |
+   | `CRON_SECRET` | server | yes | `openssl rand -base64 32`. Vercel sends it to `/api/cron/*`; without it those routes answer 401 and nothing scheduled runs. |
+   | `YOUTUBE_API_KEY` | server | yes | Google Cloud → enable "YouTube Data API v3" → create an API key restricted to that API. Used by admin verification and the monthly stats check (well within the free 10,000 units/day). |
+   | `SITE_URL` | server | yes | `https://ytagencies.com` on Production, the preview URL on Preview, `http://localhost:3000` locally. Builds canonicals, sitemaps, JSON-LD and email links. |
+   | `ADMIN_EMAIL` | server | recommended | Gets a note for every new lead, agency submission and claim that needs review. Unset: those notes are skipped (the admin queues still show everything). |
+   | `EMAIL_FROM` | server | no | Defaults to `YT Agencies <hello@ytagencies.com>`. |
+   | `PAYMENTS_ENABLED` | server | no | Leave unset for launch. Only exactly `true` turns payments on; while off nothing is charged, billing is a no-op and the pricing page offers the Founding programme. |
+
 3. Enable Web Analytics.
+4. Cron jobs come from `vercel.json` and run on Production only:
+   - `/api/cron/verification-stats` on the 1st of each month at 06:00 UTC (re-checks verified channels' YouTube stats).
+   - `/api/cron/guides` daily at 07:00 UTC (refreshes guides whose scheduled time passed). Guide pages also refresh hourly, so a scheduled guide appears within an hour either way. On Vercel Pro, change it to `*/15 * * * *`.
+   After the first deploy, check both under Project → Settings → Cron Jobs and run each once with "Run" to see a 200.
 
 ## Cloudflare DNS (DNS-only, grey cloud)
 
@@ -64,8 +81,8 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 
 ## After deploy
 
-1. End-to-end test with real services: magic link (opened in a different browser than the one that asked for it), Turnstile, the three lead emails, a domain-matched claim, a logo upload.
+1. End-to-end test with real services: magic link (opened in a different browser than the one that asked for it), Turnstile, the three lead emails, a domain-matched claim, a logo upload, a verification lookup (YouTube API), and a guide image upload.
 2. Check `https://www.ytagencies.com/x` returns 308 to `https://ytagencies.com/x`, and canonicals, sitemaps and JSON-LD use `https://ytagencies.com`.
 3. PageSpeed Insights on mobile: home, a directory page, a profile.
 4. Google Search Console and Bing Webmaster Tools: verify `ytagencies.com` (domain property) and submit the three `/sitemaps/*.xml` files.
-5. `pnpm audit`.
+5. `pnpm audit`. Known at launch: one high advisory in `braces` (GHSA-vfj7-8cjw-p6xm), pulled in only by dev tooling (eslint, the shadcn CLI). It isn't in the deployed app and has no patched release yet; update when one ships.

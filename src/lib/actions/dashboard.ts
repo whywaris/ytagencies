@@ -39,8 +39,6 @@ export async function updateProfile(agencyId: string, raw: unknown): Promise<For
   return { ok: true, data: undefined };
 }
 
-/** Real file type from the first bytes. The declared type and extension can't be trusted. */
-
 export async function uploadLogo(
   agencyId: string,
   formData: FormData,

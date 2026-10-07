@@ -36,8 +36,8 @@ export default async function AdminSeoPagesPage({ searchParams }: PageProps<"/ad
         <h1 className="text-admin-title">SEO pages</h1>
         <p className="text-text-2">
           Every service × industry and service × location page. A page is indexed once it has{" "}
-          {MIN_AGENCIES_TO_INDEX} published agencies (docs/SEO.md); until then it&apos;s noindex and
-          left out of the sitemap.
+          {MIN_AGENCIES_TO_INDEX} published agencies; until then it&apos;s noindex and left out of
+          the sitemap.
         </p>
       </div>
 

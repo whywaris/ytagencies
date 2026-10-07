@@ -15,6 +15,7 @@ import { hqLocationOptions } from "@/lib/admin-locations";
 import { profileFormProps } from "@/lib/agency-profile";
 import { requireAdmin } from "@/lib/auth";
 import { getEntitlements } from "@/lib/data/entitlements";
+import { getFoundingProgram } from "@/lib/data/settings";
 import { getIndustries } from "@/lib/data/taxonomy";
 import { currentPlan } from "@/lib/entitlements";
 import { formatCount, formatDate, formatDateTime, formatRelative } from "@/lib/format";
@@ -99,6 +100,7 @@ export default async function AdminAgencyPage({
             status: agency.status,
             plan,
           }}
+          foundingMonths={(await getFoundingProgram()).freeMonths}
         />
       </header>
 

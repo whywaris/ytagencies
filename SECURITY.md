@@ -19,7 +19,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 - Leads are never readable by anon. Agencies see only leads routed to them.
 - Admin actions check `profiles.role = 'admin'` in policy, not just in UI.
 - Never build SQL with string concatenation. Use the Supabase client or parameterized RPCs.
-- Plans, subscriptions, sponsored slots, verifications, agency events and the admin audit log are admin-write only. Owners may read their own subscription, verification and daily event rollups; anon reads none of them (public pages read what they need server-side with the service role).
+- Plans, subscriptions, sponsored slots, verifications, agency events, app settings and the admin audit log are admin-write only. Owners may read their own subscription, verification and daily event rollups; anon reads none of them (public pages read what they need server-side with the service role).
 - `agencies.is_verified` is derived from an approved row in `verifications` by a trigger. Don't write the flag directly.
 - Every admin mutation writes one row to `admin_actions` (ids and field names, never personal data). The log is append-only, even for admins.
 

@@ -5,6 +5,7 @@ import { JsonLd } from "@/components/json-ld";
 import { Button } from "@/components/ui/button";
 import { paymentsEnabled } from "@/lib/billing";
 import { getPlanPrices } from "@/lib/data/placement";
+import { foundingAvailable, getFoundingProgram } from "@/lib/data/settings";
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
@@ -12,7 +13,7 @@ import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 export const revalidate = 3600;
 
 // ADMIN_V2_SPEC §6. While PAYMENTS_ENABLED isn't "true", Verified is free for Founding agencies
-// and Sponsored placements are arranged by email.
+// (while the programme is open and has spots, §5.10) and Sponsored placements are arranged by email.
 
 export const metadata = buildMetadata({
   title: `Pricing for YouTube agencies | ${BRAND_NAME}`,
@@ -33,7 +34,8 @@ const SPONSORED_FROM_USD = 49;
 const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
 export default async function PricingPage() {
-  const plans = await getPlanPrices();
+  const [plans, program] = await Promise.all([getPlanPrices(), getFoundingProgram()]);
+  const founding = foundingAvailable(program);
   const verified = plans.get("verified");
   const live = paymentsEnabled();
 
@@ -87,7 +89,9 @@ export default async function PricingPage() {
                 ? verified?.price_yearly
                   ? `or ${usd(Number(verified.price_yearly))} a year`
                   : undefined
-                : "Free during launch: join as a Founding agency."
+                : founding
+                  ? "Free during launch: join as a Founding agency."
+                  : "Founding spots are taken. Paid plans open soon."
             }
             summary="For agencies that want more of the right leads."
             features={[
@@ -103,7 +107,11 @@ export default async function PricingPage() {
             cta={
               <Button asChild className="self-start">
                 <Link href="/list-your-agency">
-                  {live ? "Get Verified" : "Join as a Founding agency"}
+                  {live
+                    ? "Get Verified"
+                    : founding
+                      ? "Join as a Founding agency"
+                      : "List your agency"}
                 </Link>
               </Button>
             }
