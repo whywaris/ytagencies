@@ -818,6 +818,48 @@ ok(
   "authors: social links must be https",
 );
 
+console.log("— contact messages —");
+await db.exec(
+  "insert into contact_messages (topic, name, email, message) values ('privacy', 'Ana', 'ana@x.example', 'Please delete my inquiry.')",
+);
+ok(
+  await fails(
+    "insert into contact_messages (topic, name, email, message) values ('sales', 'X', 'x@x.example', 'Hi')",
+  ),
+  "contact_messages: unknown topics are refused",
+);
+for (const [role, uid, who] of [
+  ["anon", null, "anon"],
+  ["authenticated", OWNER, "signed-in user"],
+]) {
+  await as(role, uid, async () => {
+    ok(await denied("select * from contact_messages"), `contact_messages: ${who} can't read`);
+    ok(
+      await denied(
+        "insert into contact_messages (topic, name, email, message) values ('general', 'X', 'x@x.example', 'Hi')",
+      ),
+      `contact_messages: ${who} can't insert directly`,
+    );
+    ok(
+      await denied("update contact_messages set status = 'closed'"),
+      `contact_messages: ${who} can't change status`,
+    );
+    ok(await denied("delete from contact_messages"), `contact_messages: ${who} can't delete`);
+  });
+}
+await as("authenticated", ADMIN, async () => {
+  ok((await rows("select * from contact_messages")).length === 1, "contact_messages: admin reads");
+  ok(
+    (await db.query("update contact_messages set status = 'closed', closed_at = now()"))
+      .affectedRows === 1,
+    "contact_messages: admin can close",
+  );
+  ok(
+    (await db.query("delete from contact_messages")).affectedRows === 1,
+    "contact_messages: admin can delete",
+  );
+});
+
 console.log("— settings (§5.10) —");
 for (const [role, uid, who] of [
   ["anon", null, "anon"],

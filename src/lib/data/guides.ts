@@ -168,7 +168,7 @@ export const getGuideRedirect = cache(async (slug: string) => {
 export const getLiveAuthors = cache(async () => {
   const { data, error } = await createStaticClient()
     .from("authors")
-    .select("slug, updated_at")
+    .select("slug, name, role, updated_at")
     .order("name");
   if (error) throw error;
   return data;

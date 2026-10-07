@@ -1,10 +1,10 @@
-import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 import { GuideBody } from "@/components/guide-body";
 import { AuthorAvatar, AuthorBox, GuideCard, GuideCover } from "@/components/guides/guide-parts";
 import { ShareBar } from "@/components/guides/share-bar";
 import { TableOfContents } from "@/components/guides/toc";
+import { TocPanel } from "@/components/toc-panel";
 import { Button } from "@/components/ui/button";
 import type { Author, GuideSummary } from "@/lib/data/guides";
 import { groupOutline, parseGuideWithOutline } from "@/lib/markdown";
@@ -107,33 +107,12 @@ export function GuideArticle({
 
       {groups.length > 0 && (
         <>
-          <aside className="hidden min-[1100px]:col-start-1 min-[1100px]:row-start-2 min-[1100px]:block">
+          <aside className="hidden min-[1100px]:col-start-1 min-[1100px]:row-start-2 min-[1100px]:block print:hidden">
             <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pt-12">
               <TableOfContents groups={groups} numbered={numbered} />
             </div>
           </aside>
-          <details className="group mt-8 max-w-reading rounded-2xl border border-line min-[1100px]:hidden">
-            <summary className="flex min-h-12 cursor-pointer items-center justify-between px-5 font-semibold [&::-webkit-details-marker]:hidden">
-              On this page
-              <ChevronDown
-                aria-hidden
-                className="size-5 [stroke-width:1.75] text-text-2 transition-transform duration-150 group-open:rotate-180"
-              />
-            </summary>
-            <ol className="flex flex-col gap-1 px-5 pb-4 text-[15px]">
-              {groups.map((g, i) => (
-                <li key={g.id}>
-                  <a
-                    href={`#${g.id}`}
-                    className="flex min-h-10 items-center text-text-2 hover:text-text"
-                  >
-                    {numbered && <span className="mr-1.5 tabular-nums">{i + 1}.</span>}
-                    {g.text}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </details>
+          <TocPanel groups={groups} numbered={numbered} className="mt-8" />
         </>
       )}
 

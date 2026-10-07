@@ -34,7 +34,13 @@ async function entries(file: (typeof FILES)[number]): Promise<Entry[]> {
       { path: "/list-your-agency" },
       { path: "/for-agencies/pricing" },
       { path: "/how-we-rank" },
+      { path: "/about" },
+      { path: "/contact" },
+      { path: "/editorial-policy" },
+      { path: "/disclosure" },
       { path: "/privacy" },
+      { path: "/refunds" },
+      { path: "/cookies" },
       { path: "/terms" },
       ...services.map((s) => ({ path: `/${s.slug}`, lastModified: hubs.get(s.slug) })),
       ...combos.map((c) => ({

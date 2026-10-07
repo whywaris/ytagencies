@@ -481,6 +481,42 @@ export type Database = {
           },
         ];
       };
+      contact_messages: {
+        Row: {
+          agency_url: string | null;
+          closed_at: string | null;
+          created_at: string;
+          email: string;
+          id: string;
+          message: string;
+          name: string;
+          status: string;
+          topic: string;
+        };
+        Insert: {
+          agency_url?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          email: string;
+          id?: string;
+          message: string;
+          name: string;
+          status?: string;
+          topic: string;
+        };
+        Update: {
+          agency_url?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          message?: string;
+          name?: string;
+          status?: string;
+          topic?: string;
+        };
+        Relationships: [];
+      };
       guide_redirects: {
         Row: {
           created_at: string;

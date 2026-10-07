@@ -1,3 +1,4 @@
+import { COMPANY } from "@/lib/company";
 import { absoluteUrl as absolute, BRAND_NAME, CONTACT_EMAIL, SITE_URL } from "@/lib/site";
 
 export function websiteJsonLd() {
@@ -9,7 +10,9 @@ export function websiteJsonLd() {
   };
 }
 
+/** The site's organization, with company facts from lib/company.ts once they're filled in. */
 export function organizationJsonLd() {
+  const { founder, legalName, city, country } = COMPANY;
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -18,6 +21,47 @@ export function organizationJsonLd() {
     // Google wants a raster logo of at least 112×112 (src/app/logo.png/route.tsx renders 512×512).
     logo: absolute("/logo.png"),
     email: CONTACT_EMAIL,
+    ...(legalName ? { legalName } : {}),
+    ...(city || country
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            ...(city ? { addressLocality: city } : {}),
+            ...(country ? { addressCountry: country } : {}),
+          },
+        }
+      : {}),
+    ...(founder.name && founder.role
+      ? {
+          founder: {
+            "@type": "Person",
+            name: founder.name,
+            jobTitle: founder.role,
+            ...(founder.linkedinUrl ? { sameAs: [founder.linkedinUrl] } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
+/** Company and legal pages: WebPage (or AboutPage / ContactPage) with its last update. */
+export function webPageJsonLd(p: {
+  type?: "WebPage" | "AboutPage" | "ContactPage";
+  name: string;
+  description: string;
+  path: string;
+  /** yyyy-mm-dd */
+  updated?: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": p.type ?? "WebPage",
+    name: p.name,
+    description: p.description,
+    url: absolute(p.path),
+    ...(p.updated ? { dateModified: p.updated } : {}),
+    isPartOf: { "@type": "WebSite", name: BRAND_NAME, url: SITE_URL },
+    publisher: { "@type": "Organization", name: BRAND_NAME, url: SITE_URL },
   };
 }
 

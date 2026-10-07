@@ -346,6 +346,16 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 </Link>
               </p>
             )}
+            <p className="text-small">
+              Something wrong with this listing?{" "}
+              <Link
+                href={`/contact?topic=report&agency=${agency.slug}`}
+                className="text-accent hover:underline"
+                rel="nofollow"
+              >
+                Report this listing
+              </Link>
+            </p>
           </aside>
         </div>
 

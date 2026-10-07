@@ -21,40 +21,54 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const user = await requireAdmin();
   const db = createAdminClient();
   const oldestFirst = { ascending: true } as const;
-  const [store, profile, submissions, claims, reviews, verifications] = await Promise.all([
-    cookies(),
-    db.from("profiles").select("notifications_seen_at").eq("id", user.id).maybeSingle(),
-    db
-      .from("agencies")
-      .select("created_at", { count: "exact" })
-      .eq("status", "draft")
-      .not("submitted_by", "is", null)
-      .order("created_at", oldestFirst)
-      .limit(1),
-    // Claims on new submissions are decided in Submissions instead.
-    db
-      .from("claims")
-      .select("created_at, agencies!inner(status)", { count: "exact" })
-      .eq("status", "pending")
-      .neq("agencies.status", "draft")
-      .order("created_at", oldestFirst)
-      .limit(1),
-    db
-      .from("reviews")
-      .select("created_at", { count: "exact" })
-      .eq("status", "pending")
-      .order("created_at", oldestFirst)
-      .limit(1),
-    db
-      .from("verifications")
-      .select("created_at", { count: "exact" })
-      .eq("status", "requested")
-      .order("created_at", oldestFirst)
-      .limit(1),
-  ]);
+  const [store, profile, submissions, claims, reviews, verifications, messages] = await Promise.all(
+    [
+      cookies(),
+      db.from("profiles").select("notifications_seen_at").eq("id", user.id).maybeSingle(),
+      db
+        .from("agencies")
+        .select("created_at", { count: "exact" })
+        .eq("status", "draft")
+        .not("submitted_by", "is", null)
+        .order("created_at", oldestFirst)
+        .limit(1),
+      // Claims on new submissions are decided in Submissions instead.
+      db
+        .from("claims")
+        .select("created_at, agencies!inner(status)", { count: "exact" })
+        .eq("status", "pending")
+        .neq("agencies.status", "draft")
+        .order("created_at", oldestFirst)
+        .limit(1),
+      db
+        .from("reviews")
+        .select("created_at", { count: "exact" })
+        .eq("status", "pending")
+        .order("created_at", oldestFirst)
+        .limit(1),
+      db
+        .from("verifications")
+        .select("created_at", { count: "exact" })
+        .eq("status", "requested")
+        .order("created_at", oldestFirst)
+        .limit(1),
+      db
+        .from("contact_messages")
+        .select("created_at", { count: "exact" })
+        .eq("status", "open")
+        .order("created_at", oldestFirst)
+        .limit(1),
+    ],
+  );
 
   // Pending work: sidebar badges and the notifications popover. Real counts only.
   const queues: Queue[] = [
+    {
+      href: "/admin/inbox",
+      one: "message to answer",
+      many: "messages to answer",
+      res: messages,
+    },
     {
       href: "/admin/submissions",
       one: "new agency to review",

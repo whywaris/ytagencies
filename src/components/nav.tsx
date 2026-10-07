@@ -15,7 +15,7 @@ const links = [
 // pages stay static; the account area is a client component (see nav-account.tsx).
 export function Nav() {
   return (
-    <header className="@container sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-[20px]">
+    <header className="@container sticky top-0 z-40 border-b border-line bg-bg/80 backdrop-blur-[20px] print:hidden">
       <nav
         aria-label="Main"
         className="mx-auto flex h-13 max-w-content items-center gap-8 px-4 md:px-6"

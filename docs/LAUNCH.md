@@ -71,14 +71,15 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 1. Apex and `www` records pointing at Vercel, as Vercel's domain screen shows.
 2. Turnstile widget for `ytagencies.com`.
 3. Resend: verify `ytagencies.com` and add its SPF, DKIM and DMARC records.
-4. Make `hello@ytagencies.com` a real, monitored inbox (shown on /privacy, /terms and in JSON-LD).
+4. Make `hello@`, `privacy@` and `agencies@ytagencies.com` real, monitored inboxes. The contact form sends each topic to one of them (`src/lib/contact-topics.ts`), and they're shown on /contact and the legal pages.
 
 ## Content and legal
 
-1. Have `/privacy` and `/terms` reviewed; add the company's legal name and jurisdiction. Blocks launch.
-2. Delete the sample agencies.
-3. Write copy for each indexed combination page (Admin → Taxonomy shows "Missing") and the service intros.
-4. Delete `src/app/styleguide/`.
+1. Fill in every TODO in `src/lib/company.ts` (`pnpm build` prints the list): legal name, country, city, jurisdiction, response times, founder, guide review cycle, and the payment provider before payments go live. Pages hide what's missing until then.
+2. Have `/privacy`, `/terms`, `/refunds` and `/cookies` reviewed for your jurisdiction. Blocks launch. If the code starts setting a new cookie, add it to `/cookies`.
+3. Delete the sample agencies.
+4. Write copy for each indexed combination page (Admin → Taxonomy shows "Missing") and the service intros.
+5. Delete `src/app/styleguide/`.
 
 ## After deploy
 

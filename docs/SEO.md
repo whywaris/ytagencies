@@ -22,6 +22,8 @@
 | List your agency                        | `/list-your-agency`                 | Yes                             |
 | Pricing for agencies                    | `/for-agencies/pricing`             | Yes                             |
 | How we rank                             | `/how-we-rank`                      | Yes                             |
+| About, contact                          | `/about`, `/contact`                | Yes (`/contact?topic=` canonical to `/contact`) |
+| Policies                                | `/privacy`, `/terms`, `/refunds`, `/cookies`, `/disclosure`, `/editorial-policy` | Yes |
 | Filters (`?budget=`, `?sort=`)          | same path + params                  | No; canonical to the clean path |
 | Dashboard / admin / get-matched success | —                                   | No (`noindex`)                  |
 
@@ -46,7 +48,7 @@
 
 ## Structured data (JSON-LD, built in `lib/seo/`)
 
-- All pages: `BreadcrumbList`; home: `WebSite` + `Organization`.
+- All pages: `BreadcrumbList`; home: `WebSite` + `Organization`. Policy pages: `WebPage` with `dateModified`; `/about`: `AboutPage` + `Organization` (founder as `Person` once filled in); `/contact`: `ContactPage`.
 - Directory pages: `ItemList` of agencies (url + position).
 - Profile: `ProfessionalService` with name, url, logo, areaServed, address (if public). Add `aggregateRating` only from genuine, moderated third-party reviews.
 - Guides: `Article` with dates and `author` as a `Person` linking to their author page. `/guides`: `CollectionPage` with an `ItemList` of the guides shown. Author pages: `Person` (name, job title, bio, photo, `sameAs` profiles).

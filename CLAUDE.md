@@ -4,7 +4,7 @@
 
 ## What this is
 
-**YT Agencies** (`https://ytagencies.com`, apex, no www). Brand name, domain and contact email live only in `src/lib/site.ts`; build absolute URLs with `absoluteUrl()`. Independent: never use YouTube's logo, play buttons or red in the brand.
+**YT Agencies** (`https://ytagencies.com`, apex, no www). Brand name, domain and contact email live only in `src/lib/site.ts`; build absolute URLs with `absoluteUrl()`. Company facts (legal name, location, jurisdiction, inboxes, response times, founder, refund rules) live only in `src/lib/company.ts`: never invent them; `null` is a TODO that pages hide and `pnpm build` lists. Independent: never use YouTube's logo, play buttons or red in the brand.
 
 A directory that helps businesses find the right YouTube agency by **service** (Ads, SEO, channel management, production, Shorts, influencer marketing) and **industry** (crypto, doctors/healthcare, dentists, real estate, SaaS, e-commerce, coaches, law…) and **location**.
 Two sides: businesses search and send inquiries (free); agencies claim listings and pay for visibility and leads.

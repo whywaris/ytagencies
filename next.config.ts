@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
+import { companyTodos } from "./src/lib/company";
 import { mediaHosts } from "./src/lib/media";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -62,6 +64,8 @@ const nextConfig: NextConfig = {
     return [
       // No page of its own (yet): agencies land on pricing.
       { source: "/for-agencies", destination: "/for-agencies/pricing", permanent: false },
+      // Short link for reports; agency profiles link to /contact?topic=report&agency=<slug>.
+      { source: "/report-listing", destination: "/contact?topic=report", permanent: true },
       {
         source: "/:path*",
         has: [{ type: "host", value: "www.ytagencies.com" }],
@@ -75,4 +79,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Launch checklist: list company facts nobody has filled in yet (src/lib/company.ts).
+export default function config(phase: string): NextConfig {
+  // Next loads this file in several build workers; they inherit the env, so this prints once.
+  const todos =
+    phase === PHASE_PRODUCTION_BUILD && !process.env.COMPANY_TODOS_SHOWN ? companyTodos() : [];
+  if (todos.length) {
+    process.env.COMPANY_TODOS_SHOWN = "1";
+    console.warn(
+      `⚠ src/lib/company.ts has ${todos.length} unfilled TODOs (pages hide them until filled):`,
+    );
+    for (const t of todos) console.warn(`  - ${t}`);
+  }
+  return nextConfig;
+}

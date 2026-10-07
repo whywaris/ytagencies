@@ -32,13 +32,14 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 
 ## Forms & input
 
-- Every public form (get-matched, contact agency, review, claim) has:
+- Every public form (get-matched, contact agency, contact us, review, claim) has:
   - Cloudflare Turnstile verified server-side.
   - Zod validation on the server.
   - Rate limiting per IP and per email (e.g. 5 submissions/hour), stored in a `rate_limits` table or Upstash.
   - Honeypot field.
 - Sign-in (magic link) has no Turnstile: it's rate-limited per IP and per email (5 an hour, plus Supabase's own email limit) and has a honeypot. The response is the same whether or not the email has an account.
 - Reviews: plain text only, length-capped, held for moderation before publishing.
+- Contact messages (`contact_messages`) are written only by the server action (service role, after the checks above); nobody else can read or write them, and admins handle them in Admin → Inbox. The confirmation email to the sender contains nothing they typed, so the form can't be used to send spam through us; the admin copy shows a reported link as text and uses reply-to, not the sender as From.
 - Never use `dangerouslySetInnerHTML` with user content.
 - Guides (stored as Markdown in the database) are rendered server-side with remark/rehype and **rehype-sanitize**: no raw HTML, no scripts or event handlers, links get `rel="noopener"` and external ones open in a new tab. Never render guide Markdown in the browser or skip the sanitizer. Callouts (`> [!tip]`, `[!note]`, `[!warning]`) become an `<aside>` whose class the sanitizer allows only from a fixed list (`callout`, `callout-tip`, `callout-note`, `callout-warning`); no other class or id survives from Markdown (heading ids are added after sanitizing, from the heading text).
 

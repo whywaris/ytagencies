@@ -1,75 +1,255 @@
-import { LegalPage } from "@/components/legal-page";
-import { buildMetadata } from "@/lib/seo/metadata";
-import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
+import Link from "next/link";
 
-// LAUNCH: describes what the code actually collects, but have it reviewed for your jurisdiction
-// (e.g. GDPR/UK GDPR if you serve the UK/EU) before launch, and keep it in sync with the code.
+import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
+import { COMPANY } from "@/lib/company";
+import { buildMetadata } from "@/lib/seo/metadata";
+import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
+
+// Describes exactly what the code collects today. Keep it in sync with the code: forms
+// (lib/actions), the analytics beacon (api/events), sign-in (Supabase), emails (Resend) and
+// Turnstile. LAUNCH: have it reviewed for your jurisdiction before launch.
+
+const UPDATED = "2026-10-07";
+const TITLE = "Privacy policy";
+const DESCRIPTION =
+  "What YT Agencies collects when you browse, send an inquiry or manage a listing, who receives it, how long we keep it, and how to get a copy or have it deleted.";
 
 export const metadata = buildMetadata({
   title: `Privacy policy | ${BRAND_NAME}`,
-  description: `What ${BRAND_NAME} collects when you search for an agency, send an inquiry or manage a listing, who we share it with, and how to have your details deleted.`,
+  description: DESCRIPTION,
   path: "/privacy",
 });
 
+const operator = COMPANY.legalName ? `${COMPANY.legalName}, trading as ${BRAND_NAME}` : BRAND_NAME;
+const privacy = COMPANY.emails.privacy;
+
+const sections: LegalSection[] = [
+  {
+    id: "who-we-are",
+    title: "Who we are",
+    body: (
+      <p>
+        {operator} runs {SITE_DOMAIN}
+        {COMPANY.city && COMPANY.country ? `, from ${COMPANY.city}, ${COMPANY.country}` : ""}. We
+        decide what personal data the site collects and why, so for data protection law we are the
+        controller. You can reach us about anything on this page at{" "}
+        <a href={`mailto:${privacy}`}>{privacy}</a>.
+      </p>
+    ),
+  },
+  {
+    id: "what-we-collect",
+    title: "What we collect",
+    body: (
+      <>
+        <h3>When you browse</h3>
+        <p>
+          You can read the directory and guides without an account. Vercel Web Analytics counts page
+          views without cookies and without identifying you.
+        </p>
+        <p>
+          When you view an agency&apos;s profile, open its contact form or click its website link,
+          we record that event so the agency can see how its profile is doing. We store a visitor
+          code made from your IP address and browser with a key that changes every day, so we
+          can&apos;t recognise you from one day to the next. We don&apos;t store your IP address or
+          browser details.
+        </p>
+        <h3>When you send an inquiry or get matched</h3>
+        <ul>
+          <li>Your name and email address</li>
+          <li>Your company name, if you give it</li>
+          <li>The service, industry and budget range you choose</li>
+          <li>Your message</li>
+        </ul>
+        <h3>When you write to us</h3>
+        <p>
+          The contact form collects your name, email address, the topic, your message and, if you
+          report a listing, the link to it.
+        </p>
+        <h3>When you manage a listing</h3>
+        <ul>
+          <li>Your email address, which you use to sign in with an email link</li>
+          <li>The work email you use to claim a listing</li>
+          <li>The listing details, logo and case studies you add</li>
+          <li>YouTube channel links you give us for verification, and their public statistics</li>
+        </ul>
+        <p>Our sign-in provider keeps records of sign-ins, including IP addresses, for security.</p>
+        <h3>To stop spam</h3>
+        <p>
+          Our forms use Cloudflare Turnstile to block bots. To limit abuse, we keep a one-way hash
+          of your IP address and email address for about an hour. It can&apos;t be turned back into
+          the original.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "how-we-use-it",
+    title: "How we use it",
+    body: (
+      <>
+        <ul>
+          <li>
+            <strong>To deliver your inquiry</strong> to the agency you chose, or to up to three
+            agencies that match it, and to email you a confirmation. We do this because you asked us
+            to.
+          </li>
+          <li>
+            <strong>To run your agency account</strong>: sign-in, your listing, your inquiries and
+            your profile statistics. This is needed to provide the service.
+          </li>
+          <li>
+            <strong>To answer messages</strong> you send through the contact form.
+          </li>
+          <li>
+            <strong>To keep the site safe</strong>: blocking bots, limiting repeated requests and
+            reviewing listings and reviews before they go live. This is in our legitimate interest
+            and yours.
+          </li>
+        </ul>
+        <p>
+          We don&apos;t sell your data, show ads or build advertising profiles. We don&apos;t add
+          you to a mailing list.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "who-receives-it",
+    title: "Who receives it",
+    body: (
+      <>
+        <p>
+          <strong>Agencies.</strong> The agency you contact, or the agencies we match you with,
+          receive your inquiry so they can reply to you. Once they have it, they handle it under
+          their own privacy policy.
+        </p>
+        <p>
+          <strong>Service providers</strong> that process data for us, under their data processing
+          terms:
+        </p>
+        <ul>
+          <li>Supabase: database, sign-in and file storage</li>
+          <li>Vercel: hosting and analytics</li>
+          <li>Resend: sending emails</li>
+          <li>Cloudflare: bot protection (Turnstile) and image hosting</li>
+          <li>Google: the YouTube Data API, which receives channel links during verification</li>
+        </ul>
+        <p>
+          When paid plans go on sale, the payment provider that sells them will process payment
+          details. We never see or store card numbers.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "how-long-we-keep-it",
+    title: "How long we keep it",
+    body: (
+      <ul>
+        <li>
+          <strong>Inquiries and contact messages:</strong> until you ask us to delete them. We
+          don&apos;t delete them automatically yet.
+        </li>
+        <li>
+          <strong>Agency accounts and listings:</strong> until you ask us to close the account.
+        </li>
+        <li>
+          <strong>Profile events:</strong> individual events for 90 days; after that only daily
+          totals per agency, with no visitor codes.
+        </li>
+        <li>
+          <strong>Spam-protection hashes:</strong> about an hour.
+        </li>
+        <li>
+          <strong>Emails:</strong> our email provider keeps delivery records for a limited time
+          under its own policy.
+        </li>
+      </ul>
+    ),
+  },
+  {
+    id: "your-rights",
+    title: "Your rights and how to use them",
+    body: (
+      <>
+        <p>
+          You can ask for a copy of your data, ask us to correct or delete it, or object to how we
+          use it. Write to <a href={`mailto:${privacy}`}>{privacy}</a> or use the{" "}
+          <Link href="/contact?topic=privacy">privacy request form</Link>. We answer{" "}
+          {COMPANY.responseTimes.privacy}.
+        </p>
+        <p>
+          We may ask you to confirm the request from the email address it concerns. When we delete
+          an inquiry, we also ask the agencies that received it to delete their copy.
+        </p>
+        <p>
+          If you&apos;re unhappy with how we handled your data, you can complain to your local data
+          protection authority.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "international-transfers",
+    title: "International transfers",
+    body: (
+      <p>
+        Our service providers are based in the United States and process data there and in other
+        countries. We rely on the safeguards in their data processing terms, such as the European
+        Commission&apos;s standard contractual clauses, for transfers out of the UK and EU.
+      </p>
+    ),
+  },
+  {
+    id: "security",
+    title: "Security",
+    body: (
+      <p>
+        The site only works over HTTPS. Database access is limited by row-level rules, so visitors
+        and agencies can only see what they should, and only our administrators can see inquiries
+        and messages. No system is perfect, so please tell us at{" "}
+        <a href={`mailto:${privacy}`}>{privacy}</a> if you find a problem.
+      </p>
+    ),
+  },
+  {
+    id: "children",
+    title: "Children",
+    body: (
+      <p>
+        {BRAND_NAME} is for businesses and isn&apos;t meant for anyone under 18. If you think a
+        child has sent us their details, write to us and we&apos;ll delete them.
+      </p>
+    ),
+  },
+  {
+    id: "changes",
+    title: "Changes to this policy",
+    body: (
+      <p>
+        When we change what we collect or how we use it, we update this page and the date at the
+        top.
+      </p>
+    ),
+  },
+];
+
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy policy" path="/privacy" updated="October 7, 2026">
-      <p>
-        {BRAND_NAME} helps businesses find YouTube agencies. This page explains what we collect,
-        why, and what you can ask us to do with it.
-      </p>
-
-      <h2>When you browse</h2>
-      <p>
-        You can search and read agency listings without an account. We use Vercel Analytics to count
-        visits and see which pages are used. It doesn&apos;t use cookies to track you across sites.
-      </p>
-
-      <h2>When you send an inquiry or get matched</h2>
-      <p>We collect what we need to connect you with agencies:</p>
-      <ul>
-        <li>Your name and email address</li>
-        <li>Your company name, if you give it</li>
-        <li>The service, industry and budget range you choose</li>
-        <li>Your message</li>
-      </ul>
-      <p>
-        We send these details to the agency you contact, or to up to three agencies we match you
-        with, so they can reply to you. We email you a confirmation, and our team sees each request
-        so we can follow up when no agency matches. We don&apos;t sell your details or add you to a
-        mailing list.
-      </p>
-
-      <h2>When you manage a listing</h2>
-      <p>
-        Agencies sign in with an email link. We store your email address, the work email you use to
-        claim a listing, and the listing details you edit. Inquiries sent to your agency are shown
-        in your dashboard.
-      </p>
-
-      <h2>Spam protection</h2>
-      <p>
-        Our forms use Cloudflare Turnstile to block bots. To limit abuse we keep a one-way hash of
-        your IP address and email address for about an hour. We can&apos;t turn it back into the
-        original.
-      </p>
-
-      <h2>Who processes your data for us</h2>
-      <ul>
-        <li>Supabase: database, sign-in and file storage</li>
-        <li>Vercel: hosting and analytics</li>
-        <li>Resend: sending emails</li>
-        <li>Cloudflare: Turnstile bot protection</li>
-      </ul>
-
-      <h2>Deleting your details</h2>
-      <p>
-        To have your inquiry or account deleted, reply to any email from us or write to{" "}
-        <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent underline underline-offset-2">
-          {CONTACT_EMAIL}
-        </a>
-        . We delete it from our systems and ask the agencies that received it to delete their copy.
-      </p>
-    </LegalPage>
+    <LegalPage
+      title={TITLE}
+      description={DESCRIPTION}
+      path="/privacy"
+      updated={UPDATED}
+      contactEmail={privacy}
+      summary={[
+        "We collect what's needed to connect businesses with agencies: your details when you send an inquiry, write to us or manage a listing.",
+        "Your inquiry goes to the agencies you contact or are matched with. We don't sell your data or show ads.",
+        "We use no advertising or tracking cookies, and analytics don't identify you.",
+        `You can ask for a copy of your data or have it deleted at any time: ${privacy}.`,
+      ]}
+      sections={sections}
+    />
   );
 }

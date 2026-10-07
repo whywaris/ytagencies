@@ -13,6 +13,7 @@ import {
   Inbox,
   KeyRound,
   LayoutDashboard,
+  Mail,
   Megaphone,
   Menu,
   Monitor,
@@ -59,7 +60,13 @@ type Item = { href: string; label: string; icon: LucideIcon; external?: boolean 
 
 // The sidebar (ADMIN_V2_SPEC §4). Settings and View site sit below the groups.
 const GROUPS: { heading: string; items: Item[] }[] = [
-  { heading: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
+  {
+    heading: "Overview",
+    items: [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/inbox", label: "Inbox", icon: Mail },
+    ],
+  },
   {
     heading: "Directory",
     items: [
@@ -405,6 +412,7 @@ const CRUMBS: Record<string, string> = {
   sponsored: "Sponsored",
   settings: "Settings",
   authors: "Authors",
+  inbox: "Inbox",
 };
 
 function Breadcrumbs({ pathname }: { pathname: string }) {
