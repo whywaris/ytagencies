@@ -33,6 +33,62 @@ export function postLoginPath(next: string | null | undefined, isAdmin: boolean)
   return safeNext(next) ?? (isAdmin ? "/admin" : "/dashboard");
 }
 
+/**
+ * `next` from an email link's `next` param. The Supabase template passes {{ .RedirectTo }}: the
+ * full emailRedirectTo (https://ytagencies.com/auth/callback?next=%2Fadmin, not URL-encoded), a
+ * plain path, or the Site URL when Supabase dropped an unlisted redirect. Only our own origins
+ * count, the callback's own ?next= is unwrapped, and the bare home page means "no next".
+ */
+export function nextFromRedirectTo(raw: string | null | undefined, origins: string[]) {
+  if (!raw || raw.length > 1000) return null;
+  if (!raw.startsWith("/") && !/^https?:\/\//i.test(raw)) return null;
+  let url: URL;
+  try {
+    url = new URL(raw, ORIGIN);
+  } catch {
+    return null;
+  }
+  if (url.origin !== ORIGIN && !origins.includes(url.origin)) return null;
+  if (url.pathname === "/auth/callback") return safeNext(url.searchParams.get("next"));
+  const path = url.pathname + url.search + url.hash;
+  return path === "/" ? null : safeNext(path);
+}
+
+/** Email link types /auth/confirm accepts: magic link and sign-up confirmation. */
+const EMAIL_LINK_TYPES = new Set(["email", "magiclink", "signup"]);
+
+export type EmailLinkDeps = {
+  /** supabase.auth.verifyOtp({ token_hash, type }); errorCode is Supabase's error code, if any. */
+  verifyOtp(
+    tokenHash: string,
+    type: string,
+  ): Promise<{ userId: string; errorCode?: never } | { userId?: never; errorCode: string }>;
+  isAdmin(userId: string): Promise<boolean>;
+};
+
+/**
+ * /auth/confirm (token_hash flow): works in any browser, unlike PKCE links that need the code
+ * verifier cookie from the browser that asked. Returns where to redirect.
+ */
+export async function confirmEmailLink(
+  params: { tokenHash: string | null; type: string | null; next: string | null },
+  origins: string[],
+  deps: EmailLinkDeps,
+) {
+  const next = nextFromRedirectTo(params.next, origins);
+  const fail = (error: "expired" | "link") =>
+    `/login?error=${error}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  const { tokenHash, type } = params;
+  if (!tokenHash || tokenHash.length > 200 || !type || !EMAIL_LINK_TYPES.has(type)) {
+    return fail("link");
+  }
+  const result = await deps.verifyOtp(tokenHash, type);
+  if (result.errorCode !== undefined) {
+    return fail(result.errorCode === "otp_expired" ? "expired" : "link");
+  }
+  return postLoginPath(next, next ? false : await deps.isAdmin(result.userId));
+}
+
 export type Gate = { action: "next" } | { action: "login"; to: string } | { action: "no-access" };
 
 /** The proxy's optimistic check for /dashboard and /admin. Pages and actions re-check on the server. */

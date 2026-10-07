@@ -12,6 +12,11 @@
    - Redirect URLs: `https://ytagencies.com/auth/callback**` (plus `http://localhost:3000/auth/callback**` on the dev project only). Keep the trailing `**`: sign-in links carry `?next=`, and without the wildcard Supabase drops the URL and sends people to the Site URL instead.
    - Enable Google (OAuth client in Google Cloud; authorized domain `ytagencies.com`)
    - Custom SMTP through Resend, sender `hello@ytagencies.com`
+   - Email templates (Authentication → Email Templates). Email links must go to `/auth/confirm` (token hash), so they work when opened in a different browser or device; the default `{{ .ConfirmationURL }}` uses PKCE and fails there with "expired or already used". Set the link in both **Magic Link** and **Confirm signup** to:
+     ```html
+     <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next={{ .RedirectTo }}">Sign in to YT Agencies</a>
+     ```
+     `{{ .RedirectTo }}` is the full `/auth/callback?next=…` URL the app sends; `/auth/confirm` accepts it only for this site's own origin and keeps just the path. Do this on the dev project too. Google sign-in still uses `/auth/callback`.
 4. Make yourself admin: `update profiles set role = 'admin' where id = '<your user id>';`
 5. Daily backups and point-in-time recovery (paid plan).
 6. Regenerate types: `pnpm dlx supabase gen types typescript --project-id <ref> --schema public > src/lib/supabase/types.ts`

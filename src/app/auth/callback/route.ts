@@ -3,8 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { postLoginPath, safeNext } from "@/lib/redirects";
 import { createClient } from "@/lib/supabase/server";
 
-// Magic link and Google both land here with a PKCE code and, if the visitor came from a gated
-// page, ?next=. Without one, admins go to /admin and everyone else to /dashboard.
+// Google OAuth lands here with a PKCE code and, if the visitor came from a gated page, ?next=.
+// Without one, admins go to /admin and everyone else to /dashboard. Email links use
+// /auth/confirm; old-style magic links (PKCE) still work here in the browser that requested them.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");

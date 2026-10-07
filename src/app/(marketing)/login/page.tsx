@@ -11,7 +11,8 @@ export const metadata = {
 };
 
 const ERRORS: Record<string, string> = {
-  link: "That sign-in link has expired or was already used. Request a new one below.",
+  expired: "This link has expired or was already used. Request a new one.",
+  link: "We couldn't sign you in with that link. Request a new one below.",
   google: "Google sign-in didn't work. Try again, or use an email link.",
 };
 

@@ -3,7 +3,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { callbackUrl, postLoginPath, privateGate, safeNext } from "../src/lib/redirects.ts";
+import {
+  callbackUrl,
+  confirmEmailLink,
+  nextFromRedirectTo,
+  postLoginPath,
+  privateGate,
+  safeNext,
+} from "../src/lib/redirects.ts";
 
 test("safeNext keeps same-site paths, with their query and hash", () => {
   assert.equal(safeNext("/dashboard"), "/dashboard");
@@ -74,4 +81,120 @@ test("privateGate: signed-in non-admins see 'no access' on /admin, not a redirec
   assert.deepEqual(privateGate("/dashboard/x", true, false), { action: "next" });
   // Paths that only start with the same letters aren't the admin area.
   assert.deepEqual(privateGate("/administrator", true, false), { action: "next" });
+});
+
+// /auth/confirm (token_hash email links)
+const SITE = "https://ytagencies.com";
+const ORIGINS = [SITE];
+const fakeDeps = ({ errorCode, admin = false } = {}) => {
+  const calls = [];
+  return {
+    calls,
+    async verifyOtp(tokenHash, type) {
+      calls.push([tokenHash, type]);
+      return errorCode ? { errorCode } : { userId: "u1" };
+    },
+    async isAdmin() {
+      return admin;
+    },
+  };
+};
+
+test("nextFromRedirectTo unwraps the template's {{ .RedirectTo }}", () => {
+  // The raw callback URL as the template inserts it (the outer query already decoded once).
+  assert.equal(
+    nextFromRedirectTo(`${SITE}/auth/callback?next=/admin/claims`, ORIGINS),
+    "/admin/claims",
+  );
+  assert.equal(
+    nextFromRedirectTo(`${SITE}/auth/callback?next=%2Fdashboard`, ORIGINS),
+    "/dashboard",
+  );
+  assert.equal(nextFromRedirectTo(`${SITE}/auth/callback`, ORIGINS), null);
+  assert.equal(nextFromRedirectTo(SITE, ORIGINS), null); // Site URL fallback
+  assert.equal(nextFromRedirectTo(`${SITE}/agency/acme/claim`, ORIGINS), "/agency/acme/claim");
+  assert.equal(nextFromRedirectTo("/dashboard", ORIGINS), "/dashboard");
+});
+
+test("nextFromRedirectTo refuses other sites and tricks", () => {
+  for (const evil of [
+    "https://evil.com/dashboard",
+    "https://evil.com/auth/callback?next=/admin",
+    `${SITE}/auth/callback?next=https://evil.com`,
+    `${SITE}/auth/callback?next=//evil.com`,
+    "//evil.com/dashboard",
+    "javascript:alert(1)",
+    `${SITE}.evil.com/dashboard`,
+    "",
+    null,
+  ]) {
+    assert.equal(nextFromRedirectTo(evil, ORIGINS), null, String(evil));
+  }
+});
+
+test("confirmEmailLink: a valid link signs in and goes to next", async () => {
+  const deps = fakeDeps();
+  const to = await confirmEmailLink(
+    { tokenHash: "abc", type: "email", next: `${SITE}/auth/callback?next=/admin/claims` },
+    ORIGINS,
+    deps,
+  );
+  assert.equal(to, "/admin/claims");
+  assert.deepEqual(deps.calls, [["abc", "email"]]);
+});
+
+test("confirmEmailLink: without next, admins land on /admin and others on /dashboard", async () => {
+  const link = { tokenHash: "abc", type: "email", next: `${SITE}/auth/callback` };
+  assert.equal(await confirmEmailLink(link, ORIGINS, fakeDeps({ admin: true })), "/admin");
+  assert.equal(await confirmEmailLink(link, ORIGINS, fakeDeps()), "/dashboard");
+});
+
+test("confirmEmailLink: an expired or used link gets its own message, keeping next", async () => {
+  const to = await confirmEmailLink(
+    { tokenHash: "abc", type: "email", next: `${SITE}/auth/callback?next=/admin` },
+    ORIGINS,
+    fakeDeps({ errorCode: "otp_expired" }),
+  );
+  assert.equal(to, "/login?error=expired&next=%2Fadmin");
+});
+
+test("confirmEmailLink: other failures get the generic message", async () => {
+  const deps = fakeDeps({ errorCode: "unexpected_failure" });
+  assert.equal(
+    await confirmEmailLink({ tokenHash: "abc", type: "email", next: null }, ORIGINS, deps),
+    "/login?error=link",
+  );
+  // Missing token or an unsupported type never reaches Supabase.
+  const unused = fakeDeps();
+  for (const params of [
+    { tokenHash: null, type: "email", next: null },
+    { tokenHash: "abc", type: "recovery", next: null },
+    { tokenHash: "abc", type: null, next: null },
+  ]) {
+    assert.equal(await confirmEmailLink(params, ORIGINS, unused), "/login?error=link");
+  }
+  assert.equal(unused.calls.length, 0);
+});
+
+test("confirmEmailLink: an unsafe next is dropped, not followed", async () => {
+  for (const next of [
+    "https://evil.com/steal",
+    "//evil.com",
+    `${SITE}/auth/callback?next=https://evil.com`,
+  ]) {
+    assert.equal(
+      await confirmEmailLink({ tokenHash: "abc", type: "email", next }, ORIGINS, fakeDeps()),
+      "/dashboard",
+      next,
+    );
+    assert.equal(
+      await confirmEmailLink(
+        { tokenHash: "abc", type: "email", next },
+        ORIGINS,
+        fakeDeps({ errorCode: "otp_expired" }),
+      ),
+      "/login?error=expired",
+      next,
+    );
+  }
 });
