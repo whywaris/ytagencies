@@ -36,6 +36,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
   - Zod validation on the server.
   - Rate limiting per IP and per email (e.g. 5 submissions/hour), stored in a `rate_limits` table or Upstash.
   - Honeypot field.
+- Sign-in (magic link) has no Turnstile: it's rate-limited per IP and per email (5 an hour, plus Supabase's own email limit) and has a honeypot. The response is the same whether or not the email has an account.
 - Reviews: plain text only, length-capped, held for moderation before publishing.
 - Never use `dangerouslySetInnerHTML` with user content.
 - Guides (stored as Markdown in the database) are rendered server-side with remark/rehype and **rehype-sanitize**: no raw HTML, no scripts or event handlers, links get `rel="noopener"` and external ones open in a new tab. Never render guide Markdown in the browser or skip the sanitizer.

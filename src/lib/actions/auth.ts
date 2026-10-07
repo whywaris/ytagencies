@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { clientIp, rateLimitRetryAt, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { clientIp, rateLimitRetryAt, underRateLimit } from "@/lib/forms/guard";
 import { authOrigin, callbackUrl } from "@/lib/redirects";
 import { SITE_URL } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
@@ -41,12 +41,9 @@ export async function sendMagicLink(raw: unknown): Promise<FormResult> {
       ),
     };
   }
-  const { email, next, turnstileToken } = parsed.data;
+  const { email, next } = parsed.data;
 
   const ip = await clientIp();
-  if (!(await verifyTurnstile(turnstileToken, ip))) {
-    return { ok: false, error: "Verification failed, refresh and try again." };
-  }
   if (!(await underRateLimit(ip, email))) {
     const at = await rateLimitRetryAt(ip, email);
     return { ok: false, error: `Too many sign-in attempts. You can try again ${retryIn(at)}.` };
@@ -69,6 +66,13 @@ export async function sendMagicLink(raw: unknown): Promise<FormResult> {
       return {
         ok: false,
         error: "Too many sign-in emails were sent. Try again in an hour.",
+      };
+    }
+    if (error.status && error.status >= 500) {
+      // Supabase couldn't hand the email off (e.g. an SMTP timeout: check Auth logs in Supabase).
+      return {
+        ok: false,
+        error: "Our email service didn't respond. Please try again in a few minutes.",
       };
     }
     if (error.code === "email_address_invalid") {

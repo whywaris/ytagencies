@@ -35,7 +35,7 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    - Username `resend`, password: the Resend API key
    - Sender email `hello@ytagencies.com`, sender name `YT Agencies`
 3. Supabase → Authentication → Rate Limits → "Rate limit for sending emails": raise it from the default (e.g. to 100 an hour). It only becomes editable once custom SMTP is on. The app also limits each IP and email to 5 sign-in requests an hour.
-4. Send yourself a magic link and check the server log: a failure is logged as `signInWithOtp failed` with Supabase's error code and message (email addresses masked).
+4. Send yourself a magic link and check it arrives. If the form says "Our email service didn't respond" (Supabase answers 504 after ~30 seconds), Supabase can't reach the SMTP server: recheck host, port and password, and see Supabase → Logs → Auth for the exact SMTP error. Otherwise a failure is logged a failure is logged as `signInWithOtp failed` with Supabase's error code and message (email addresses masked).
 
 ## Vercel
 

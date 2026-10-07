@@ -11,7 +11,12 @@ const botFields = {
   website: z.string().max(200).optional(), // honeypot
 };
 
-export const loginSchema = z.object({ email, next: z.string().max(500).optional(), ...botFields });
+// Sign-in has no Turnstile: rate limits (ours and Supabase's) and the honeypot guard it.
+export const loginSchema = z.object({
+  email,
+  next: z.string().max(500).optional(),
+  website: botFields.website,
+});
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const claimSchema = z.object({

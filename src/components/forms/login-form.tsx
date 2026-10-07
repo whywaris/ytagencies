@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { a11yProps, Field, Honeypot } from "@/components/forms/field";
-import { Turnstile } from "@/components/forms/turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sendMagicLink } from "@/lib/actions/auth";
@@ -14,22 +13,19 @@ import { loginSchema, type LoginInput } from "@/lib/validation/auth";
 export function LoginForm({ next }: { next: string }) {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [turnstileReset, setTurnstileReset] = useState(0);
   const {
     register,
     handleSubmit,
-    setValue,
-    formState: { errors, isSubmitting, isSubmitted },
+    formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", next, turnstileToken: "", website: "" },
+    defaultValues: { email: "", next, website: "" },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     const result = await sendMagicLink(values);
     if (result.ok) return setSentTo(values.email);
-    setTurnstileReset((n) => n + 1);
     setFormError(result.error);
   });
 
@@ -62,15 +58,6 @@ export function LoginForm({ next }: { next: string }) {
         />
       </Field>
       <Honeypot {...register("website")} />
-      <div className="flex flex-col gap-2">
-        <Turnstile
-          resetKey={turnstileReset}
-          onToken={(t) => setValue("turnstileToken", t, { shouldValidate: isSubmitted })}
-        />
-        {errors.turnstileToken && (
-          <p className="text-[14px] text-destructive">{errors.turnstileToken.message}</p>
-        )}
-      </div>
       <Button type="submit" disabled={isSubmitting} className="self-start">
         {isSubmitting ? "Sending…" : "Email me a sign-in link"}
       </Button>
