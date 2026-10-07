@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  authOrigin,
   callbackUrl,
   confirmEmailLink,
   nextFromRedirectTo,
@@ -196,5 +197,25 @@ test("confirmEmailLink: an unsafe next is dropped, not followed", async () => {
       "/login?error=expired",
       next,
     );
+  }
+});
+
+test("authOrigin keeps local dev ports and the site, else falls back to SITE_URL", () => {
+  const dev = "http://localhost:3000";
+  assert.equal(authOrigin("http://localhost:3001", dev), "http://localhost:3001");
+  assert.equal(authOrigin("http://localhost:3000", dev), "http://localhost:3000");
+  assert.equal(authOrigin("http://127.0.0.1:3001", dev), "http://127.0.0.1:3001");
+  assert.equal(authOrigin(null, dev), dev);
+  const prod = "https://ytagencies.com";
+  assert.equal(authOrigin("https://ytagencies.com", prod), prod);
+  for (const spoofed of [
+    "https://evil.com",
+    "http://evil.com",
+    "https://localhost.evil.com",
+    "https://www.ytagencies.com",
+    "not a url",
+    "",
+  ]) {
+    assert.equal(authOrigin(spoofed, prod), prod, spoofed);
   }
 });

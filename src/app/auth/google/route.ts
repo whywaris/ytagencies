@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { callbackUrl, safeNext } from "@/lib/redirects";
-import { absoluteUrl } from "@/lib/site";
+import { authOrigin, callbackUrl, safeNext } from "@/lib/redirects";
+import { SITE_URL } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
 // A GET link rather than a form post: CSP form-action 'self' would block a form redirecting to Google.
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: absoluteUrl(callbackUrl(next)) },
+    options: { redirectTo: authOrigin(request.nextUrl.origin, SITE_URL) + callbackUrl(next) },
   });
   if (error || !data.url) {
     return NextResponse.redirect(

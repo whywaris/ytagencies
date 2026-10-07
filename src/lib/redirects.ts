@@ -28,6 +28,26 @@ export function callbackUrl(next: string | null | undefined) {
   return path ? `/auth/callback?next=${encodeURIComponent(path)}` : "/auth/callback";
 }
 
+/**
+ * The origin auth redirects (magic link emailRedirectTo, Google redirectTo) are built on: the
+ * request's own origin when it's the site itself or a local dev server (so localhost:3001 comes
+ * back to 3001), else SITE_URL. A spoofed Host can't steer it anywhere else, and Supabase only
+ * accepts redirect URLs on its allowlist anyway.
+ */
+export function authOrigin(requestOrigin: string | null | undefined, siteUrl: string) {
+  const site = new URL(siteUrl).origin;
+  if (!requestOrigin) return site;
+  let url: URL;
+  try {
+    url = new URL(requestOrigin);
+  } catch {
+    return site;
+  }
+  if (url.origin === site) return site;
+  const local = url.protocol === "http:" && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(url.hostname);
+  return local ? url.origin : site;
+}
+
 /** Where to go after signing in: a safe ?next=, else /admin for admins and /dashboard for everyone else. */
 export function postLoginPath(next: string | null | undefined, isAdmin: boolean) {
   return safeNext(next) ?? (isAdmin ? "/admin" : "/dashboard");

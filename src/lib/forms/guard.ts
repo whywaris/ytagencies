@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW = "1 hour";
+const RATE_WINDOW_MS = 60 * 60 * 1000; // same as RATE_WINDOW
 
 export async function clientIp() {
   const h = await headers();
@@ -48,6 +49,25 @@ export async function underRateLimit(ip: string, email: string) {
   );
   for (const r of results) if (r.error) throw r.error;
   return results.every((r) => r.data === true);
+}
+
+/**
+ * After underRateLimit refused: when the sender may try again, i.e. when the oldest hit of each
+ * over-limit key leaves the window. Null if it can't tell (the caller then says "in an hour").
+ */
+export async function rateLimitRetryAt(ip: string, email: string) {
+  const keys = [hashKey("ip", ip), hashKey("email", email)];
+  const { data, error } = await createAdminClient()
+    .from("rate_limits")
+    .select("key, created_at")
+    .in("key", keys)
+    .order("created_at", { ascending: true });
+  if (error) return null;
+  const retry = keys
+    .map((k) => data.filter((r) => r.key === k))
+    .filter((hits) => hits.length >= RATE_LIMIT)
+    .map((hits) => new Date(hits[0].created_at).getTime() + RATE_WINDOW_MS);
+  return retry.length ? new Date(Math.max(...retry)) : null;
 }
 
 /** One hashed bucket (e.g. "beacon" per IP) with its own limit; false once it's over. Fails closed. */

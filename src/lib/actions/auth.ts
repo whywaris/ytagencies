@@ -1,13 +1,30 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
-import { callbackUrl } from "@/lib/redirects";
-import { absoluteUrl } from "@/lib/site";
+import { clientIp, rateLimitRetryAt, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { authOrigin, callbackUrl } from "@/lib/redirects";
+import { SITE_URL } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { loginSchema } from "@/lib/validation/auth";
 import type { FormResult } from "@/lib/validation/lead";
+
+const SUPABASE_RATE_LIMITED = new Set(["over_email_send_rate_limit", "over_request_rate_limit"]);
+
+/** "in about 12 minutes" until `at` (at least a minute; an hour when unknown). */
+function retryIn(at: Date | null) {
+  if (!at) return "in an hour";
+  const minutes = Math.max(1, Math.ceil((at.getTime() - Date.now()) / 60_000));
+  return minutes >= 60 ? "in an hour" : `in about ${minutes} minute${minutes === 1 ? "" : "s"}`;
+}
+
+/** The origin this request came in on (the proxy sets x-forwarded-* on Vercel). */
+async function requestOrigin() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  return host ? `${h.get("x-forwarded-proto") ?? "http"}://${host}` : null;
+}
 
 /** Magic link. Same response whether or not the email has an account (no enumeration). */
 export async function sendMagicLink(raw: unknown): Promise<FormResult> {
@@ -28,20 +45,39 @@ export async function sendMagicLink(raw: unknown): Promise<FormResult> {
 
   const ip = await clientIp();
   if (!(await verifyTurnstile(turnstileToken, ip))) {
-    return { ok: false, error: "The security check didn't pass. Please try it again." };
+    return { ok: false, error: "Verification failed, refresh and try again." };
   }
   if (!(await underRateLimit(ip, email))) {
-    return { ok: false, error: "Too many sign-in attempts. Please try again in an hour." };
+    const at = await rateLimitRetryAt(ip, email);
+    return { ok: false, error: `Too many sign-in attempts. You can try again ${retryIn(at)}.` };
   }
 
   const supabase = await createClient();
-  const callback = absoluteUrl(callbackUrl(next));
+  const callback = authOrigin(await requestOrigin(), SITE_URL) + callbackUrl(next);
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: callback, shouldCreateUser: true },
   });
   if (error) {
-    console.error("signInWithOtp failed", { status: error.status });
+    // Code and message only; Supabase messages can quote the address, so emails are masked.
+    console.error("signInWithOtp failed", {
+      code: error.code,
+      status: error.status,
+      message: error.message.replace(/[^\s"'<>@]+@[^\s"'<>@]+/g, "[email]"),
+    });
+    if (error.code && SUPABASE_RATE_LIMITED.has(error.code)) {
+      return {
+        ok: false,
+        error: "Too many sign-in emails were sent. Try again in an hour or continue with Google.",
+      };
+    }
+    if (error.code === "email_address_invalid") {
+      return {
+        ok: false,
+        error: "Check the highlighted fields.",
+        fieldErrors: { email: "That email address doesn't look right." },
+      };
+    }
     return {
       ok: false,
       error: "We couldn't send the link right now. Please try again in a minute.",

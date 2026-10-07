@@ -9,9 +9,13 @@
    ```
 3. Auth settings:
    - Site URL: `https://ytagencies.com`
-   - Redirect URLs: `https://ytagencies.com/auth/callback**` (plus `http://localhost:3000/auth/callback**` on the dev project only). Keep the trailing `**`: sign-in links carry `?next=`, and without the wildcard Supabase drops the URL and sends people to the Site URL instead.
+   - Redirect URLs (Authentication → URL Configuration). The app builds sign-in redirects on the request's own origin when it's the site or a local dev server, else on `SITE_URL`, so list every origin you sign in from:
+     - Production project: `https://ytagencies.com/auth/callback**`
+     - Dev project: `http://localhost:3000/auth/callback**` and `http://localhost:3001/auth/callback**` (the second is the port used for production builds with `next start -p 3001`), plus your Preview URL's `/auth/callback**` if you test sign-in there.
+
+     Keep the trailing `**`: sign-in links carry `?next=`, and without the wildcard Supabase drops the URL and sends people to the Site URL instead. A URL that isn't listed fails the same way. On localhost the session cookie is shared across ports, so an email link that lands on `:3000` (the dev Site URL) also signs you in on `:3001`.
    - Enable Google (OAuth client in Google Cloud; authorized domain `ytagencies.com`)
-   - Custom SMTP through Resend, sender `hello@ytagencies.com`
+   - Custom SMTP through Resend and a higher email rate limit: see "Supabase email" below.
    - Email templates (Authentication → Email Templates). Email links must go to `/auth/confirm` (token hash), so they work when opened in a different browser or device; the default `{{ .ConfirmationURL }}` uses PKCE and fails there with "expired or already used". Set the link in both **Magic Link** and **Confirm signup** to:
      ```html
      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next={{ .RedirectTo }}">Sign in to YT Agencies</a>
@@ -20,6 +24,18 @@
 4. Make yourself admin: `update profiles set role = 'admin' where id = '<your user id>';`
 5. Daily backups and point-in-time recovery (paid plan).
 6. Regenerate types: `pnpm dlx supabase gen types typescript --project-id <ref> --schema public > src/lib/supabase/types.ts`
+
+## Supabase email (custom SMTP via Resend)
+
+Supabase's built-in email is for testing only: it sends a couple of emails an hour and only to members of your Supabase team. Past that, `signInWithOtp` fails with `over_email_send_rate_limit` and the sign-in form says "Too many sign-in emails were sent". Set this up on the dev and production projects:
+
+1. Resend: verify `ytagencies.com` (DNS records under Cloudflare DNS below) and create an API key with sending access.
+2. Supabase → Authentication → Emails → SMTP Settings → enable custom SMTP:
+   - Host `smtp.resend.com`, port `465` (SSL)
+   - Username `resend`, password: the Resend API key
+   - Sender email `hello@ytagencies.com`, sender name `YT Agencies`
+3. Supabase → Authentication → Rate Limits → "Rate limit for sending emails": raise it from the default (e.g. to 100 an hour). It only becomes editable once custom SMTP is on. The app also limits each IP and email to 5 sign-in requests an hour.
+4. Send yourself a magic link and check the server log: a failure is logged as `signInWithOtp failed` with Supabase's error code and message (email addresses masked).
 
 ## Vercel
 
