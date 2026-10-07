@@ -228,12 +228,13 @@ export async function markNotificationsSeen() {
 export type AdminSearchResults = {
   agencies: { id: string; name: string; slug: string; website: string | null }[];
   leads: { id: string; name: string; email: string }[];
+  guides: { id: string; title: string; slug: string }[];
 };
 
 /** Agencies by name, website or slug; leads by email. Admin only. */
 export async function adminSearch(raw: string): Promise<AdminSearchResults> {
   const ctx = await adminContext();
-  if (!ctx) return { agencies: [], leads: [] };
+  if (!ctx) return { agencies: [], leads: [], guides: [] };
   const { db } = ctx;
   // Only characters that can't break PostgREST's or() syntax or act as LIKE wildcards.
   const term = z
@@ -243,8 +244,8 @@ export async function adminSearch(raw: string): Promise<AdminSearchResults> {
     .parse(raw)
     .replace(/[^\p{L}\p{N} @.+-]/gu, " ")
     .trim();
-  if (term.length < 2) return { agencies: [], leads: [] };
-  const [agencies, leads] = await Promise.all([
+  if (term.length < 2) return { agencies: [], leads: [], guides: [] };
+  const [agencies, leads, guides] = await Promise.all([
     db
       .from("agencies")
       .select("id, name, slug, website")
@@ -257,6 +258,12 @@ export async function adminSearch(raw: string): Promise<AdminSearchResults> {
       .ilike("email", `%${term}%`)
       .order("created_at", { ascending: false })
       .limit(6),
+    db
+      .from("guides")
+      .select("id, title, slug")
+      .ilike("title", `%${term}%`)
+      .order("updated_at", { ascending: false })
+      .limit(6),
   ]);
-  return { agencies: agencies.data ?? [], leads: leads.data ?? [] };
+  return { agencies: agencies.data ?? [], leads: leads.data ?? [], guides: guides.data ?? [] };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Command } from "cmdk";
-import { Building2, CornerDownLeft, Plus, Search, User } from "lucide-react";
+import { Building2, CornerDownLeft, FileText, Plus, Search, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Dialog } from "radix-ui";
@@ -22,11 +22,15 @@ const PAGES = [
   { href: "/admin/leads", label: "Leads" },
   { href: "/admin/seo-pages", label: "SEO pages" },
   { href: "/admin/plans", label: "Plans" },
+  { href: "/admin/guides", label: "Guides" },
   { href: "/admin/sponsored", label: "Sponsored" },
   { href: "/admin/taxonomy", label: "Taxonomy" },
 ];
-const ACTIONS = [{ href: "/admin/agencies/new", label: "New agency" }];
-const NONE: AdminSearchResults = { agencies: [], leads: [] };
+const ACTIONS = [
+  { href: "/admin/agencies/new", label: "New agency" },
+  { href: "/admin/guides/new", label: "New guide" },
+];
+const NONE: AdminSearchResults = { agencies: [], leads: [], guides: [] };
 type Results = AdminSearchResults & { for: string };
 
 const row =
@@ -90,7 +94,8 @@ export function CommandPalette({
     !pages.length &&
     !actions.length &&
     !results.agencies.length &&
-    !results.leads.length;
+    !results.leads.length &&
+    !results.guides.length;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -107,7 +112,7 @@ export function CommandPalette({
               <Command.Input
                 value={query}
                 onValueChange={setQuery}
-                placeholder="Search pages, agencies, lead emails"
+                placeholder="Search pages, agencies, lead emails, guides"
                 className="h-full flex-1 bg-transparent outline-none placeholder:text-text-2"
               />
             </div>
@@ -165,6 +170,22 @@ export function CommandPalette({
                       <User className={icon} aria-hidden />
                       <span className="truncate">{l.email}</span>
                       <span className="ml-auto truncate text-admin-meta">{l.name}</span>
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              )}
+              {results.guides.length > 0 && (
+                <Command.Group heading="Guides" className={groupHeading}>
+                  {results.guides.map((g) => (
+                    <Command.Item
+                      key={g.id}
+                      value={`guide-${g.id}`}
+                      onSelect={() => go(`/admin/guides/${g.id}`)}
+                      className={row}
+                    >
+                      <FileText className={icon} aria-hidden />
+                      <span className="truncate">{g.title}</span>
+                      <span className="ml-auto truncate text-admin-meta">/guides/{g.slug}</span>
                     </Command.Item>
                   ))}
                 </Command.Group>

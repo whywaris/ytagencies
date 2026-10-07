@@ -6,6 +6,7 @@ import { applyProfile } from "@/lib/agency-profile";
 import { getOwnedAgency } from "@/lib/auth";
 import { removeCaseStudy, writeCaseStudy } from "@/lib/case-studies";
 import { getEntitlements } from "@/lib/data/entitlements";
+import { imageInfo } from "@/lib/image-info";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidateAgency } from "@/lib/revalidate";
 import { caseStudySchema, profileSchema } from "@/lib/validation/dashboard";
@@ -39,15 +40,6 @@ export async function updateProfile(agencyId: string, raw: unknown): Promise<For
 }
 
 /** Real file type from the first bytes. The declared type and extension can't be trusted. */
-function sniffImage(bytes: Uint8Array): { type: string; ext: string } | null {
-  const starts = (sig: number[], offset = 0) => sig.every((b, i) => bytes[offset + i] === b);
-  if (starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
-    return { type: "image/png", ext: "png" };
-  if (starts([0xff, 0xd8, 0xff])) return { type: "image/jpeg", ext: "jpg" };
-  if (starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8))
-    return { type: "image/webp", ext: "webp" };
-  return null; // includes SVG, which SECURITY.md forbids (XSS risk)
-}
 
 export async function uploadLogo(
   agencyId: string,
@@ -62,7 +54,7 @@ export async function uploadLogo(
     return { ok: false, error: "Choose an image to upload." };
   if (file.size > MAX_LOGO_BYTES) return { ok: false, error: "Use an image under 2 MB." };
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const kind = sniffImage(bytes);
+  const kind = imageInfo(bytes); // SVG and anything else is refused (SECURITY.md: XSS risk)
   if (!kind) return { ok: false, error: "Use a PNG, JPG or WebP image." };
 
   // agencies/<agency id>/… is the only folder the storage policy lets this owner write to.

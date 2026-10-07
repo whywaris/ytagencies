@@ -1,4 +1,3 @@
-import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -71,7 +70,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// MDX is only imported by /guides/[slug] (trusted files in src/content), never routed directly.
-const withMDX = createMDX();
-
-export default withMDX(nextConfig);
+export default nextConfig;

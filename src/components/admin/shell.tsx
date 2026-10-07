@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Bell,
   FileSearch,
+  FileText,
   Building2,
   CreditCard,
   ChevronRight,
@@ -54,7 +55,7 @@ export type Queue = {
 
 type Item = { href: string; label: string; icon: LucideIcon; external?: boolean };
 
-// Only pages that exist. Later phases add Guides and Settings here as they're built (ADMIN_V2_SPEC §4, §10).
+// Only pages that exist. Settings is added when it's built as they're built (ADMIN_V2_SPEC §4, §10).
 const GROUPS: { heading: string; items: Item[] }[] = [
   { heading: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
   {
@@ -81,7 +82,13 @@ const GROUPS: { heading: string; items: Item[] }[] = [
       { href: "/admin/sponsored", label: "Sponsored", icon: Megaphone },
     ],
   },
-  { heading: "Content", items: [{ href: "/admin/taxonomy", label: "Taxonomy", icon: FolderTree }] },
+  {
+    heading: "Content",
+    items: [
+      { href: "/admin/guides", label: "Guides", icon: FileText },
+      { href: "/admin/taxonomy", label: "Taxonomy", icon: FolderTree },
+    ],
+  },
 ];
 const VIEW_SITE: Item = { href: "/", label: "View site", icon: ArrowUpRight, external: true };
 
@@ -382,6 +389,8 @@ const CRUMBS: Record<string, string> = {
   verification: "Verification",
   "seo-pages": "SEO pages",
   plans: "Plans",
+  guides: "Guides",
+  preview: "Preview",
   sponsored: "Sponsored",
 };
 

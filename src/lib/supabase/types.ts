@@ -412,6 +412,83 @@ export type Database = {
           },
         ];
       };
+      guide_redirects: {
+        Row: {
+          created_at: string;
+          from_slug: string;
+          guide_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          from_slug: string;
+          guide_id: string;
+        };
+        Update: {
+          created_at?: string;
+          from_slug?: string;
+          guide_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "guide_redirects_guide_id_fkey";
+            columns: ["guide_id"];
+            isOneToOne: false;
+            referencedRelation: "guides";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      guides: {
+        Row: {
+          author_name: string | null;
+          body_md: string;
+          cover_path: string | null;
+          created_at: string;
+          excerpt: string | null;
+          id: string;
+          published_at: string | null;
+          related_combos: Json;
+          seo_description: string | null;
+          seo_title: string | null;
+          slug: string;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          author_name?: string | null;
+          body_md?: string;
+          cover_path?: string | null;
+          created_at?: string;
+          excerpt?: string | null;
+          id?: string;
+          published_at?: string | null;
+          related_combos?: Json;
+          seo_description?: string | null;
+          seo_title?: string | null;
+          slug: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          author_name?: string | null;
+          body_md?: string;
+          cover_path?: string | null;
+          created_at?: string;
+          excerpt?: string | null;
+          id?: string;
+          published_at?: string | null;
+          related_combos?: Json;
+          seo_description?: string | null;
+          seo_title?: string | null;
+          slug?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       industries: {
         Row: {
           updated_at: string;

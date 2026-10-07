@@ -636,3 +636,46 @@ from agencies a;
 
 revoke all on admin_agency_list from public, anon, authenticated;
 grant select on admin_agency_list to service_role;
+
+-- ───────── Guides CMS (ADMIN_V2_SPEC §8) ─────────
+create table guides (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) <= 80),
+  title text not null check (char_length(title) between 1 and 200),
+  excerpt text check (char_length(excerpt) <= 300),
+  body_md text not null default '' check (char_length(body_md) <= 100000),
+  cover_path text,
+  seo_title text check (char_length(seo_title) <= 70),
+  seo_description text check (char_length(seo_description) <= 200),
+  author_name text check (char_length(author_name) <= 100),
+  status text not null default 'draft' check (status in ('draft', 'scheduled', 'published')),
+  published_at timestamptz,
+  related_combos jsonb not null default '[]',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (status = 'draft' or published_at is not null)
+);
+create index guides_live_idx on guides (published_at) where status in ('published', 'scheduled');
+create trigger set_updated_at before update on guides for each row execute function set_updated_at();
+
+-- Old slugs of guides whose URL changed ("Change URL" in the editor). /guides/<old> redirects
+-- permanently to the guide's current slug.
+create table guide_redirects (
+  from_slug text primary key check (from_slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  guide_id uuid not null references guides(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+alter table guides enable row level security;
+alter table guide_redirects enable row level security;
+
+-- Live = published, or scheduled with its time passed. Everyone may read live guides (the
+-- public pages use the anon key); drafts and future ones are admin-only.
+create policy "read live guides" on guides for select
+  using ((status in ('published', 'scheduled') and published_at <= now()) or is_admin());
+create policy "admin write" on guides for all to authenticated using (is_admin()) with check (is_admin());
+-- A redirect is only readable once its target is live, so it can't leak an unpublished slug.
+create policy "read live redirects" on guide_redirects for select using (
+  exists (select 1 from guides g where g.id = guide_id
+          and ((g.status in ('published', 'scheduled') and g.published_at <= now()) or is_admin())));
+create policy "admin write" on guide_redirects for all to authenticated using (is_admin()) with check (is_admin());

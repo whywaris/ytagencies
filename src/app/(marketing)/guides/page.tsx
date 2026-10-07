@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
-import { GUIDES } from "@/content/guides/registry";
+import { getLiveGuides } from "@/lib/data/guides";
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
@@ -22,10 +22,7 @@ const breadcrumbs = [
 ];
 
 export default async function GuidesPage() {
-  const guides = await Promise.all(
-    Object.entries(GUIDES).map(async ([slug, load]) => ({ slug, meta: (await load()).meta })),
-  );
-  guides.sort((a, b) => b.meta.updated.localeCompare(a.meta.updated));
+  const guides = await getLiveGuides();
 
   return (
     <>
@@ -34,14 +31,14 @@ export default async function GuidesPage() {
         <Breadcrumbs items={breadcrumbs} />
         <h1 className="text-h1">Guides</h1>
         <ul className="flex flex-col gap-3">
-          {guides.map(({ slug, meta }) => (
-            <li key={slug}>
+          {guides.map((g) => (
+            <li key={g.slug}>
               <Link
-                href={`/guides/${slug}`}
+                href={`/guides/${g.slug}`}
                 className="flex flex-col gap-1 rounded-lg border border-line px-5 py-4 transition-colors duration-150 hover:border-text-2"
               >
-                <span className="font-medium">{meta.title}</span>
-                <span className="text-small">{meta.description}</span>
+                <span className="font-medium">{g.title}</span>
+                <span className="text-small">{g.excerpt || g.description}</span>
               </Link>
             </li>
           ))}

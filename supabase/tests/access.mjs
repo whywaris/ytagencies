@@ -578,6 +578,84 @@ ok(
   `verification: every badge matches an approved verification${drift.length ? " — drift: " + drift.map((d) => d.slug).join(", ") : ""}`,
 );
 
+console.log("— guides CMS (§8) —");
+await db.exec(`reset role;
+  insert into guides (slug, title, status, published_at) values
+    ('draft-guide', 'Draft', 'draft', null),
+    ('future-guide', 'Future', 'scheduled', now() + interval '1 day'),
+    ('due-guide', 'Due', 'scheduled', now() - interval '1 minute');
+  insert into guide_redirects (from_slug, guide_id) select 'old-live', id from guides where slug = 'youtube-ads-agency-cost';
+  insert into guide_redirects (from_slug, guide_id) select 'old-future', id from guides where slug = 'future-guide';`);
+ok(
+  await fails("insert into guides (slug, title, status) values ('no-date', 'X', 'published')"),
+  "guides: published needs a date",
+);
+ok(
+  await fails("insert into guides (slug, title) values ('Bad Slug', 'X')"),
+  "guides: slugs are lowercase kebab-case",
+);
+for (const [role, uid, who] of [
+  ["anon", null, "anon"],
+  ["authenticated", OWNER, "signed-in user"],
+]) {
+  await as(role, uid, async () => {
+    const slugs = (await rows("select slug from guides order by slug")).map((r) => r.slug);
+    ok(
+      slugs.includes("youtube-ads-agency-cost"),
+      `guides: ${who} reads the migrated published guide`,
+    );
+    ok(
+      slugs.includes("due-guide"),
+      `guides: ${who} reads a scheduled guide once its time has passed`,
+    );
+    ok(
+      !slugs.includes("draft-guide") && !slugs.includes("future-guide"),
+      `guides: ${who} can't read drafts or future guides`,
+    );
+    const redirects = (await rows("select from_slug from guide_redirects")).map((r) => r.from_slug);
+    ok(
+      redirects.includes("old-live") && !redirects.includes("old-future"),
+      `guide_redirects: ${who} only sees redirects to live guides`,
+    );
+    ok(
+      await denied("insert into guides (slug, title) values ('sneaky', 'Sneaky')"),
+      `guides: ${who} can't write`,
+    );
+    ok(await denied("update guides set title = 'x'"), `guides: ${who} can't edit`);
+    ok(
+      await denied(
+        "insert into guide_redirects (from_slug, guide_id) select 'hijack', id from guides limit 1",
+      ),
+      `guide_redirects: ${who} can't add redirects`,
+    );
+  });
+}
+await as("authenticated", ADMIN, async () => {
+  ok(
+    (await rows("select slug from guides where slug in ('draft-guide', 'future-guide')")).length ===
+      2,
+    "guides: admin reads drafts and future guides",
+  );
+  ok(
+    !(await denied("update guides set title = 'Draft edited' where slug = 'draft-guide'")),
+    "guides: admin can edit",
+  );
+});
+const [migrated] = await rows(
+  "select body_md, related_combos from guides where slug = 'youtube-ads-agency-cost'",
+);
+ok(
+  migrated.body_md.includes("{{budget-range youtube-ads-agencies}}") &&
+    !migrated.body_md.includes("<BudgetRange"),
+  "guides: MDX component migrated to the allowlisted shortcode",
+);
+ok(
+  Array.isArray(migrated.related_combos) &&
+    migrated.related_combos.length === 3 &&
+    migrated.related_combos.every((c) => Number.isInteger(c.service_id)),
+  "guides: related directory pages migrated with real ids",
+);
+
 console.log("— admin agencies list view (§5.2) —");
 for (const [role, uid, who] of [
   ["anon", null, "anon"],

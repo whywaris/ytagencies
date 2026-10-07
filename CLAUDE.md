@@ -41,7 +41,7 @@ src/
     [service]/page.tsx               # /youtube-ads-agencies
     [service]/[segment]/page.tsx     # /youtube-ads-agencies/for-doctors | /in-usa
     agency/[slug]/page.tsx           # agency profile
-    guides/[slug]/page.tsx           # blog/guides
+    guides/[slug]/page.tsx           # guides, from the Guides CMS (guides table, admin/guides)
     get-matched/page.tsx             # lead form
     dashboard/...                    # agency dashboard (auth required, noindex)
     admin/...                        # admin (role required, noindex)
@@ -60,7 +60,7 @@ docs/
 
 - Service slugs end in `-agencies` (e.g. `youtube-seo-agencies`).
 - Segment slugs: `for-<industry>` or `in-<location>`. Parse the prefix in `[segment]` and return `notFound()` for anything else.
-- All slugs are lowercase kebab-case and never change after publish. If one must change, add a 301 in `next.config`.
+- All slugs are lowercase kebab-case and never change after publish. If one must change, add a 301 in `next.config`. Exception: guide slugs change in the CMS with "Change URL", which records the old slug in `guide_redirects` and redirects it permanently at request time (no deploy).
 
 ## Rendering rules
 

@@ -1,5 +1,5 @@
-import { GUIDES } from "@/content/guides/registry";
 import { getAgencySlugs, getDirectoryIndex } from "@/lib/data/agencies";
+import { getLiveGuides } from "@/lib/data/guides";
 import { getServices } from "@/lib/data/taxonomy";
 import { absoluteUrl } from "@/lib/site";
 
@@ -43,12 +43,7 @@ async function entries(file: (typeof FILES)[number]): Promise<Entry[]> {
       })),
     ];
   }
-  const guides = await Promise.all(
-    Object.entries(GUIDES).map(async ([slug, load]) => ({
-      slug,
-      updated: (await load()).meta.updated,
-    })),
-  );
+  const guides = (await getLiveGuides()).map((g) => ({ slug: g.slug, updated: g.updatedAt }));
   const newest = guides
     .map((g) => g.updated)
     .sort()
