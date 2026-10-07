@@ -22,14 +22,14 @@ export function safeNext(next: string | null | undefined): string | null {
   return path;
 }
 
-/** /auth/callback, carrying ?next= only when it's safe (magic link emailRedirectTo, Google redirectTo). */
+/** /auth/callback, carrying ?next= only when it's safe (the magic link's emailRedirectTo). */
 export function callbackUrl(next: string | null | undefined) {
   const path = safeNext(next);
   return path ? `/auth/callback?next=${encodeURIComponent(path)}` : "/auth/callback";
 }
 
 /**
- * The origin auth redirects (magic link emailRedirectTo, Google redirectTo) are built on: the
+ * The origin the magic link's emailRedirectTo is built on: the
  * request's own origin when it's the site itself or a local dev server (so localhost:3001 comes
  * back to 3001), else SITE_URL. A spoofed Host can't steer it anywhere else, and Supabase only
  * accepts redirect URLs on its allowlist anyway.

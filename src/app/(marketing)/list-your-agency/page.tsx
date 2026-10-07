@@ -82,8 +82,7 @@ export default function ListYourAgencyPage() {
           </h2>
           <p className="text-text-2">
             Tell us about your agency. We review every submission before it goes live, usually
-            within a few business days. You&apos;ll need to sign in first, with Google or an email
-            link.
+            within a few business days. You&apos;ll need to sign in first with an email link.
           </p>
           <Button asChild className="self-start">
             <Link href="/list-your-agency/new">Add your agency</Link>

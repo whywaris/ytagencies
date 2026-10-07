@@ -13,7 +13,7 @@ export const metadata = buildMetadata({
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy policy" path="/privacy" updated="October 4, 2026">
+    <LegalPage title="Privacy policy" path="/privacy" updated="October 7, 2026">
       <p>
         {BRAND_NAME} helps businesses find YouTube agencies. This page explains what we collect,
         why, and what you can ask us to do with it.
@@ -42,9 +42,9 @@ export default function PrivacyPage() {
 
       <h2>When you manage a listing</h2>
       <p>
-        Agencies sign in with an email link or Google. We store your email address, the work email
-        you use to claim a listing, and the listing details you edit. Inquiries sent to your agency
-        are shown in your dashboard.
+        Agencies sign in with an email link. We store your email address, the work email you use to
+        claim a listing, and the listing details you edit. Inquiries sent to your agency are shown
+        in your dashboard.
       </p>
 
       <h2>Spam protection</h2>

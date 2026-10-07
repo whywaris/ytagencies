@@ -68,7 +68,7 @@ export async function sendMagicLink(raw: unknown): Promise<FormResult> {
     if (error.code && SUPABASE_RATE_LIMITED.has(error.code)) {
       return {
         ok: false,
-        error: "Too many sign-in emails were sent. Try again in an hour or continue with Google.",
+        error: "Too many sign-in emails were sent. Try again in an hour.",
       };
     }
     if (error.code === "email_address_invalid") {

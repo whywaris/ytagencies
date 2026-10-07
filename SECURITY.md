@@ -25,7 +25,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 
 ## Auth
 
-- Supabase Auth with email magic link + Google OAuth.
+- Supabase Auth with email magic link only (token-hash links via `/auth/confirm`). No passwords, no social sign-in.
 - **Claiming a listing** requires verifying an email on the agency's own website domain (e.g. `@acmemedia.com`), or manual admin approval. Never auto-grant ownership.
 - Dashboard and admin routes are protected in middleware **and** re-checked in server actions.
 

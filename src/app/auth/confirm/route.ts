@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 
 // Magic link and sign-up emails land here (token_hash flow, template in docs/LAUNCH.md). Unlike
 // PKCE links through /auth/callback, these work when opened in another browser or device.
-// /auth/callback stays for Google OAuth.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const supabase = await createClient();

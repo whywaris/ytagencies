@@ -54,7 +54,7 @@ test("postLoginPath: a safe next wins, otherwise admins → /admin, everyone els
   assert.equal(postLoginPath("https://evil.com", false), "/dashboard");
 });
 
-test("callbackUrl carries next through the magic link and Google only when safe", () => {
+test("callbackUrl carries next through the magic link only when safe", () => {
   assert.equal(callbackUrl("/admin/claims"), "/auth/callback?next=%2Fadmin%2Fclaims");
   assert.equal(
     callbackUrl("/list-your-agency/new"),
