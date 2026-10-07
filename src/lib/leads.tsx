@@ -5,6 +5,7 @@ import { AdminLeadEmail } from "@/emails/admin-lead";
 import { AgencyLeadEmail } from "@/emails/agency-lead";
 import { LeadConfirmationEmail } from "@/emails/lead-confirmation";
 import { getMailer, oneLine } from "@/lib/email";
+import { getPlacement } from "@/lib/data/placement";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -47,10 +48,13 @@ export async function matchAgencies(serviceId: number, industryId: number, budge
     .in("id", serviceIds);
   if (error) throw error;
 
+  // §6: among agencies that match (industry, then budget), Founding/Verified plans come first.
+  const placement = await getPlacement();
   const rank = (a: (typeof data)[number]) => [
     inIndustry.has(a.id) ? 1 : 0,
-    a.is_claimed ? 1 : 0,
     a.min_budget_usd === null || a.min_budget_usd <= budgetMax ? 1 : 0,
+    placement.entitlements(a.id).matchPriority === "high" ? 1 : 0,
+    a.is_claimed ? 1 : 0,
     a.is_verified ? 1 : 0,
   ];
   return data

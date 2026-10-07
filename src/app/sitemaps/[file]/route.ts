@@ -32,6 +32,8 @@ async function entries(file: (typeof FILES)[number]): Promise<Entry[]> {
       { path: "/", lastModified: siteLastModified },
       { path: "/get-matched" },
       { path: "/list-your-agency" },
+      { path: "/for-agencies/pricing" },
+      { path: "/how-we-rank" },
       { path: "/privacy" },
       { path: "/terms" },
       ...services.map((s) => ({ path: `/${s.slug}`, lastModified: hubs.get(s.slug) })),

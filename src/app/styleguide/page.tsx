@@ -147,7 +147,7 @@ function Panel({ theme }: { theme: "light" | "dark" }) {
         <Section title="Badges">
           <div className="flex flex-wrap gap-3">
             <Badge variant="verified">Verified</Badge>
-            <Badge variant="featured">Featured · Paid</Badge>
+            <Badge variant="sponsored">Sponsored</Badge>
             <Badge>Healthcare</Badge>
           </div>
         </Section>

@@ -21,6 +21,8 @@ const PAGES = [
   { href: "/admin/verification", label: "Verification" },
   { href: "/admin/leads", label: "Leads" },
   { href: "/admin/seo-pages", label: "SEO pages" },
+  { href: "/admin/plans", label: "Plans" },
+  { href: "/admin/sponsored", label: "Sponsored" },
   { href: "/admin/taxonomy", label: "Taxonomy" },
 ];
 const ACTIONS = [{ href: "/admin/agencies/new", label: "New agency" }];

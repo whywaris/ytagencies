@@ -47,7 +47,6 @@ export type Database = {
           hq_location_id: number | null;
           id: string;
           is_claimed: boolean;
-          is_featured: boolean;
           is_verified: boolean;
           languages: string[] | null;
           logo_path: string | null;
@@ -71,7 +70,6 @@ export type Database = {
           hq_location_id?: number | null;
           id?: string;
           is_claimed?: boolean;
-          is_featured?: boolean;
           is_verified?: boolean;
           languages?: string[] | null;
           logo_path?: string | null;
@@ -95,7 +93,6 @@ export type Database = {
           hq_location_id?: number | null;
           id?: string;
           is_claimed?: boolean;
-          is_featured?: boolean;
           is_verified?: boolean;
           languages?: string[] | null;
           logo_path?: string | null;
@@ -842,7 +839,6 @@ export type Database = {
           id: string;
           industry_ids: number[];
           is_claimed: boolean;
-          is_featured: boolean;
           is_verified: boolean;
           leads_30d: number;
           logo_path: string | null;

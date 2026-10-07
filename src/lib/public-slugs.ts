@@ -50,6 +50,8 @@ const STATIC_ROOTS = new Set([
   "guides",
   "get-matched",
   "list-your-agency",
+  "for-agencies",
+  "how-we-rank",
   "no-access",
   "login",
   "privacy",

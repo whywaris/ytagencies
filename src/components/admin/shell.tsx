@@ -6,11 +6,13 @@ import {
   Bell,
   FileSearch,
   Building2,
+  CreditCard,
   ChevronRight,
   FolderTree,
   Inbox,
   KeyRound,
   LayoutDashboard,
+  Megaphone,
   Menu,
   Monitor,
   Moon,
@@ -52,7 +54,7 @@ export type Queue = {
 
 type Item = { href: string; label: string; icon: LucideIcon; external?: boolean };
 
-// Only pages that exist. Later phases add Plans, Sponsored, Guides and Settings here as they're built (ADMIN_V2_SPEC §4, §10).
+// Only pages that exist. Later phases add Guides and Settings here as they're built (ADMIN_V2_SPEC §4, §10).
 const GROUPS: { heading: string; items: Item[] }[] = [
   { heading: "Overview", items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }] },
   {
@@ -70,6 +72,13 @@ const GROUPS: { heading: string; items: Item[] }[] = [
     items: [
       { href: "/admin/leads", label: "Leads", icon: Users },
       { href: "/admin/seo-pages", label: "SEO pages", icon: FileSearch },
+    ],
+  },
+  {
+    heading: "Revenue",
+    items: [
+      { href: "/admin/plans", label: "Plans", icon: CreditCard },
+      { href: "/admin/sponsored", label: "Sponsored", icon: Megaphone },
     ],
   },
   { heading: "Content", items: [{ href: "/admin/taxonomy", label: "Taxonomy", icon: FolderTree }] },
@@ -372,6 +381,8 @@ const CRUMBS: Record<string, string> = {
   combo: "Combination copy",
   verification: "Verification",
   "seo-pages": "SEO pages",
+  plans: "Plans",
+  sponsored: "Sponsored",
 };
 
 function Breadcrumbs({ pathname }: { pathname: string }) {

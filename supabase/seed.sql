@@ -78,72 +78,72 @@ delete from agencies where id::text like '00000000-0000-4000-8000-%';
 
 insert into agencies
   (id, slug, name, tagline, description, website, founded_year, team_size, min_budget_usd, pricing_model,
-   languages, hq_location_id, status, is_claimed, is_verified, is_featured)
+   languages, hq_location_id, status, is_claimed, is_verified)
 select v.id::uuid, v.slug, v.name, v.tagline, v.description, v.website, v.founded_year, v.team_size,
-  v.min_budget_usd, v.pricing_model, v.languages::text[], l.id, 'published', v.is_claimed, v.is_verified, v.is_featured
+  v.min_budget_usd, v.pricing_model, v.languages::text[], l.id, 'published', v.is_claimed, v.is_verified
 from (values
   ('00000000-0000-4000-8000-000000000001', 'quillfern-media', 'Quillfern Media',
    'YouTube ads and search for medical and dental practices',
    $$Quillfern Media runs YouTube ad campaigns and search-optimised channels for clinics, dental groups and private practices across the US and Canada. The team plans patient-education videos, films on site, and runs geo-targeted campaigns that send viewers to a booking page. Every script goes through a medical review step before it is published, and reporting focuses on booked appointments rather than views.$$,
-   'https://quillfern.example', 2016, '11-50', 3000, 'retainer', '{English}', 'austin', true, true, true),
+   'https://quillfern.example', 2016, '11-50', 3000, 'retainer', '{English}', 'austin', true, true),
   ('00000000-0000-4000-8000-000000000002', 'brightmarrow-studio', 'Brightmarrow Studio',
    'Video ads and product films for healthcare and software',
    $$Brightmarrow Studio is a New York production and paid media team. It makes product demos, explainer films and short ad cuts for software companies and healthcare providers, then runs the YouTube campaigns that distribute them. Clients usually start with a single launch video and a three-month ad test.$$,
-   'https://brightmarrow.example', 2018, '11-50', 5000, 'project', '{English}', 'new-york', true, false, false),
+   'https://brightmarrow.example', 2018, '11-50', 5000, 'project', '{English}', 'new-york', true, false),
   ('00000000-0000-4000-8000-000000000003', 'tallowcrest-digital', 'Tallowcrest Digital',
    'Performance YouTube ads for regulated industries',
    $$Tallowcrest Digital manages YouTube and Google video campaigns for clinics, law firms and financial services companies in the UK and the Gulf. The team handles ad account verification, compliance review and creative testing, and reports on cost per qualified enquiry.$$,
-   'https://tallowcrest.example', 2014, '51-200', 4000, 'retainer', '{English,Arabic}', 'london', true, true, false),
+   'https://tallowcrest.example', 2014, '51-200', 4000, 'retainer', '{English,Arabic}', 'london', true, true),
   ('00000000-0000-4000-8000-000000000004', 'pinecask-creative', 'Pinecask Creative',
    'YouTube SEO and channel management for dental and medical practices',
    $$Pinecask Creative builds and runs YouTube channels for dental practices and clinics in Canada and the US. It researches the questions patients search for, produces short answer videos from monthly filming days, and handles titles, descriptions and playlists.$$,
-   'https://pinecask.example', 2019, '1-10', 1500, 'retainer', '{English,French}', 'toronto', false, false, false),
+   'https://pinecask.example', 2019, '1-10', 1500, 'retainer', '{English,French}', 'toronto', false, false),
   ('00000000-0000-4000-8000-000000000005', 'velloway-media', 'Velloway Media',
    'YouTube search growth and channel audits',
    $$Velloway Media is a Manchester team focused on YouTube search. It audits existing channels, rewrites metadata, restructures playlists and plans new videos around search demand, mainly for dental groups and estate agents.$$,
-   'https://velloway.example', 2020, '1-10', 1000, 'project', '{English}', 'manchester', false, false, false),
+   'https://velloway.example', 2020, '1-10', 1000, 'project', '{English}', 'manchester', false, false),
   ('00000000-0000-4000-8000-000000000006', 'orchardline-video', 'Orchardline Video',
    'Property films and Shorts for real estate and fitness brands',
    $$Orchardline Video shoots property walkthroughs, drone footage and vertical Shorts in Los Angeles. Its clients are real estate agents, developers and fitness studios that want a steady flow of short and long videos each month.$$,
-   'https://orchardline.example', 2017, '11-50', 2500, 'per_video', '{English,Spanish}', 'los-angeles', true, true, false),
+   'https://orchardline.example', 2017, '11-50', 2500, 'per_video', '{English,Spanish}', 'los-angeles', true, true),
   ('00000000-0000-4000-8000-000000000007', 'saltmere-studios', 'Saltmere Studios',
    'YouTube ads and Shorts for software and online stores',
    $$Saltmere Studios produces ad creative and Shorts for SaaS companies and e-commerce brands in Australia and the US. It tests many short variations each month and scales the ones with the best return on ad spend.$$,
-   'https://saltmere.example', 2019, '11-50', 3500, 'performance', '{English}', 'sydney', false, false, false),
+   'https://saltmere.example', 2019, '11-50', 3500, 'performance', '{English}', 'sydney', false, false),
   ('00000000-0000-4000-8000-000000000008', 'copperwick-media', 'Copperwick Media',
    'YouTube ads and creator campaigns for apps, stores and games',
    $$Copperwick Media runs YouTube ad campaigns and creator partnerships for software products, online stores and mobile games across India, the Gulf and the US. It manages creator outreach, contracts and tracking links in one dashboard.$$,
-   'https://copperwick.example', 2015, '51-200', 2000, 'retainer', '{English,Hindi}', 'bangalore', true, true, false),
+   'https://copperwick.example', 2015, '51-200', 2000, 'retainer', '{English,Hindi}', 'bangalore', true, true),
   ('00000000-0000-4000-8000-000000000009', 'fernhollow-digital', 'Fernhollow Digital',
    'Done-for-you channels for coaches and course creators',
    $$Fernhollow Digital manages YouTube channels for coaches, consultants and online educators. Clients record once a week; the team edits long videos, cuts Shorts, designs thumbnails and handles publishing.$$,
-   'https://fernhollow.example', 2021, '1-10', 1800, 'retainer', '{English}', 'melbourne', false, false, false),
+   'https://fernhollow.example', 2021, '1-10', 1800, 'retainer', '{English}', 'melbourne', false, false),
   ('00000000-0000-4000-8000-000000000010', 'marigold-lantern-media', 'Marigold Lantern Media',
    'Channel management and production for coaches and fitness brands',
    $$Marigold Lantern Media is a Dubai studio that films and manages YouTube channels for coaches, personal trainers and wellness brands in the UAE and India. It offers studio filming days and full post-production.$$,
-   'https://marigoldlantern.example', 2018, '11-50', 2500, 'retainer', '{English,Arabic,Hindi}', 'dubai', true, false, true),
+   'https://marigoldlantern.example', 2018, '11-50', 2500, 'retainer', '{English,Arabic,Hindi}', 'dubai', true, false),
   ('00000000-0000-4000-8000-000000000011', 'driftpeak-video', 'Driftpeak Video',
    'Channel management, SEO and audits for coaches and finance creators',
    $$Driftpeak Video is a Lahore team that manages channels for coaches and finance educators in the US, UK and Pakistan. It covers topic research, editing, SEO and quarterly channel audits at a lower monthly cost than most Western agencies.$$,
-   'https://driftpeak.example', 2020, '11-50', 800, 'retainer', '{English,Urdu}', 'lahore', false, false, false),
+   'https://driftpeak.example', 2020, '11-50', 800, 'retainer', '{English,Urdu}', 'lahore', false, false),
   ('00000000-0000-4000-8000-000000000012', 'hazelrun-creative', 'Hazelrun Creative',
    'Creator campaigns and Shorts for crypto and gaming',
    $$Hazelrun Creative connects crypto projects and game studios with YouTube creators, and produces Shorts for launches. It screens creators for audience quality and handles disclosure requirements for sponsored content.$$,
-   'https://hazelrun.example', 2021, '1-10', 5000, 'project', '{English}', 'vancouver', false, false, false),
+   'https://hazelrun.example', 2021, '1-10', 5000, 'project', '{English}', 'vancouver', false, false),
   ('00000000-0000-4000-8000-000000000013', 'ambergate-media-lab', 'Ambergate Media Lab',
    'YouTube ads and SEO for online stores and crypto products',
    $$Ambergate Media Lab is a Karachi agency running YouTube ads and search optimisation for e-commerce brands and crypto products in Pakistan and the UAE. It handles certification for crypto advertising where it is required.$$,
-   'https://ambergate.example', 2019, '11-50', 1000, 'retainer', '{English,Urdu}', 'karachi', false, false, false),
+   'https://ambergate.example', 2019, '11-50', 1000, 'retainer', '{English,Urdu}', 'karachi', false, false),
   ('00000000-0000-4000-8000-000000000014', 'kestrelbay-studio', 'Kestrelbay Studio',
    'Thumbnails, audits and SEO for education and software channels',
    $$Kestrelbay Studio designs thumbnails, rewrites titles and audits channels for edtech companies, course creators and software brands in India. Most clients buy a one-off audit followed by monthly packaging work.$$,
-   'https://kestrelbay.example', 2022, '1-10', 500, 'per_video', '{English,Hindi}', 'mumbai', false, false, false),
+   'https://kestrelbay.example', 2022, '1-10', 500, 'per_video', '{English,Hindi}', 'mumbai', false, false),
   ('00000000-0000-4000-8000-000000000015', 'mossgrove-digital', 'Mossgrove Digital',
    'Video production and YouTube ads for law firms and property',
    $$Mossgrove Digital produces explainer videos and runs YouTube ads for law firms and property developers in Pakistan and the UK. Scripts for legal clients are written with practice-area disclaimers from the start.$$,
-   'https://mossgrove.example', 2017, '11-50', 1200, 'project', '{English,Urdu}', 'islamabad', false, false, false)
+   'https://mossgrove.example', 2017, '11-50', 1200, 'project', '{English,Urdu}', 'islamabad', false, false)
 ) as v(id, slug, name, tagline, description, website, founded_year, team_size, min_budget_usd, pricing_model,
-       languages, hq, is_claimed, is_verified, is_featured)
+       languages, hq, is_claimed, is_verified)
 join locations l on l.slug = v.hq;
 
 -- Services (first listed = primary)
@@ -337,3 +337,11 @@ from agencies a
 where a.is_verified
   and a.id::text like '00000000-0000-4000-8000-%'
   and not exists (select 1 from verifications v where v.agency_id = a.id and v.status = 'approved');
+
+-- Plans (ADMIN_V2_SPEC §6). The two samples that used to be "Featured" are Founding agencies,
+-- so ranking has paid agencies to order above Free ones.
+insert into agency_subscriptions (agency_id, plan_id, status, starts_at, ends_at, source)
+select a.id, 'founding', 'active', now(), now() + interval '6 months', 'founding'
+from agencies a
+where a.slug in ('quillfern-media', 'marigold-lantern-media')
+  and not exists (select 1 from agency_subscriptions s where s.agency_id = a.id and s.status = 'active');

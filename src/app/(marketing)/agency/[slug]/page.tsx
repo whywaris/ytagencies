@@ -59,10 +59,25 @@ function Stars({ rating }: { rating: number }) {
 
 export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">) {
   const agency = await load(params);
-  const [locations, similar] = await Promise.all([getLocations(), getSimilarAgencies(agency, 4)]);
+  const e = agency.entitlements;
+  const [locations, similar] = await Promise.all([
+    getLocations(),
+    // §6: the "Similar agencies" block shows on Free profiles only.
+    e.showSimilarAgencies ? getSimilarAgencies(agency, 4) : [],
+  ]);
 
   const primary = agency.services[0];
   const website = safeExternalUrl(agency.website);
+  // §6: only paid plans get an outbound website link (rel="sponsored"), UTM-tagged where the
+  // plan includes it. Free profiles route businesses through the contact form instead; the
+  // website stays in the structured data either way.
+  const websiteLink = e.websiteLink && website ? new URL(website.href) : null;
+  if (websiteLink && e.utmLinks) {
+    websiteLink.searchParams.set("utm_source", "ytagencies");
+    websiteLink.searchParams.set("utm_medium", "directory");
+    websiteLink.searchParams.set("utm_campaign", "agency_profile");
+  }
+  const caseStudies = agency.caseStudies.slice(0, e.caseStudies);
   const hqLocation = agency.hq && locations.find((l) => l.slug === agency.hq!.slug);
   const hqCountry = hqLocation?.parentId
     ? (locations.find((l) => l.id === hqLocation.parentId)?.name ?? null)
@@ -128,7 +143,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {agency.isVerified && <Badge variant="verified">✓ Verified</Badge>}
-              {agency.isFeatured && <Badge variant="featured">Featured · Paid</Badge>}
+              {agency.foundingBadge && <Badge>Founding agency</Badge>}
               {rating && (
                 <a
                   href="#reviews"
@@ -146,13 +161,13 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                   Contact agency
                 </a>
               </Button>
-              {website && (
+              {websiteLink && website && (
                 <a
-                  href={website.href}
+                  href={websiteLink.href}
                   target="_blank"
                   data-track="website_click"
-                  // SECURITY.md: nofollow for listings, sponsored for paid placements.
-                  rel={agency.isFeatured ? "sponsored noopener" : "nofollow noopener"}
+                  // SECURITY.md: paid placements are marked sponsored.
+                  rel="sponsored noopener"
                   className="flex min-h-11 items-center text-accent hover:underline"
                 >
                   {website.hostname.replace(/^www\./, "")}
@@ -215,12 +230,12 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               )}
             </section>
 
-            {agency.caseStudies.length > 0 && (
+            {caseStudies.length > 0 && (
               <section aria-labelledby="case-studies" className="flex flex-col gap-6">
                 <h2 id="case-studies" className={sectionTitle}>
                   Case studies
                 </h2>
-                {agency.caseStudies.map((c) => {
+                {caseStudies.map((c) => {
                   const metrics = formatMetrics(c.metrics);
                   const channel = safeExternalUrl(c.channelUrl);
                   return (

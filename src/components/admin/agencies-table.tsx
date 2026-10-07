@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { usePortalContainer } from "@/components/admin/portal";
 import { PlanBadge, StatusBadge } from "@/components/admin/ui";
 import { AgencyLogo } from "@/components/agency-logo";
-import { setAgenciesStatus, setFeatured } from "@/lib/actions/admin-directory";
+import { setAgenciesStatus } from "@/lib/actions/admin-directory";
 import { formatCount, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,6 @@ export type AgencyRow = {
   plan: string;
   is_verified: boolean;
   is_claimed: boolean;
-  is_featured: boolean;
   leads_30d: number;
   updated_at: string;
 };
@@ -171,14 +170,6 @@ export function AgenciesTable({ rows, header }: { rows: AgencyRow[]; header: Rea
                     agency={a}
                     onStatus={(s) => ask([a.id], s)}
                     onPlan={() => setPlanFor(a)}
-                    onFeatured={async () => {
-                      const res = await setFeatured(a.id, !a.is_featured);
-                      if (!res.ok) return toast.error(res.error);
-                      toast.success(
-                        a.is_featured ? `${a.name} is no longer featured` : `${a.name} is featured`,
-                      );
-                      router.refresh();
-                    }}
                   />
                 </td>
               </tr>
@@ -230,12 +221,10 @@ function RowMenu({
   agency: a,
   onStatus,
   onPlan,
-  onFeatured,
 }: {
   agency: AgencyRow;
   onStatus: (s: Pending["status"]) => void;
   onPlan: () => void;
-  onFeatured: () => void;
 }) {
   const container = usePortalContainer();
   const live = a.status === "published";
@@ -283,9 +272,6 @@ function RowMenu({
           </DropdownMenu.Item>
           <DropdownMenu.Item className={menuRow} onSelect={onPlan}>
             Change plan…
-          </DropdownMenu.Item>
-          <DropdownMenu.Item className={menuRow} onSelect={onFeatured}>
-            {a.is_featured ? "Remove Featured" : "Mark Featured (paid)"}
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
           {live ? (

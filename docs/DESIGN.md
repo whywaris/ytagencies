@@ -67,7 +67,7 @@ One accent only. Green `#188038` (dark mode `#34A853`) is reserved for "Verified
 - **Buttons:** primary = `--accent` fill, white text, fully rounded (pill), 44px tall. Secondary = text link in `--accent`. Labels say exactly what happens ("Find agencies", "Send inquiry", "Claim this listing").
 - **Agency row:** white on `--bg`, 1px `--line` border, 16px radius, no shadow. Hover: border darkens only.
 - **Inputs:** 44px, 12px radius, `--surface` fill, no border until focus.
-- **Badges:** small text pills: "Verified" (green), "Featured" (neutral outline, clearly labeled as paid).
+- **Badges:** small text pills: "Verified" (green), "Sponsored" (neutral outline, only on sponsored slots), "Founding agency" (neutral fill).
 - Radius hierarchy: pills for buttons/badges, 16px for rows/cards, 12px for inputs, 8px for logos.
 
 ## Motion

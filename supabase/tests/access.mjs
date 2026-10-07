@@ -264,7 +264,6 @@ await as("anon", null, async () => {
 await as("authenticated", SUBMITTER, async () => {
   ok(await denied(submit(SUB(1), ", status", ", 'published'")), "can't insert a published agency");
   ok(await denied(submit(SUB(1), ", is_verified", ", true")), "can't insert is_verified");
-  ok(await denied(submit(SUB(1), ", is_featured", ", true")), "can't insert is_featured");
   ok(await denied(submit(SUB(1), ", is_claimed", ", true")), "can't insert is_claimed");
   ok(
     await denied(submit(SUB(1), ", owner_id", ", auth.uid()")),
@@ -282,14 +281,10 @@ await as("authenticated", SUBMITTER, async () => {
   );
   ok(!(await denied(submit(SUB(1)))), "can insert a draft they submitted");
   const [mine] = await rows(
-    `select status, owner_id, is_verified, is_featured, is_claimed from agencies where id = '${SUB(1)}'`,
+    `select status, owner_id, is_verified, is_claimed from agencies where id = '${SUB(1)}'`,
   );
   ok(
-    mine?.status === "draft" &&
-      mine.owner_id === null &&
-      !mine.is_verified &&
-      !mine.is_featured &&
-      !mine.is_claimed,
+    mine?.status === "draft" && mine.owner_id === null && !mine.is_verified && !mine.is_claimed,
     "submission is a draft with no owner or flags, and visible to its submitter",
   );
   ok(
@@ -366,6 +361,7 @@ const QUILL = await idOf("quillfern-media"); // owned by OWNER
 const PINE = await idOf("pinecask-creative");
 const SALT = await idOf("saltmere-studios");
 await db.exec(`
+  delete from agency_subscriptions; -- the seed's sample Founding agencies; these tests set their own
   insert into auth.users (id, email) values ('${ADMIN}', 'admin@x.example');
   update profiles set role = 'admin' where id = '${ADMIN}';
   insert into agency_subscriptions (agency_id, plan_id, source, ends_at)

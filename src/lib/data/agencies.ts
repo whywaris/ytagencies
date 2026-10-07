@@ -1,7 +1,10 @@
 import "server-only";
 import { cache } from "react";
 
+import { getPlacement } from "@/lib/data/placement";
 import { getIndustries, getLocations, getServices, type Segment } from "@/lib/data/taxonomy";
+import type { Entitlements } from "@/lib/entitlements";
+import { qualityScore, rankAgencies } from "@/lib/ranking";
 import { MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 import { createStaticClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
@@ -22,7 +25,14 @@ export type AgencyListItem = {
   pricingModel: string | null;
   languages: string[];
   isVerified: boolean;
-  isFeatured: boolean;
+  /** On a paid plan (Founding or Verified): ranked above Free (§6). */
+  paid: boolean;
+  /** Has ever been a Founding agency: the badge stays for good. */
+  foundingBadge: boolean;
+  /** 0–100, orders agencies within their group (lib/ranking.ts, /how-we-rank). */
+  quality: number;
+  /** Holds a sponsored slot on the page being rendered. */
+  sponsored: boolean;
   hq: Tag | null;
   services: Tag[]; // primary first
   industries: Tag[]; // primary first
@@ -30,6 +40,7 @@ export type AgencyListItem = {
 };
 
 export type AgencyProfile = AgencyListItem & {
+  entitlements: Entitlements;
   description: string | null;
   website: string | null;
   foundedYear: number | null;
@@ -55,8 +66,10 @@ export type AgencyProfile = AgencyListItem & {
 };
 
 const LIST_SELECT = `
-  id, slug, name, tagline, logo_path, min_budget_usd, team_size, pricing_model, languages, is_verified, is_featured,
+  id, slug, name, tagline, description, logo_path, min_budget_usd, team_size, pricing_model, languages, is_verified,
   hq:locations!agencies_hq_location_id_fkey(slug, name),
+  case_study_count:case_studies(count),
+  location_count:agency_locations(count),
   agency_services(is_primary, services(slug, name)),
   agency_industries(is_primary, industries(slug, name)),
   reviews(rating)
@@ -78,19 +91,22 @@ function ratingOf(reviews: { rating: number }[]) {
 }
 
 function listQuery() {
-  // Featured (paid) first, then verified, then alphabetical.
+  // Alphabetical here; directory pages rank in JS (rankAgencies) because plans and sponsored
+  // slots aren't readable with the anon key.
   return createStaticClient()
     .from("agencies")
     .select(LIST_SELECT)
     .eq("status", "published")
-    .order("is_featured", { ascending: false })
-    .order("is_verified", { ascending: false })
     .order("name");
 }
 
 type ListRow = NonNullable<Awaited<ReturnType<typeof listQuery>>["data"]>[number];
 
-function toListItem(row: ListRow): AgencyListItem {
+type Placement = Awaited<ReturnType<typeof getPlacement>>;
+
+function toListItem(row: ListRow, placement: Placement): AgencyListItem {
+  const e = placement.entitlements(row.id);
+  const rating = ratingOf(row.reviews);
   return {
     id: row.id,
     slug: row.slug,
@@ -102,12 +118,41 @@ function toListItem(row: ListRow): AgencyListItem {
     pricingModel: row.pricing_model,
     languages: row.languages ?? [],
     isVerified: row.is_verified,
-    isFeatured: row.is_featured,
+    paid: e.listTier === "paid",
+    foundingBadge: e.foundingBadge,
+    quality: qualityScore({
+      hasLogo: !!row.logo_path,
+      hasTagline: !!row.tagline?.trim(),
+      descriptionLength: row.description?.trim().length ?? 0,
+      hasMinBudget: row.min_budget_usd !== null,
+      caseStudies: row.case_study_count[0]?.count ?? 0,
+      locations: row.location_count[0]?.count ?? 0,
+      reviews: rating,
+      verification: placement.verification(row.id),
+    }),
+    sponsored: false,
     hq: row.hq,
     services: primaryFirst(row.agency_services, (r) => r.services),
     industries: primaryFirst(row.agency_industries, (r) => r.industries),
-    rating: ratingOf(row.reviews),
+    rating,
   };
+}
+
+/** Lists for a page, in ranking order: sponsored, paid, free (§6). */
+async function rankedList(
+  ids: string[],
+  page: { serviceId: number; industryId?: number; locationId?: number },
+) {
+  if (ids.length === 0) return [];
+  const [{ data, error }, placement] = await Promise.all([
+    listQuery().in("id", ids),
+    getPlacement(),
+  ]);
+  if (error) throw error;
+  return rankAgencies(
+    data.map((row) => toListItem(row, placement)),
+    placement.sponsoredFor(page),
+  );
 }
 
 // ponytail: id lookups are plain selects intersected in JS, capped by PostgREST's max rows (1000 by default).
@@ -136,22 +181,19 @@ async function idsFor(serviceId: number, segment?: Segment): Promise<string[]> {
 }
 
 /** Agencies offering a service (service hub page). */
-export const getAgenciesForService = cache(async (serviceId: number) => {
-  const ids = await idsFor(serviceId);
-  if (ids.length === 0) return [];
-  const { data, error } = await listQuery().in("id", ids);
-  if (error) throw error;
-  return data.map(toListItem);
-});
+export const getAgenciesForService = cache(async (serviceId: number) =>
+  rankedList(await idsFor(serviceId), { serviceId }),
+);
 
 /** Agencies offering a service for an industry or in a location (combination page). */
-export const getAgenciesForCombo = cache(async (serviceId: number, segment: Segment) => {
-  const ids = await idsFor(serviceId, segment);
-  if (ids.length === 0) return [];
-  const { data, error } = await listQuery().in("id", ids);
-  if (error) throw error;
-  return data.map(toListItem);
-});
+export const getAgenciesForCombo = cache(async (serviceId: number, segment: Segment) =>
+  rankedList(
+    await idsFor(serviceId, segment),
+    segment.kind === "industry"
+      ? { serviceId, industryId: segment.industry.id }
+      : { serviceId, locationId: segment.location.id },
+  ),
+);
 
 /** Published agency count for a combination. Drives the thin-page rule. */
 export const getComboCount = cache(async (serviceId: number, segment: Segment) => {
@@ -176,7 +218,7 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .from("agencies")
     .select(
       `${LIST_SELECT},
-      description, website, founded_year, is_claimed, updated_at,
+      website, founded_year, is_claimed, updated_at,
       agency_locations(locations(slug, name, type)),
       case_studies(id, title, summary, channel_url, metrics, created_at, industries(slug, name)),
       published_reviews:reviews(id, author_name, author_company, rating, body, created_at)`,
@@ -187,9 +229,11 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  const placement = await getPlacement();
 
   return {
-    ...toListItem(data),
+    ...toListItem(data, placement),
+    entitlements: placement.entitlements(data.id),
     description: data.description,
     website: data.website,
     foundedYear: data.founded_year,
@@ -395,7 +439,7 @@ export async function getSimilarAgencies(agency: AgencyListItem, limit: number) 
 // ponytail: loads every published agency (PostgREST max rows cap, 1000 by default); only used to top up
 // "Similar agencies" when too few share a service. Replace with an industry-based query at scale.
 const getPublishedAgencies = cache(async () => {
-  const { data, error } = await listQuery();
+  const [{ data, error }, placement] = await Promise.all([listQuery(), getPlacement()]);
   if (error) throw error;
-  return data.map(toListItem);
+  return data.map((row) => toListItem(row, placement));
 });

@@ -5,9 +5,12 @@ import type { z } from "zod";
 import { applyProfile } from "@/lib/agency-profile";
 import { getOwnedAgency } from "@/lib/auth";
 import { removeCaseStudy, writeCaseStudy } from "@/lib/case-studies";
+import { getEntitlements } from "@/lib/data/entitlements";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidateAgency } from "@/lib/revalidate";
 import { caseStudySchema, profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
+import { parseChannelUrl } from "@/lib/youtube-url";
 
 // Agency dashboard mutations. Each one re-checks ownership (SECURITY.md) and writes with the
 // user's own client, so RLS and the column privileges in schema.sql apply as a second guard.
@@ -93,6 +96,20 @@ export async function saveCaseStudy(
   if (!owned) return { ok: false, error: NOT_OWNER };
   const parsed = caseStudySchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
+  if (!parsed.data.id) {
+    // §6: Free includes 2 case studies; paid plans are unlimited.
+    const { caseStudies: limit } = await getEntitlements(owned.agency.id);
+    const { count } = await owned.supabase
+      .from("case_studies")
+      .select("id", { count: "exact", head: true })
+      .eq("agency_id", owned.agency.id);
+    if ((count ?? 0) >= limit) {
+      return {
+        ok: false,
+        error: `Your plan includes up to ${limit} case studies. Edit an existing one, or upgrade for unlimited case studies.`,
+      };
+    }
+  }
   const res = await writeCaseStudy(owned.supabase, owned.agency.id, parsed.data);
   if (!res.ok) return res;
   revalidateAgency(owned.agency.slug);
@@ -105,5 +122,52 @@ export async function deleteCaseStudy(agencyId: string, caseStudyId: string): Pr
   if (!(await removeCaseStudy(owned.supabase, owned.agency.id, caseStudyId)))
     return { ok: false, error: SAVE_FAILED };
   revalidateAgency(owned.agency.slug);
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Asks for the Verified badge (§5.4, §6). Any plan can request; paid plans are reviewed first.
+ * Owners can't write verifications under RLS, so this inserts with the service role after the
+ * ownership check. One open request per agency (unique index).
+ */
+export async function requestVerification(agencyId: string, urls: string[]): Promise<FormResult> {
+  const owned = await getOwnedAgency(agencyId);
+  if (!owned) return { ok: false, error: NOT_OWNER };
+  const list = Array.isArray(urls)
+    ? urls
+        .filter((u): u is string => typeof u === "string")
+        .map((u) => u.trim())
+        .filter(Boolean)
+    : [];
+  if (list.length > 10) return { ok: false, error: "Add up to 10 channels." };
+  const bad = list.find((u) => u.length > 300 || !parseChannelUrl(u).ok);
+  if (bad) {
+    const reason = parseChannelUrl(bad.slice(0, 300));
+    return { ok: false, error: `${bad.slice(0, 80)}: ${reason.ok ? "too long" : reason.error}` };
+  }
+
+  const db = createAdminClient();
+  const { data: current } = await db
+    .from("verifications")
+    .select("status")
+    .eq("agency_id", agencyId)
+    .in("status", ["requested", "approved"]);
+  if (current?.some((v) => v.status === "approved")) {
+    return { ok: false, error: "Your agency is already verified." };
+  }
+  const { error } = await db.from("verifications").insert({
+    agency_id: agencyId,
+    status: "requested",
+    channels: list.map((url) => ({ url })),
+  });
+  if (error) {
+    return {
+      ok: false,
+      error:
+        error.code === "23505"
+          ? "You already have a request in review. We'll email you when it's decided."
+          : "We couldn't send your request. Please try again in a minute.",
+    };
+  }
   return { ok: true, data: undefined };
 }

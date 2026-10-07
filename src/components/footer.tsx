@@ -8,12 +8,14 @@ const links = [
   { href: "/#industries", label: "Industries" },
   { href: "/guides", label: "Guides" },
   { href: "/get-matched", label: "Get matched" },
+  { href: "/how-we-rank", label: "How we rank" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
 ];
 
 const agencyLinks = [
   { href: "/list-your-agency", label: "List your agency" },
+  { href: "/for-agencies/pricing", label: "Pricing" },
   { href: "/login", label: "Sign in" },
 ];
 

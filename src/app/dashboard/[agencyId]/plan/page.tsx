@@ -1,0 +1,144 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { RequestVerification } from "@/components/dashboard/request-verification";
+import { getOwnedAgency } from "@/lib/auth";
+import { getEntitlements } from "@/lib/data/entitlements";
+
+export const metadata = { title: "Plan and analytics" };
+
+const PLAN_NAME = { free: "Free", founding: "Founding", verified: "Verified" } as const;
+const count = new Intl.NumberFormat("en-US");
+
+/** yyyy-mm-dd, n days before today (UTC). */
+function daysAgo(n: number) {
+  return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+}
+
+export default async function PlanPage({ params }: PageProps<"/dashboard/[agencyId]/plan">) {
+  const owned = await getOwnedAgency((await params).agencyId);
+  if (!owned) notFound();
+  const { agency, supabase } = owned;
+  const e = await getEntitlements(agency.id);
+
+  // §6: analytics limited to the plan's history window. Owners read their own rollups (RLS).
+  const [events, verifications, subscription] = await Promise.all([
+    supabase
+      .from("agency_event_daily")
+      .select("type, count")
+      .eq("agency_id", agency.id)
+      .gte("day", daysAgo(e.analyticsDays)),
+    supabase
+      .from("verifications")
+      .select("status")
+      .eq("agency_id", agency.id)
+      .in("status", ["requested", "approved"]),
+    supabase
+      .from("agency_subscriptions")
+      .select("ends_at")
+      .eq("agency_id", agency.id)
+      .eq("status", "active")
+      .maybeSingle(),
+  ]);
+  if (events.error || verifications.error) throw new Error("Couldn't load your plan");
+  const totals = { profile_view: 0, website_click: 0, inquiry: 0 };
+  for (const r of events.data) {
+    if (r.type in totals) totals[r.type as keyof typeof totals] += r.count;
+  }
+  const approved = verifications.data.some((v) => v.status === "approved");
+  const requested = verifications.data.some((v) => v.status === "requested");
+  const endsAt = e.plan !== "free" ? subscription.data?.ends_at : null;
+  const window = e.analyticsDays >= 365 ? "12 months" : "30 days";
+
+  const includes: [string, string][] = [
+    ["Case studies", e.caseStudies === Infinity ? "Unlimited" : `Up to ${e.caseStudies}`],
+    ["Link to your website", e.websiteLink ? "Yes, tagged so you can track visits" : "No"],
+    ["Placement on directory pages", e.listTier === "paid" ? "Above Free agencies" : "Standard"],
+    ["Get matched", e.matchPriority === "high" ? "Priority" : "Standard"],
+    ["Other agencies suggested on your profile", e.showSimilarAgencies ? "Yes" : "No"],
+    ["Analytics history", window],
+  ];
+
+  return (
+    <div className="flex flex-col gap-16">
+      <section aria-labelledby="analytics" className="flex flex-col gap-6">
+        <div className="flex flex-col gap-1">
+          <h2 id="analytics" className="text-h2">
+            Analytics
+          </h2>
+          <p className="text-text-2">Last {window}. Each visitor counts once a day.</p>
+        </div>
+        <dl className="grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
+          {(
+            [
+              ["Profile views", totals.profile_view],
+              ["Website clicks", totals.website_click],
+              ["Inquiries", totals.inquiry],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label} className="flex flex-col gap-1 bg-bg p-5">
+              <dt className="text-text-2">{label}</dt>
+              <dd className="text-h2 tabular-nums">{count.format(value)}</dd>
+            </div>
+          ))}
+        </dl>
+        {!e.websiteLink && (
+          <p className="text-small">
+            Website clicks start counting once your profile links to your website, on a paid plan.
+          </p>
+        )}
+      </section>
+
+      <section aria-labelledby="plan" className="flex flex-col gap-6">
+        <div className="flex flex-col gap-1">
+          <h2 id="plan" className="text-h2">
+            Your plan: {PLAN_NAME[e.plan]}
+          </h2>
+          <p className="text-text-2">
+            {endsAt
+              ? `Until ${new Date(endsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`
+              : e.plan === "free"
+                ? "Free, for as long as you like."
+                : "No end date."}
+            {e.foundingBadge && " Your Founding agency badge stays on your profile for good."}
+          </p>
+        </div>
+        <dl className="flex max-w-reading flex-col divide-y divide-line rounded-lg border border-line">
+          {includes.map(([k, v]) => (
+            <div key={k} className="flex min-h-11 items-center justify-between gap-4 px-4 py-2">
+              <dt className="text-text-2">{k}</dt>
+              <dd className="text-right">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        {e.plan === "free" && (
+          <Link href="/for-agencies/pricing" className="self-start text-accent hover:underline">
+            See what paid plans include
+          </Link>
+        )}
+      </section>
+
+      <section aria-labelledby="verification" className="flex flex-col gap-4">
+        <h2 id="verification" className="text-h2">
+          Verified badge
+        </h2>
+        {approved ? (
+          <p>Your agency is verified. The badge shows on your profile and in the directory.</p>
+        ) : requested ? (
+          <p className="max-w-reading">
+            Your request is in review. We check your channels, your website and your business, and
+            email you when it&apos;s decided.
+          </p>
+        ) : (
+          <>
+            <p className="max-w-reading text-text-2">
+              We check your YouTube channels, your website domain and that your business is real.
+              Any plan can ask; paid plans are reviewed first.
+            </p>
+            <RequestVerification agencyId={agency.id} />
+          </>
+        )}
+      </section>
+    </div>
+  );
+}

@@ -29,8 +29,9 @@ export function AgencyRow({ agency }: { agency: AgencyListItem }) {
                 {agency.name}
               </Link>
             </h3>
+            {agency.sponsored && <Badge variant="sponsored">Sponsored</Badge>}
             {agency.isVerified && <Badge variant="verified">✓ Verified</Badge>}
-            {agency.isFeatured && <Badge variant="featured">Featured · Paid</Badge>}
+            {agency.foundingBadge && <Badge>Founding agency</Badge>}
           </div>
           {agency.tagline && <p className="text-text-2">{agency.tagline}</p>}
           {meta.length > 0 && <p className="text-small">{meta.join(" · ")}</p>}

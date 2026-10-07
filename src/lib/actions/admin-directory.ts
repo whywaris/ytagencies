@@ -25,7 +25,7 @@ const reasonSchema = z.string().trim().max(1000, "Keep the reason under 1,000 ch
 
 type Ctx = NonNullable<Awaited<ReturnType<typeof adminContext>>>;
 
-// ───────── Agencies: status, plan, featured ─────────
+// ───────── Agencies: status and plan ─────────
 
 const statusSchema = z.enum(["published", "draft", "archived"]);
 
@@ -117,24 +117,6 @@ export async function changePlan(agencyId: string, raw: unknown): Promise<FormRe
   revalidateAgency(agency.slug);
   revalidatePath("/admin/agencies");
   revalidatePath(`/admin/agencies/${agencyId}`);
-  return { ok: true, data: undefined };
-}
-
-/** Featured (paid) placement. Interim: retired in Phase 6 in favour of plans and sponsored slots. */
-export async function setFeatured(agencyId: string, featured: boolean): Promise<FormResult> {
-  const ctx = await adminContext();
-  if (!ctx) return { ok: false, error: NOT_ADMIN };
-  if (!uuid.safeParse(agencyId).success) return { ok: false, error: "Unknown agency." };
-  const { data } = await ctx.db
-    .from("agencies")
-    .update({ is_featured: featured === true, updated_at: new Date().toISOString() })
-    .eq("id", agencyId)
-    .select("slug")
-    .maybeSingle();
-  if (!data) return { ok: false, error: SAVE_FAILED };
-  await ctx.log(featured ? "agency.feature" : "agency.unfeature", "agency", agencyId);
-  revalidateAgency(data.slug);
-  revalidatePath("/admin/agencies");
   return { ok: true, data: undefined };
 }
 

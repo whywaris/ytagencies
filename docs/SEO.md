@@ -18,6 +18,8 @@
 | Agency profile                          | `/agency/acme-media`                | Yes, if published               |
 | Guide                                   | `/guides/youtube-ads-agency-cost`   | Yes                             |
 | List your agency                        | `/list-your-agency`                 | Yes                             |
+| Pricing for agencies                    | `/for-agencies/pricing`             | Yes                             |
+| How we rank                             | `/how-we-rank`                      | Yes                             |
 | Filters (`?budget=`, `?sort=`)          | same path + params                  | No; canonical to the clean path |
 | Dashboard / admin / get-matched success | —                                   | No (`noindex`)                  |
 

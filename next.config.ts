@@ -56,6 +56,8 @@ const nextConfig: NextConfig = {
   // www → apex, 308. Keep the domain in sync with SITE_DOMAIN in src/lib/site.ts.
   async redirects() {
     return [
+      // No page of its own (yet): agencies land on pricing.
+      { source: "/for-agencies", destination: "/for-agencies/pricing", permanent: false },
       {
         source: "/:path*",
         has: [{ type: "host", value: "www.ytagencies.com" }],

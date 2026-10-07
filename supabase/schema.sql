@@ -71,7 +71,6 @@ create table agencies (
   status text not null default 'draft' check (status in ('draft','published','archived')),
   is_claimed boolean not null default false,
   is_verified boolean not null default false,
-  is_featured boolean not null default false,
   owner_id uuid references auth.users(id),
   search tsvector generated always as (
     to_tsvector('english', coalesce(name,'') || ' ' || coalesce(tagline,'') || ' ' || coalesce(description,''))
@@ -197,7 +196,7 @@ create policy "read published or own" on agencies for select to authenticated
   using (status = 'published' or owner_id = auth.uid() or is_admin());
 create policy "owner update" on agencies for update to authenticated
   using (owner_id = auth.uid())
-  with check (owner_id = auth.uid() and is_featured = false and is_verified = false); -- paid/verified flags are admin-only
+  with check (owner_id = auth.uid() and is_verified = false); -- the verified flag is admin-only
 create policy "admin all" on agencies for all to authenticated using (is_admin()) with check (is_admin());
 
 -- Agency join tables & case studies: public read if agency is published; owner manages
@@ -297,7 +296,7 @@ create trigger on_auth_user_created after insert on auth.users
   for each row execute function handle_new_user();
 
 -- ───────── Owners may edit content columns only ─────────
--- The original "owner update" check (is_featured = false and is_verified = false) validated the new row,
+-- The original "owner update" check (is_verified = false) validated the new row,
 -- so owners of verified or featured agencies could never save. Column privileges protect the
 -- admin-only fields (status, flags, owner_id, slug, website) instead. Admin writes use the service role.
 drop policy "owner update" on agencies;
@@ -312,7 +311,7 @@ grant update (tagline, description, logo_path, min_budget_usd, pricing_model, te
 revoke select on agencies from anon;
 grant select (id, slug, name, tagline, description, website, logo_path, founded_year, team_size,
   min_budget_usd, pricing_model, languages, hq_location_id, status, is_claimed, is_verified,
-  is_featured, search, created_at, updated_at) on agencies to anon;
+  search, created_at, updated_at) on agencies to anon;
 
 -- One open claim per user per agency.
 create unique index claims_one_pending on claims (agency_id, user_id) where status = 'pending';
@@ -385,7 +384,7 @@ create trigger touch_agency after insert or update or delete on reviews for each
 alter table agencies add column if not exists submitted_by uuid references auth.users(id) on delete set null;
 create index if not exists agencies_submitted_by_idx on agencies (submitted_by) where submitted_by is not null;
 
--- Users may provide content columns only. status, owner_id, is_claimed, is_verified and is_featured
+-- Users may provide content columns only. status, owner_id, is_claimed and is_verified
 -- keep their defaults (draft, null, false), so a user can't publish, own, verify or feature on insert.
 -- Admin inserts use the service role.
 revoke insert on agencies from anon, authenticated;
@@ -394,7 +393,7 @@ grant insert (id, slug, name, website, description, min_budget_usd, submitted_by
 -- Belt and braces on top of the grants, plus a cap of 3 open submissions per account.
 create policy "submit draft" on agencies for insert to authenticated with check (
   submitted_by = auth.uid() and status = 'draft' and owner_id is null
-  and not is_claimed and not is_verified and not is_featured
+  and not is_claimed and not is_verified
   and (select count(*) from agencies a where a.submitted_by = auth.uid() and a.status = 'draft') < 3);
 
 -- Submitters can see their own submission (needed for the checks below and their dashboard).
@@ -622,7 +621,7 @@ create policy "admin read" on admin_actions for select to authenticated using (i
 create or replace view admin_agency_list as
 select
   a.id, a.name, a.slug, a.website, a.logo_path, a.status, a.is_claimed, a.is_verified,
-  a.is_featured, a.created_at, a.updated_at,
+  a.created_at, a.updated_at,
   coalesce((
     select s.plan_id from agency_subscriptions s
     where s.agency_id = a.id and s.status = 'active' and s.starts_at <= now()

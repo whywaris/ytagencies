@@ -64,7 +64,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 
 ## External links
 
-- Links to agency websites use `rel="nofollow noopener"` (`rel="sponsored"` for paid placements) and open in a new tab.
+- Only agencies on a paid plan (Founding or Verified) get a link to their website, with `rel="sponsored noopener"`, opening in a new tab. Free profiles have no outbound website link (inquiries go through the contact form); the website stays in their JSON-LD.
 
 ## Privacy
 

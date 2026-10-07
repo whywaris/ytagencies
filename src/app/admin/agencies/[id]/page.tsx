@@ -53,7 +53,7 @@ export default async function AdminAgencyPage({
     db
       .from("agencies")
       .select(
-        "id, name, slug, tagline, website, logo_path, founded_year, team_size, languages, status, is_verified, is_featured, is_claimed, owner_id, description, min_budget_usd, pricing_model, locations!agencies_hq_location_id_fkey(slug)",
+        "id, name, slug, tagline, website, logo_path, founded_year, team_size, languages, status, is_verified, is_claimed, owner_id, description, min_budget_usd, pricing_model, locations!agencies_hq_location_id_fkey(slug)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -84,7 +84,6 @@ export default async function AdminAgencyPage({
                   Verified
                 </span>
               )}
-              {agency.is_featured && <span>Featured (paid)</span>}
               <span>
                 {owner?.data.user?.email ??
                   (agency.is_claimed ? "Claimed, account removed" : "Unclaimed")}
