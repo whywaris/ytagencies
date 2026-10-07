@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
+import { mediaHosts } from "./src/lib/media";
+
 const isDev = process.env.NODE_ENV === "development";
+// Our Cloudflare image host(s) for pasted cover links (MEDIA_HOSTS, see src/lib/media.ts).
+const media = mediaHosts();
 // Lock CSP to this environment's Supabase project; wildcard only when the env var is missing (e.g. CI build).
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL)
@@ -14,7 +18,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${supabaseHost}`,
+  `img-src 'self' data: blob: https://${supabaseHost}${media.map((h) => ` https://${h}`).join("")}`,
   "font-src 'self'",
   `connect-src 'self' https://${supabaseHost} wss://${supabaseHost}${isDev ? " https://va.vercel-scripts.com" : ""}`,
   "frame-src https://challenges.cloudflare.com",
@@ -44,6 +48,7 @@ const nextConfig: NextConfig = {
     // Local Supabase (CLI or a dev mock) runs on 127.0.0.1; Next 16 refuses local IPs unless allowed.
     dangerouslyAllowLocalIP: isDev,
     remotePatterns: [
+      ...media.map((hostname) => ({ protocol: "https" as const, hostname })),
       {
         protocol: supabaseUrl?.protocol === "http:" ? "http" : "https",
         hostname: supabaseUrl?.hostname ?? "*.supabase.co",

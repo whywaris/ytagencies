@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { imageInfo } from "@/lib/image-info";
+import { imageLinkError } from "@/lib/media";
 import type { Json } from "@/lib/supabase/types";
 import type { FormResult } from "@/lib/validation/lead";
 
@@ -45,11 +46,18 @@ const guideSchema = z.object({
     .refine((v) => v === "" || SLUG.test(v), "Use lowercase letters, numbers and single hyphens."),
   excerpt: z.string().trim().max(300, "Keep the excerpt under 300 characters."),
   body: z.string().max(100_000, "The guide is too long."),
-  coverPath: z.string().max(300).nullable(),
+  // A link to our Cloudflare image host (lib/media.ts), or an older upload in storage.
+  coverPath: z.string().trim().max(500).nullable(),
   seoTitle: z.string().trim().max(70, "Keep the SEO title under 70 characters."),
   seoDescription: z.string().trim().max(200, "Keep the SEO description under 200 characters."),
-  author: z.string().trim().max(100),
+  authorId: uuid.nullable(),
   related: z.array(comboSchema).max(10, "Pick up to 10 related pages."),
+  // One per line in the editor; blank lines are dropped.
+  keyTakeaways: z
+    .array(z.string().trim().max(200, "Keep each takeaway under 200 characters."))
+    .transform((lines) => lines.filter(Boolean))
+    .pipe(z.array(z.string()).max(5, "Add up to 5 key takeaways.")),
+  numberedSections: z.boolean(),
 });
 export type GuideInput = z.infer<typeof guideSchema>;
 
@@ -63,6 +71,8 @@ function revalidateGuide(slug: string) {
   revalidatePath(`/guides/${slug}`);
   revalidatePath("/guides");
   revalidatePath(`/og/guide/${slug}`);
+  revalidatePath(`/og/guide/${slug}/cover`);
+  revalidatePath(`/og/guide/${slug}/cover/dark`);
   revalidatePath("/sitemaps/guides.xml");
   revalidatePath("/admin/guides");
 }
@@ -75,8 +85,10 @@ export async function saveGuide(id: string | null, raw: unknown): Promise<FormRe
   const parsed = guideSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const v = parsed.data;
-  if (v.coverPath && !v.coverPath.startsWith("guides/"))
-    return { ok: false, error: "Unknown cover." };
+  if (v.coverPath && !v.coverPath.startsWith("guides/")) {
+    const coverError = imageLinkError(v.coverPath);
+    if (coverError) return { ok: false, error: `Cover image: ${coverError}` };
+  }
 
   const content = {
     title: v.title,
@@ -85,8 +97,10 @@ export async function saveGuide(id: string | null, raw: unknown): Promise<FormRe
     cover_path: v.coverPath,
     seo_title: v.seoTitle || null,
     seo_description: v.seoDescription || null,
-    author_name: v.author || null,
+    author_id: v.authorId,
     related_combos: v.related as Json,
+    key_takeaways: v.keyTakeaways,
+    numbered_sections: v.numberedSections,
   };
 
   if (id === null) {
@@ -128,7 +142,7 @@ export async function saveGuide(id: string | null, raw: unknown): Promise<FormRe
   if (error?.code === "23505") return { ok: false, error: "Another guide already uses that URL." };
   if (error || !data) return { ok: false, error: SAVE_FAILED };
   // Autosave runs every few seconds: log edits to live guides only, where they're visible.
-  if (current.status !== "draft") {
+  if (current.status !== "draft" && current.status !== "in_review") {
     await ctx.log("guide.update", "guide", id);
     revalidateGuide(data.slug);
   }

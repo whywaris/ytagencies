@@ -638,6 +638,23 @@ revoke all on admin_agency_list from public, anon, authenticated;
 grant select on admin_agency_list to service_role;
 
 -- ───────── Guides CMS (ADMIN_V2_SPEC §8) ─────────
+create table authors (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) <= 80),
+  name text not null check (char_length(name) between 1 and 100),
+  role text check (char_length(role) <= 100),
+  bio text check (char_length(bio) <= 300),
+  avatar_path text,
+  linkedin_url text check (linkedin_url ~ '^https://' and char_length(linkedin_url) <= 300),
+  x_url text check (x_url ~ '^https://' and char_length(x_url) <= 300),
+  website_url text check (website_url ~ '^https://' and char_length(website_url) <= 300),
+  -- For future contributor accounts. Never exposed to the public (see the column grants below).
+  user_id uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create trigger set_updated_at before update on authors for each row execute function set_updated_at();
+
 create table guides (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) <= 80),
@@ -647,14 +664,19 @@ create table guides (
   cover_path text,
   seo_title text check (char_length(seo_title) <= 70),
   seo_description text check (char_length(seo_description) <= 200),
-  author_name text check (char_length(author_name) <= 100),
-  status text not null default 'draft' check (status in ('draft', 'scheduled', 'published')),
+  author_id uuid references authors(id) on delete set null,
+  -- in_review: for future contributor submissions (no UI yet); never public, like drafts.
+  status text not null default 'draft' check (status in ('draft', 'in_review', 'scheduled', 'published')),
   published_at timestamptz,
   related_combos jsonb not null default '[]',
+  key_takeaways text[] not null default '{}'
+    check (cardinality(key_takeaways) <= 5 and char_length(array_to_string(key_takeaways, '')) <= 1000),
+  numbered_sections boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (status = 'draft' or published_at is not null)
+  check (status in ('draft', 'in_review') or published_at is not null)
 );
+create index guides_author_idx on guides (author_id);
 create index guides_live_idx on guides (published_at) where status in ('published', 'scheduled');
 create trigger set_updated_at before update on guides for each row execute function set_updated_at();
 
@@ -679,6 +701,20 @@ create policy "read live redirects" on guide_redirects for select using (
   exists (select 1 from guides g where g.id = guide_id
           and ((g.status in ('published', 'scheduled') and g.published_at <= now()) or is_admin())));
 create policy "admin write" on guide_redirects for all to authenticated using (is_admin()) with check (is_admin());
+
+alter table authors enable row level security;
+-- Column grants: the public (anon key) and signed-in users can't read user_id at all.
+revoke all on authors from anon, authenticated;
+grant select (id, slug, name, role, bio, avatar_path, linkedin_url, x_url, website_url, created_at,
+  updated_at) on authors to anon, authenticated;
+grant insert, update, delete on authors to authenticated;
+-- Public: only authors with at least one live guide (published, or scheduled with its time passed).
+create policy "read authors of live guides" on authors for select using (
+  exists (select 1 from guides g where g.author_id = authors.id
+          and g.status in ('published', 'scheduled') and g.published_at <= now())
+  or is_admin());
+create policy "admin write" on authors for all to authenticated using (is_admin()) with check (is_admin());
+
 
 -- ───────── Settings (ADMIN_V2_SPEC §5.10) ─────────
 create table app_settings (

@@ -247,3 +247,15 @@
 [data-admin] .rounded-md {
   border-radius: 6px;
 }
+
+/* Guides with "Numbered sections" on: each main heading shows its number. */
+.guide-numbered {
+  counter-reset: guide-section;
+}
+.guide-numbered .guide-h2 {
+  counter-increment: guide-section;
+}
+.guide-numbered .guide-h2::before {
+  content: counter(guide-section) ". ";
+  color: var(--text-2);
+}

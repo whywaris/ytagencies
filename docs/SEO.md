@@ -17,6 +17,8 @@
 | Service × location                      | `/youtube-seo-agencies/in-usa`      | If ≥ 3 published agencies       |
 | Agency profile                          | `/agency/acme-media`                | Yes, if published               |
 | Guide                                   | `/guides/youtube-ads-agency-cost`   | Yes                             |
+| Guides index                            | `/guides`, `/guides?page=2`         | Yes (`?service=` filters: no)   |
+| Author                                  | `/authors/jane-doe`                 | Yes, if they have a live guide  |
 | List your agency                        | `/list-your-agency`                 | Yes                             |
 | Pricing for agencies                    | `/for-agencies/pricing`             | Yes                             |
 | How we rank                             | `/how-we-rank`                      | Yes                             |
@@ -47,7 +49,7 @@
 - All pages: `BreadcrumbList`; home: `WebSite` + `Organization`.
 - Directory pages: `ItemList` of agencies (url + position).
 - Profile: `ProfessionalService` with name, url, logo, areaServed, address (if public). Add `aggregateRating` only from genuine, moderated third-party reviews.
-- Guides: `Article` with author and dates.
+- Guides: `Article` with dates and `author` as a `Person` linking to their author page. `/guides`: `CollectionPage` with an `ItemList` of the guides shown. Author pages: `Person` (name, job title, bio, photo, `sameAs` profiles).
 - FAQ blocks may use `FAQPage` markup, but don't expect rich results from it.
 
 ## Technical

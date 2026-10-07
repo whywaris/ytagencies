@@ -1,5 +1,5 @@
 import { getAgencySlugs, getDirectoryIndex } from "@/lib/data/agencies";
-import { getLiveGuides } from "@/lib/data/guides";
+import { getLiveAuthors, getLiveGuides } from "@/lib/data/guides";
 import { getServices } from "@/lib/data/taxonomy";
 import { absoluteUrl } from "@/lib/site";
 
@@ -48,9 +48,12 @@ async function entries(file: (typeof FILES)[number]): Promise<Entry[]> {
     .map((g) => g.updated)
     .sort()
     .at(-1);
+  // Author pages ride along in the guides sitemap (they only exist for authors with live guides).
+  const authors = await getLiveAuthors();
   return [
     { path: "/guides", lastModified: newest },
     ...guides.map((g) => ({ path: `/guides/${g.slug}`, lastModified: g.updated })),
+    ...authors.map((a) => ({ path: `/authors/${a.slug}`, lastModified: a.updated_at })),
   ];
 }
 

@@ -24,6 +24,7 @@ const PAGES = [
   { href: "/admin/plans", label: "Plans" },
   { href: "/admin/guides", label: "Guides" },
   { href: "/admin/sponsored", label: "Sponsored" },
+  { href: "/admin/authors", label: "Authors" },
   { href: "/admin/taxonomy", label: "Taxonomy" },
   { href: "/admin/settings", label: "Settings" },
 ];

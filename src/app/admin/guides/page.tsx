@@ -28,7 +28,7 @@ type G = {
 
 /** What a reader sees: a scheduled guide whose time has passed is published. */
 function shownStatus(g: G, now: Date) {
-  if (g.status === "draft") return "draft";
+  if (g.status === "draft" || g.status === "in_review") return "draft"; // in_review: no UI yet
   return g.published_at && new Date(g.published_at) <= now ? "published" : "scheduled";
 }
 

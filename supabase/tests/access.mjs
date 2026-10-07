@@ -755,6 +755,69 @@ await db.exec("alter table agencies enable trigger set_updated_at");
 await db.exec("update agencies set description = 'edited' where slug = 'pinecask-creative'");
 ok((await agencyTs()) > stale, "editing the agency sets its updated_at");
 
+console.log("— guide authors and in_review —");
+await db.exec(`reset role;
+  insert into authors (slug, name) values ('draft-only', 'Draft Only'), ('no-guides', 'No Guides');
+  update guides set author_id = (select id from authors where slug = 'draft-only') where slug = 'draft-guide';
+  insert into guides (slug, title, status) values ('in-review-guide', 'In review', 'in_review');`);
+ok(
+  (
+    await rows(
+      "select a.slug from guides g join authors a on a.id = g.author_id where g.slug = 'youtube-ads-agency-cost'",
+    )
+  )[0]?.slug === "editorial-team",
+  "authors: the migrated guide belongs to the default author",
+);
+ok(
+  await fails("insert into guides (slug, title, status) values ('bad-status', 'X', 'pending')"),
+  "guides: unknown statuses are refused",
+);
+ok(
+  await fails(
+    "insert into guides (slug, title, key_takeaways) values ('six', 'X', array['1','2','3','4','5','6'])",
+  ),
+  "guides: at most 5 key takeaways",
+);
+for (const [role, uid, who] of [
+  ["anon", null, "anon"],
+  ["authenticated", OWNER, "signed-in user"],
+]) {
+  await as(role, uid, async () => {
+    const slugs = (await rows("select slug from authors")).map((r) => r.slug);
+    ok(slugs.includes("editorial-team"), `authors: ${who} reads an author with a live guide`);
+    ok(
+      !slugs.includes("draft-only") && !slugs.includes("no-guides"),
+      `authors: ${who} can't read authors without a live guide`,
+    );
+    ok(await denied("select user_id from authors"), `authors: ${who} can't read user_id`);
+    ok(
+      await denied("insert into authors (slug, name) values ('sneaky', 'Sneaky')"),
+      `authors: ${who} can't write`,
+    );
+    ok(await denied("update authors set name = 'x'"), `authors: ${who} can't edit`);
+    ok(
+      !(await rows("select slug from guides")).some((r) => r.slug === "in-review-guide"),
+      `guides: ${who} can't read guides in review`,
+    );
+  });
+}
+await as("authenticated", ADMIN, async () => {
+  ok((await rows("select slug from authors")).length >= 3, "authors: admin reads every author");
+  ok(
+    (await db.query("update authors set bio = 'Writes guides.' where slug = 'no-guides'"))
+      .affectedRows === 1,
+    "authors: admin can edit",
+  );
+});
+ok(
+  await fails(`update authors set bio = '${"x".repeat(301)}' where slug = 'no-guides'`),
+  "authors: bio is capped at 300 characters",
+);
+ok(
+  await fails("update authors set x_url = 'javascript:alert(1)' where slug = 'no-guides'"),
+  "authors: social links must be https",
+);
+
 console.log("— settings (§5.10) —");
 for (const [role, uid, who] of [
   ["anon", null, "anon"],

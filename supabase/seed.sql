@@ -346,8 +346,12 @@ from agencies a
 where a.slug in ('quillfern-media', 'marigold-lantern-media')
   and not exists (select 1 from agency_subscriptions s where s.agency_id = a.id and s.status = 'active');
 
+-- Default guide author; rename it (name, slug, photo, bio) in Admin → Authors.
+insert into authors (slug, name, role) values ('editorial-team', 'Editorial team', 'YT Agencies')
+on conflict (slug) do nothing;
+
 -- The first guide, moved from MDX (src/content/guides) into the CMS. Real content: keep for launch.
-insert into guides (slug, title, excerpt, body_md, seo_description, author_name, status,
+insert into guides (slug, title, excerpt, body_md, seo_description, author_id, status,
   published_at, related_combos, created_at, updated_at)
 select 'youtube-ads-agency-cost',
   'How much does a YouTube ads agency cost?',
@@ -407,7 +411,7 @@ YouTube campaigns need time to learn. The first weeks are for testing audiences 
 An agency that answers these clearly, in writing, is usually one that will be straightforward to work with.
 $md$,
   'What YouTube ads agencies charge, how management fees, retainers and video production add up, and how to budget your first three months without overspending.',
-  'YT Agencies editorial team',
+  (select id from authors where slug = 'editorial-team'),
   'published',
   '2026-10-04T09:00:00Z',
   jsonb_build_array(

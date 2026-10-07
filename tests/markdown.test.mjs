@@ -2,7 +2,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { imageSize, markdownToTree, parseGuide } from "../src/lib/markdown.ts";
+import {
+  imageSize,
+  markdownToTree,
+  parseGuide,
+  parseGuideWithOutline,
+  readMinutes,
+} from "../src/lib/markdown.ts";
 
 // Every element and attribute in a tree, flattened for assertions.
 function walk(node, out = []) {
@@ -68,4 +74,50 @@ test("image sizes come from uploaded file names", () => {
     { width: 1200, height: 630 },
   );
   assert.equal(imageSize("https://x.example/photo.png"), null);
+});
+
+test("callouts become an aside with one of our classes, marker removed", () => {
+  for (const kind of ["tip", "note", "warning"]) {
+    const aside = walk(markdownToTree(`> [!${kind.toUpperCase()}] Check the contract.`)).find(
+      (e) => e.tagName === "aside",
+    );
+    assert.ok(aside, kind);
+    assert.deepEqual(aside.properties.className, ["callout", `callout-${kind}`]);
+    assert.ok(!JSON.stringify(aside).includes("[!"), "marker removed");
+  }
+  // Unknown kinds stay plain blockquotes.
+  assert.ok(tags("> [!danger] Nope.").includes("blockquote"));
+  assert.ok(!tags("> [!danger] Nope.").includes("aside"));
+});
+
+test("raw HTML can't fake a callout or add classes", () => {
+  const t = walk(
+    markdownToTree('<aside class="callout callout-tip">x</aside>\n\n<p class="evil">y</p>'),
+  );
+  assert.ok(!t.some((e) => e.tagName === "aside"));
+  assert.ok(!t.some((e) => e.properties?.className));
+});
+
+test("headings get stable, unique ids and form the outline", () => {
+  const { blocks, outline } = parseGuideWithOutline(
+    "# Intro\n\n## Costs & fees\n\n### Ad spend\n\n{{budget-range youtube-ads-agencies}}\n\n## Costs & fees\n\n### Ad spend",
+  );
+  assert.deepEqual(outline, [
+    { id: "intro", text: "Intro", depth: 2 },
+    { id: "costs-fees", text: "Costs & fees", depth: 2 },
+    { id: "ad-spend", text: "Ad spend", depth: 3 },
+    { id: "costs-fees-2", text: "Costs & fees", depth: 2 },
+    { id: "ad-spend-2", text: "Ad spend", depth: 3 },
+  ]);
+  const ids = blocks
+    .flatMap((b) => (b.kind === "markdown" ? walk(b.tree) : []))
+    .map((e) => e.properties?.id)
+    .filter(Boolean);
+  assert.deepEqual(ids, ["intro", "costs-fees", "ad-spend", "costs-fees-2", "ad-spend-2"]);
+});
+
+test("readMinutes: about 225 words a minute, at least 1", () => {
+  assert.equal(readMinutes("A few words."), 1);
+  assert.equal(readMinutes(Array(1125).fill("word").join(" ")), 5);
+  assert.equal(readMinutes("{{budget-range x}}\n\n" + Array(450).fill("w").join(" ")), 2);
 });

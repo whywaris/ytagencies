@@ -15,6 +15,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -32,6 +33,7 @@ import {
   type GuideInput,
 } from "@/lib/actions/admin-guides";
 import { formatDateTime } from "@/lib/format";
+import { imageLinkError } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 // Two-column guide editor (ADMIN_V2_SPEC §8). Drafts autosave a few seconds after typing stops;
@@ -39,6 +41,7 @@ import { cn } from "@/lib/utils";
 
 export type Combo = { service_id: number; industry_id?: number; location_id?: number };
 export type ComboOption = { key: string; label: string; combo: Combo };
+export type AuthorOption = { id: string; name: string };
 
 export type EditorGuide = {
   id: string | null;
@@ -49,8 +52,10 @@ export type EditorGuide = {
   coverPath: string | null;
   seoTitle: string;
   seoDescription: string;
-  author: string;
+  authorId: string | null;
   related: Combo[];
+  keyTakeaways: string[];
+  numberedSections: boolean;
   status: "draft" | "scheduled" | "published";
   publishedAt: string | null;
   /** Has been live: the URL only changes through "Change URL". */
@@ -95,10 +100,15 @@ const secondary =
 export function GuideEditor({
   guide,
   comboOptions,
+  authors,
+  mediaHosts,
   siteHost,
 }: {
   guide: EditorGuide;
   comboOptions: ComboOption[];
+  authors: AuthorOption[];
+  /** Image hosts allowed for the cover link (MEDIA_HOSTS). */
+  mediaHosts: string[];
   siteHost: string;
 }) {
   const router = useRouter();
@@ -114,8 +124,10 @@ export function GuideEditor({
     coverPath: guide.coverPath,
     seoTitle: guide.seoTitle,
     seoDescription: guide.seoDescription,
-    author: guide.author,
+    authorId: guide.authorId,
     related: guide.related,
+    keyTakeaways: guide.keyTakeaways,
+    numberedSections: guide.numberedSections,
   });
   const [saveState, setSaveState] = useState<SaveState>(guide.id ? "saved" : "new");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -219,12 +231,9 @@ export function GuideEditor({
       return [text, at, at];
     });
 
+  // Inline images upload to storage; the cover is a pasted link (CoverField).
   const fileInput = useRef<HTMLInputElement>(null);
-  const [uploadTarget, setUploadTarget] = useState<"body" | "cover">("body");
-  const upload = (target: "body" | "cover") => {
-    setUploadTarget(target);
-    fileInput.current?.click();
-  };
+  const upload = () => fileInput.current?.click();
   const onFile = (file: File | undefined) => {
     if (!file) return;
     startTransition(async () => {
@@ -234,8 +243,7 @@ export function GuideEditor({
       fd.set("image", file);
       const res = await uploadGuideImage(guideId, fd);
       if (!res.ok) return void toast.error(res.error);
-      if (uploadTarget === "cover") set("coverPath", res.data.path);
-      else insert(`![Describe the image](${res.data.url})\n`);
+      insert(`![Describe the image](${res.data.url})\n`);
     });
     if (fileInput.current) fileInput.current.value = "";
   };
@@ -249,7 +257,7 @@ export function GuideEditor({
     else if (tool === "ul") prefixLines(() => "- ");
     else if (tool === "ol") prefixLines((i) => `${i + 1}. `);
     else if (tool === "quote") prefixLines(() => "> ");
-    else if (tool === "image") upload("body");
+    else if (tool === "image") upload();
     else insert(TABLE_SNIPPET);
   };
 
@@ -460,37 +468,11 @@ export function GuideEditor({
           )}
         </section>
 
-        <section aria-label="Cover image" className={panel}>
-          <p className="font-medium">Cover image</p>
-          {values.coverPath ? (
-            <div className="flex flex-col gap-2">
-              {/* eslint-disable-next-line @next/next/no-img-element -- admin preview of an upload */}
-              <img
-                src={STORAGE + values.coverPath}
-                alt=""
-                className="w-full rounded-lg border border-line"
-              />
-              <div className="flex gap-2">
-                <button type="button" onClick={() => upload("cover")} className={secondary}>
-                  Replace
-                </button>
-                <button type="button" onClick={() => set("coverPath", null)} className={secondary}>
-                  Remove
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => upload("cover")}
-              className={cn(secondary, "self-start")}
-            >
-              Upload cover
-            </button>
-          )}
-          <p className="text-admin-meta">1200 × 630 works best. Used as the social image too.</p>
-        </section>
+        <CoverField
+          value={values.coverPath}
+          hosts={mediaHosts}
+          onChange={(v) => set("coverPath", v)}
+        />
 
         <section aria-label="Summary and search" className={panel}>
           <Counted
@@ -554,13 +536,67 @@ export function GuideEditor({
         <section aria-label="Author" className={panel}>
           <label className={label}>
             <span className="font-medium">Author</span>
-            <input
-              value={values.author}
-              onChange={(e) => set("author", e.target.value)}
-              placeholder="YT Agencies editorial team"
-              maxLength={100}
+            <select
+              value={values.authorId ?? ""}
+              onChange={(e) => set("authorId", e.target.value || null)}
               className={input}
+            >
+              <option value="">No author</option>
+              {authors.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+            <span className="text-admin-meta">
+              Shown in the byline and the author box.{" "}
+              {/* New tab: leaving here mid-edit would skip the unsaved-changes warning. */}
+              <Link
+                href="/admin/authors"
+                target="_blank"
+                rel="noopener"
+                className="text-accent hover:underline"
+              >
+                Manage authors
+              </Link>
+            </span>
+          </label>
+        </section>
+
+        <section aria-label="Article options" className={panel}>
+          <label className={label}>
+            <span className="flex items-baseline justify-between gap-2">
+              <span className="font-medium">Key takeaways</span>
+              <span
+                className={cn(
+                  "text-admin-meta num",
+                  values.keyTakeaways.filter((l) => l.trim()).length > 5 && "text-destructive",
+                )}
+              >
+                {values.keyTakeaways.filter((l) => l.trim()).length} / 5
+              </span>
+            </span>
+            <textarea
+              value={values.keyTakeaways.join("\n")}
+              onChange={(e) => set("keyTakeaways", e.target.value.split("\n"))}
+              rows={4}
+              className="w-full rounded-lg border border-line bg-bg px-3 py-2"
             />
+            <span className="text-admin-meta">One per line. Shown in a box above the article.</span>
+          </label>
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={values.numberedSections}
+              onChange={(e) => set("numberedSections", e.target.checked)}
+              className="mt-1 accent-[var(--accent)]"
+            />
+            <span className="flex flex-col">
+              <span className="font-medium">Numbered sections</span>
+              <span className="text-admin-meta">
+                For lists and step-by-step guides: numbers each main heading.
+              </span>
+            </span>
           </label>
         </section>
 
@@ -821,5 +857,88 @@ function ChangeUrl({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+/**
+ * Cover image as a link to an image hosted on Cloudflare (MEDIA_HOSTS). Applied when the field
+ * loses focus or on Enter, so autosave never sends a half-typed link. Older covers uploaded to
+ * storage still show and can be replaced.
+ */
+function CoverField({
+  value,
+  hosts,
+  onChange,
+}: {
+  value: string | null;
+  hosts: string[];
+  onChange: (v: string | null) => void;
+}) {
+  const [draft, setDraft] = useState(value ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const src = value ? (value.startsWith("https://") ? value : STORAGE + value) : null;
+
+  const apply = () => {
+    const link = draft.trim();
+    if (link === (value ?? "")) return setError(null);
+    if (!link) {
+      setError(null);
+      return onChange(null);
+    }
+    const problem = imageLinkError(link, hosts);
+    setError(problem);
+    if (!problem) onChange(link);
+  };
+
+  return (
+    <section aria-label="Cover image" className={panel}>
+      <label className={label}>
+        <span className="font-medium">Cover image</span>
+        <input
+          type="url"
+          inputMode="url"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={apply}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              apply();
+            }
+          }}
+          placeholder={hosts[0] ? `https://${hosts[0]}/…` : "https://…"}
+          aria-invalid={!!error}
+          aria-describedby="cover-help"
+          className={input}
+        />
+      </label>
+      {src && (
+        // eslint-disable-next-line @next/next/no-img-element -- admin preview of the linked image
+        <img
+          src={src}
+          alt=""
+          className="aspect-video w-full rounded-lg border border-line object-cover"
+        />
+      )}
+      {value && (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft("");
+            setError(null);
+            onChange(null);
+          }}
+          className={cn(secondary, "self-start")}
+        >
+          Remove cover
+        </button>
+      )}
+      <p id="cover-help" className={cn("text-admin-meta", error && "text-destructive")}>
+        {error ??
+          (hosts.length
+            ? `Paste a link to an image on ${hosts.join(" or ")}. 1600 × 900 (16:9) works best; it's the social image too. Without one, a cover is made from the title.`
+            : "Image links aren't set up yet: add your Cloudflare image host to MEDIA_HOSTS. Without a cover, one is made from the title.")}
+      </p>
+    </section>
   );
 }

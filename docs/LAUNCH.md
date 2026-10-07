@@ -57,6 +57,7 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    | `SITE_URL` | server | yes | `https://ytagencies.com` on Production, the preview URL on Preview, `http://localhost:3000` locally. Builds canonicals, sitemaps, JSON-LD and email links. |
    | `ADMIN_EMAIL` | server | recommended | Gets a note for every new lead, agency submission and claim that needs review. Unset: those notes are skipped (the admin queues still show everything). |
    | `EMAIL_FROM` | server | no | Defaults to `YT Agencies <hello@ytagencies.com>`. |
+   | `MEDIA_HOSTS` | server | yes | Host name(s) of your Cloudflare image hosting, comma-separated, e.g. `images.ytagencies.com` (an R2 bucket on a custom domain) or `imagedelivery.net` (Cloudflare Images). Guide covers are pasted links and must be on one of these; it also opens the CSP `img-src` and `next/image` to them. Changing it needs a redeploy. |
    | `PAYMENTS_ENABLED` | server | no | Leave unset for launch. Only exactly `true` turns payments on; while off nothing is charged, billing is a no-op and the pricing page offers the Founding programme. |
 
 3. Enable Web Analytics.

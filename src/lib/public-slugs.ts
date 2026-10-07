@@ -11,6 +11,8 @@ type Slugs = {
   agencies: Set<string>;
   /** Live guides plus old slugs that redirect to one (RLS hides drafts and future guides). */
   guides: Set<string>;
+  /** Authors with a live guide (RLS hides the rest). */
+  authors: Set<string>;
 };
 
 const TTL_MS = 60_000; // a newly published agency can 404 for up to a minute per instance
@@ -32,14 +34,16 @@ async function getSlugs(): Promise<Slugs | null> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.slugs;
   try {
     // Anon key: RLS already limits agencies to published ones.
-    const [services, industries, locations, agencies, guides, redirects] = await Promise.all([
-      slugsOf("services"),
-      slugsOf("industries"),
-      slugsOf("locations"),
-      slugsOf("agencies", "&status=eq.published"),
-      slugsOf("guides"),
-      slugsOf("guide_redirects", "", "from_slug"),
-    ]);
+    const [services, industries, locations, agencies, guides, redirects, authors] =
+      await Promise.all([
+        slugsOf("services"),
+        slugsOf("industries"),
+        slugsOf("locations"),
+        slugsOf("agencies", "&status=eq.published"),
+        slugsOf("guides"),
+        slugsOf("guide_redirects", "", "from_slug"),
+        slugsOf("authors"),
+      ]);
     cache = {
       at: Date.now(),
       slugs: {
@@ -48,6 +52,7 @@ async function getSlugs(): Promise<Slugs | null> {
         locations,
         agencies,
         guides: new Set([...guides, ...redirects]),
+        authors,
       },
     };
     return cache.slugs;
@@ -89,6 +94,11 @@ export async function publicPathExists(pathname: string): Promise<boolean | null
     if (parts.length !== 2) return true;
     const slugs = await getSlugs();
     return slugs ? slugs.guides.has(second) : null;
+  }
+  if (first === "authors") {
+    if (parts.length !== 2) return parts.length === 1 ? false : true; // no /authors index
+    const slugs = await getSlugs();
+    return slugs ? slugs.authors.has(second) : null;
   }
   if (first === "agency") {
     if (parts.length === 2 || (parts.length === 3 && third === "claim")) {

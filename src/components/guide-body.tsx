@@ -1,11 +1,14 @@
 import { toJsxRuntime, type Components } from "hast-util-to-jsx-runtime";
-import Image from "next/image";
+import { Info, Lightbulb, TriangleAlert, type LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { Fragment } from "react";
+import { Children, Fragment, isValidElement } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
 
-import { imageSize, parseGuide } from "@/lib/markdown";
+import { CopyLinkButton } from "@/components/guides/copy-link";
+import { ZoomableImage } from "@/components/guides/zoom-image";
+import { imageSize, parseGuideWithOutline, type CalloutKind } from "@/lib/markdown";
 import { SITE_URL } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
 // Renders sanitized guide Markdown (lib/markdown.ts) as React, never as an HTML string. Used by
 // the public guide page (server) and the editor preview (browser). The live budget box is passed
@@ -27,30 +30,120 @@ function internalPath(href: string) {
 
 const link = "text-accent underline underline-offset-2";
 
+const CALLOUT: Record<CalloutKind, { icon: LucideIcon; box: string; iconColor: string }> = {
+  tip: { icon: Lightbulb, box: "bg-accent/5 border-accent/20", iconColor: "text-accent" },
+  note: { icon: Info, box: "bg-surface border-line", iconColor: "text-text-2" },
+  warning: {
+    icon: TriangleAlert,
+    box: "bg-destructive/5 border-destructive/25",
+    iconColor: "text-destructive",
+  },
+};
+
+/** Heading with a stable id (lib/markdown.ts) and a copy-link button that shows on hover/focus. */
+function heading(Tag: "h2" | "h3", className: string) {
+  function Heading({ id, children }: { id?: string; children?: React.ReactNode }) {
+    return (
+      <Tag id={id} className={cn("group scroll-mt-20", className)}>
+        {children}
+        {id && (
+          <CopyLinkButton
+            hash={id}
+            label="Copy link to this section"
+            className="ml-2 inline-flex size-8 translate-y-[-0.1em] items-center justify-center rounded-full align-middle text-text-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 hover:text-text focus-visible:opacity-100"
+          />
+        )}
+      </Tag>
+    );
+  }
+  return Heading;
+}
+
+/** An uploaded guide image: rounded, hairline border, caption from its title (else alt), zoomable. */
+function Figure({ src, alt, title }: { src?: unknown; alt?: string; title?: string }) {
+  // Only images uploaded through the editor (the site's CSP would block any other host).
+  if (typeof src !== "string" || !src.startsWith(STORAGE_PREFIX)) return null;
+  const size = imageSize(src);
+  const caption = title || alt;
+  return (
+    <figure className="my-8 flex flex-col gap-3">
+      {size ? (
+        <ZoomableImage src={src} alt={alt ?? ""} width={size.width} height={size.height} />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element -- size unknown, so next/image can't lay it out
+        <img
+          src={src}
+          alt={alt ?? ""}
+          loading="lazy"
+          className="w-full rounded-[12px] border border-line"
+        />
+      )}
+      {caption && (
+        // Same text as the alt: screen readers already heard it.
+        <figcaption aria-hidden={caption === alt || undefined} className="text-small">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+const Img = ({ src, alt, title }: { src?: unknown; alt?: string; title?: string }) => (
+  <Figure src={src} alt={alt} title={title} />
+);
+
+/** A paragraph whose only content is an image. */
+const isImageOnly = (children: React.ReactNode) => {
+  const parts = Children.toArray(children).filter((c) => !(typeof c === "string" && !c.trim()));
+  return parts.length === 1 && isValidElement(parts[0]) && parts[0].type === Img;
+};
+
 const components: Partial<Components> = {
-  h1: (props) => <h2 className="mt-12 mb-4 text-h2" {...props} />, // one H1 per page: the title
-  h2: (props) => <h2 className="mt-12 mb-4 text-h2" {...props} />,
-  h3: (props) => <h3 className="mt-8 mb-3 text-h3" {...props} />,
-  h4: (props) => <h4 className="mt-6 mb-2 font-semibold" {...props} />,
-  p: (props) => <p className="mb-5" {...props} />,
-  ul: (props) => <ul className="mb-5 list-disc space-y-2 pl-6" {...props} />,
-  ol: (props) => <ol className="mb-5 list-decimal space-y-2 pl-6" {...props} />,
+  h1: heading("h2", "guide-h2 mt-16 mb-4 text-h2"), // one H1 per page: the title
+  h2: heading("h2", "guide-h2 mt-16 mb-4 text-h2"),
+  h3: heading("h3", "mt-10 mb-3 text-h3"),
+  h4: (props) => <h4 className="mt-8 mb-2 font-semibold" {...props} />,
+  // A paragraph holding only an image becomes the figure itself (a <figure> can't sit in a <p>).
+  p: (props) =>
+    isImageOnly(props.children) ? <>{props.children}</> : <p className="mb-6" {...props} />,
+  ul: (props) => <ul className="mb-6 list-disc space-y-2 pl-6 marker:text-text-2" {...props} />,
+  ol: (props) => <ol className="mb-6 list-decimal space-y-2 pl-6 marker:text-text-2" {...props} />,
   strong: (props) => <strong className="font-semibold" {...props} />,
   blockquote: (props) => (
-    <blockquote className="mb-5 border-l-2 border-line pl-4 text-text-2" {...props} />
+    <blockquote className="mb-6 border-l-2 border-line pl-5 text-text-2" {...props} />
   ),
-  code: (props) => <code className="rounded bg-surface px-1 py-0.5 text-[0.9em]" {...props} />,
+  aside: ({ className, children }) => {
+    const kind = (String(className).match(/callout-(tip|note|warning)/)?.[1] ??
+      "note") as CalloutKind;
+    const { icon: Icon, box, iconColor } = CALLOUT[kind];
+    return (
+      <aside className={cn("mb-6 flex gap-3 rounded-2xl border p-5 [&_p:last-child]:mb-0", box)}>
+        <Icon className={cn("mt-1 size-5 shrink-0 [stroke-width:1.75]", iconColor)} aria-hidden />
+        <div className="min-w-0">
+          <span className="sr-only">
+            {kind === "tip" ? "Tip" : kind === "note" ? "Note" : "Warning"}:{" "}
+          </span>
+          {children}
+        </div>
+      </aside>
+    );
+  },
+  code: (props) => <code className="rounded bg-surface px-1 py-0.5 text-[0.88em]" {...props} />,
   pre: (props) => (
-    <pre className="mb-5 overflow-x-auto rounded-lg bg-surface p-4 text-[15px]" {...props} />
+    <pre className="mb-6 overflow-x-auto rounded-2xl bg-surface p-5 text-[15px]" {...props} />
   ),
-  hr: () => <hr className="my-10 border-line" />,
+  hr: () => <hr className="my-12 border-line" />,
   table: (props) => (
-    <div className="mb-5 overflow-x-auto">
-      <table className="w-full border-collapse text-left text-[15px]" {...props} />
+    <div className="mb-8 overflow-x-auto">
+      <table className="w-full min-w-[480px] border-collapse text-left text-[16px]" {...props} />
     </div>
   ),
-  th: (props) => <th className="border-b border-line px-3 py-2 font-medium" {...props} />,
-  td: (props) => <td className="border-b border-line px-3 py-2 align-top" {...props} />,
+  th: (props) => (
+    <th className="border-b border-text-2/40 px-3 py-2.5 font-semibold first:pl-0" {...props} />
+  ),
+  td: (props) => (
+    <td className="border-b border-line px-3 py-2.5 align-top first:pl-0" {...props} />
+  ),
   a: ({ href = "", children }) => {
     const path = internalPath(href);
     if (path) {
@@ -74,25 +167,7 @@ const components: Partial<Components> = {
       </a>
     );
   },
-  img: ({ src, alt }) => {
-    // Only images uploaded through the editor (the site's CSP would block any other host).
-    if (typeof src !== "string" || !src.startsWith(STORAGE_PREFIX)) return null;
-    const size = imageSize(src);
-    if (size) {
-      return (
-        <Image
-          src={src}
-          alt={alt ?? ""}
-          width={size.width}
-          height={size.height}
-          sizes="(min-width: 720px) 680px, 100vw"
-          className="my-6 h-auto w-full rounded-lg"
-        />
-      );
-    }
-    // eslint-disable-next-line @next/next/no-img-element -- size unknown, so next/image can't lay it out
-    return <img src={src} alt={alt ?? ""} loading="lazy" className="my-6 w-full rounded-lg" />;
-  },
+  img: Img,
 };
 
 export function GuideBody({
@@ -102,9 +177,10 @@ export function GuideBody({
   md: string;
   budgetRange: (service: string) => React.ReactNode;
 }) {
+  const { blocks } = parseGuideWithOutline(md);
   return (
     <>
-      {parseGuide(md).map((block, i) =>
+      {blocks.map((block, i) =>
         block.kind === "budget-range" ? (
           <Fragment key={i}>{budgetRange(block.service)}</Fragment>
         ) : (

@@ -350,6 +350,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      authors: {
+        Row: {
+          avatar_path: string | null;
+          bio: string | null;
+          created_at: string;
+          id: string;
+          linkedin_url: string | null;
+          name: string;
+          role: string | null;
+          slug: string;
+          updated_at: string;
+          user_id: string | null;
+          website_url: string | null;
+          x_url: string | null;
+        };
+        Insert: {
+          avatar_path?: string | null;
+          bio?: string | null;
+          created_at?: string;
+          id?: string;
+          linkedin_url?: string | null;
+          name: string;
+          role?: string | null;
+          slug: string;
+          updated_at?: string;
+          user_id?: string | null;
+          website_url?: string | null;
+          x_url?: string | null;
+        };
+        Update: {
+          avatar_path?: string | null;
+          bio?: string | null;
+          created_at?: string;
+          id?: string;
+          linkedin_url?: string | null;
+          name?: string;
+          role?: string | null;
+          slug?: string;
+          updated_at?: string;
+          user_id?: string | null;
+          website_url?: string | null;
+          x_url?: string | null;
+        };
+        Relationships: [];
+      };
       case_studies: {
         Row: {
           updated_at: string;
@@ -464,12 +509,14 @@ export type Database = {
       };
       guides: {
         Row: {
-          author_name: string | null;
+          author_id: string | null;
           body_md: string;
           cover_path: string | null;
           created_at: string;
           excerpt: string | null;
           id: string;
+          key_takeaways: string[];
+          numbered_sections: boolean;
           published_at: string | null;
           related_combos: Json;
           seo_description: string | null;
@@ -480,12 +527,14 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          author_name?: string | null;
+          author_id?: string | null;
           body_md?: string;
           cover_path?: string | null;
           created_at?: string;
           excerpt?: string | null;
           id?: string;
+          key_takeaways?: string[];
+          numbered_sections?: boolean;
           published_at?: string | null;
           related_combos?: Json;
           seo_description?: string | null;
@@ -496,12 +545,14 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          author_name?: string | null;
+          author_id?: string | null;
           body_md?: string;
           cover_path?: string | null;
           created_at?: string;
           excerpt?: string | null;
           id?: string;
+          key_takeaways?: string[];
+          numbered_sections?: boolean;
           published_at?: string | null;
           related_combos?: Json;
           seo_description?: string | null;
@@ -511,7 +562,15 @@ export type Database = {
           title?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "guides_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "authors";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       industries: {
         Row: {

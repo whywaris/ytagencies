@@ -110,7 +110,8 @@ export function articleJsonLd(a: {
   description: string;
   published: string;
   updated: string;
-  author: string;
+  /** The guide's author (a Person with their author page), else the site itself. */
+  author: { name: string; slug: string } | null;
   image: string;
 }) {
   return {
@@ -120,9 +121,58 @@ export function articleJsonLd(a: {
     description: a.description,
     datePublished: a.published,
     dateModified: a.updated,
-    author: { "@type": "Organization", name: a.author },
+    author: a.author
+      ? { "@type": "Person", name: a.author.name, url: absolute(`/authors/${a.author.slug}`) }
+      : { "@type": "Organization", name: BRAND_NAME, url: SITE_URL },
     publisher: { "@type": "Organization", name: BRAND_NAME, url: SITE_URL },
     mainEntityOfPage: absolute(a.path),
     image: absolute(a.image),
+  };
+}
+
+/** /authors/[slug]: the author, their photo and profiles elsewhere. */
+export function personJsonLd(p: {
+  slug: string;
+  name: string;
+  role: string | null;
+  bio: string | null;
+  image: string | null;
+  sameAs: string[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: p.name,
+    url: absolute(`/authors/${p.slug}`),
+    ...(p.role ? { jobTitle: p.role } : {}),
+    ...(p.bio ? { description: p.bio } : {}),
+    ...(p.image ? { image: p.image } : {}),
+    ...(p.sameAs.length ? { sameAs: p.sameAs } : {}),
+    worksFor: { "@type": "Organization", name: BRAND_NAME, url: SITE_URL },
+  };
+}
+
+/** /guides: the collection page and the guides on it, in order. */
+export function collectionPageJsonLd(c: {
+  path: string;
+  name: string;
+  description: string;
+  items: { path: string; name: string }[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: c.name,
+    description: c.description,
+    url: absolute(c.path),
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: c.items.map((item, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: absolute(item.path),
+        name: item.name,
+      })),
+    },
   };
 }

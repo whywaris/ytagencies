@@ -7,13 +7,21 @@ import { BRAND_NAME } from "@/lib/site";
 export const OG_SIZE = { width: 1200, height: 630 };
 
 const ACCENT = "#0b57d0";
+const ACCENT_DARK = "#4c8df6";
 
 /** Mark + brand name, as in the nav. Satori can't render SVG <text>, so the name is a div. */
-export function OgBrand({ size }: { size: number }) {
+export function OgBrand({ size, dark = false }: { size: number; dark?: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: size * 0.4, color: "#1d1d1f" }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: size * 0.4,
+        color: dark ? "#f5f5f7" : "#1d1d1f",
+      }}
+    >
       <svg width={size * 1.2} height={size * 1.2} viewBox="0 0 24 24">
-        {logoMarkShapes(ACCENT)}
+        {logoMarkShapes(dark ? ACCENT_DARK : ACCENT)}
       </svg>
       <div style={{ fontSize: size, fontWeight: 600, letterSpacing: "-0.02em" }}>{BRAND_NAME}</div>
     </div>
@@ -29,6 +37,53 @@ export function markImage(px: number) {
       </svg>
     </div>,
     { width: px, height: px },
+  );
+}
+
+/** 16:9 hero cover for guides without an uploaded one. */
+export const COVER_SIZE = { width: 1200, height: 675 };
+
+/**
+ * Typographic guide cover: the title on the brand surface, logo small. Used as the hero (16:9, a
+ * light and a dark version) and the social image (1200×630, light) when a guide has no cover.
+ * No illustrations.
+ */
+export function guideCoverImage(
+  title: string,
+  size: { width: number; height: number },
+  theme: "light" | "dark" = "light",
+) {
+  const dark = theme === "dark";
+  const titleSize = title.length > 70 ? 56 : title.length > 45 ? 64 : 76;
+  return new ImageResponse(
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: 80,
+        // DESIGN.md surface and text tokens for the theme.
+        background: dark ? "#1c1c1e" : "#f5f5f7",
+        color: dark ? "#f5f5f7" : "#1d1d1f",
+      }}
+    >
+      <OgBrand size={28} dark={dark} />
+      <div
+        style={{
+          display: "flex",
+          maxWidth: 960,
+          fontSize: titleSize,
+          fontWeight: 600,
+          letterSpacing: "-0.02em",
+          lineHeight: 1.1,
+        }}
+      >
+        {title}
+      </div>
+    </div>,
+    size,
   );
 }
 

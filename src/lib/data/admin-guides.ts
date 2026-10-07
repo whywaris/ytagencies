@@ -1,6 +1,7 @@
 import "server-only";
 
-import type { ComboOption, EditorGuide } from "@/components/admin/guide-editor";
+import type { AuthorOption, ComboOption, EditorGuide } from "@/components/admin/guide-editor";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 
 // Editor helpers for the Guides CMS (ADMIN_V2_SPEC §8).
@@ -27,6 +28,16 @@ export async function comboOptions(): Promise<ComboOption[]> {
   ]);
 }
 
+/** Authors for the editor's picker, by name. */
+export async function authorOptions(): Promise<AuthorOption[]> {
+  const { data, error } = await createAdminClient()
+    .from("authors")
+    .select("id, name")
+    .order("name");
+  if (error) throw new Error("Couldn't load authors");
+  return data;
+}
+
 type Row = {
   id: string;
   slug: string;
@@ -36,8 +47,10 @@ type Row = {
   cover_path: string | null;
   seo_title: string | null;
   seo_description: string | null;
-  author_name: string | null;
+  author_id: string | null;
   related_combos: unknown;
+  key_takeaways: string[];
+  numbered_sections: boolean;
   status: string;
   published_at: string | null;
 };
@@ -52,8 +65,10 @@ export function toEditorGuide(g: Row): EditorGuide {
     coverPath: g.cover_path,
     seoTitle: g.seo_title ?? "",
     seoDescription: g.seo_description ?? "",
-    author: g.author_name ?? "",
+    authorId: g.author_id,
     related: Array.isArray(g.related_combos) ? (g.related_combos as EditorGuide["related"]) : [],
+    keyTakeaways: g.key_takeaways,
+    numberedSections: g.numbered_sections,
     status: (["draft", "scheduled", "published"].includes(g.status)
       ? g.status
       : "draft") as EditorGuide["status"],
@@ -71,8 +86,10 @@ export const NEW_GUIDE: EditorGuide = {
   coverPath: null,
   seoTitle: "",
   seoDescription: "",
-  author: "",
+  authorId: null,
   related: [],
+  keyTakeaways: [],
+  numberedSections: false,
   status: "draft",
   publishedAt: null,
   slugLocked: false,

@@ -22,6 +22,7 @@ import {
   Settings,
   Star,
   Sun,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -87,6 +88,7 @@ const GROUPS: { heading: string; items: Item[] }[] = [
     heading: "Content",
     items: [
       { href: "/admin/guides", label: "Guides", icon: FileText },
+      { href: "/admin/authors", label: "Authors", icon: UserRound },
       { href: "/admin/taxonomy", label: "Taxonomy", icon: FolderTree },
     ],
   },
@@ -402,6 +404,7 @@ const CRUMBS: Record<string, string> = {
   preview: "Preview",
   sponsored: "Sponsored",
   settings: "Settings",
+  authors: "Authors",
 };
 
 function Breadcrumbs({ pathname }: { pathname: string }) {
