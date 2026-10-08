@@ -77,7 +77,7 @@ export async function getDashboard(period: PeriodId, now = new Date()) {
     db
       .from("leads")
       .select(
-        "id, name, budget_range, created_at, services(name), industries(name), lead_routes(agencies(name))",
+        "id, name, budget_range, created_at, services(name), industries(name), lead_routes(agencies(name)), deleted_agency_routes(agency_name)",
       )
       .order("created_at", { ascending: false })
       .limit(8),
@@ -290,7 +290,10 @@ export async function getDashboard(period: PeriodId, now = new Date()) {
         .filter(Boolean)
         .join(" "),
       budget: l.budget_range ? (budget.get(l.budget_range) ?? l.budget_range) : null,
-      routedTo: l.lead_routes.map((r) => r.agencies?.name).filter((n): n is string => !!n),
+      routedTo: [
+        ...l.lead_routes.map((r) => r.agencies?.name),
+        ...l.deleted_agency_routes.map((r) => `${r.agency_name} (deleted)`),
+      ].filter((n): n is string => !!n),
       createdAt: l.created_at,
     })),
   };

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { ChangePlanDialog } from "@/components/admin/change-plan-dialog";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { DeleteAgenciesDialog } from "@/components/admin/delete-agencies-dialog";
 import { setAgenciesStatus } from "@/lib/actions/admin-directory";
 
 const button =
@@ -22,6 +23,7 @@ export function AgencyHeaderActions({
 }) {
   const router = useRouter();
   const [planOpen, setPlanOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const live = agency.status === "published";
   const next = live ? "draft" : "published";
 
@@ -65,6 +67,21 @@ export function AgencyHeaderActions({
           return null;
         }}
       />
+      <button
+        type="button"
+        className={`${button} text-destructive`}
+        onClick={() => setDeleteOpen(true)}
+      >
+        Delete agency…
+      </button>
+      {deleteOpen && (
+        <DeleteAgenciesDialog
+          agencies={[{ id: agency.id, name: agency.name, status: agency.status }]}
+          open
+          onOpenChange={setDeleteOpen}
+          onDeleted={() => router.push("/admin/agencies")}
+        />
+      )}
       {planOpen && (
         <ChangePlanDialog
           agencyId={agency.id}

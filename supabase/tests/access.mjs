@@ -14,9 +14,10 @@ const MIGRATIONS = process.argv.includes("--migrations");
 const INITIAL_SCHEMA_COMMIT = "9b2e225";
 const db = new PGlite({ extensions: { btree_gist } });
 await db.exec(`
-  create role anon; create role authenticated; create role service_role;
-  alter default privileges in schema public grant all on tables to anon, authenticated;
-  alter default privileges in schema public grant all on sequences to anon, authenticated;
+  -- As on Supabase: service_role bypasses RLS and gets the same default grants.
+  create role anon; create role authenticated; create role service_role bypassrls;
+  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
   grant usage on schema public to anon, authenticated, service_role;
   create schema auth; create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}');
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub', true), '')::uuid $$;
@@ -859,6 +860,93 @@ await as("authenticated", ADMIN, async () => {
     "contact_messages: admin can delete",
   );
 });
+
+console.log("— agency delete —");
+{
+  const target = (
+    await rows("select id, name, slug from agencies where owner_id is not null limit 1")
+  )[0];
+  const owner = (await rows(`select owner_id from agencies where id = '${target.id}'`))[0].owner_id;
+  await db.exec(`reset role;
+    insert into leads (id, name, email) values ('99999999-9999-4999-8999-999999999999', 'Kept Lead', 'kept@x.example');
+    insert into lead_routes (lead_id, agency_id) values ('99999999-9999-4999-8999-999999999999', '${target.id}');`);
+  await as("authenticated", owner, async () => {
+    ok(
+      await denied(`delete from agencies where id = '${target.id}'`),
+      "agencies: an owner can't delete their own agency",
+    );
+    ok(
+      await fails(`select * from delete_agencies(array['${target.id}']::uuid[])`),
+      "delete_agencies: owners can't run it",
+    );
+  });
+  await as("anon", null, async () => {
+    ok(
+      await fails(`select * from delete_agencies(array['${target.id}']::uuid[])`),
+      "delete_agencies: anon can't run it",
+    );
+  });
+  await as("authenticated", OWNER, async () => {
+    ok(
+      await fails(`select * from delete_agencies(array['${target.id}']::uuid[])`),
+      "delete_agencies: signed-in users can't run it",
+    );
+    ok(
+      await denied("select * from deleted_agency_routes"),
+      "deleted_agency_routes: signed-in users can't read",
+    );
+  });
+  await db.exec("reset role; set role service_role;");
+  const deleted = await rows(`select * from delete_agencies(array['${target.id}']::uuid[])`);
+  await db.exec("reset role;");
+  ok(
+    deleted.length === 1 && deleted[0].slug === target.slug,
+    "delete_agencies: returns the deleted agency",
+  );
+  ok(
+    (await rows(`select 1 from agencies where id = '${target.id}'`)).length === 0,
+    "delete_agencies: the agency is gone",
+  );
+  ok(
+    (await rows("select 1 from leads where id = '99999999-9999-4999-8999-999999999999'")).length ===
+      1,
+    "delete_agencies: the agency's leads are kept",
+  );
+  ok(
+    (await rows(`select 1 from lead_routes where agency_id = '${target.id}'`)).length === 0,
+    "delete_agencies: its lead routes are removed",
+  );
+  const history = await rows(
+    "select agency_name from deleted_agency_routes where lead_id = '99999999-9999-4999-8999-999999999999'",
+  );
+  ok(
+    history[0]?.agency_name === target.name,
+    "delete_agencies: the lead keeps the agency's name as history",
+  );
+  for (const table of [
+    "case_studies",
+    "agency_services",
+    "agency_industries",
+    "agency_locations",
+    "reviews",
+    "claims",
+    "verifications",
+    "agency_subscriptions",
+    "agency_events",
+    "agency_event_daily",
+  ]) {
+    ok(
+      (await rows(`select 1 from ${table} where agency_id = '${target.id}'`)).length === 0,
+      `delete_agencies: ${table} rows are removed`,
+    );
+  }
+  await as("authenticated", ADMIN, async () => {
+    ok(
+      (await rows("select * from deleted_agency_routes")).length >= 1,
+      "deleted_agency_routes: admin reads",
+    );
+  });
+}
 
 console.log("— settings (§5.10) —");
 for (const [role, uid, who] of [

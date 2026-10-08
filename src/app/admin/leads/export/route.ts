@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     services: { name: string } | null;
     industries: { name: string } | null;
     lead_routes: { agencies: { name: string } | null }[];
+    deleted_agency_routes: { agency_name: string }[];
   };
   const rows: Row[] = [];
   for (let from = 0; ; from += PAGE) {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
       ctx.db
         .from("leads")
         .select(
-          "name, email, company, budget_range, message, created_at, services(name), industries(name), lead_routes(agencies(name))",
+          "name, email, company, budget_range, message, created_at, services(name), industries(name), lead_routes(agencies(name)), deleted_agency_routes(agency_name)",
         ),
       f,
       ids,
@@ -73,8 +74,10 @@ export async function GET(request: NextRequest) {
       l.industries?.name,
       l.budget_range ? (budget.get(l.budget_range) ?? l.budget_range) : null,
       l.message,
-      l.lead_routes
-        .map((r) => r.agencies?.name)
+      [
+        ...l.lead_routes.map((r) => r.agencies?.name),
+        ...l.deleted_agency_routes.map((r) => `${r.agency_name} (deleted)`),
+      ]
         .filter(Boolean)
         .join("; "),
     ]),

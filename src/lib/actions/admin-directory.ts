@@ -60,6 +60,53 @@ export async function setAgenciesStatus(
   return { ok: true, data: { count: data.length } };
 }
 
+const MEDIA_BUCKET = "agency-media";
+
+/** Removes every file under a storage folder (agencies/<id>/), subfolders included. */
+async function removeFolder(ctx: Ctx, prefix: string): Promise<void> {
+  const { data, error } = await ctx.db.storage.from(MEDIA_BUCKET).list(prefix, { limit: 1000 });
+  if (error || !data?.length) return;
+  // Entries without an id are subfolders.
+  await Promise.all(data.filter((f) => !f.id).map((d) => removeFolder(ctx, `${prefix}/${d.name}`)));
+  const files = data.filter((f) => f.id).map((f) => `${prefix}/${f.name}`);
+  if (files.length) await ctx.db.storage.from(MEDIA_BUCKET).remove(files);
+}
+
+/**
+ * Permanently deletes agencies. One database transaction (delete_agencies) keeps their leads,
+ * copying each lead's route with the agency's name first, and removes everything else about
+ * them; their uploaded files go after it succeeds. Logged with id, name and slug only.
+ */
+export async function deleteAgencies(
+  ids: string[],
+): Promise<FormResult<{ count: number; name: string | null }>> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  const parsed = z.array(uuid).min(1).max(100).safeParse(ids);
+  if (!parsed.success) return { ok: false, error: "Nothing to delete." };
+
+  const { data, error } = await ctx.db.rpc("delete_agencies", { p_ids: parsed.data });
+  if (error) return { ok: false, error: "We couldn't delete that. Nothing was changed." };
+
+  for (const a of data) {
+    await ctx.log("agency.delete", "agency", a.id, { name: a.name, slug: a.slug });
+    revalidateAgency(a.slug);
+  }
+  // Storage after the commit: a failure here leaves orphaned files, never a half-deleted agency.
+  await Promise.all(
+    data.map((a) =>
+      removeFolder(ctx, `agencies/${a.id}`).catch(() =>
+        console.error("agency files not removed", { agencyId: a.id }),
+      ),
+    ),
+  );
+  revalidatePath("/sitemaps/agencies.xml");
+  revalidatePath("/sitemaps/categories.xml");
+  revalidatePath("/about");
+  revalidatePath("/admin/agencies");
+  return { ok: true, data: { count: data.length, name: data.length === 1 ? data[0].name : null } };
+}
+
 const planSchema = z.object({
   plan: z.enum(["free", "founding", "verified"]),
   // yyyy-mm-dd from a date input; empty = no end date

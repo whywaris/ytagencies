@@ -19,7 +19,14 @@ export type LeadRow = {
   budget: string | null;
   message: string | null;
   createdAt: string;
-  routes: { agencyId: string; agencyName: string; claimed: boolean; sentAt: string }[];
+  routes: {
+    agencyId: string;
+    agencyName: string;
+    claimed: boolean;
+    /** The agency was deleted later; its name was kept. */
+    deleted: boolean;
+    sentAt: string;
+  }[];
 };
 
 // Hash links (#lead-<id>, from Ctrl K and the dashboard) open that lead's drawer.
@@ -168,10 +175,22 @@ export function LeadsTable({ leads }: { leads: LeadRow[] }) {
                     {open.routes.map((r) => (
                       <li key={r.agencyId} className="flex items-baseline gap-3 px-4 py-2.5">
                         <span className="min-w-0 flex-1">
-                          <Link href={`/admin/agencies/${r.agencyId}`} className="hover:underline">
-                            {r.agencyName}
-                          </Link>
-                          {!r.claimed && <span className="text-admin-meta"> (unclaimed)</span>}
+                          {r.deleted ? (
+                            <>
+                              {r.agencyName}
+                              <span className="text-admin-meta"> (deleted)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Link
+                                href={`/admin/agencies/${r.agencyId}`}
+                                className="hover:underline"
+                              >
+                                {r.agencyName}
+                              </Link>
+                              {!r.claimed && <span className="text-admin-meta"> (unclaimed)</span>}
+                            </>
+                          )}
                         </span>
                         <time
                           dateTime={r.sentAt}

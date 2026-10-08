@@ -19,6 +19,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   tone = "danger",
+  confirmDisabled = false,
   children,
   onConfirm,
 }: {
@@ -29,6 +30,8 @@ export function ConfirmDialog({
   description: React.ReactNode;
   confirmLabel: string;
   tone?: "danger" | "default";
+  /** e.g. until the admin has typed the name of what they're deleting. */
+  confirmDisabled?: boolean;
   /** Extra fields, e.g. an optional reason. */
   children?: React.ReactNode;
   onConfirm: () => Promise<string | null>;
@@ -69,7 +72,7 @@ export function ConfirmDialog({
             </AlertDialog.Cancel>
             <button
               type="button"
-              disabled={pending}
+              disabled={pending || confirmDisabled}
               onClick={() =>
                 startTransition(async () => {
                   const err = await onConfirm();

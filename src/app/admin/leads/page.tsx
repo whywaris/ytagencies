@@ -31,7 +31,7 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
     createAdminClient()
       .from("leads")
       .select(
-        "id, name, email, company, budget_range, message, created_at, services(name), industries(name), lead_routes(sent_at, agencies(id, name, is_claimed))",
+        "id, name, email, company, budget_range, message, created_at, services(name), industries(name), lead_routes(sent_at, agencies(id, name, is_claimed)), deleted_agency_routes(agency_id, agency_name, sent_at)",
         { count: "exact" },
       ),
     f,
@@ -53,18 +53,29 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
     budget: l.budget_range ? (budget.get(l.budget_range) ?? l.budget_range) : null,
     message: l.message,
     createdAt: l.created_at,
-    routes: l.lead_routes.flatMap((r) =>
-      r.agencies
-        ? [
-            {
-              agencyId: r.agencies.id,
-              agencyName: r.agencies.name,
-              claimed: r.agencies.is_claimed,
-              sentAt: r.sent_at,
-            },
-          ]
-        : [],
-    ),
+    routes: [
+      ...l.lead_routes.flatMap((r) =>
+        r.agencies
+          ? [
+              {
+                agencyId: r.agencies.id,
+                agencyName: r.agencies.name,
+                claimed: r.agencies.is_claimed,
+                deleted: false,
+                sentAt: r.sent_at,
+              },
+            ]
+          : [],
+      ),
+      // Agencies deleted since: their name was kept on the lead (delete_agencies).
+      ...l.deleted_agency_routes.map((r) => ({
+        agencyId: r.agency_id,
+        agencyName: r.agency_name,
+        claimed: true,
+        deleted: true,
+        sentAt: r.sent_at,
+      })),
+    ].sort((a, b) => a.sentAt.localeCompare(b.sentAt)),
   }));
 
   const total = count ?? 0;

@@ -517,6 +517,41 @@ export type Database = {
         };
         Relationships: [];
       };
+      deleted_agency_routes: {
+        Row: {
+          agency_id: string;
+          agency_name: string;
+          agency_slug: string;
+          deleted_at: string;
+          lead_id: string;
+          sent_at: string;
+        };
+        Insert: {
+          agency_id: string;
+          agency_name: string;
+          agency_slug: string;
+          deleted_at?: string;
+          lead_id: string;
+          sent_at: string;
+        };
+        Update: {
+          agency_id?: string;
+          agency_name?: string;
+          agency_slug?: string;
+          deleted_at?: string;
+          lead_id?: string;
+          sent_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deleted_agency_routes_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       guide_redirects: {
         Row: {
           created_at: string;
@@ -1058,6 +1093,10 @@ export type Database = {
       };
     };
     Functions: {
+      delete_agencies: {
+        Args: { p_ids: string[] };
+        Returns: { id: string; name: string; slug: string }[];
+      };
       hit_rate_limit: {
         Args: { p_key: string; p_limit: number; p_window: unknown };
         Returns: boolean;

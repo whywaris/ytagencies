@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { ChangePlanDialog } from "@/components/admin/change-plan-dialog";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { DeleteAgenciesDialog } from "@/components/admin/delete-agencies-dialog";
 import { usePortalContainer } from "@/components/admin/portal";
 import { PlanBadge, StatusBadge } from "@/components/admin/ui";
 import { AgencyLogo } from "@/components/agency-logo";
@@ -52,6 +53,7 @@ export function AgenciesTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<Pending | null>(null);
   const [planFor, setPlanFor] = useState<AgencyRow | null>(null);
+  const [deleting, setDeleting] = useState<AgencyRow[] | null>(null);
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
   const toggle = (id: string) =>
@@ -89,6 +91,13 @@ export function AgenciesTable({
               {VERB[s]}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setDeleting(rows.filter((r) => selected.has(r.id)))}
+            className="h-8 rounded-lg border border-line px-3 font-medium text-destructive transition-colors duration-150 hover:bg-surface-2"
+          >
+            Delete
+          </button>
           <button
             type="button"
             onClick={() => setSelected(new Set())}
@@ -178,6 +187,7 @@ export function AgenciesTable({
                     agency={a}
                     onStatus={(s) => ask([a.id], s)}
                     onPlan={() => setPlanFor(a)}
+                    onDelete={() => setDeleting([a])}
                   />
                 </td>
               </tr>
@@ -212,6 +222,18 @@ export function AgenciesTable({
           }}
         />
       )}
+      {deleting && (
+        <DeleteAgenciesDialog
+          agencies={deleting}
+          open
+          onOpenChange={(o) => !o && setDeleting(null)}
+          onDeleted={() => {
+            setDeleting(null);
+            setSelected(new Set());
+            router.refresh();
+          }}
+        />
+      )}
       {planFor && (
         <ChangePlanDialog
           agencyId={planFor.id}
@@ -230,10 +252,12 @@ function RowMenu({
   agency: a,
   onStatus,
   onPlan,
+  onDelete,
 }: {
   agency: AgencyRow;
   onStatus: (s: Pending["status"]) => void;
   onPlan: () => void;
+  onDelete: () => void;
 }) {
   const container = usePortalContainer();
   const live = a.status === "published";
@@ -303,6 +327,10 @@ function RowMenu({
               Archive…
             </DropdownMenu.Item>
           )}
+          <DropdownMenu.Separator className="my-1 h-px bg-line" />
+          <DropdownMenu.Item className={cn(menuRow, "text-destructive")} onSelect={onDelete}>
+            Delete agency…
+          </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
