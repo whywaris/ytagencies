@@ -3,6 +3,7 @@ import { cache } from "react";
 
 import { entitlementsFor, type Entitlements, type Subscription } from "@/lib/entitlements";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { ChannelStats, StatsSnapshot } from "@/lib/youtube";
 
 // Plans, verifications and sponsored slots for public pages (ADMIN_V2_SPEC §6–7). Anon can't read
 // these tables, so they're read here with the service role (read-only) and cached per render.
@@ -40,10 +41,14 @@ export const getPlacement = cache(async (now = new Date()) => {
     subsByAgency.set(s.agency_id, list);
   }
   const verified = new Map<string, "approved" | "withStats">();
+  // Latest checked YouTube channels per agency (approved verifications only).
+  const channels = new Map<string, ChannelStats[]>();
   for (const v of verifications.data) {
     if (verified.get(v.agency_id) !== "withStats") {
       verified.set(v.agency_id, v.stats_snapshot ? "withStats" : "approved");
     }
+    const latest = (v.stats_snapshot as StatsSnapshot | null)?.latest?.channels;
+    if (latest?.length) channels.set(v.agency_id, latest);
   }
   const entitlements = (agencyId: string): Entitlements =>
     entitlementsFor({
@@ -55,6 +60,8 @@ export const getPlacement = cache(async (now = new Date()) => {
   return {
     entitlements,
     verification: (agencyId: string) => verified.get(agencyId) ?? ("none" as const),
+    /** The agency's channels from its latest approved stats check (empty without one). */
+    channels: (agencyId: string) => channels.get(agencyId) ?? [],
     /**
      * Active slot holders for a page, by position. Holders must still be eligible (paid plan and
      * the Verified badge, §5.8); a slot whose agency lapsed is skipped rather than shown.

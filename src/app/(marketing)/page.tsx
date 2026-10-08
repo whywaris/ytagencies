@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-import { HeroSearch } from "@/components/hero-search";
+import { HomeHero } from "@/components/home/hero";
 import { JsonLd } from "@/components/json-ld";
 import { getAgencyCount, getPopularIndustries } from "@/lib/data/agencies";
-import { getIndustries, getServices } from "@/lib/data/taxonomy";
+import { getServices } from "@/lib/data/taxonomy";
 import { breadcrumbJsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
@@ -34,21 +34,11 @@ const steps = [
   },
 ];
 
-// "YouTube Ads" → "Ads", so the sentence doesn't read "a YouTube YouTube Ads agency".
-const shortServiceName = (name: string) => name.replace(/^YouTube\s+/, "");
-
 const rowLink =
   "flex min-h-11 flex-col justify-center rounded-lg border border-line px-5 py-4 transition-colors duration-150 ease-out hover:border-text-2";
 
 export default async function HomePage() {
-  const [services, industries, popular] = await Promise.all([
-    getServices(),
-    getIndustries(),
-    getPopularIndustries(8),
-  ]);
-
-  const defaultIndustry =
-    industries.find((i) => i.slug === "doctors")?.slug ?? industries[0]?.slug ?? "";
+  const [services, popular] = await Promise.all([getServices(), getPopularIndustries(8)]);
 
   return (
     <>
@@ -56,21 +46,7 @@ export default async function HomePage() {
       <JsonLd data={organizationJsonLd()} />
       <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }])} />
 
-      <section className="mx-auto flex max-w-content flex-col items-center gap-8 px-4 py-20 text-center md:px-6 md:py-30">
-        <h1 className="sr-only">Find a YouTube agency by service and industry</h1>
-        {services.length > 0 && industries.length > 0 && (
-          <HeroSearch
-            services={services.map((s) => ({ slug: s.slug, label: shortServiceName(s.name) }))}
-            industries={industries.map((i) => ({ slug: i.slug, label: i.name }))}
-            defaultService={services[0].slug}
-            defaultIndustry={defaultIndustry}
-          />
-        )}
-        <p className="max-w-[56ch] text-text-2">
-          Compare agencies that run YouTube ads, grow channels and make videos for businesses in
-          your industry. Free for businesses.
-        </p>
-      </section>
+      <HomeHero />
 
       <section
         id="services"

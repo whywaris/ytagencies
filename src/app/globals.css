@@ -259,3 +259,82 @@
   content: counter(guide-section) ". ";
   color: var(--text-2);
 }
+
+/* Home hero. Its own accent (brighter than the site's) and the mint/amber status tints, scoped to
+   .home-hero so the rest of the site keeps the tokens above. "raised" is the card surface and
+   "track" the segmented-control track, both built from the existing tokens. */
+.home-hero {
+  --accent: #1f5eff;
+  --accent-soft: #eaf0ff;
+  --on-accent: #ffffff;
+  --mint: #12a57a;
+  --mint-soft: #e5f7f0;
+  --amber: #e69a00;
+  --amber-soft: #fff5e0;
+  --raised: var(--bg);
+  --track: var(--surface);
+  --glow-blue: rgba(79, 139, 255, 0.3);
+  --glow-violet: rgba(167, 139, 250, 0.28);
+  --glow-peach: rgba(255, 166, 120, 0.26);
+  --glow-mint: rgba(80, 220, 170, 0.2);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .home-hero {
+    --accent: #6b9bff;
+    --accent-soft: #17213a;
+    --on-accent: #000000;
+    --mint: #3ccb9c;
+    --mint-soft: #11302a;
+    --amber: #f2b53a;
+    --amber-soft: #33270e;
+    --raised: var(--surface);
+    --track: var(--bg);
+    --glow-blue: rgba(79, 139, 255, 0.22);
+    --glow-violet: rgba(167, 139, 250, 0.2);
+    --glow-peach: rgba(255, 166, 120, 0.14);
+    --glow-mint: rgba(80, 220, 170, 0.12);
+  }
+}
+[data-theme="dark"] .home-hero {
+  --accent: #6b9bff;
+  --accent-soft: #17213a;
+  --on-accent: #000000;
+  --mint: #3ccb9c;
+  --mint-soft: #11302a;
+  --amber: #f2b53a;
+  --amber-soft: #33270e;
+  --raised: var(--surface);
+  --track: var(--bg);
+  --glow-blue: rgba(79, 139, 255, 0.22);
+  --glow-violet: rgba(167, 139, 250, 0.2);
+  --glow-peach: rgba(255, 166, 120, 0.14);
+  --glow-mint: rgba(80, 220, 170, 0.12);
+}
+
+.home-hero-glow {
+  background:
+    radial-gradient(circle at 22% 30%, var(--glow-blue), transparent 70%),
+    radial-gradient(circle at 78% 22%, var(--glow-violet), transparent 70%),
+    radial-gradient(circle at 62% 62%, var(--glow-peach), transparent 70%),
+    radial-gradient(circle at 30% 70%, var(--glow-mint), transparent 70%);
+}
+
+/* Hero motion: transform only, so content is visible from the first paint. */
+@keyframes hero-rise {
+  from {
+    transform: translateY(24px);
+  }
+}
+@keyframes hero-pop {
+  from {
+    transform: translateY(10px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-rise {
+    animation: hero-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .hero-pop {
+    animation: hero-pop 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}

@@ -71,6 +71,10 @@ const PRICING_SUFFIX: Record<string, string> = {
   performance: "/mo",
 };
 
+/** "/mo", "/video", "/project", or "" when the pricing model isn't set. */
+export const priceSuffix = (pricingModel: string | null) =>
+  PRICING_SUFFIX[pricingModel ?? ""] ?? "";
+
 /** 3000 → "$3k", 1500 → "$1.5k", 800 → "$800" */
 export function formatUsd(n: number) {
   return n >= 1000 ? `$${Math.round(n / 100) / 10}k` : `$${n}`;

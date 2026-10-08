@@ -4,11 +4,7 @@
 
 Simple, calm, professional, in the spirit of Apple's product pages. That means generous whitespace, large confident type, few colors, and nothing decorative. The content (agencies and their results) does the talking.
 
-**The one memorable element:** the home hero is a sentence-style search:
-
-> I need a YouTube **[Ads ▾]** agency for **[Doctors ▾]** [Find agencies]
-
-The two bracketed words are inline selects, styled as large underlined text, not boxes. Everything else on the site stays quiet.
+**The one memorable element:** the home hero. A large centred headline over a soft four-colour glow, two actions, a proof row, and a product window showing three real agencies for a real service × industry page, with service tabs. It's the only place the glow, the floating callouts and the hero tokens below are used.
 
 ## Color tokens
 
@@ -20,6 +16,8 @@ The two bracketed words are inline selects, styled as large underlined text, not
 | `--text-2`  | `#6E6E73` | `#A1A1A6` | Secondary text, meta               |
 | `--line`    | `#D2D2D7` | `#38383A` | Borders, dividers                  |
 | `--accent`  | `#0B57D0` | `#4C8DF6` | Links, primary buttons, focus ring |
+
+The home hero has its own scoped tokens (`.home-hero` in globals.css): a brighter accent (`#1F5EFF` / dark `#6B9BFF`) with `accent-soft`, mint (`#12A57A` / `#3CCB9C`) and amber (`#E69A00` / `#F2B53A`) with `-soft` tints, and the glow colours. Don't use them outside the hero.
 
 One accent only. Green `#188038` (dark mode `#34A853`) is reserved for "Verified" badges; it was `#1E8E3E`, which fails 4.5:1 contrast on white. Form errors use `--danger`: `#D70015` (dark `#FF6961`). No gradients.
 
