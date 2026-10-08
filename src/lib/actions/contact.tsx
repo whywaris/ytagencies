@@ -68,7 +68,7 @@ export async function submitContact(raw: unknown): Promise<FormResult> {
   if (mail) {
     after(async () => {
       const results = await Promise.all([
-        mail.resend.emails.send({
+        mail.send({
           from: mail.from,
           to: topic.inbox,
           replyTo: input.email,
@@ -84,7 +84,7 @@ export async function submitContact(raw: unknown): Promise<FormResult> {
             />
           ),
         }),
-        mail.resend.emails.send({
+        mail.send({
           from: mail.from,
           to: input.email,
           subject: "We've received your message",

@@ -151,7 +151,7 @@ async function emailRejection(ctx: Ctx, userId: string | null, what: string, rea
   const to = data.user?.email;
   if (!to) return;
   after(() =>
-    mail.resend.emails
+    mail
       .send({
         from: mail.from,
         to,

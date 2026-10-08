@@ -21,7 +21,7 @@ export const metadata = buildMetadata({
 });
 
 const operator = COMPANY.legalName ? `${COMPANY.legalName}, trading as ${BRAND_NAME}` : BRAND_NAME;
-const privacy = COMPANY.emails.privacy;
+const email = COMPANY.email;
 
 const sections: LegalSection[] = [
   {
@@ -33,7 +33,7 @@ const sections: LegalSection[] = [
         {COMPANY.city && COMPANY.country ? `, from ${COMPANY.city}, ${COMPANY.country}` : ""}. We
         decide what personal data the site collects and why, so for data protection law we are the
         controller. You can reach us about anything on this page at{" "}
-        <a href={`mailto:${privacy}`}>{privacy}</a>.
+        <a href={`mailto:${email}`}>{email}</a>.
       </p>
     ),
   },
@@ -175,7 +175,7 @@ const sections: LegalSection[] = [
       <>
         <p>
           You can ask for a copy of your data, ask us to correct or delete it, or object to how we
-          use it. Write to <a href={`mailto:${privacy}`}>{privacy}</a> or use the{" "}
+          use it. Write to <a href={`mailto:${email}`}>{email}</a> or use the{" "}
           <Link href="/contact?topic=privacy">privacy request form</Link>. We answer{" "}
           {COMPANY.responseTimes.privacy}.
         </p>
@@ -209,7 +209,7 @@ const sections: LegalSection[] = [
         The site only works over HTTPS. Database access is limited by row-level rules, so visitors
         and agencies can only see what they should, and only our administrators can see inquiries
         and messages. No system is perfect, so please tell us at{" "}
-        <a href={`mailto:${privacy}`}>{privacy}</a> if you find a problem.
+        <a href={`mailto:${email}`}>{email}</a> if you find a problem.
       </p>
     ),
   },
@@ -242,12 +242,12 @@ export default function PrivacyPage() {
       description={DESCRIPTION}
       path="/privacy"
       updated={UPDATED}
-      contactEmail={privacy}
+      contactEmail={email}
       summary={[
         "We collect what's needed to connect businesses with agencies: your details when you send an inquiry, write to us or manage a listing.",
         "Your inquiry goes to the agencies you contact or are matched with. We don't sell your data or show ads.",
         "We use no advertising or tracking cookies, and analytics don't identify you.",
-        `You can ask for a copy of your data or have it deleted at any time: ${privacy}.`,
+        `You can ask for a copy of your data or have it deleted at any time: ${email}.`,
       ]}
       sections={sections}
     />

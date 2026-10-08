@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/logo";
 import { copyrightName } from "@/lib/company";
-import { BRAND_NAME } from "@/lib/site";
+import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 
 const GROUPS = [
   {
@@ -92,7 +92,15 @@ export function Footer() {
               Google.
             </p>
           </div>
-          <ul className="flex gap-5">
+          <ul className="flex flex-wrap gap-x-5">
+            <li>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="flex min-h-11 items-center hover:text-text"
+              >
+                {CONTACT_EMAIL}
+              </a>
+            </li>
             {BOTTOM_LINKS.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className="flex min-h-11 items-center hover:text-text">

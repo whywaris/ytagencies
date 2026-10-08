@@ -143,7 +143,7 @@ async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) 
     console.warn("Email not configured (RESEND_API_KEY); skipped", { leadId });
     return;
   }
-  const { resend, from } = mailer;
+  const { send, from } = mailer;
   const admin = createAdminClient();
   const direct = kind === "contact";
 
@@ -154,7 +154,7 @@ async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) 
       const { data } = await admin.auth.admin.getUserById(agency.ownerId);
       const to = data.user?.email;
       if (!to) return false;
-      const { error } = await resend.emails.send({
+      const { error } = await send({
         from,
         to,
         replyTo: lead.email,
@@ -166,7 +166,7 @@ async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) 
     }),
   );
 
-  const confirmation = resend.emails.send({
+  const confirmation = send({
     from,
     to: lead.email,
     subject: direct
@@ -183,7 +183,7 @@ async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) 
 
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminNote = adminEmail
-    ? resend.emails.send({
+    ? send({
         from,
         to: adminEmail,
         subject: oneLine(`New ${kind} lead: ${lead.name}`),

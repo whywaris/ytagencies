@@ -21,7 +21,7 @@ export const metadata = buildMetadata({
 });
 
 const days = COMPANY.refunds.yearlyFullRefundDays;
-const agencies = COMPANY.emails.agencies;
+const email = COMPANY.email;
 const provider = COMPANY.paymentProvider ?? "our payment provider";
 
 const sections: LegalSection[] = [
@@ -73,8 +73,8 @@ const sections: LegalSection[] = [
     title: "How to ask for a refund",
     body: (
       <p>
-        Email <a href={`mailto:${agencies}`}>{agencies}</a> from the address on your account, or use
-        the <Link href="/contact?topic=agencies">contact form</Link>, with your agency name and what
+        Email <a href={`mailto:${email}`}>{email}</a> from the address on your account, or use the{" "}
+        <Link href="/contact?topic=agencies">contact form</Link>, with your agency name and what
         you&apos;d like refunded.
         {COMPANY.responseTimes.agencies ? ` We reply ${COMPANY.responseTimes.agencies}.` : ""}
       </p>
@@ -101,7 +101,7 @@ export default function RefundsPage() {
       description={DESCRIPTION}
       path="/refunds"
       updated={UPDATED}
-      contactEmail={agencies}
+      contactEmail={email}
       summary={[
         "Monthly plans: cancel any time and keep the plan until the period ends. No partial refunds.",
         `Yearly plans: a full refund if you ask within ${days} days of buying.`,

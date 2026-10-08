@@ -226,7 +226,7 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
     const url = absoluteUrl(
       `/claim/verify?token=${encodeURIComponent(createClaimToken(claim.id))}`,
     );
-    const { error: sendError } = await mail.resend.emails.send({
+    const { error: sendError } = await mail.send({
       from: mail.from,
       to: input.workEmail,
       subject: oneLine(`Confirm you manage ${input.name}`),
@@ -239,7 +239,7 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
   const adminEmail = process.env.ADMIN_EMAIL;
   if (mail && adminEmail) {
     after(() =>
-      mail.resend.emails
+      mail
         .send({
           from: mail.from,
           to: adminEmail,

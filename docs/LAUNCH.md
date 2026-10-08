@@ -30,13 +30,13 @@
 
 Supabase's built-in email is for testing only: it sends a couple of emails an hour and only to members of your Supabase team. Past that, `signInWithOtp` fails with `over_email_send_rate_limit` and the sign-in form says "Too many sign-in emails were sent". Set this up on the dev and production projects:
 
-1. Resend: verify `ytagencies.com` (DNS records under Cloudflare DNS below) and create an API key with sending access.
+1. Resend: verify the sending subdomain `send.ytagencies.com` (DNS records under Cloudflare DNS below) and create an API key with sending access.
 2. Supabase → Authentication → Emails → SMTP Settings → enable custom SMTP:
    - Host `smtp.resend.com`, port `465` (SSL)
    - Username `resend`, password: the Resend API key
-   - Sender email `hello@ytagencies.com`, sender name `YT Agencies`
+   - Sender email `help@send.ytagencies.com`, sender name `YT Agencies`. Replies to sign-in emails then go to that address, which has no inbox; that's fine for sign-in links.
 3. Supabase → Authentication → Rate Limits → "Rate limit for sending emails": raise it from the default (e.g. to 100 an hour). It only becomes editable once custom SMTP is on. The app also limits each IP and email to 5 sign-in requests an hour.
-4. Send yourself a magic link and check it arrives. If the form says "Our email service didn't respond" (Supabase answers 504 after ~30 seconds), Supabase can't reach the SMTP server: recheck host, port and password, and see Supabase → Logs → Auth for the exact SMTP error. Otherwise a failure is logged a failure is logged as `signInWithOtp failed` with Supabase's error code and message (email addresses masked).
+4. Send yourself a magic link and check it arrives. If the form says "Our email service didn't respond" (Supabase answers 504 after ~30 seconds), Supabase can't reach the SMTP server: recheck host, port and password, and see Supabase → Logs → Auth for the exact SMTP error. Otherwise a failure is logged as `signInWithOtp failed` with Supabase's error code and message (email addresses masked).
 
 ## Vercel
 
@@ -50,13 +50,13 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | public | yes | Cloudflare Turnstile widget for `ytagencies.com`. |
    | `SUPABASE_SERVICE_ROLE_KEY` | server | yes | Same Supabase page, `service_role` key. Admin, cron and public data functions use it. |
    | `TURNSTILE_SECRET_KEY` | server | yes | The widget's secret key. Every public form checks it. |
-   | `RESEND_API_KEY` | server | yes | Resend API key (sending access, `ytagencies.com`). Without it no lead or rejection emails go out. |
+   | `RESEND_API_KEY` | server | yes | Resend API key (sending access, `send.ytagencies.com`). Without it no lead or rejection emails go out. |
    | `CLAIM_TOKEN_SECRET` | server | yes | `openssl rand -base64 48`. Signs claim links and keys the daily visitor hash of the analytics beacon. Changing it voids pending claim links. Unset: claims fail and the beacon records nothing. |
    | `CRON_SECRET` | server | yes | `openssl rand -base64 32`. Vercel sends it to `/api/cron/*`; without it those routes answer 401 and nothing scheduled runs. |
    | `YOUTUBE_API_KEY` | server | yes | Google Cloud → enable "YouTube Data API v3" → create an API key restricted to that API. Used by admin verification and the monthly stats check (well within the free 10,000 units/day). |
    | `SITE_URL` | server | yes | `https://ytagencies.com` on Production, the preview URL on Preview, `http://localhost:3000` locally. Builds canonicals, sitemaps, JSON-LD and email links. |
    | `ADMIN_EMAIL` | server | recommended | Gets a note for every new lead, agency submission and claim that needs review. Unset: those notes are skipped (the admin queues still show everything). |
-   | `EMAIL_FROM` | server | no | Defaults to `YT Agencies <hello@ytagencies.com>`. |
+   | `EMAIL_FROM` | server | no | Defaults to `YT Agencies <help@send.ytagencies.com>` (the Resend-verified subdomain). Every email the app sends sets Reply-To `help@ytagencies.com`, except lead emails to agencies, which reply to the business. |
    | `MEDIA_HOSTS` | server | yes | Host name(s) of your Cloudflare image hosting, comma-separated, e.g. `images.ytagencies.com` (an R2 bucket on a custom domain) or `imagedelivery.net` (Cloudflare Images). Guide covers are pasted links and must be on one of these; it also opens the CSP `img-src` and `next/image` to them. Changing it needs a redeploy. |
    | `PAYMENTS_ENABLED` | server | no | Leave unset for launch. Only exactly `true` turns payments on; while off nothing is charged, billing is a no-op and the pricing page offers the Founding programme. |
 
@@ -70,8 +70,8 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 
 1. Apex and `www` records pointing at Vercel, as Vercel's domain screen shows.
 2. Turnstile widget for `ytagencies.com`.
-3. Resend: verify `ytagencies.com` and add its SPF, DKIM and DMARC records.
-4. Make `hello@`, `privacy@` and `agencies@ytagencies.com` real, monitored inboxes. The contact form sends each topic to one of them (`src/lib/contact-topics.ts`), and they're shown on /contact and the legal pages.
+3. Resend: add the domain `send.ytagencies.com` and create its SPF, DKIM and DMARC records in Cloudflare (DNS-only). The app sends from `help@send.ytagencies.com`.
+4. Cloudflare Email Routing (Email → Email Routing on `ytagencies.com`): enable it (it adds its MX and SPF records on the apex) and create the custom address `help@ytagencies.com` forwarding to your own inbox; verify that destination address. `help@ytagencies.com` is the only public address: the contact form (every topic), the legal pages, the footer, JSON-LD and the Reply-To on every email. Sending uses the `send.` subdomain, so routing on the apex doesn't conflict.
 
 ## Content and legal
 

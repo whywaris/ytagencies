@@ -1,6 +1,9 @@
 export const BRAND_NAME = "YT Agencies";
 export const SITE_DOMAIN = "ytagencies.com";
-export const CONTACT_EMAIL = "hello@ytagencies.com";
+/** The one public address: contact form, legal pages, JSON-LD, Reply-To on every email. */
+export const CONTACT_EMAIL = "help@ytagencies.com";
+/** Sends from the Resend-verified subdomain; replies go to CONTACT_EMAIL. */
+export const EMAIL_SENDER = `help@send.${SITE_DOMAIN}`;
 
 // Absolute base for canonicals, sitemap, robots, JSON-LD and email links. Set SITE_URL per environment
 // (server-side, not secret). Without it, production builds use the real domain and dev uses localhost.

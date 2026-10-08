@@ -25,11 +25,8 @@ const crumbs = [
   { name: "Contact", path: "/contact" },
 ];
 
-// One row per inbox, with the topics it handles and its reply time.
-const inboxes = [...new Set(CONTACT_TOPICS.map((t) => t.inbox))].map((inbox) => {
-  const topics = CONTACT_TOPICS.filter((t) => t.inbox === inbox);
-  return { inbox, topics: topics.map((t) => t.label), response: topics[0].response };
-});
+// Reply times per topic, where one is set (lib/company.ts).
+const replyTimes = CONTACT_TOPICS.filter((t) => t.response);
 
 export default async function ContactPage({ searchParams }: PageProps<"/contact">) {
   const sp = await searchParams;
@@ -75,20 +72,22 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
             <h2 id="by-email" className="text-[17px] font-semibold">
               Or email us
             </h2>
-            <ul className="flex flex-col gap-6">
-              {inboxes.map((i) => (
-                <li key={i.inbox} className="flex flex-col gap-1">
-                  <a
-                    href={`mailto:${i.inbox}`}
-                    className="font-medium break-all text-accent hover:underline"
-                  >
-                    {i.inbox}
-                  </a>
-                  <span className="text-[15px] text-text-2">{i.topics.join(", ")}</span>
-                  {i.response && <span className="text-small">We reply {i.response}</span>}
-                </li>
-              ))}
-            </ul>
+            <a
+              href={`mailto:${COMPANY.email}`}
+              className="font-medium break-all text-accent hover:underline"
+            >
+              {COMPANY.email}
+            </a>
+            {replyTimes.length > 0 && (
+              <ul className="flex flex-col gap-2 text-[15px]">
+                {replyTimes.map((t) => (
+                  <li key={t.id} className="flex flex-col">
+                    <span>{t.label}</span>
+                    <span className="text-small">We reply {t.response}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {COMPANY.address && <p className="text-small whitespace-pre-line">{COMPANY.address}</p>}
           </aside>
         </div>

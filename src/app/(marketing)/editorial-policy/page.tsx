@@ -21,7 +21,7 @@ export const metadata = buildMetadata({
   path: "/editorial-policy",
 });
 
-const hello = COMPANY.emails.hello;
+const email = COMPANY.email;
 
 export default async function EditorialPolicyPage() {
   const authors = await getLiveAuthors();
@@ -84,7 +84,7 @@ export default async function EditorialPolicyPage() {
       title: "Corrections",
       body: (
         <p>
-          If you spot a mistake, write to <a href={`mailto:${hello}`}>{hello}</a> or use the{" "}
+          If you spot a mistake, write to <a href={`mailto:${email}`}>{email}</a> or use the{" "}
           <Link href="/contact">contact form</Link> with the guide and what&apos;s wrong. When we
           confirm an error, we fix it and update the guide&apos;s date.
         </p>
@@ -144,7 +144,7 @@ export default async function EditorialPolicyPage() {
       description={DESCRIPTION}
       path="/editorial-policy"
       updated={UPDATED}
-      contactEmail={hello}
+      contactEmail={email}
       summary={[
         "Every guide names its author and shows when it was last updated.",
         "We check facts against primary sources and our own directory data.",

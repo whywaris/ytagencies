@@ -107,7 +107,7 @@ export default function DisclosurePage() {
       description={DESCRIPTION}
       path="/disclosure"
       updated={UPDATED}
-      contactEmail={COMPANY.emails.hello}
+      contactEmail={COMPANY.email}
       summary={[
         "We're independent and not affiliated with YouTube or Google.",
         "Businesses never pay. Agencies can list for free, or pay for a plan or a sponsored place.",

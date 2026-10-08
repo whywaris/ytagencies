@@ -163,7 +163,7 @@ export default function CookiesPage() {
       description={DESCRIPTION}
       path="/cookies"
       updated={UPDATED}
-      contactEmail={COMPANY.emails.privacy}
+      contactEmail={COMPANY.email}
       summary={[
         "We use no advertising or tracking cookies.",
         "The only cookies we set keep you signed in, plus two admin-area preferences.",

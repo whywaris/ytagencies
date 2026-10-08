@@ -1,4 +1,4 @@
-import { BRAND_NAME, SITE_DOMAIN } from "./site";
+import { BRAND_NAME, CONTACT_EMAIL } from "./site";
 
 // Company facts: the one source for the legal pages, About, Contact, the footer and JSON-LD.
 // Never invent any of this. A null value is a TODO only the owner can fill in; pages hide what's
@@ -19,11 +19,8 @@ export const COMPANY = {
   /** TODO: the law and courts for the terms, e.g. "England and Wales". */
   jurisdiction: null as string | null,
 
-  emails: {
-    hello: `hello@${SITE_DOMAIN}`,
-    privacy: `privacy@${SITE_DOMAIN}`,
-    agencies: `agencies@${SITE_DOMAIN}`,
-  },
+  /** The one contact address for every topic (privacy, agencies, press…). */
+  email: CONTACT_EMAIL,
 
   /**
    * How quickly each inbox answers, as a phrase ("within 2 business days"). Privacy requests have

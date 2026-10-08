@@ -89,7 +89,7 @@ export async function startClaim(raw: unknown): Promise<FormResult<ClaimStarted>
     const url = absoluteUrl(
       `/claim/verify?token=${encodeURIComponent(createClaimToken(claim.id))}`,
     );
-    const { error: sendError } = await mail.resend.emails.send({
+    const { error: sendError } = await mail.send({
       from: mail.from,
       to: workEmail,
       subject: oneLine(`Confirm you manage ${agency.name}`),
@@ -105,7 +105,7 @@ export async function startClaim(raw: unknown): Promise<FormResult<ClaimStarted>
   const adminEmail = process.env.ADMIN_EMAIL;
   if (mail && adminEmail) {
     after(() =>
-      mail.resend.emails
+      mail
         .send({
           from: mail.from,
           to: adminEmail,

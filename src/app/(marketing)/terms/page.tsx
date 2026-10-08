@@ -20,7 +20,7 @@ export const metadata = buildMetadata({
 });
 
 const operator = COMPANY.legalName ? `${COMPANY.legalName}, trading as ${BRAND_NAME}` : BRAND_NAME;
-const hello = COMPANY.emails.hello;
+const email = COMPANY.email;
 
 const sections: LegalSection[] = [
   {
@@ -233,7 +233,7 @@ export default function TermsPage() {
       description={DESCRIPTION}
       path="/terms"
       updated={UPDATED}
-      contactEmail={hello}
+      contactEmail={email}
       summary={[
         "YT Agencies is a free directory. We help you find agencies; we don't do agency work ourselves.",
         "Agencies must keep their listings accurate. We review listings and reviews and can remove ones that break these terms.",
