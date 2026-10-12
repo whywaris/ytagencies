@@ -16,7 +16,7 @@ import { profileFormProps } from "@/lib/agency-profile";
 import { requireAdmin } from "@/lib/auth";
 import { getEntitlements } from "@/lib/data/entitlements";
 import { getFoundingProgram } from "@/lib/data/settings";
-import { getIndustries } from "@/lib/data/taxonomy";
+import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { currentPlan } from "@/lib/entitlements";
 import { formatCount, formatDate, formatDateTime, formatRelative } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -54,7 +54,7 @@ export default async function AdminAgencyPage({
     db
       .from("agencies")
       .select(
-        "id, name, slug, tagline, website, logo_path, founded_year, team_size, languages, status, is_verified, is_claimed, owner_id, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, locations!agencies_hq_location_id_fkey(slug)",
+        "id, name, slug, tagline, website, logo_path, founded_year, team_size, languages, status, is_verified, is_claimed, owner_id, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, seo_title, seo_description, locations!agencies_hq_location_id_fkey(slug)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -151,6 +151,8 @@ async function ProfileTab({
     min_contract: string | null;
     ad_spend: string | null;
     setup_fee_usd: number | null;
+    seo_title: string | null;
+    seo_description: string | null;
     locations: { slug: string } | null;
   };
 }) {
@@ -166,6 +168,8 @@ async function ProfileTab({
       ? (agency.team_size as AgencyInput["teamSize"])
       : "",
     languages: (agency.languages ?? []).join(", "),
+    seoTitle: agency.seo_title ?? "",
+    seoDescription: agency.seo_description ?? "",
     hqLocation: agency.locations?.slug ?? "",
   };
   return (
@@ -192,13 +196,14 @@ async function ProfileTab({
 }
 
 async function CaseStudiesTab({ agencyId }: { agencyId: string }) {
-  const [caseStudies, industries] = await Promise.all([
+  const [caseStudies, industries, services] = await Promise.all([
     createAdminClient()
       .from("case_studies")
-      .select("id, title, summary, channel_url, metrics, industries(slug)")
+      .select("id, title, summary, channel_url, metrics, industries(slug), services(slug)")
       .eq("agency_id", agencyId)
       .order("created_at", { ascending: false }),
     getIndustries(),
+    getServices(),
   ]);
   if (caseStudies.error) throw new Error("Couldn't load case studies");
   return (
@@ -206,10 +211,12 @@ async function CaseStudiesTab({ agencyId }: { agencyId: string }) {
       actions={{ save: adminSaveCaseStudy, remove: adminDeleteCaseStudy }}
       agencyId={agencyId}
       industries={industries.map(({ slug, name }) => ({ slug, name }))}
+      services={services.map(({ slug, name }) => ({ slug, name }))}
       items={caseStudies.data.map((c) => ({
         id: c.id,
         title: c.title,
         industry: c.industries?.slug ?? "",
+        service: c.services?.slug ?? "",
         channelUrl: c.channel_url ?? "",
         summary: c.summary ?? "",
         metrics: jsonToMetrics(c.metrics),
@@ -431,6 +438,8 @@ const ACTION_LABEL: Record<string, string> = {
   "agency.unfeature": "Removed Featured",
   "agency.verify": "Verified",
   "agency.unverify": "Removed Verified",
+  "review.create": "Added a review",
+  "review.update": "Edited a review",
   "agency.change_plan": "Changed plan",
   "submission.approve": "Approved submission",
   "submission.reject": "Rejected submission",

@@ -13,6 +13,7 @@ import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient, createStaticClient } from "@/lib/supabase/server";
 import type { FormResult } from "@/lib/validation/lead";
+import { detailsColumns, industryColumns, serviceColumns } from "@/lib/profile-details-db";
 import { agencySearchSchema, submitAgencySchema } from "@/lib/validation/listing";
 
 // /list-your-agency. SECURITY.md: ownership is never auto-granted. A submission is a draft with no
@@ -168,6 +169,7 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
     min_contract: input.minContract || null,
     ad_spend: input.adSpend || null,
     setup_fee_usd: input.setupFee === "" ? null : Number(input.setupFee),
+    ...detailsColumns(input),
     submitted_by: user.id,
   };
   let { error } = await supabase.from("agencies").insert({ ...row, slug: base });
@@ -194,6 +196,7 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
         agency_id: id,
         service_id: s.id,
         is_primary: s.slug === input.services[0],
+        ...serviceColumns(input, s.slug, input.pricingModel || null),
       })),
     ),
     supabase.from("agency_industries").insert(
@@ -201,6 +204,7 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
         agency_id: id,
         industry_id: i.id,
         is_primary: i.slug === input.industries[0],
+        ...industryColumns(input, i.slug),
       })),
     ),
     locations.data.length

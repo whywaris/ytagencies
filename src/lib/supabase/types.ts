@@ -41,6 +41,14 @@ export type Database = {
       };
       agencies: {
         Row: {
+          best_for: string | null;
+          timezone: string | null;
+          youtube_channel_url: string | null;
+          linkedin_url: string | null;
+          reporting_frequency: string | null;
+          process: Json;
+          seo_title: string | null;
+          seo_description: string | null;
           created_at: string;
           description: string | null;
           founded_year: number | null;
@@ -67,6 +75,14 @@ export type Database = {
           website: string | null;
         };
         Insert: {
+          best_for?: string | null;
+          timezone?: string | null;
+          youtube_channel_url?: string | null;
+          linkedin_url?: string | null;
+          reporting_frequency?: string | null;
+          process?: Json;
+          seo_title?: string | null;
+          seo_description?: string | null;
           created_at?: string;
           description?: string | null;
           founded_year?: number | null;
@@ -93,6 +109,14 @@ export type Database = {
           website?: string | null;
         };
         Update: {
+          best_for?: string | null;
+          timezone?: string | null;
+          youtube_channel_url?: string | null;
+          linkedin_url?: string | null;
+          reporting_frequency?: string | null;
+          process?: Json;
+          seo_title?: string | null;
+          seo_description?: string | null;
           created_at?: string;
           description?: string | null;
           founded_year?: number | null;
@@ -124,6 +148,66 @@ export type Database = {
             columns: ["hq_location_id"];
             isOneToOne: false;
             referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agency_channels: {
+        Row: {
+          agency_id: string;
+          channel_id: string | null;
+          channel_url: string;
+          confirmed_at: string | null;
+          created_at: string;
+          id: string;
+          industry_id: number | null;
+          stats_checked_at: string | null;
+          status: string;
+          subscriber_count: number | null;
+          title: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          agency_id: string;
+          channel_id?: string | null;
+          channel_url: string;
+          confirmed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          industry_id?: number | null;
+          stats_checked_at?: string | null;
+          status?: string;
+          subscriber_count?: number | null;
+          title?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          agency_id?: string;
+          channel_id?: string | null;
+          channel_url?: string;
+          confirmed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          industry_id?: number | null;
+          stats_checked_at?: string | null;
+          status?: string;
+          subscriber_count?: number | null;
+          title?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agency_channels_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "agency_channels_industry_id_fkey";
+            columns: ["industry_id"];
+            isOneToOne: false;
+            referencedRelation: "industries";
             referencedColumns: ["id"];
           },
         ];
@@ -200,16 +284,19 @@ export type Database = {
       };
       agency_industries: {
         Row: {
+          focus_pct: number | null;
           agency_id: string;
           industry_id: number;
           is_primary: boolean | null;
         };
         Insert: {
+          focus_pct?: number | null;
           agency_id: string;
           industry_id: number;
           is_primary?: boolean | null;
         };
         Update: {
+          focus_pct?: number | null;
           agency_id?: string;
           industry_id?: number;
           is_primary?: boolean | null;
@@ -263,16 +350,28 @@ export type Database = {
       };
       agency_services: {
         Row: {
+          focus_pct: number | null;
+          included: string[];
+          starting_price: number | null;
+          price_unit: string | null;
           agency_id: string;
           is_primary: boolean | null;
           service_id: number;
         };
         Insert: {
+          focus_pct?: number | null;
+          included?: string[];
+          starting_price?: number | null;
+          price_unit?: string | null;
           agency_id: string;
           is_primary?: boolean | null;
           service_id: number;
         };
         Update: {
+          focus_pct?: number | null;
+          included?: string[];
+          starting_price?: number | null;
+          price_unit?: string | null;
           agency_id?: string;
           is_primary?: boolean | null;
           service_id?: number;
@@ -412,6 +511,7 @@ export type Database = {
       };
       case_studies: {
         Row: {
+          service_id: number | null;
           updated_at: string;
           agency_id: string;
           channel_url: string | null;
@@ -419,11 +519,12 @@ export type Database = {
           client_industry_id: number | null;
           created_at: string;
           id: string;
-          metrics: Json | null;
+          metrics: Json;
           summary: string | null;
           title: string;
         };
         Insert: {
+          service_id?: number | null;
           updated_at?: string;
           agency_id: string;
           channel_url?: string | null;
@@ -436,6 +537,7 @@ export type Database = {
           title: string;
         };
         Update: {
+          service_id?: number | null;
           updated_at?: string;
           agency_id?: string;
           channel_url?: string | null;
@@ -448,6 +550,13 @@ export type Database = {
           title?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "case_studies_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "case_studies_agency_id_fkey";
             columns: ["agency_id"];
@@ -875,6 +984,21 @@ export type Database = {
       };
       reviews: {
         Row: {
+          service_id: number | null;
+          budget_range: string | null;
+          project_start: string | null;
+          project_end: string | null;
+          score_quality: number | null;
+          score_schedule: number | null;
+          score_cost: number | null;
+          score_refer: number | null;
+          reviewer_title: string | null;
+          reviewer_industry_id: number | null;
+          reviewer_company_size: string | null;
+          reviewer_country: string | null;
+          lead_id: string | null;
+          overall: number | null;
+          verified_client: boolean;
           updated_at: string;
           agency_id: string;
           author_company: string | null;
@@ -887,6 +1011,21 @@ export type Database = {
           status: string;
         };
         Insert: {
+          service_id?: number | null;
+          budget_range?: string | null;
+          project_start?: string | null;
+          project_end?: string | null;
+          score_quality?: number | null;
+          score_schedule?: number | null;
+          score_cost?: number | null;
+          score_refer?: number | null;
+          reviewer_title?: string | null;
+          reviewer_industry_id?: number | null;
+          reviewer_company_size?: string | null;
+          reviewer_country?: string | null;
+          lead_id?: string | null;
+          overall?: never;
+          verified_client?: never;
           updated_at?: string;
           agency_id: string;
           author_company?: string | null;
@@ -899,6 +1038,21 @@ export type Database = {
           status?: string;
         };
         Update: {
+          service_id?: number | null;
+          budget_range?: string | null;
+          project_start?: string | null;
+          project_end?: string | null;
+          score_quality?: number | null;
+          score_schedule?: number | null;
+          score_cost?: number | null;
+          score_refer?: number | null;
+          reviewer_title?: string | null;
+          reviewer_industry_id?: number | null;
+          reviewer_company_size?: string | null;
+          reviewer_country?: string | null;
+          lead_id?: string | null;
+          overall?: never;
+          verified_client?: never;
           updated_at?: string;
           agency_id?: string;
           author_company?: string | null;
@@ -911,6 +1065,20 @@ export type Database = {
           status?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "reviews_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reviews_reviewer_industry_id_fkey";
+            columns: ["reviewer_industry_id"];
+            isOneToOne: false;
+            referencedRelation: "industries";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "reviews_agency_id_fkey";
             columns: ["agency_id"];

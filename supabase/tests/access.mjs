@@ -134,7 +134,7 @@ await as("anon", null, async () => {
     "case_studies of a draft: invisible",
   );
   ok(
-    (await rows("select * from reviews where status <> 'published'")).length === 0,
+    (await rows("select id from reviews where status <> 'published'")).length === 0,
     "reviews: pending/rejected invisible",
   );
   ok(
@@ -1128,6 +1128,179 @@ ok(
 ok(
   (await rows("select 1 from leads where created_at >= now() - interval '24 months'")).length > 0,
   "retention: newer leads are kept",
+);
+
+console.log("— agency profile data (migration 20261019000100) —");
+const DRAFT = "00000000-0000-4000-8000-000000000099";
+await as("authenticated", OWNER, async () => {
+  ok(
+    !(await denied(
+      `update agencies set best_for = 'Gaming brands', reporting_frequency = 'weekly', process = '[{"title":"Audit","description":"We review your channel"}]' where id = '${MINE}' returning 1`,
+    )),
+    "owner: can edit best_for, reporting frequency and process",
+  );
+  ok(
+    await denied(`update agencies set seo_title = 'x' where id = '${MINE}' returning 1`),
+    "owner: can't write seo_title",
+  );
+  ok(
+    await denied(`update agencies set seo_description = 'x' where id = '${MINE}' returning 1`),
+    "owner: can't write seo_description",
+  );
+  ok(
+    await denied(
+      `update agencies set process = '[{},{},{},{},{},{}]' where id = '${MINE}' returning 1`,
+    ),
+    "process: at most 5 steps",
+  );
+  ok(
+    !(await denied(
+      `update agency_services set focus_pct = 60, included = '{"Scripts","Editing"}', starting_price = 1500, price_unit = 'project' where agency_id = '${MINE}' returning 1`,
+    )),
+    "owner: can set focus, included and price on their services",
+  );
+  ok(
+    await denied(
+      `update agency_services set included = '{"a","b","c","d","e","f","g"}' where agency_id = '${MINE}' returning 1`,
+    ),
+    "services: at most 6 included items",
+  );
+
+  // Channels
+  ok(
+    !(await denied(
+      `insert into agency_channels (agency_id, channel_url) values ('${MINE}', 'https://www.youtube.com/@one') returning 1`,
+    )),
+    "channels: owner can add one to their agency",
+  );
+  ok(
+    await denied(
+      `insert into agency_channels (agency_id, channel_url) values ('${PINE}', 'https://www.youtube.com/@x') returning 1`,
+    ),
+    "channels: owner can't add one to another agency",
+  );
+  ok(
+    await denied(
+      `insert into agency_channels (agency_id, channel_url, status) values ('${MINE}', 'https://www.youtube.com/@two', 'confirmed') returning 1`,
+    ),
+    "channels: owner can't insert with status",
+  );
+  ok(
+    await denied(
+      `update agency_channels set status = 'confirmed' where agency_id = '${MINE}' returning 1`,
+    ),
+    "channels: owner can't set status",
+  );
+  ok(
+    await denied(
+      `update agency_channels set confirmed_at = now() where agency_id = '${MINE}' returning 1`,
+    ),
+    "channels: owner can't set confirmed_at",
+  );
+  ok(
+    await denied(
+      `update agency_channels set subscriber_count = 9999999 where agency_id = '${MINE}' returning 1`,
+    ),
+    "channels: owner can't write subscriber counts",
+  );
+});
+await db.exec(
+  `reset role; update agency_channels set status = 'confirmed', confirmed_at = now(), channel_id = 'UC_x5XG1OV2P6uZZ5FSM9Ttw' where agency_id = '${MINE}'`,
+);
+await as("authenticated", OWNER, async () => {
+  await db.query(
+    `update agency_channels set channel_url = 'https://www.youtube.com/@renamed' where agency_id = '${MINE}'`,
+  );
+  for (let n = 2; n <= 6; n++)
+    await db.query(
+      `insert into agency_channels (agency_id, channel_url) values ('${MINE}', 'https://www.youtube.com/@c${n}')`,
+    );
+  ok(
+    await denied(
+      `insert into agency_channels (agency_id, channel_url) values ('${MINE}', 'https://www.youtube.com/@c7') returning 1`,
+    ),
+    "channels: at most 6 per agency",
+  );
+  ok(
+    !(await denied(
+      `delete from agency_channels where agency_id = '${MINE}' and channel_url = 'https://www.youtube.com/@c6' returning 1`,
+    )),
+    "channels: owner can delete their own",
+  );
+});
+const [renamed] = await rows(
+  `select status, confirmed_at, channel_id from agency_channels where channel_url = 'https://www.youtube.com/@renamed'`,
+);
+ok(
+  renamed?.status === "listed" && renamed.confirmed_at === null && renamed.channel_id === null,
+  "channels: a changed link loses its confirmation and resolved data",
+);
+await db.exec(
+  `reset role; insert into agency_channels (agency_id, channel_url) values ('${DRAFT}', 'https://www.youtube.com/@draft')`,
+);
+await as("anon", null, async () => {
+  ok(
+    (await rows(`select 1 from agency_channels where agency_id = '${MINE}'`)).length === 5,
+    "channels: anon reads a published agency's channels",
+  );
+  ok(
+    (await rows(`select 1 from agency_channels where agency_id = '${DRAFT}'`)).length === 0,
+    "channels: anon can't read a draft agency's channels",
+  );
+  ok(
+    await denied(
+      `insert into agency_channels (agency_id, channel_url) values ('${MINE}', 'https://www.youtube.com/@anon') returning 1`,
+    ),
+    "channels: anon can't add",
+  );
+});
+
+// Reviews
+await db.exec(`reset role;
+  insert into reviews (agency_id, author_name, rating, body, status, score_quality, score_schedule, score_cost, score_refer, lead_id)
+  values ('${MINE}', 'Verified Reviewer', 5, 'A review with the new scores for the access test.', 'published', 5, 4.5, 4, 5, 'bbbbbbbb-0000-4000-8000-000000000001');`);
+const [scored] = await rows(
+  "select overall, verified_client from reviews where author_name = 'Verified Reviewer'",
+);
+ok(
+  Number(scored?.overall) === 4.63 && scored.verified_client === true,
+  "reviews: overall is the average of the four scores, verified_client follows lead_id",
+);
+ok(
+  await fails(
+    `update reviews set score_cost = 4.3 where author_name = 'Verified Reviewer'`,
+  ),
+  "reviews: scores are in half steps from 1 to 5",
+);
+await as("anon", null, async () => {
+  ok(
+    await denied("select lead_id from reviews limit 1"),
+    "reviews: anon can't read lead_id",
+  );
+  ok(
+    (await rows("select overall, verified_client from reviews where status = 'published'"))
+      .length > 0,
+    "reviews: anon reads scores and verified_client of published reviews",
+  );
+});
+
+// Seeded case-study metrics are stored as up to 3 {value, label}.
+const [cs] = await rows(
+  `select metrics from case_studies where metrics @> '[{"label":"ROAS"}]' and metrics @> '[{"label":"Revenue"}]'`,
+);
+ok(
+  JSON.stringify(cs?.metrics) ===
+    JSON.stringify([
+      { label: "Revenue", value: "$640,000" },
+      { label: "ROAS", value: "4.1×" },
+    ]),
+  "case studies: object metrics converted to {value, label} (formatted, acronyms kept)",
+);
+ok(
+  await fails(
+    `update case_studies set metrics = '[{"value":"1","label":"a"},{"value":"2","label":"b"},{"value":"3","label":"c"},{"value":"4","label":"d"}]' where id = (select id from case_studies limit 1)`,
+  ),
+  "case studies: at most 3 metrics",
 );
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

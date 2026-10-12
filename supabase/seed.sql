@@ -248,8 +248,33 @@ from (values
 join locations l on l.slug = v.location;
 
 -- Case studies (fictional clients and numbers)
+-- Metrics are written below as {key: number} for readability; stored as up to 3 {value, label}
+-- (same conversion as migration 20261019000100).
+create function pg_temp.metrics_list(m jsonb) returns jsonb language sql as $$
+  select coalesce(jsonb_agg(jsonb_build_object('value', v, 'label', l) order by k), '[]'::jsonb)
+  from (
+    select e.key as k,
+      left(case
+        when e.key ~ '_pct$' then n || '%'
+        when e.key ~ '_usd$' then '$' || n
+        when e.key ~ '_gbp$' then '£' || n
+        when e.key ~ '^roas' then n || '×'
+        else n end, 12) as v,
+      left(upper(left(lbl, 1)) || substr(lbl, 2), 40) as l
+    from jsonb_each_text(m) e,
+      -- "45000" → "45,000"; ROAS, CTR, CPA, CPM, CPV and ROI in capitals.
+      lateral (select
+        case when e.value ~ '^\d{4,}$' then to_char(e.value::bigint, 'FM999,999,999,999') else e.value end as n,
+        trim(replace(replace(replace(replace(replace(replace(
+          ' ' || regexp_replace(regexp_replace(e.key, '_(pct|usd|gbp)$', ''), '_', ' ', 'g') || ' ',
+          ' roas ', ' ROAS '), ' ctr ', ' CTR '), ' cpa ', ' CPA '), ' cpm ', ' CPM '), ' cpv ', ' CPV '),
+          ' roi ', ' ROI ')) as lbl) x
+    order by e.key
+    limit 3
+  ) t
+$$;
 insert into case_studies (agency_id, title, client_industry_id, summary, metrics)
-select v.agency_id::uuid, v.title, i.id, v.summary, v.metrics::jsonb
+select v.agency_id::uuid, v.title, i.id, v.summary, pg_temp.metrics_list(v.metrics::jsonb)
 from (values
   ('00000000-0000-4000-8000-000000000001', 'Booked consultations for a three-location dermatology clinic', 'doctors',
    'Procedure explainer videos plus local in-stream ads within 15 miles of each clinic.',

@@ -30,6 +30,9 @@ export const agencySchema = z.object({
     ),
   teamSize: z.enum(["", ...TEAM_SIZES]),
   languages: z.string().trim().max(200),
+  // Admin only (owners have no write grant): override the profile's search title / description.
+  seoTitle: z.string().trim().max(70, "Use 70 characters or fewer."),
+  seoDescription: z.string().trim().max(200, "Use 200 characters or fewer."),
   hqLocation: z.string().regex(/^[a-z0-9-]{0,80}$/),
 });
 export type AgencyInput = z.infer<typeof agencySchema>;

@@ -67,6 +67,8 @@ export async function saveAgency(
           .filter(Boolean)
       : [],
     hq_location_id: hqLocationId,
+    seo_title: input.seoTitle || null,
+    seo_description: input.seoDescription || null,
     updated_at: new Date().toISOString(),
   };
 

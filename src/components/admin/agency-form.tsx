@@ -3,8 +3,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
+import { SeoFields } from "@/components/admin/seo-fields";
 import { a11yProps, Field, selectClasses } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,8 +41,13 @@ export function AgencyForm({
     setValue,
     getValues,
     setError,
+    control,
     formState: { errors, isSubmitting, dirtyFields },
   } = useForm<AgencyInput>({ resolver: zodResolver(agencySchema), defaultValues: defaults });
+  const [seoTitle, seoDescription, name, tagline, slug] = useWatch({
+    control,
+    name: ["seoTitle", "seoDescription", "name", "tagline", "slug"],
+  });
 
   const onSubmit = handleSubmit(async (values) => {
     setStatus(null);
@@ -143,6 +149,23 @@ export function AgencyForm({
           />
         </Field>
       </div>
+      <fieldset className="flex max-w-[640px] flex-col gap-4">
+        <legend className="mb-1 font-medium">Search appearance</legend>
+        <SeoFields
+          title={seoTitle}
+          description={seoDescription}
+          onTitle={(v) => setValue("seoTitle", v, { shouldDirty: true })}
+          onDescription={(v) => setValue("seoDescription", v, { shouldDirty: true })}
+          shownTitle={seoTitle || `${name || "Agency"}: YouTube agency | YT Agencies`}
+          shownDescription={seoDescription || tagline}
+          breadcrumb={`ytagencies.com › agency › ${slug || "agency"}`}
+          titleHint="Empty uses the generated title. Only admins can set this."
+          descriptionHint="Empty uses the generated description."
+          titleError={errors.seoTitle?.message}
+          descriptionError={errors.seoDescription?.message}
+        />
+      </fieldset>
+
       <div className="flex flex-col gap-3">
         {status && (
           <p

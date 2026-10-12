@@ -4,6 +4,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { AD_SPENDS, MIN_CONTRACTS } from "@/lib/pricing";
+import {
+  detailsColumns,
+  detailsDefaults,
+  industryColumns,
+  serviceColumns,
+} from "@/lib/profile-details-db";
 import { PRICING_MODELS, type ProfileInput } from "@/lib/validation/dashboard";
 
 // Saves the editable profile fields and the service/industry/location links. Shared by the owner
@@ -47,6 +53,7 @@ export async function applyProfile(
       min_contract: input.minContract || null,
       ad_spend: input.adSpend || null,
       setup_fee_usd: input.setupFee === "" ? null : Number(input.setupFee),
+      ...detailsColumns(input),
       updated_at: new Date().toISOString(),
     })
     .eq("id", agencyId);
@@ -54,8 +61,13 @@ export async function applyProfile(
 
   // Upsert the wanted rows first, then delete the rest: a failure leaves extra rows, never none.
   const results = await Promise.all([
-    syncServices(supabase, agencyId, serviceIds, primaryServiceId),
-    syncIndustries(supabase, agencyId, industryIds, primaryIndustryId),
+    syncServices(supabase, agencyId, serviceIds, primaryServiceId, (id) => {
+      const slug = services.data.find((s) => s.id === id)!.slug;
+      return serviceColumns(input, slug, input.pricingModel || null);
+    }),
+    syncIndustries(supabase, agencyId, industryIds, primaryIndustryId, (id) =>
+      industryColumns(input, industries.data.find((i) => i.id === id)!.slug),
+    ),
     syncLocations(supabase, agencyId, locationIds),
   ]);
   if (results.some(Boolean)) return SAVE_FAILED;
@@ -65,9 +77,20 @@ export async function applyProfile(
 type Supa = SupabaseClient<Database>;
 const notIn = (ids: number[]) => `(${ids.join(",")})`;
 
-async function syncServices(supabase: Supa, agencyId: string, ids: number[], primary: number) {
+async function syncServices(
+  supabase: Supa,
+  agencyId: string,
+  ids: number[],
+  primary: number,
+  extra: (id: number) => ReturnType<typeof serviceColumns>,
+) {
   const up = await supabase.from("agency_services").upsert(
-    ids.map((id) => ({ agency_id: agencyId, service_id: id, is_primary: id === primary })),
+    ids.map((id) => ({
+      agency_id: agencyId,
+      service_id: id,
+      is_primary: id === primary,
+      ...extra(id),
+    })),
     { onConflict: "agency_id,service_id" },
   );
   if (up.error) return up.error;
@@ -84,10 +107,16 @@ async function syncIndustries(
   agencyId: string,
   ids: number[],
   primary: number | null,
+  extra: (id: number) => ReturnType<typeof industryColumns>,
 ) {
   if (ids.length > 0) {
     const up = await supabase.from("agency_industries").upsert(
-      ids.map((id) => ({ agency_id: agencyId, industry_id: id, is_primary: id === primary })),
+      ids.map((id) => ({
+        agency_id: agencyId,
+        industry_id: id,
+        is_primary: id === primary,
+        ...extra(id),
+      })),
       { onConflict: "agency_id,industry_id" },
     );
     if (up.error) return up.error;
@@ -130,7 +159,7 @@ export async function profileFormProps(
     supabase
       .from("agencies")
       .select(
-        "agency_services(is_primary, services(slug)), agency_industries(is_primary, industries(slug)), agency_locations(locations(slug))",
+        "best_for, timezone, youtube_channel_url, linkedin_url, reporting_frequency, process, agency_services(is_primary, focus_pct, included, starting_price, price_unit, services(slug)), agency_industries(is_primary, focus_pct, industries(slug)), agency_locations(locations(slug))",
       )
       .eq("id", agency.id)
       .single(),
@@ -157,6 +186,12 @@ export async function profileFormProps(
     industries: ind.map((r) => r.industries.slug),
     primaryIndustry: ind.find((r) => r.is_primary)?.industries.slug ?? "",
     locations: links.data.agency_locations.map((r) => r.locations.slug),
+    ...detailsDefaults(
+      links.data,
+      svc.map((r) => ({ ...r, slug: r.services.slug })),
+      ind.map((r) => ({ ...r, slug: r.industries.slug })),
+      agency.pricing_model,
+    ),
   };
   const option = ({ slug, name }: { slug: string; name: string }) => ({ slug, name });
   const countries = locations

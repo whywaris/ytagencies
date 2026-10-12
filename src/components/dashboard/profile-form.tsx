@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, type UseFormReturn } from "react-hook-form";
 
 import {
   a11yProps,
@@ -12,6 +12,7 @@ import {
   selectClasses,
   textareaClasses,
 } from "@/components/forms/field";
+import { ProfileDetailsFields, type DetailsForm } from "@/components/forms/profile-details-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AD_SPEND_OPTION, AD_SPENDS, MIN_CONTRACT_OPTION, MIN_CONTRACTS } from "@/lib/pricing";
@@ -39,13 +40,17 @@ export function ProfileForm({
   countries: Country[];
 }) {
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const form = useForm<ProfileInput>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: defaults,
+  });
   const {
     register,
     handleSubmit,
     control,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<ProfileInput>({ resolver: zodResolver(profileSchema), defaultValues: defaults });
+  } = form;
 
   const chosenServices = useWatch({ control, name: "services" });
   const chosenIndustries = useWatch({ control, name: "industries" });
@@ -224,6 +229,13 @@ export function ProfileForm({
           ))}
         </div>
       </CheckboxGroup>
+
+      <ProfileDetailsFields
+        form={form as unknown as UseFormReturn<DetailsForm>}
+        idPrefix="p"
+        services={services}
+        industries={industries}
+      />
 
       <div className="flex flex-col gap-3">
         {status && (

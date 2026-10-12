@@ -63,6 +63,9 @@ const STATUS: Record<string, { label: string; dot: string }> = {
   published: { label: "Published", dot: "bg-success" },
   draft: { label: "Draft", dot: "bg-text-2" },
   archived: { label: "Archived", dot: "bg-warning" },
+  // Reviews
+  pending: { label: "Pending", dot: "bg-warning" },
+  rejected: { label: "Rejected", dot: "bg-text-2" },
 };
 
 /** Agency status: a colored dot (status colors only mean status, §1) and a plain label. */

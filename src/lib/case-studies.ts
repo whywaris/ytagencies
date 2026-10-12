@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/types";
-import { metricsToJson, type CaseStudyInput } from "@/lib/validation/dashboard";
+import type { CaseStudyInput } from "@/lib/validation/dashboard";
 import { resolveChannelId } from "@/lib/youtube-url";
 
 // Case study writes, shared by the owner dashboard (user client: RLS applies) and admin (service
@@ -27,6 +27,16 @@ export async function writeCaseStudy(
     if (!data) return { ok: false, error: "That industry no longer exists. Reload the page." };
     industryId = data.id;
   }
+  let serviceId: number | null = null;
+  if (input.service) {
+    const { data } = await supabase
+      .from("services")
+      .select("id")
+      .eq("slug", input.service)
+      .maybeSingle();
+    if (!data) return { ok: false, error: "That service no longer exists. Reload the page." };
+    serviceId = data.id;
+  }
   const channelUrl = input.channelUrl || null;
   let channelId: string | null = null;
   if (channelUrl) {
@@ -47,10 +57,11 @@ export async function writeCaseStudy(
   const row = {
     title: input.title,
     client_industry_id: industryId,
+    service_id: serviceId,
     channel_url: channelUrl,
     channel_id: channelId,
     summary: input.summary || null,
-    metrics: metricsToJson(input.metrics),
+    metrics: input.metrics,
   };
 
   // Updates are scoped to this agency, so an id from another agency matches nothing.

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { z } from "zod";
+import { z } from "zod";
 
 import { applyProfile } from "@/lib/agency-profile";
 import { getOwnedAgency } from "@/lib/auth";
@@ -12,7 +12,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidateAgency } from "@/lib/revalidate";
 import { caseStudySchema, profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
-import { parseChannelUrl } from "@/lib/youtube-url";
+import { fetchChannel } from "@/lib/youtube";
+import { caseStudyChannelRef, parseChannelUrl } from "@/lib/youtube-url";
 
 // Agency dashboard mutations. Each one re-checks ownership (SECURITY.md) and writes with the
 // user's own client, so RLS and the column privileges in schema.sql apply as a second guard.
@@ -180,5 +181,130 @@ export async function markLeadContacted(agencyId: string, leadId: string): Promi
     .is("contacted_at", null);
   if (error) return { ok: false, error: SAVE_FAILED };
   revalidatePath(`/dashboard/${agencyId}/leads`);
+  return { ok: true, data: undefined };
+}
+
+// ───────── Channels (agency_channels) ─────────
+
+const channelSchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .max(300)
+    .refine(
+      (v) => caseStudyChannelRef(v) !== null,
+      "Use a YouTube channel link, like https://www.youtube.com/@name.",
+    ),
+  industry: z.string().regex(/^[a-z0-9-]{0,80}$/),
+});
+
+/** https link, so it passes the table's check (youtube.com/@x typed without a scheme). */
+const httpsChannelUrl = (raw: string) =>
+  /^https:\/\//i.test(raw) ? raw : `https://${raw.replace(/^http:\/\//i, "")}`;
+
+/**
+ * Looks the channel up once (YouTube Data API, server-side) and stores its ID, title and
+ * subscriber count with the service role: owners can't write these themselves (column grants).
+ * Left empty when YouTube can't be reached; the monthly stats cron fills them in later.
+ */
+async function resolveChannel(channelRowId: string, url: string) {
+  const ref = caseStudyChannelRef(url);
+  if (!ref) return;
+  const stats = await fetchChannel(ref);
+  if (typeof stats === "string") return;
+  await createAdminClient()
+    .from("agency_channels")
+    .update({
+      channel_id: stats.channelId,
+      title: stats.title,
+      subscriber_count: stats.subscribers,
+      stats_checked_at: new Date().toISOString(),
+    })
+    .eq("id", channelRowId);
+}
+
+async function industryIdFor(
+  owned: NonNullable<Awaited<ReturnType<typeof getOwnedAgency>>>,
+  slug: string,
+) {
+  if (!slug) return null;
+  const { data } = await owned.supabase
+    .from("industries")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+/** Adds a channel the agency worked on (max 6; the database enforces it too). */
+export async function addChannel(agencyId: string, raw: unknown): Promise<FormResult> {
+  const owned = await getOwnedAgency(agencyId);
+  if (!owned) return { ok: false, error: NOT_OWNER };
+  const parsed = channelSchema.safeParse(raw);
+  if (!parsed.success) return invalid(parsed.error);
+  const url = httpsChannelUrl(parsed.data.url);
+  const { data, error } = await owned.supabase
+    .from("agency_channels")
+    .insert({
+      agency_id: agencyId,
+      channel_url: url,
+      industry_id: await industryIdFor(owned, parsed.data.industry),
+    })
+    .select("id")
+    .single();
+  if (error) {
+    if (error.code === "23505")
+      return { ok: false, error: "That channel is already on your list." };
+    if (error.code === "23514") return { ok: false, error: "You can list up to 6 channels." };
+    return { ok: false, error: SAVE_FAILED };
+  }
+  await resolveChannel(data.id, url);
+  revalidatePath(`/dashboard/${agencyId}`);
+  revalidateAgency(owned.agency.slug);
+  return { ok: true, data: undefined };
+}
+
+/** Changes a channel's link or industry. A new link resets its confirmation (DB trigger). */
+export async function updateChannel(
+  agencyId: string,
+  channelId: string,
+  raw: unknown,
+): Promise<FormResult> {
+  const owned = await getOwnedAgency(agencyId);
+  if (!owned) return { ok: false, error: NOT_OWNER };
+  const parsed = channelSchema.safeParse(raw);
+  if (!parsed.success || !/^[0-9a-f-]{36}$/i.test(channelId))
+    return { ok: false, error: SAVE_FAILED };
+  const url = httpsChannelUrl(parsed.data.url);
+  const { data: before } = await owned.supabase
+    .from("agency_channels")
+    .select("channel_url")
+    .eq("id", channelId)
+    .eq("agency_id", agencyId)
+    .maybeSingle();
+  if (!before) return { ok: false, error: "That channel is no longer on your list." };
+  const { error } = await owned.supabase
+    .from("agency_channels")
+    .update({ channel_url: url, industry_id: await industryIdFor(owned, parsed.data.industry) })
+    .eq("id", channelId)
+    .eq("agency_id", agencyId);
+  if (error) return { ok: false, error: SAVE_FAILED };
+  if (before.channel_url !== url) await resolveChannel(channelId, url);
+  revalidatePath(`/dashboard/${agencyId}`);
+  revalidateAgency(owned.agency.slug);
+  return { ok: true, data: undefined };
+}
+
+export async function removeChannel(agencyId: string, channelId: string): Promise<FormResult> {
+  const owned = await getOwnedAgency(agencyId);
+  if (!owned) return { ok: false, error: NOT_OWNER };
+  const { error } = await owned.supabase
+    .from("agency_channels")
+    .delete()
+    .eq("id", channelId)
+    .eq("agency_id", agencyId);
+  if (error) return { ok: false, error: SAVE_FAILED };
+  revalidatePath(`/dashboard/${agencyId}`);
+  revalidateAgency(owned.agency.slug);
   return { ok: true, data: undefined };
 }

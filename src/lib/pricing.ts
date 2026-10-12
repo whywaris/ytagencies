@@ -1,6 +1,9 @@
 // Pricing details and response time: values, labels and thresholds shared by the forms, the
 // profile, directory rows and the home hero. No imports: tested.
 
+/** The units a starting price can be in (agencies.pricing_model, agency_services.price_unit). */
+export const PRICING_MODELS = ["retainer", "per_video", "project", "performance"] as const;
+
 export const MIN_CONTRACTS = ["none", "1_month", "3_months", "6_months", "12_months"] as const;
 export type MinContract = (typeof MIN_CONTRACTS)[number];
 export const AD_SPENDS = ["separate", "included", "not_applicable"] as const;

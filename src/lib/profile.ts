@@ -41,47 +41,18 @@ export function profileDescription(agency: AgencyProfile) {
   return `${agency.name} offers ${services || "YouTube services"}${industries ? ` for ${industries}` : ""}. See case studies, reviews and minimum budget, then contact them directly.`;
 }
 
-const WORDS: Record<string, string> = {
-  roas: "ROAS",
-  ctr: "CTR",
-  subs: "Subscribers",
-  avg: "Average",
-};
-const UNITS: Record<string, (n: number) => string> = {
-  usd: (n) => `$${n.toLocaleString("en-US")}`,
-  gbp: (n) => `£${n.toLocaleString("en-US")}`,
-  pct: (n) => `${n}%`,
-};
-
-/**
- * Case-study metrics JSON → display pairs. Unit comes from the key suffix:
- * {"cost_per_booking_usd": 48} → ["Cost per booking", "$48"], {"roas": 3.2} → ["ROAS", "3.2×"].
- */
+/** Case-study metrics (jsonb array of {value, label}) → display pairs, e.g. ["ROAS", "4.1×"]. */
 export function formatMetrics(metrics: Json | null): [label: string, value: string][] {
-  if (!metrics || typeof metrics !== "object" || Array.isArray(metrics)) return [];
-  // jsonb stores keys shortest-first, so "x_after" can precede "x_before"; put before/after pairs back in order.
-  const rank = (k: string) => (/_before(_|$)/.test(k) ? 0 : /_after(_|$)/.test(k) ? 1 : 0);
-  const stem = (k: string) => k.replace(/_(before|after)(?=_|$)/, "");
-  const entries = Object.entries(metrics).sort(
-    ([a], [b]) => stem(a).localeCompare(stem(b)) || rank(a) - rank(b),
+  if (!Array.isArray(metrics)) return [];
+  return metrics.flatMap((m) =>
+    m &&
+    typeof m === "object" &&
+    !Array.isArray(m) &&
+    typeof m.value === "string" &&
+    typeof m.label === "string"
+      ? [[m.label, m.value] as [string, string]]
+      : [],
   );
-  return entries.flatMap(([key, value]) => {
-    if (typeof value !== "number" && typeof value !== "string") return [];
-    const parts = key.split("_");
-    const unit = UNITS[parts[parts.length - 1]] ? parts.pop()! : null;
-    const label = parts
-      .map((w, i) => WORDS[w] ?? (i === 0 ? w[0].toUpperCase() + w.slice(1) : w))
-      .join(" ");
-    const formatted =
-      typeof value === "string"
-        ? value
-        : unit
-          ? UNITS[unit](value)
-          : key.startsWith("roas")
-            ? `${value}×`
-            : value.toLocaleString("en-US");
-    return [[label, formatted] as [string, string]];
-  });
 }
 
 /** Owner-edited URLs: allow only http(s) so a stored "javascript:" link can't run (SECURITY.md). */

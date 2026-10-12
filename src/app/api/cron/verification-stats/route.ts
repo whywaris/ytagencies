@@ -5,6 +5,7 @@ import { adminLogger } from "@/lib/admin-log";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { fetchChannel, withCheck, type ChannelStats, type StatsSnapshot } from "@/lib/youtube";
+import { caseStudyChannelRef } from "@/lib/youtube-url";
 
 // Monthly re-check of verified agencies' YouTube stats (ADMIN_V2_SPEC §5.4). Scheduled in
 // vercel.json; Vercel sends `Authorization: Bearer <CRON_SECRET>`. Each check is appended to
@@ -52,7 +53,34 @@ export async function GET(request: NextRequest) {
     else updated++;
   }
 
+  // Channels agencies listed on their profiles (agency_channels): refresh subscriber counts, and
+  // look up any whose first lookup failed. One quota unit each.
+  const channels = await db.from("agency_channels").select("id, channel_url, channel_id");
+  let channelsUpdated = 0;
+  for (const c of channels.data ?? []) {
+    const ref = c.channel_id
+      ? ({ kind: "id", value: c.channel_id } as const)
+      : caseStudyChannelRef(c.channel_url);
+    if (!ref) continue;
+    const stats = await fetchChannel(ref);
+    if (typeof stats === "string") continue;
+    const { error: channelError } = await db
+      .from("agency_channels")
+      .update({
+        channel_id: stats.channelId,
+        title: stats.title,
+        subscriber_count: stats.subscribers,
+        stats_checked_at: new Date().toISOString(),
+      })
+      .eq("id", c.id);
+    if (!channelError) channelsUpdated++;
+  }
+
   // Recorded in the audit log as a system action (no admin).
-  await adminLogger(db, null)("verification.recheck", "system", null, { updated, failed });
-  return Response.json({ updated, failed });
+  await adminLogger(db, null)("verification.recheck", "system", null, {
+    updated,
+    failed,
+    channelsUpdated,
+  });
+  return Response.json({ updated, failed, channelsUpdated });
 }

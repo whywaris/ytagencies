@@ -1,0 +1,504 @@
+<title>YT Agencies Agency Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&display=swap">
+<script>
+(function(){var t='light';try{t=localStorage.getItem('yta-theme')||'light'}catch(e){}document.documentElement.setAttribute('data-site-theme',t)})();
+</script>
+<style>
+/* Layout: profile header with a facts row, then a reading column of sections beside a sticky decision card (price, reply time, contact). Same public tokens as the home page; light by default. */
+:root{
+  --bg:#FBFBFD; --raised:#FFFFFF; --surface:#F3F4F7; --text:#16171A; --text-2:#5E626B; --line:#E2E3E8; --line-2:#EEEFF2;
+  --accent:#1F5EFF; --accent-ink:#FFFFFF; --accent-soft:#EAF0FF;
+  --violet:#7C5CFF; --violet-soft:#F0ECFF; --coral:#D1462A; --coral-soft:#FFEFEA; --mint:#0B7A5A; --mint-soft:#E5F7F0; --amber:#B26F00; --amber-soft:#FFF5E0; --pink:#C8326A; --pink-soft:#FDEAF1;
+  --nav:rgba(251,251,253,.8);
+  --shadow:0 1px 2px rgba(20,25,40,.05),0 12px 32px -12px rgba(20,25,40,.14);
+  color-scheme:light;
+  --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+:root[data-site-theme="dark"]{
+  --bg:#0B0C10; --raised:#15161B; --surface:#1C1E24; --text:#F3F4F6; --text-2:#A0A4AD; --line:#2A2D35; --line-2:#20222A;
+  --accent:#6B9BFF; --accent-ink:#071026; --accent-soft:#17213A;
+  --violet:#A28BFF; --violet-soft:#221B3D; --coral:#FF8A6E; --coral-soft:#3A1E17; --mint:#3CCB9C; --mint-soft:#11302A; --amber:#F2B53A; --amber-soft:#33270E; --pink:#FF7AA5; --pink-soft:#3A1626;
+  --nav:rgba(11,12,16,.75);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 16px 40px -12px rgba(0,0,0,.7);
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
+.mock{text-align:center;font-size:12.5px;color:var(--text-2);padding:8px 16px;background:var(--surface)}
+svg{flex:none}
+
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--nav);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line-2)}
+.nav-in{max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:36px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:-.02em;font-size:17px}
+.logo-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+.logo-mark svg{width:16px;height:16px;color:#fff}
+.links{display:flex;gap:28px;font-size:14.5px;color:var(--text-2)}
+.links a:hover{color:var(--text)}
+.right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:14.5px}
+.icon-btn{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);background:var(--raised);border-radius:999px;cursor:pointer;color:var(--text-2)}
+.icon-btn svg{width:18px;height:18px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 22px;border-radius:999px;font-size:15px;font-weight:600;border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:transform .15s,border-color .15s}
+.btn svg{width:16px;height:16px}
+.btn-sm{height:38px;padding:0 18px;font-size:14px}
+.btn-primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 1px 2px rgba(31,94,255,.3),0 8px 20px -6px rgba(31,94,255,.45)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-light{background:var(--raised);color:var(--text);border-color:var(--line)}
+.btn-light:hover{border-color:var(--text-2)}
+.btn-block{width:100%}
+@media (max-width:880px){.links{display:none}.signin{display:none}.nav-in{padding:0 16px}}
+
+.wrap{max-width:1120px;margin:0 auto;padding-inline:24px}
+.crumbs{display:flex;flex-wrap:wrap;gap:8px;font-size:13.5px;color:var(--text-2);padding-top:28px}
+.crumbs a:hover{color:var(--text)}
+.crumbs span[aria-hidden]{opacity:.5}
+
+/* header */
+.head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;padding:28px 0 32px;border-bottom:1px solid var(--line)}
+.alogo{width:88px;height:88px;border-radius:22px;background:linear-gradient(135deg,#4B3F6E,#7C5CFF);color:#fff;display:grid;place-items:center;font-weight:700;font-size:28px;letter-spacing:-.02em}
+.name-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-size:clamp(30px,4vw,42px);font-weight:650;font-stretch:90%;letter-spacing:-.035em;line-height:1.05}
+.badge{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:600}
+.badge svg{width:13px;height:13px}
+.b-ver{background:var(--mint-soft);color:var(--mint)}
+.b-found{background:var(--amber-soft);color:var(--amber)}
+.best{margin:10px 0 0;font-size:18px;color:var(--text-2);max-width:40em}
+.best b{color:var(--text);font-weight:600}
+.facts{display:flex;flex-wrap:wrap;gap:10px 22px;margin:18px 0 0;padding:0;list-style:none;font-size:14px;color:var(--text-2)}
+.facts li{display:flex;align-items:center;gap:7px}
+.facts svg{width:16px;height:16px;color:var(--text-2)}
+.facts b{color:var(--text);font-weight:600}
+.head-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+@media (max-width:640px){.head{grid-template-columns:1fr;gap:16px}.alogo{width:64px;height:64px;border-radius:16px;font-size:20px}}
+
+/* body grid */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:56px;padding:40px 0 80px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:1fr;gap:0}.side{display:none}}
+
+section.blk{padding:36px 0;border-top:1px solid var(--line-2)}
+section.blk:first-child{padding-top:0;border-top:0}
+h2{margin:0 0 6px;font-size:24px;font-weight:650;letter-spacing:-.025em;font-stretch:94%}
+.lede{margin:0 0 20px;font-size:15px;color:var(--text-2)}
+.note{font-size:13px;color:var(--text-2)}
+
+/* glance */
+.glance{font-size:18px;line-height:1.65;margin:0;max-width:42em}
+.glance-src{margin-top:12px}
+
+/* pricing */
+.price-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--raised)}
+.price-grid div{padding:18px 20px;border-right:1px solid var(--line-2)}
+.price-grid div:last-child{border-right:0}
+.price-grid span{display:block;font-size:12.5px;color:var(--text-2)}
+.price-grid b{display:block;margin-top:4px;font-size:18px;font-weight:650;letter-spacing:-.01em}
+.price-grid small{display:block;font-size:12.5px;color:var(--text-2)}
+.svc-prices{margin-top:14px;display:grid;gap:8px}
+.svc-prices div{display:flex;justify-content:space-between;gap:12px;font-size:14.5px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.svc-prices div:last-child{border-bottom:0}
+@media (max-width:760px){.price-grid{grid-template-columns:1fr 1fr}.price-grid div:nth-child(2){border-right:0}.price-grid div:nth-child(-n+2){border-bottom:1px solid var(--line-2)}}
+
+/* focus bars */
+.focus{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.focus h3{margin:0 0 14px;font-size:15px;font-weight:600}
+.bar-row{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:6px 12px;align-items:center;margin-bottom:14px;font-size:14.5px}
+.bar-row a:hover{color:var(--accent)}
+.bar-row .pct{text-align:right;color:var(--text-2);font-size:13.5px}
+.bar{grid-column:1/-1;height:8px;border-radius:99px;background:var(--surface);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px}
+@media (max-width:700px){.focus{grid-template-columns:1fr;gap:16px}}
+
+/* services detail */
+.svc-list{display:grid;gap:12px}
+.svc{padding:18px 20px;border:1px solid var(--line);border-radius:16px;background:var(--raised)}
+.svc-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.svc h3{margin:0;font-size:16.5px;font-weight:650}
+.svc-top span{font-size:13.5px;color:var(--text-2)}
+.svc ul{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.svc li{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--surface)}
+
+/* channels */
+.chan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.chan{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--raised)}
+.chan-top{display:flex;align-items:center;gap:10px;min-width:0}
+.avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:650;font-size:14px;flex:none}
+.chan b{display:block;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chan .sub{font-size:13px;color:var(--text-2)}
+.chan-meta{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--text-2)}
+.conf{display:inline-flex;align-items:center;gap:4px;color:var(--mint);font-weight:600;font-size:12.5px}
+.conf svg{width:13px;height:13px}
+.self{font-size:12.5px;color:var(--text-2)}
+@media (max-width:760px){.chan-grid{grid-template-columns:1fr}}
+
+/* case study */
+.case{border:1px solid var(--line);border-radius:20px;background:var(--raised);overflow:hidden}
+.case-head{padding:22px 24px 0}
+.case-head .tag{display:inline-flex;font-size:12.5px;font-weight:600;color:var(--violet);background:var(--violet-soft);padding:3px 10px;border-radius:999px}
+.case h3{margin:12px 0 6px;font-size:19px;font-weight:650;letter-spacing:-.015em}
+.case p{margin:0;color:var(--text-2);font-size:15px}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:20px;border-top:1px solid var(--line-2)}
+.metrics div{padding:16px 24px;border-right:1px solid var(--line-2)}
+.metrics div:last-child{border-right:0}
+.metrics b{display:block;font-size:24px;font-weight:650;letter-spacing:-.02em}
+.metrics span{font-size:12.5px;color:var(--text-2)}
+@media (max-width:620px){.metrics{grid-template-columns:1fr}.metrics div{border-right:0;border-bottom:1px solid var(--line-2)}}
+
+/* process */
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.steps li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:14px;padding:14px 0;position:relative}
+.steps li:not(:last-child)::before{content:"";position:absolute;left:15px;top:46px;bottom:-6px;width:2px;background:var(--line-2)}
+.steps i{font-style:normal;width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:650;font-size:14px}
+.steps b{display:block;font-size:15.5px;font-weight:600}
+.steps span{font-size:14.5px;color:var(--text-2)}
+
+/* verified */
+.checks{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:16px;background:var(--raised);overflow:hidden}
+.checks li{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-bottom:1px solid var(--line-2)}
+.checks li:last-child{border-bottom:0}
+.ck{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ck svg{width:14px;height:14px}
+.ck.yes{background:var(--mint-soft);color:var(--mint)}
+.ck.no{background:var(--surface);color:var(--text-2)}
+.checks b{display:block;font-size:15px;font-weight:600}
+.checks span{font-size:13.5px;color:var(--text-2)}
+
+/* review */
+.review{border:1px solid var(--line);border-radius:20px;background:var(--raised);display:grid;grid-template-columns:minmax(0,1fr) 200px;overflow:hidden}
+.rv-main{padding:22px 24px}
+.rv-main .proj{font-size:12.5px;color:var(--text-2);display:flex;flex-wrap:wrap;gap:6px 16px}
+.rv-main blockquote{margin:14px 0 8px;font-size:18px;font-weight:600;letter-spacing:-.01em;line-height:1.4}
+.rv-main p{margin:0;color:var(--text-2);font-size:14.5px}
+.scores{padding:22px 20px;border-left:1px solid var(--line-2);background:var(--surface);display:grid;gap:10px;align-content:start}
+.overall{display:flex;align-items:baseline;gap:6px}
+.overall b{font-size:32px;font-weight:650;letter-spacing:-.02em}
+.overall span{font-size:13px;color:var(--text-2)}
+.sc{display:flex;justify-content:space-between;font-size:13.5px}
+.sc span{color:var(--text-2)}
+.reviewer{display:flex;align-items:center;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line-2);font-size:13.5px}
+.reviewer .avatar{width:34px;height:34px;font-size:12px}
+.reviewer span{color:var(--text-2)}
+@media (max-width:700px){.review{grid-template-columns:1fr}.scores{border-left:0;border-top:1px solid var(--line-2)}}
+
+/* in their words */
+.words{margin:0;padding:4px 0 4px 18px;border-left:3px solid var(--line);font-size:16px;color:var(--text);max-width:42em}
+
+/* faq */
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;font-size:16px;font-weight:600}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary i{width:26px;height:26px;border-radius:50%;background:var(--surface);display:grid;place-items:center;flex:none;transition:transform .2s}
+.faq summary i::before{content:"";width:7px;height:7px;border-right:2px solid var(--text-2);border-bottom:2px solid var(--text-2);transform:translateY(-2px) rotate(45deg)}
+.faq details[open] summary i{transform:rotate(180deg)}
+.faq details p{margin:0 0 18px;color:var(--text-2);font-size:15px;max-width:42em}
+
+/* similar */
+.sim{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sim a{display:flex;gap:12px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--raised);transition:border-color .15s}
+.sim a:hover{border-color:var(--text-2)}
+.sim .avatar{border-radius:11px}
+.sim b{display:block;font-size:14.5px}
+.sim span{font-size:12.5px;color:var(--text-2)}
+.rel{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.rel a{font-size:13.5px;padding:6px 12px;border-radius:999px;background:var(--surface)}
+.rel a:hover{color:var(--accent)}
+@media (max-width:760px){.sim{grid-template-columns:1fr}}
+
+/* contact */
+.form{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+.form .full{grid-column:1/-1}
+.form label{display:block;font-size:14px;font-weight:600;margin-bottom:7px}
+.form label span{font-weight:400;color:var(--text-2)}
+.in{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--raised);padding:0 14px;font-size:15.5px}
+textarea.in{height:120px;padding:12px 14px;resize:vertical}
+.in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.form-foot{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.privacy{font-size:12.5px;color:var(--text-2);margin:0;max-width:36em}
+@media (max-width:620px){.form{grid-template-columns:1fr}}
+
+.foot-meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:13px;color:var(--text-2);padding-top:28px}
+.foot-meta a{color:var(--accent)}
+
+/* sticky card */
+.side{position:sticky;top:84px;display:grid;gap:14px}
+.card{background:var(--raised);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:22px}
+.card .from{font-size:13px;color:var(--text-2)}
+.card .price{font-size:30px;font-weight:650;letter-spacing:-.025em;line-height:1.1}
+.card .price small{font-size:15px;color:var(--text-2);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px}
+.chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:550;background:var(--surface)}
+.chip.g{background:var(--mint-soft);color:var(--mint)}
+.card .btn+.btn{margin-top:10px}
+.reply{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding-top:16px;border-top:1px solid var(--line-2);font-size:14px}
+.reply svg{width:18px;height:18px;color:var(--accent);margin-top:2px}
+.reply span{display:block;font-size:12.5px;color:var(--text-2)}
+.mini{background:var(--raised);border:1px solid var(--line);border-radius:18px;padding:16px 18px;font-size:13.5px}
+.mini h4{margin:0 0 10px;font-size:13.5px;font-weight:650}
+.mini li{display:flex;gap:8px;align-items:center;padding:4px 0;color:var(--text-2)}
+.mini ul{list-style:none;margin:0;padding:0}
+.mini svg{width:14px;height:14px;color:var(--mint)}
+.side-links{font-size:13px;color:var(--text-2);display:grid;gap:6px;padding:0 4px}
+.side-links a{color:var(--accent)}
+
+/* mobile bar */
+.mbar{display:none}
+@media (max-width:980px){
+  .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:25;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--nav);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line)}
+  .mbar b{display:block;font-size:17px}
+  .mbar span{font-size:12.5px;color:var(--text-2)}
+  body{padding-bottom:84px}
+}
+@media (max-width:560px){.wrap{padding-inline:16px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="mock">Mockup with a fictional agency. Every name, number, channel and review on this page is sample data.</div>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="logo" href="#"><span class="logo-mark"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 5h8M4 8h8M4 11h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>YT Agencies</a>
+    <nav class="links" aria-label="Main"><a href="#">Services</a><a href="#">Industries</a><a href="#">Guides</a><a href="#">How it works</a></nav>
+    <div class="right">
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch to dark mode"></button>
+      <a class="signin" href="#">Sign in</a>
+      <a class="btn btn-primary btn-sm" href="#">List your agency</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="#">Home</a><span aria-hidden="true">/</span><a href="#">Influencer marketing agencies</a><span aria-hidden="true">/</span><span>Northwake Media</span></nav>
+
+  <header class="head">
+    <div class="alogo" aria-hidden="true">NM</div>
+    <div>
+      <div class="name-row">
+        <h1>Northwake Media</h1>
+        <span class="badge b-ver"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified</span>
+        <span class="badge b-found">Founding agency</span>
+      </div>
+      <p class="best">Best for <b>ecommerce and gaming brands</b> that want YouTube creator campaigns with a <b>$3k+ monthly budget</b>.</p>
+      <ul class="facts">
+        <li><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.5" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg><b>London, UK</b> + United States</li>
+        <li><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M3 20c.7-3.4 3.2-5.5 6-5.5s5.3 2.1 6 5.5M16.5 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.3.9 2.2 2.9 2.5 5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><b>11–50</b> people</li>
+        <li><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M4 10h16M9 3v4M15 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Since <b class="num">2019</b></li>
+        <li><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.5 5.4 3.5 8.5s-1 5.9-3.5 8.5c-2.5-2.6-3.5-5.4-3.5-8.5s1-5.9 3.5-8.5Z" stroke="currentColor" stroke-width="1.8"/></svg>English, Spanish</li>
+        <li><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>GMT, works with US hours</li>
+      </ul>
+      <div class="head-cta">
+        <a class="btn btn-primary" href="#contact">Contact Northwake Media</a>
+        <a class="btn btn-light" href="#">Visit website<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4h6v6M12 4l-7.5 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <section class="blk" id="glance">
+        <h2>At a glance</h2>
+        <p class="glance">Northwake Media is a London-based YouTube agency founded in 2019 with 11–50 people. It runs influencer campaigns, YouTube Shorts and video production, mostly for ecommerce, gaming and fitness brands in the UK and US. Pricing starts at $3,000 per month on a monthly retainer with a 3-month minimum; ad spend is paid separately to Google.</p>
+        <p class="note glance-src">Written by YT Agencies from the agency's profile details.</p>
+      </section>
+
+      <section class="blk" id="pricing">
+        <h2>Pricing</h2>
+        <p class="lede">What you'll pay and what you're committing to.</p>
+        <div class="price-grid">
+          <div><span>Starting price</span><b class="num">$3,000</b><small>per month, retainer</small></div>
+          <div><span>Minimum contract</span><b>3 months</b><small>then month to month</small></div>
+          <div><span>Ad spend</span><b>Separate</b><small>paid to Google</small></div>
+          <div><span>Setup fee</span><b class="num">$100</b><small>one time</small></div>
+        </div>
+        <div class="svc-prices num">
+          <div><span>Influencer marketing</span><b>from $3,000/mo</b></div>
+          <div><span>YouTube Shorts</span><b>from $1,500/mo</b></div>
+          <div><span>Video production</span><b>from $800/video</b></div>
+        </div>
+      </section>
+
+      <section class="blk" id="focus">
+        <h2>Where they focus</h2>
+        <p class="lede">Share of their work by service and by client industry, as reported by the agency.</p>
+        <div class="focus">
+          <div>
+            <h3>Services</h3>
+            <div class="bar-row"><a href="#">Influencer marketing</a><span class="pct num">70%</span><div class="bar"><i style="width:70%;background:var(--pink)"></i></div></div>
+            <div class="bar-row"><a href="#">YouTube Shorts</a><span class="pct num">20%</span><div class="bar"><i style="width:20%;background:var(--amber)"></i></div></div>
+            <div class="bar-row"><a href="#">Video production</a><span class="pct num">10%</span><div class="bar"><i style="width:10%;background:var(--coral)"></i></div></div>
+          </div>
+          <div>
+            <h3>Industries</h3>
+            <div class="bar-row"><a href="#">Ecommerce</a><span class="pct num">40%</span><div class="bar"><i style="width:40%;background:var(--accent)"></i></div></div>
+            <div class="bar-row"><a href="#">Gaming</a><span class="pct num">35%</span><div class="bar"><i style="width:35%;background:var(--violet)"></i></div></div>
+            <div class="bar-row"><a href="#">Fitness</a><span class="pct num">25%</span><div class="bar"><i style="width:25%;background:var(--mint)"></i></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="blk" id="services">
+        <h2>Services</h2>
+        <p class="lede">What's included in each service.</p>
+        <div class="svc-list">
+          <div class="svc"><div class="svc-top"><h3>Influencer marketing</h3><span class="num">from $3,000/mo</span></div>
+            <ul><li>Creator search and vetting</li><li>Contracts and briefs</li><li>Usage rights</li><li>Monthly performance report</li></ul></div>
+          <div class="svc"><div class="svc-top"><h3>YouTube Shorts</h3><span class="num">from $1,500/mo</span></div>
+            <ul><li>12 Shorts a month</li><li>Scripts and editing</li><li>Posting schedule</li></ul></div>
+          <div class="svc"><div class="svc-top"><h3>Video production</h3><span class="num">from $800/video</span></div>
+            <ul><li>Script</li><li>Filming in London</li><li>Two rounds of edits</li></ul></div>
+        </div>
+      </section>
+
+      <section class="blk" id="channels">
+        <h2>Channels they've worked on</h2>
+        <p class="lede">Subscriber counts come from YouTube. "Confirmed" means the channel owner confirmed the work to us.</p>
+        <div class="chan-grid">
+          <a class="chan" href="#"><div class="chan-top"><span class="avatar" style="background:#C8326A">FB</span><div style="min-width:0"><b>FitBox Home Workouts</b><span class="sub num">212K subscribers</span></div></div>
+            <div class="chan-meta"><span>Fitness</span><span class="conf"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Confirmed</span></div></a>
+          <a class="chan" href="#"><div class="chan-top"><span class="avatar" style="background:#7C5CFF">PL</span><div style="min-width:0"><b>Pixel Loot</b><span class="sub num">86K subscribers</span></div></div>
+            <div class="chan-meta"><span>Gaming</span><span class="conf"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Confirmed</span></div></a>
+          <a class="chan" href="#"><div class="chan-top"><span class="avatar" style="background:#1F5EFF">GS</span><div style="min-width:0"><b>Glow Skin Co</b><span class="sub num">31K subscribers</span></div></div>
+            <div class="chan-meta"><span>Ecommerce</span><span class="self">Listed by agency</span></div></a>
+        </div>
+      </section>
+
+      <section class="blk" id="cases">
+        <h2>Case study</h2>
+        <article class="case">
+          <div class="case-head">
+            <span class="tag">Fitness, influencer marketing</span>
+            <h3>Launching a home-workout app with 14 fitness creators</h3>
+            <p>FitBox needed installs in the US without running paid ads. Northwake picked 14 mid-sized fitness creators, wrote the briefs and ran a 3-month campaign with discount codes.</p>
+          </div>
+          <div class="metrics num">
+            <div><b>14</b><span>creators</span></div>
+            <div><b>2.1M</b><span>views in 3 months</span></div>
+            <div><b>18,400</b><span>app installs from codes</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="blk" id="process">
+        <h2>How they work</h2>
+        <p class="lede">Reports every month, with a check-in call every two weeks.</p>
+        <ol class="steps">
+          <li><i>1</i><div><b>Discovery call</b><span>Goals, budget and the audience you want to reach.</span></div></li>
+          <li><i>2</i><div><b>Creator shortlist</b><span>10–20 creators with audience data for you to approve.</span></div></li>
+          <li><i>3</i><div><b>Campaign launch</b><span>Briefs, contracts and content reviews before anything goes live.</span></div></li>
+          <li><i>4</i><div><b>Monthly report</b><span>Views, clicks and sales per creator, with next steps.</span></div></li>
+        </ol>
+      </section>
+
+      <section class="blk" id="verified">
+        <h2>What was verified</h2>
+        <p class="lede">Checked by YT Agencies on 2 October 2026. <a href="#" style="color:var(--accent)">How verification works</a></p>
+        <ul class="checks">
+          <li><span class="ck yes"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Business email matches the website</b><span>The profile is run by someone at northwakemedia.com.</span></div></li>
+          <li><span class="ck yes"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Business details reviewed</b><span>Website, company details and contact information.</span></div></li>
+          <li><span class="ck yes"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>2 client channels confirmed</b><span>The channel owners confirmed the work by email.</span></div></li>
+          <li><span class="ck no"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><div><b>Results not independently checked</b><span>Case study numbers are reported by the agency.</span></div></li>
+        </ul>
+      </section>
+
+      <section class="blk" id="reviews">
+        <h2>Reviews</h2>
+        <p class="lede">Only businesses that contacted the agency through YT Agencies can leave a review.</p>
+        <article class="review">
+          <div class="rv-main">
+            <div class="proj"><span>Influencer marketing</span><span class="num">$10,000–$49,999</span><span class="num">Jan–Apr 2026</span></div>
+            <blockquote>"They found creators our customers actually watch."</blockquote>
+            <p>We'd tried two agencies before. Northwake came back with a shortlist in a week, the briefs were clear and every creator posted on time. Reporting was simple to read.</p>
+            <div class="reviewer"><span class="avatar" style="background:#0B7A5A">MR</span><div><b>Head of Marketing</b><br><span>Ecommerce, 11–50 employees, United States</span></div></div>
+          </div>
+          <div class="scores num">
+            <div class="overall"><b>4.8</b><span>overall</span></div>
+            <div class="sc"><span>Quality</span><b>5.0</b></div>
+            <div class="sc"><span>Schedule</span><b>5.0</b></div>
+            <div class="sc"><span>Cost</span><b>4.5</b></div>
+            <div class="sc"><span>Would refer</span><b>5.0</b></div>
+            <span class="badge b-ver" style="justify-self:start;margin-top:6px"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified client</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="blk" id="words">
+        <h2>In their words</h2>
+        <p class="lede">Written by the agency.</p>
+        <p class="words">We started Northwake because brands kept paying for creator posts nobody watched. We pick creators by audience data, not follower counts, and we report sales, not just views.</p>
+      </section>
+
+      <section class="blk faq" id="faq">
+        <h2>Questions about Northwake Media</h2>
+        <details open><summary>How much does Northwake Media charge?<i aria-hidden="true"></i></summary><p>Pricing starts at $3,000 per month on a monthly retainer, plus a $100 setup fee. Ad spend is paid separately to Google.</p></details>
+        <details><summary>Does Northwake Media require a contract?<i aria-hidden="true"></i></summary><p>Yes. There is a 3-month minimum, then the retainer runs month to month.</p></details>
+        <details><summary>Which industries does Northwake Media work with?<i aria-hidden="true"></i></summary><p>Mostly ecommerce (40%), gaming (35%) and fitness (25%) brands.</p></details>
+        <details><summary>Where is Northwake Media based?<i aria-hidden="true"></i></summary><p>London, United Kingdom. It also works with clients in the United States.</p></details>
+        <details><summary>How fast does Northwake Media reply?<i aria-hidden="true"></i></summary><p>Usually within a day, based on 6 inquiries in the last 90 days.</p></details>
+      </section>
+
+      <section class="blk" id="related">
+        <h2>Compare with similar agencies</h2>
+        <div class="sim">
+          <a href="#"><span class="avatar" style="background:#1F5EFF">SS</span><div><b>Saltmere Studios</b><span>Influencer marketing, from $2,000/mo</span></div></a>
+          <a href="#"><span class="avatar" style="background:#B26F00">CV</span><div><b>Copperline Video</b><span>Production, from $1,200/video</span></div></a>
+          <a href="#"><span class="avatar" style="background:#0B7A5A">FD</span><div><b>Fernhollow Digital</b><span>Shorts, from $1,500/mo</span></div></a>
+        </div>
+        <div class="rel"><a href="#">Influencer marketing agencies for ecommerce</a><a href="#">YouTube Shorts agencies for gaming</a><a href="#">Influencer marketing agencies in the UK</a></div>
+      </section>
+
+      <section class="blk" id="contact">
+        <h2>Contact Northwake Media</h2>
+        <p class="lede">Your message goes straight to the agency. They usually reply within a day.</p>
+        <form class="form" id="cform" novalidate>
+          <div><label for="f-name">Your name</label><input class="in" id="f-name" autocomplete="name"></div>
+          <div><label for="f-email">Work email</label><input class="in" id="f-email" type="email" autocomplete="email"></div>
+          <div><label for="f-co">Company <span>(optional)</span></label><input class="in" id="f-co" autocomplete="organization"></div>
+          <div><label for="f-budget">Monthly budget <span>(optional)</span></label><select class="in" id="f-budget"><option>Choose a range</option><option>Under $1,000</option><option>$1,000–$5,000</option><option>$5,000–$10,000</option><option>$10,000+</option></select></div>
+          <div class="full"><label for="f-msg">Message</label><textarea class="in" id="f-msg" placeholder="What you need, your goals and timeline"></textarea></div>
+          <div class="full form-foot"><button class="btn btn-primary" type="submit">Send inquiry</button><p class="privacy">We share your name, email, company and message only with Northwake Media. We don't sell your details or add you to a mailing list.</p></div>
+        </form>
+      </section>
+
+      <div class="foot-meta"><span>Last updated 2 October 2026</span><span>Something wrong? <a href="#">Report this listing</a></span></div>
+    </div>
+
+    <aside class="side" aria-label="Summary">
+      <div class="card">
+        <div class="from">Starting price</div>
+        <div class="price num">$3,000<small>/mo</small></div>
+        <div class="chips"><span class="chip">3-month minimum</span><span class="chip">Ad spend separate</span><span class="chip g">Verified</span></div>
+        <a class="btn btn-primary btn-block" href="#contact">Contact Northwake Media</a>
+        <a class="btn btn-light btn-block" href="#">Visit website<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 4h6v6M12 4l-7.5 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="reply"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5h16v10H9l-5 4v-14Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><div>Usually replies within a day<span class="num">Based on 6 inquiries in the last 90 days</span></div></div>
+      </div>
+      <div class="mini">
+        <h4>Verified by YT Agencies</h4>
+        <ul>
+          <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Business email</li>
+          <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Business details</li>
+          <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>2 client channels</li>
+        </ul>
+      </div>
+      <div class="side-links"><span>Is this your agency? <a href="#">Manage this listing</a></span></div>
+    </aside>
+  </div>
+</main>
+
+<div class="mbar" aria-label="Contact bar"><div><b class="num">$3,000/mo</b><span>Usually replies within a day</span></div><a class="btn btn-primary btn-sm" href="#contact">Contact</a></div>
+
+<script>
+(function(){
+  var root=document.documentElement,btn=document.getElementById('theme');
+  var sun='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  var moon='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  function dark(){return root.getAttribute('data-site-theme')==='dark'}
+  function paint(){var d=dark();btn.innerHTML=d?sun:moon;btn.setAttribute('aria-label',d?'Switch to light mode':'Switch to dark mode')}
+  btn.addEventListener('click',function(){var t=dark()?'light':'dark';root.setAttribute('data-site-theme',t);try{localStorage.setItem('yta-theme',t)}catch(e){}paint()});
+  paint();
+  document.getElementById('cform').addEventListener('submit',function(e){e.preventDefault()});
+  document.addEventListener('click',function(e){var a=e.target.closest('a[href="#"]');if(a)e.preventDefault()});
+})();
+</script>

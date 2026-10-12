@@ -1,18 +1,13 @@
 import { z } from "zod";
 
-import { AD_SPENDS, MIN_CONTRACTS } from "@/lib/pricing";
+import { AD_SPENDS, MIN_CONTRACTS, PRICING_MODELS } from "@/lib/pricing";
+import { checkFocusTotals, profileDetailsFields } from "@/lib/validation/profile-details";
 
 // Dashboard forms. Shared by client and server; the server always re-validates.
 
 const slug = z.string().regex(/^[a-z0-9-]{1,80}$/);
 
-export const PRICING_MODELS = ["retainer", "per_video", "project", "performance"] as const;
-export const METRIC_UNITS = [
-  { value: "", label: "Number" },
-  { value: "usd", label: "US$" },
-  { value: "gbp", label: "£" },
-  { value: "pct", label: "%" },
-] as const;
+export { PRICING_MODELS };
 
 /** Starting price and its unit: required on every agency form. "" is the unfilled form value. */
 export const startingPrice = z
@@ -49,7 +44,9 @@ export const profileSchema = z
     industries: z.array(slug).max(12, "Choose up to 12 industries."),
     primaryIndustry: slug.or(z.literal("")),
     locations: z.array(slug).max(40, "Choose up to 40 locations."),
+    ...profileDetailsFields,
   })
+  .superRefine(checkFocusTotals)
   .refine((v) => v.primaryService === "" || v.services.includes(v.primaryService), {
     path: ["primaryService"],
     message: "Your main service must be one of the services you offer.",
@@ -73,51 +70,25 @@ export const caseStudySchema = z.object({
       "Use a full link starting with https://",
     ),
   summary: z.string().trim().max(600, "Use 600 characters or fewer."),
+  service: slug.or(z.literal("")),
+  // Shown as big figures on the profile: "+340%" / "Organic views". Up to 3 (DB check too).
   metrics: z
     .array(
       z.object({
-        label: z.string().trim().min(1, "Name this result.").max(40),
-        value: z
-          .string()
-          .trim()
-          .regex(/^-?\d{1,9}(\.\d{1,2})?$/, "Enter a number, like 48 or 3.2."),
-        unit: z.enum(["", "usd", "gbp", "pct"]),
+        value: z.string().trim().min(1, "Add the figure.").max(12, "Use 12 characters or fewer."),
+        label: z.string().trim().min(1, "Name this result.").max(40, "Use 40 characters or fewer."),
       }),
     )
-    .max(6, "Add up to 6 results."),
+    .max(3, "Add up to 3 results."),
 });
 export type CaseStudyInput = z.infer<typeof caseStudySchema>;
 
-/** Form rows → metrics JSON, using the key convention formatMetrics() reads: name + unit suffix. */
-export function metricsToJson(rows: CaseStudyInput["metrics"]) {
-  const out: Record<string, number> = {};
-  for (const r of rows) {
-    const base = r.label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .slice(0, 40);
-    if (!base) continue;
-    out[r.unit ? `${base}_${r.unit}` : base] = Number(r.value);
-  }
-  return out;
-}
-
-const ACRONYMS = new Set(["roas", "ctr", "cpa", "cpm", "cpv", "roi"]);
-
-/** Metrics JSON → form rows, for editing. */
+/** Stored metrics (jsonb array of {value, label}) → form rows. */
 export function jsonToMetrics(json: unknown): CaseStudyInput["metrics"] {
-  if (!json || typeof json !== "object" || Array.isArray(json)) return [];
-  return Object.entries(json as Record<string, unknown>).flatMap(([key, value]) => {
-    if (typeof value !== "number") return [];
-    const parts = key.split("_");
-    const last = parts[parts.length - 1];
-    const unit =
-      last === "usd" || last === "gbp" || last === "pct"
-        ? (parts.pop() as "usd" | "gbp" | "pct")
-        : "";
-    const words = parts.map((w) => (ACRONYMS.has(w) ? w.toUpperCase() : w));
-    const label = words.join(" ");
-    return [{ label: label.charAt(0).toUpperCase() + label.slice(1), value: String(value), unit }];
-  });
+  if (!Array.isArray(json)) return [];
+  return json.flatMap((m) =>
+    m && typeof m.value === "string" && typeof m.label === "string"
+      ? [{ value: m.value, label: m.label }]
+      : [],
+  );
 }

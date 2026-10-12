@@ -40,8 +40,8 @@ export async function generateMetadata({ params }: PageProps<"/agency/[slug]">) 
   const agency = await load(params);
   return buildMetadata({
     image: `/og/agency/${agency.slug}`,
-    title: profileTitle(agency),
-    description: profileDescription(agency),
+    title: agency.seoTitle ?? profileTitle(agency),
+    description: agency.seoDescription ?? profileDescription(agency),
     path: `/agency/${agency.slug}`,
   });
 }

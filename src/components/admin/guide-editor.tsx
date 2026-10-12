@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { SeoFields } from "@/components/admin/seo-fields";
 import { usePortalContainer } from "@/components/admin/portal";
 import { GuideBody } from "@/components/guide-body";
 import {
@@ -489,48 +490,17 @@ export function GuideEditor({
               className="w-full rounded-lg border border-line bg-bg px-3 py-2"
             />
           </Counted>
-          <Counted
-            label="SEO title"
-            value={values.seoTitle}
-            max={60}
-            hard={70}
-            hint="Empty uses the title."
-          >
-            <input
-              value={values.seoTitle}
-              onChange={(e) => set("seoTitle", e.target.value)}
-              maxLength={70}
-              className={input}
-            />
-          </Counted>
-          <Counted
-            label="SEO description"
-            value={values.seoDescription}
-            max={160}
-            hard={200}
-            hint="Empty uses the excerpt."
-          >
-            <textarea
-              value={values.seoDescription}
-              onChange={(e) => set("seoDescription", e.target.value)}
-              maxLength={200}
-              rows={3}
-              className="w-full rounded-lg border border-line bg-bg px-3 py-2"
-            />
-          </Counted>
-          <div
-            aria-label="Search result preview"
-            className="flex flex-col gap-0.5 rounded-lg border border-line p-3"
-          >
-            <span className="text-admin-meta">
-              {siteHost} › guides › {shownSlug}
-            </span>
-            <span className="line-clamp-1 text-[16px] text-accent">{seoTitle}</span>
-            <span className="line-clamp-2 text-admin-meta">
-              {seoDescription ||
-                "Add an excerpt or SEO description so search results have a summary."}
-            </span>
-          </div>
+          <SeoFields
+            title={values.seoTitle}
+            description={values.seoDescription}
+            onTitle={(v) => set("seoTitle", v)}
+            onDescription={(v) => set("seoDescription", v)}
+            shownTitle={seoTitle}
+            shownDescription={seoDescription}
+            breadcrumb={`${siteHost} › guides › ${shownSlug}`}
+            titleHint="Empty uses the title."
+            descriptionHint="Empty uses the excerpt."
+          />
         </section>
 
         <section aria-label="Author" className={panel}>

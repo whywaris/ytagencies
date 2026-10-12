@@ -52,6 +52,9 @@ export type AgencyProfile = AgencyListItem & {
   foundedYear: number | null;
   isClaimed: boolean;
   updatedAt: string;
+  /** Admin-set search title / description; null uses the generated ones. */
+  seoTitle: string | null;
+  seoDescription: string | null;
   locations: (Tag & { type: string })[];
   caseStudies: {
     id: string;
@@ -247,7 +250,7 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .from("agencies")
     .select(
       `${LIST_SELECT},
-      website, founded_year, is_claimed, updated_at,
+      website, founded_year, is_claimed, updated_at, seo_title, seo_description,
       agency_locations(locations(slug, name, type)),
       case_studies(id, title, summary, channel_url, metrics, created_at, industries(slug, name)),
       published_reviews:reviews(id, author_name, author_company, rating, body, created_at)`,
@@ -268,6 +271,8 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     foundedYear: data.founded_year,
     isClaimed: data.is_claimed,
     updatedAt: data.updated_at,
+    seoTitle: data.seo_title,
+    seoDescription: data.seo_description,
     locations: data.agency_locations
       .map((r) => r.locations)
       .filter((l): l is Tag & { type: string } => l !== null),

@@ -9,11 +9,18 @@ import { a11yProps, Field, selectClasses, textareaClasses } from "@/components/f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { FormResult } from "@/lib/validation/lead";
-import { caseStudySchema, METRIC_UNITS, type CaseStudyInput } from "@/lib/validation/dashboard";
+import { caseStudySchema, type CaseStudyInput } from "@/lib/validation/dashboard";
 
 type Option = { slug: string; name: string };
 
-const EMPTY: CaseStudyInput = { title: "", industry: "", channelUrl: "", summary: "", metrics: [] };
+const EMPTY: CaseStudyInput = {
+  title: "",
+  industry: "",
+  service: "",
+  channelUrl: "",
+  summary: "",
+  metrics: [],
+};
 
 /** Server actions, so the owner dashboard and admin can share this editor with their own checks. */
 export type CaseStudyActions = {
@@ -25,11 +32,13 @@ export function CaseStudies({
   agencyId,
   items,
   industries,
+  services,
   actions,
 }: {
   agencyId: string;
   items: CaseStudyInput[];
   industries: Option[];
+  services: Option[];
   actions: CaseStudyActions;
 }) {
   const router = useRouter();
@@ -72,6 +81,7 @@ export function CaseStudies({
                 save={actions.save}
                 agencyId={agencyId}
                 industries={industries}
+                services={services}
                 initial={item}
                 onDone={done}
                 onCancel={() => setEditing(null)}
@@ -114,6 +124,7 @@ export function CaseStudies({
           save={actions.save}
           agencyId={agencyId}
           industries={industries}
+          services={services}
           initial={EMPTY}
           onDone={done}
           onCancel={() => setEditing(null)}
@@ -135,6 +146,7 @@ export function CaseStudies({
 function CaseStudyForm({
   agencyId,
   industries,
+  services,
   initial,
   save,
   onDone,
@@ -143,6 +155,7 @@ function CaseStudyForm({
   agencyId: string;
   save: CaseStudyActions["save"];
   industries: Option[];
+  services: Option[];
   initial: CaseStudyInput;
   onDone: () => void;
   onCancel: () => void;
@@ -196,6 +209,16 @@ function CaseStudyForm({
             ))}
           </select>
         </Field>
+        <Field id={`${prefix}-service`} label="Service" optional>
+          <select {...register("service")} id={`${prefix}-service`} className={selectClasses}>
+            <option value="">Not set</option>
+            {services.map((sv) => (
+              <option key={sv.slug} value={sv.slug}>
+                {sv.name}
+              </option>
+            ))}
+          </select>
+        </Field>
         <Field
           id={`${prefix}-channel`}
           label="Channel link"
@@ -221,70 +244,58 @@ function CaseStudyForm({
 
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-1 text-[14px] font-medium">Results</legend>
+        <p className="-mt-1 text-small">
+          Up to 3 headline figures, like &ldquo;+340%&rdquo; for organic views.
+        </p>
         {fields.map((field, i) => {
           const e = errors.metrics?.[i];
           return (
             <div
               key={field.id}
-              className="grid grid-cols-[1fr_7rem] gap-3 sm:grid-cols-[1fr_8rem_7rem_auto] sm:items-start"
+              className="grid grid-cols-[7rem_1fr] gap-3 sm:grid-cols-[8rem_1fr_auto] sm:items-start"
             >
-              <div className="col-span-2 flex flex-col gap-1 sm:col-span-1">
-                <label htmlFor={`${prefix}-m${i}-label`} className="sr-only">
-                  Result {i + 1} name
-                </label>
-                <Input
-                  id={`${prefix}-m${i}-label`}
-                  placeholder="Cost per booking"
-                  {...register(`metrics.${i}.label`)}
-                  aria-invalid={e?.label ? true : undefined}
-                />
-                {e?.label && <p className="text-[14px] text-destructive">{e.label.message}</p>}
-              </div>
               <div className="flex flex-col gap-1">
                 <label htmlFor={`${prefix}-m${i}-value`} className="sr-only">
-                  Result {i + 1} value
+                  Result {i + 1} figure
                 </label>
                 <Input
                   id={`${prefix}-m${i}-value`}
-                  inputMode="decimal"
-                  placeholder="48"
+                  placeholder="+340%"
+                  maxLength={12}
                   {...register(`metrics.${i}.value`)}
                   aria-invalid={e?.value ? true : undefined}
                 />
                 {e?.value && <p className="text-[14px] text-destructive">{e.value.message}</p>}
               </div>
-              <div>
-                <label htmlFor={`${prefix}-m${i}-unit`} className="sr-only">
-                  Result {i + 1} unit
+              <div className="flex flex-col gap-1">
+                <label htmlFor={`${prefix}-m${i}-label`} className="sr-only">
+                  Result {i + 1} label
                 </label>
-                <select
-                  id={`${prefix}-m${i}-unit`}
-                  {...register(`metrics.${i}.unit`)}
-                  className={selectClasses}
-                >
-                  {METRIC_UNITS.map((u) => (
-                    <option key={u.value} value={u.value}>
-                      {u.label}
-                    </option>
-                  ))}
-                </select>
+                <Input
+                  id={`${prefix}-m${i}-label`}
+                  placeholder="Organic views"
+                  maxLength={40}
+                  {...register(`metrics.${i}.label`)}
+                  aria-invalid={e?.label ? true : undefined}
+                />
+                {e?.label && <p className="text-[14px] text-destructive">{e.label.message}</p>}
               </div>
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="min-h-11 justify-self-start text-destructive hover:underline"
+                className="col-span-2 min-h-11 justify-self-start text-destructive hover:underline sm:col-span-1"
               >
                 Remove<span className="sr-only"> result {i + 1}</span>
               </button>
             </div>
           );
         })}
-        {fields.length < 6 && (
+        {fields.length < 3 && (
           <Button
             type="button"
             variant="link"
             className="self-start"
-            onClick={() => append({ label: "", value: "", unit: "" })}
+            onClick={() => append({ value: "", label: "" })}
           >
             Add a result
           </Button>

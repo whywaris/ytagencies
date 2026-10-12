@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
 
 import {
   a11yProps,
@@ -14,6 +14,7 @@ import {
   selectClasses,
   textareaClasses,
 } from "@/components/forms/field";
+import { ProfileDetailsFields, type DetailsForm } from "@/components/forms/profile-details-fields";
 import { Turnstile } from "@/components/forms/turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import { AD_SPEND_OPTION, AD_SPENDS, MIN_CONTRACT_OPTION, MIN_CONTRACTS } from "
 import { PRICING_LABEL } from "@/lib/profile";
 import { PRICING_MODELS } from "@/lib/validation/dashboard";
 import { submitAgencySchema, type SubmitAgencyInput } from "@/lib/validation/listing";
+import { EMPTY_DETAILS } from "@/lib/validation/profile-details";
 
 type Option = { slug: string; name: string };
 type Country = Option & { cities: Option[] };
@@ -40,13 +42,7 @@ export function SubmitAgencyForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [turnstileReset, setTurnstileReset] = useState(0);
   const doneHeading = useRef<HTMLHeadingElement>(null);
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    setError,
-    formState: { errors, isSubmitting, isSubmitted },
-  } = useForm<SubmitAgencyInput>({
+  const form = useForm<SubmitAgencyInput>({
     resolver: zodResolver(submitAgencySchema),
     defaultValues: {
       name: "",
@@ -63,8 +59,29 @@ export function SubmitAgencyForm({
       workEmail: "",
       turnstileToken: "",
       website: "",
+      ...EMPTY_DETAILS,
     },
   });
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    setError,
+    formState: { errors, isSubmitting, isSubmitted },
+  } = form;
+  // The optional details are folded away; unfold them when one of them needs fixing.
+  const detailError = (
+    [
+      "bestFor",
+      "timezone",
+      "youtubeChannelUrl",
+      "linkedinUrl",
+      "reportingFrequency",
+      "process",
+      "serviceDetails",
+      "industryFocus",
+    ] as const
+  ).some((k) => errors[k]);
 
   useEffect(() => {
     if (done) doneHeading.current?.focus();
@@ -103,7 +120,10 @@ export function SubmitAgencyForm({
     );
   }
 
-  const err = (k: keyof SubmitAgencyInput) => errors[k]?.message;
+  const err = (k: keyof SubmitAgencyInput) => {
+    const m = errors[k]?.message;
+    return typeof m === "string" ? m : undefined;
+  };
 
   return (
     <form onSubmit={onSubmit} noValidate className="relative flex flex-col gap-8">
@@ -259,6 +279,20 @@ export function SubmitAgencyForm({
         Use an email on your agency&apos;s website domain and we&apos;ll send a link that confirms
         you manage it. Other addresses are checked by hand.
       </p>
+
+      <details open={detailError || undefined} className="rounded-lg border border-line p-4 md:p-6">
+        <summary className="flex min-h-11 cursor-pointer items-center font-medium">
+          More about how you work (optional)
+        </summary>
+        <div className="pt-6">
+          <ProfileDetailsFields
+            form={form as unknown as UseFormReturn<DetailsForm>}
+            idPrefix="sa"
+            services={services}
+            industries={industries}
+          />
+        </div>
+      </details>
 
       <Honeypot {...register("website")} />
       <div className="flex flex-col gap-2">
