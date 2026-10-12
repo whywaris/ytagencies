@@ -2,7 +2,8 @@
 
 ## Supabase
 
-1. Create a production project and run all of `supabase/schema.sql`. For an existing dev project, apply `supabase/migrations/` in order instead.
+1. Create a production project and run all of `supabase/schema.sql` (SQL editor). It already contains everything the migrations in `supabase/migrations/` add, so on a fresh project don't run the migrations on top of it. Do this before the first deploy: the build reads the database while pre-rendering pages and fails if a table or column the code expects is missing. On the dev project, apply new migrations from `supabase/migrations/` in order.
+   - Defaults after `20261018000100_pricing_response.sql`: existing agencies have no minimum contract, ad spend or setup fee (nothing shows until they save their profile, where the first two are now required), and response times start empty. An agency's "Usually replies within…" appears only once it has marked 3 inquiries as contacted in the last 90 days.
 2. Seed production with taxonomy only (Part 1 of `seed.sql`), or run the whole seed and delete the samples:
    ```sql
    delete from agencies where id::text like '00000000-0000-4000-8000-%';
@@ -14,7 +15,13 @@
      - Dev project: `http://localhost:3000/auth/callback**` and `http://localhost:3001/auth/callback**` (the second is the port used for production builds with `next start -p 3001`), plus your Preview URL's `/auth/callback**` if you test sign-in there.
 
      Keep the trailing `**`: sign-in links carry `?next=`, and without the wildcard Supabase drops the URL and sends people to the Site URL instead. A URL that isn't listed fails the same way. On localhost the session cookie is shared across ports, so an email link that lands on `:3000` (the dev Site URL) also signs you in on `:3001`.
-   - Enable Google (Authentication → Providers; OAuth client in Google Cloud, authorized domain `ytagencies.com`, redirect URI from the Supabase provider page). The "Continue with Google" button on /login appears only while it's enabled. Leave other social providers off.
+   - Enable Google (Authentication → Providers → Google), on the dev and production projects:
+     1. Google Cloud → APIs & Services → OAuth consent screen: app name "YT Agencies", support email `help@ytagencies.com`, authorized domains `ytagencies.com` and `supabase.co`.
+     2. Credentials → Create OAuth client ID → Web application. Authorized JavaScript origins: `https://ytagencies.com` (plus `http://localhost:3000` on the dev client). Authorized redirect URI: the callback shown on the Supabase Google provider page, `https://<project-ref>.supabase.co/auth/v1/callback` (dev: `https://lkpmdqybxkhirlsqhffs.supabase.co/auth/v1/callback`).
+     3. Paste the client ID and secret into the Supabase Google provider and save.
+     4. After Google, Supabase sends people back to `/auth/callback?next=…`, so the Redirect URLs above must list `/auth/callback**` for every origin you sign in from (they already do).
+
+     The "Continue with Google" button on /login appears only while the provider is enabled (checked every 5 minutes). Leave other social providers off.
    - Custom SMTP through Resend and a higher email rate limit: see "Supabase email" below.
    - Email templates (Authentication → Email Templates). Email links must go to `/auth/confirm` (token hash), so they work when opened in a different browser or device; the default `{{ .ConfirmationURL }}` uses PKCE and fails there with "expired or already used". Set the link in both **Magic Link** and **Confirm signup** to:
      ```html
@@ -63,7 +70,7 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 3. Enable Web Analytics.
 4. Cron jobs come from `vercel.json` and run on Production only:
    - `/api/cron/verification-stats` on the 1st of each month at 06:00 UTC (re-checks verified channels' YouTube stats).
-   - `/api/cron/guides` daily at 07:00 UTC (refreshes guides whose scheduled time passed). Guide pages also refresh hourly, so a scheduled guide appears within an hour either way. On Vercel Pro, change it to `*/15 * * * *`.
+   - `/api/cron/guides` daily at 07:00 UTC. It refreshes guides whose scheduled time passed (guide pages also refresh hourly, so a scheduled guide appears within an hour either way; on Vercel Pro you can run it every 15 minutes, `*/15 * * * *`), sends the one "A business is waiting for your reply" email for leads not marked contacted after 24 hours, and deletes data past its retention period: leads after 24 months, closed contact messages 12 months after closing (set in `src/lib/company.ts`, shown in the privacy policy). Its response and logs hold counts only.
    After the first deploy, check both under Project → Settings → Cron Jobs and run each once with "Run" to see a 200.
 
 ## Cloudflare DNS (DNS-only, grey cloud)
