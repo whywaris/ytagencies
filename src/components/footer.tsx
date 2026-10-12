@@ -1,8 +1,8 @@
 import Link from "next/link";
 
+import { FooterBottom } from "@/components/footer-bottom";
 import { Logo } from "@/components/logo";
-import { copyrightName } from "@/lib/company";
-import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
+import { BRAND_NAME } from "@/lib/site";
 
 const GROUPS = [
   {
@@ -43,16 +43,10 @@ const GROUPS = [
   },
 ];
 
-const BOTTOM_LINKS = [
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "/cookies", label: "Cookies" },
-];
-
 export function Footer() {
   return (
     <footer className="border-t border-line bg-surface print:hidden">
-      <div className="mx-auto flex max-w-content flex-col gap-10 px-4 py-12 md:px-6">
+      <div className="mx-auto flex max-w-content flex-col gap-10 px-4 pt-12 md:px-6">
         <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
           <Link
             href="/"
@@ -82,34 +76,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-line pt-6 text-small md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-1">
-            <p>
-              © {new Date().getFullYear()} {copyrightName()}
-            </p>
-            <p>
-              {BRAND_NAME} is an independent directory and isn&apos;t affiliated with YouTube or
-              Google.
-            </p>
-          </div>
-          <ul className="flex flex-wrap gap-x-5">
-            <li>
-              <a
-                href={`mailto:${CONTACT_EMAIL}`}
-                className="flex min-h-11 items-center hover:text-text"
-              >
-                {CONTACT_EMAIL}
-              </a>
-            </li>
-            {BOTTOM_LINKS.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="flex min-h-11 items-center hover:text-text">
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <FooterBottom />
       </div>
     </footer>
   );
