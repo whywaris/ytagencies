@@ -146,7 +146,7 @@ function AgencyCard({ agency: a }: { agency: HeroTab["agencies"][number] }) {
         ) : (
           <span
             aria-hidden
-            className="flex size-[42px] shrink-0 items-center justify-center rounded-[12px] bg-(--accent-soft) text-[15px] font-semibold text-accent"
+            className="flex size-[42px] shrink-0 items-center justify-center rounded-[12px] bg-(--accent-soft) text-[15px] font-semibold text-(--accent-on-soft)"
           >
             {a.initials}
           </span>

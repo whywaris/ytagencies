@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
@@ -56,9 +57,10 @@ function useAccount(): Account {
 const menuItem =
   "flex min-h-11 w-full items-center rounded-md px-3 text-left text-[15px] transition-colors duration-150 hover:bg-surface";
 
-/** A native popover that closes when one of its links or buttons is used. */
+/** A native popover that closes when one of its links or buttons is used (not the theme toggle). */
 function closeOnSelect(e: React.MouseEvent<HTMLElement>) {
-  if ((e.target as HTMLElement).closest("a, button")) e.currentTarget.hidePopover?.();
+  if ((e.target as HTMLElement).closest("a, button:not([data-keep-open])"))
+    e.currentTarget.hidePopover?.();
 }
 
 function SignOutItem() {
@@ -76,52 +78,58 @@ export function NavAccount() {
   const { signedIn, admin } = useAccount();
   const menuId = useId();
   return (
-    <div className="grid items-center justify-items-end">
-      <div
-        className={cn("col-start-1 row-start-1 flex items-center gap-6", signedIn && "invisible")}
-      >
-        <Link
-          href="/login"
-          className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text"
-        >
-          Sign in
-        </Link>
-        <Button asChild>
-          <Link href="/list-your-agency">List your agency</Link>
-        </Button>
-      </div>
-      <div
-        className={cn("col-start-1 row-start-1 flex items-center gap-4", !signedIn && "invisible")}
-      >
-        <Link
-          href="/dashboard"
-          className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text"
-        >
-          Dashboard
-        </Link>
-        <button
-          type="button"
-          popoverTarget={menuId}
-          aria-label="Account menu"
-          className="flex size-11 items-center justify-center rounded-full border border-line transition-colors duration-150 hover:border-text-2"
-        >
-          <UserIcon aria-hidden className="size-5" />
-        </button>
+    <div className="flex items-center gap-6">
+      <ThemeToggle />
+      <div className="grid items-center justify-items-end">
         <div
-          id={menuId}
-          popover="auto"
-          onClick={closeOnSelect}
-          className="fixed inset-auto top-14 right-4 m-0 hidden w-56 flex-col gap-1 rounded-lg border border-line bg-bg p-2 text-text shadow-lg open:flex"
+          className={cn("col-start-1 row-start-1 flex items-center gap-6", signedIn && "invisible")}
         >
-          <Link href="/dashboard" className={menuItem}>
+          <Link
+            href="/login"
+            className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text"
+          >
+            Sign in
+          </Link>
+          <Button asChild>
+            <Link href="/list-your-agency">List your agency</Link>
+          </Button>
+        </div>
+        <div
+          className={cn(
+            "col-start-1 row-start-1 flex items-center gap-4",
+            !signedIn && "invisible",
+          )}
+        >
+          <Link
+            href="/dashboard"
+            className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text"
+          >
             Dashboard
           </Link>
-          {admin && (
-            <Link href="/admin" className={menuItem}>
-              Admin
+          <button
+            type="button"
+            popoverTarget={menuId}
+            aria-label="Account menu"
+            className="flex size-11 items-center justify-center rounded-full border border-line transition-colors duration-150 hover:border-text-2"
+          >
+            <UserIcon aria-hidden className="size-5" />
+          </button>
+          <div
+            id={menuId}
+            popover="auto"
+            onClick={closeOnSelect}
+            className="fixed inset-auto top-14 right-4 m-0 hidden w-56 flex-col gap-1 rounded-lg border border-line bg-bg p-2 text-text shadow-lg open:flex"
+          >
+            <Link href="/dashboard" className={menuItem}>
+              Dashboard
             </Link>
-          )}
-          <SignOutItem />
+            {admin && (
+              <Link href="/admin" className={menuItem}>
+                Admin
+              </Link>
+            )}
+            <SignOutItem />
+          </div>
         </div>
       </div>
     </div>
@@ -183,6 +191,7 @@ export function MobileMenu({ links }: { links: { href: string; label: string }[]
             </Link>
           ))}
           <hr className="my-2 border-line" />
+          <ThemeToggle className="mx-3 my-1" />
           <NavAccountMenuItems />
         </nav>
       </div>

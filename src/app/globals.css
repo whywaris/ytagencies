@@ -2,13 +2,84 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Dark mode follows the OS setting. */
+/* Tailwind's dark: variant is only used by the admin chart, which follows the admin theme (OS
+   setting unless the admin picks one). The public site uses site-dark: instead. */
 @custom-variant dark (@media (prefers-color-scheme: dark));
+/* Public dark theme: set on <html> by the inline script in app/layout.tsx from localStorage. */
+@custom-variant site-dark (&:where([data-site-theme="dark"], [data-site-theme="dark"] *));
 
-/* Design tokens: docs/DESIGN.md. Don't add colors, radii or shadows here without updating it.
-   [data-theme] forces a theme on a subtree (used by /styleguide; ready for a future toggle). */
+/* Public design tokens: docs/DESIGN.md. Don't add colors, radii or shadows here without updating it.
+   Light is the default for everyone; dark only after the visitor picks it with the nav toggle
+   (data-site-theme="dark" on <html>). [data-theme] forces a theme on a subtree (/styleguide). */
 :root,
 [data-theme="light"] {
+  color-scheme: light;
+  --bg: #fbfbfd;
+  --raised: #ffffff;
+  --surface: #f3f4f7;
+  --text: #16171a;
+  --text-2: #5e626b;
+  --line: #e2e3e8;
+  --line-2: #eeeff2;
+  --accent: #1f5eff;
+  /* Primary button hover: darker, since white on a lighter blue drops below 4.5:1. */
+  --accent-hover: #1c55e6;
+  /* Accent text on --accent-soft (#1F5EFF there is 4.49:1). */
+  --accent-on-soft: #1c5af5;
+  /* accent-ink in DESIGN.md: text on an accent fill. */
+  --on-accent: #ffffff;
+  --accent-soft: #eaf0ff;
+  /* Tile colours: icon tiles, small badges and soft tile backgrounds only. Text on its own -soft
+     tile must pass 4.5:1; amber only passes 3:1 there, so it is for icons, not text. */
+  --violet: #7c5cff;
+  --violet-soft: #f0ecff;
+  --coral: #d1462a;
+  --coral-soft: #ffefea;
+  --mint: #0b7a5a;
+  --mint-soft: #e5f7f0;
+  --amber: #b26f00;
+  --amber-soft: #fff5e0;
+  --pink: #c8326a;
+  --pink-soft: #fdeaf1;
+  /* Verified badges: 4.9:1 on --bg. */
+  --verified: #188038;
+  /* Form errors: 5.2:1 on --bg. */
+  --danger: #d70015;
+}
+
+[data-site-theme="dark"],
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0c10;
+  --raised: #15161b;
+  --surface: #1c1e24;
+  --text: #f3f4f6;
+  --text-2: #a0a4ad;
+  --line: #2a2d35;
+  --line-2: #20222a;
+  --accent: #6b9bff;
+  --accent-hover: color-mix(in srgb, #6b9bff 90%, #0b0c10);
+  --accent-on-soft: #6b9bff;
+  --on-accent: #071026;
+  --accent-soft: #17213a;
+  --violet: #a28bff;
+  --violet-soft: #221b3d;
+  --coral: #ff8a6e;
+  --coral-soft: #3a1e17;
+  --mint: #3ccb9c;
+  --mint-soft: #11302a;
+  --amber: #f2b53a;
+  --amber-soft: #33270e;
+  --pink: #ff7aa5;
+  --pink-soft: #3a1626;
+  --verified: #34a853;
+  --danger: #ff6961;
+}
+
+/* Admin (docs/ADMIN_V2_SPEC.md §3) keeps its own design: these are the original site tokens plus
+   the admin status colours, following the OS setting unless the admin picks a theme. Declared on
+   [data-admin] itself, so the public theme on <html> never reaches it. */
+[data-admin] {
   color-scheme: light;
   --bg: #ffffff;
   --surface: #f5f5f7;
@@ -16,45 +87,9 @@
   --text-2: #6e6e73;
   --line: #d2d2d7;
   --accent: #0b57d0;
+  --accent-hover: color-mix(in srgb, #0b57d0 90%, #ffffff);
   --on-accent: #ffffff;
-  /* Verified badges. DESIGN.md had #1E8E3E (4.2:1 on white); darkened to pass 4.5:1. */
   --verified: #188038;
-  /* Form errors. Not in DESIGN.md yet: 5.4:1 on white; dark value 7.5:1 on black. */
-  --danger: #d70015;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #000000;
-    --surface: #1c1c1e;
-    --text: #f5f5f7;
-    --text-2: #a1a1a6;
-    --line: #38383a;
-    --accent: #4c8df6;
-    /* White on #4C8DF6 is 3.3:1; black is 6.5:1 (DESIGN.md accessibility floor). */
-    --on-accent: #000000;
-    --danger: #ff6961;
-    --verified: #34a853;
-  }
-}
-
-[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #000000;
-  --surface: #1c1c1e;
-  --text: #f5f5f7;
-  --text-2: #a1a1a6;
-  --line: #38383a;
-  --accent: #4c8df6;
-  --on-accent: #000000;
-  --danger: #ff6961;
-  --verified: #34a853;
-}
-
-/* Admin only (docs/ADMIN_V2_SPEC.md §3): hover/active tint and status colors, scoped to [data-admin]
-   so the public site is untouched. --danger here replaces the public form-error red. */
-[data-admin] {
   --surface-2: color-mix(in srgb, var(--text) 5%, transparent);
   --success: #188038;
   --warning: #b06000;
@@ -62,12 +97,33 @@
 }
 @media (prefers-color-scheme: dark) {
   [data-admin]:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --text: #f5f5f7;
+    --text-2: #a1a1a6;
+    --line: #38383a;
+    --accent: #4c8df6;
+    --accent-hover: color-mix(in srgb, #4c8df6 90%, #000000);
+    /* White on #4C8DF6 is 3.3:1; black is 6.5:1. */
+    --on-accent: #000000;
+    --verified: #34a853;
     --success: #34a853;
     --warning: #f2b33d;
     --danger: #f28b82;
   }
 }
 [data-admin][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --text: #f5f5f7;
+  --text-2: #a1a1a6;
+  --line: #38383a;
+  --accent: #4c8df6;
+  --accent-hover: color-mix(in srgb, #4c8df6 90%, #000000);
+  --on-accent: #000000;
+  --verified: #34a853;
   --success: #34a853;
   --warning: #f2b33d;
   --danger: #f28b82;
@@ -84,6 +140,9 @@
   --color-verified: var(--verified);
   --color-on-accent: var(--on-accent);
   --color-surface-2: var(--surface-2);
+  --color-raised: var(--raised);
+  --color-line-2: var(--line-2);
+  --color-accent-soft: var(--accent-soft);
   --color-success: var(--success);
   --color-warning: var(--warning);
 
@@ -106,7 +165,10 @@
   --color-input: var(--surface);
   --color-ring: var(--accent);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  /* Instrument Sans (next/font, app/layout.tsx) on the public site; the admin sets Inter on its root. */
+  --font-sans:
+    var(--font-instrument), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   --font-heading: var(--font-sans);
 
   /* Radius hierarchy: logos 8, inputs 12, rows/cards 16, buttons/badges pill */
@@ -123,12 +185,14 @@
   --container-reading: 680px;
 }
 
-/* Type scale (mobile / desktop at md). Sentence case only. */
+/* Type scale (mobile / desktop at md). Sentence case only. Headings use Instrument Sans at 90%
+   width with tight tracking (base layer sets the width on every public heading). */
 @utility text-display {
   font-size: 40px;
   line-height: 1.1;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  font-stretch: 90%;
+  letter-spacing: -0.04em;
   @media (width >= 48rem) {
     font-size: 64px;
   }
@@ -137,7 +201,8 @@
   font-size: 32px;
   line-height: 1.15;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  font-stretch: 90%;
+  letter-spacing: -0.035em;
   @media (width >= 48rem) {
     font-size: 48px;
   }
@@ -146,6 +211,8 @@
   font-size: 24px;
   line-height: 1.2;
   font-weight: 600;
+  font-stretch: 90%;
+  letter-spacing: -0.03em;
   @media (width >= 48rem) {
     font-size: 32px;
   }
@@ -154,6 +221,8 @@
   font-size: 19px;
   line-height: 1.3;
   font-weight: 600;
+  font-stretch: 90%;
+  letter-spacing: -0.02em;
   @media (width >= 48rem) {
     font-size: 21px;
   }
@@ -208,6 +277,12 @@
   body {
     @apply bg-background text-[17px] leading-normal text-foreground antialiased;
   }
+  :where(h1, h2, h3, h4) {
+    font-stretch: 90%;
+  }
+  [data-admin] :where(h1, h2, h3, h4) {
+    font-stretch: normal;
+  }
   [data-admin] {
     font-size: 14px;
     line-height: 20px;
@@ -260,50 +335,17 @@
   color: var(--text-2);
 }
 
-/* Home hero. Its own accent (brighter than the site's) and the mint/amber status tints, scoped to
-   .home-hero so the rest of the site keeps the tokens above. "raised" is the card surface and
-   "track" the segmented-control track, both built from the existing tokens. */
+/* Home hero: the segmented-control track and the glow colours, scoped to .home-hero. Its accent,
+   tile colours and --raised are the site tokens above. */
 .home-hero {
-  --accent: #1f5eff;
-  --accent-soft: #eaf0ff;
-  --on-accent: #ffffff;
-  --mint: #12a57a;
-  --mint-soft: #e5f7f0;
-  --amber: #e69a00;
-  --amber-soft: #fff5e0;
-  --raised: var(--bg);
   --track: var(--surface);
   --glow-blue: rgba(79, 139, 255, 0.3);
   --glow-violet: rgba(167, 139, 250, 0.28);
   --glow-peach: rgba(255, 166, 120, 0.26);
   --glow-mint: rgba(80, 220, 170, 0.2);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .home-hero {
-    --accent: #6b9bff;
-    --accent-soft: #17213a;
-    --on-accent: #000000;
-    --mint: #3ccb9c;
-    --mint-soft: #11302a;
-    --amber: #f2b53a;
-    --amber-soft: #33270e;
-    --raised: var(--surface);
-    --track: var(--bg);
-    --glow-blue: rgba(79, 139, 255, 0.22);
-    --glow-violet: rgba(167, 139, 250, 0.2);
-    --glow-peach: rgba(255, 166, 120, 0.14);
-    --glow-mint: rgba(80, 220, 170, 0.12);
-  }
-}
+[data-site-theme="dark"] .home-hero,
 [data-theme="dark"] .home-hero {
-  --accent: #6b9bff;
-  --accent-soft: #17213a;
-  --on-accent: #000000;
-  --mint: #3ccb9c;
-  --mint-soft: #11302a;
-  --amber: #f2b53a;
-  --amber-soft: #33270e;
-  --raised: var(--surface);
   --track: var(--bg);
   --glow-blue: rgba(79, 139, 255, 0.22);
   --glow-violet: rgba(167, 139, 250, 0.2);

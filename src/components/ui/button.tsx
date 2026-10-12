@@ -10,7 +10,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-accent px-6 text-on-accent hover:bg-accent/90",
+        default: "bg-accent px-6 text-on-accent hover:bg-(--accent-hover)",
         link: "px-0 text-accent underline-offset-4 hover:underline",
       },
       size: {

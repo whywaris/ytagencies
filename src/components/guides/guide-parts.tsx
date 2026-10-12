@@ -1,4 +1,4 @@
-import Image, { getImageProps } from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 
 import { mediaUrl, type Author, type GuideSummary } from "@/lib/data/guides";
@@ -59,8 +59,8 @@ export function GuideCover({
 }
 
 /**
- * The generated typographic cover, light or dark to match the page (a <picture> source the
- * browser picks with prefers-color-scheme; getImageProps keeps next/image's optimization).
+ * The generated typographic cover, light or dark to match the site theme (data-site-theme, set
+ * client-side, so CSS picks the image; the hidden dark one is lazy, so light pages never load it).
  */
 function GeneratedCover({
   slug,
@@ -71,20 +71,25 @@ function GeneratedCover({
   sizes: string;
   priority: boolean;
 }) {
-  const common = { alt: "", width: COVER_SIZE.width, height: COVER_SIZE.height, sizes };
-  const dark = getImageProps({ ...common, src: `/og/guide/${slug}/cover/dark` }).props;
-  const light = getImageProps({
-    ...common,
-    src: `/og/guide/${slug}/cover`,
-    loading: priority ? "eager" : "lazy",
-    fetchPriority: priority ? "high" : undefined,
-  }).props;
+  const common = { width: COVER_SIZE.width, height: COVER_SIZE.height, sizes };
+  const cover = "absolute inset-0 size-full object-cover";
   return (
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcSet={dark.srcSet} sizes={sizes} />
-      {/* eslint-disable-next-line jsx-a11y/alt-text -- getImageProps output (alt is in it) */}
-      <img {...light} className="absolute inset-0 size-full object-cover" />
-    </picture>
+    <>
+      <Image
+        alt=""
+        {...common}
+        src={`/og/guide/${slug}/cover`}
+        preload={priority}
+        className={cn(cover, "site-dark:hidden")}
+      />
+      <Image
+        alt=""
+        {...common}
+        src={`/og/guide/${slug}/cover/dark`}
+        loading="lazy"
+        className={cn(cover, "hidden site-dark:block")}
+      />
+    </>
   );
 }
 
