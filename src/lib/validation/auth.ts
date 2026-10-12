@@ -11,10 +11,14 @@ const botFields = {
   website: z.string().max(200).optional(), // honeypot
 };
 
-// Sign-in has no Turnstile: rate limits (ours and Supabase's) and the honeypot guard it.
+// Sign-in uses Turnstile in invisible mode (a box only appears when Cloudflare wants a challenge).
 export const loginSchema = z.object({
   email,
   next: z.string().max(500).optional(),
+  turnstileToken: z
+    .string()
+    .min(1, "Verification failed. Refresh the page and try again.")
+    .max(2048),
   website: botFields.website,
 });
 export type LoginInput = z.infer<typeof loginSchema>;

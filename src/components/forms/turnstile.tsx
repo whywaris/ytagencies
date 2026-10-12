@@ -19,13 +19,17 @@ const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 /**
  * Cloudflare Turnstile, explicit render. Tokens are single-use: bump `resetKey` after every
  * server response so the visitor gets a fresh one. The token is verified server-side only.
+ * `invisible`: no box unless Cloudflare needs the visitor to interact (appearance
+ * "interaction-only"), so it takes no space on the page until then.
  */
 export function Turnstile({
   onToken,
   resetKey,
+  invisible = false,
 }: {
   onToken: (token: string) => void;
   resetKey: number;
+  invisible?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
@@ -40,7 +44,8 @@ export function Turnstile({
     if (!ready || !container.current || !window.turnstile || !SITE_KEY) return;
     const id = window.turnstile.render(container.current, {
       sitekey: SITE_KEY,
-      theme: "auto",
+      theme: document.documentElement.dataset.siteTheme === "dark" ? "dark" : "light",
+      ...(invisible && { appearance: "interaction-only", size: "flexible" }),
       callback: (token: string) => callback.current(token),
       "expired-callback": () => callback.current(""),
       "error-callback": () => callback.current(""),
@@ -50,7 +55,7 @@ export function Turnstile({
       window.turnstile?.remove(id);
       widgetId.current = null;
     };
-  }, [ready]);
+  }, [ready, invisible]);
 
   useEffect(() => {
     if (resetKey > 0 && widgetId.current) {
@@ -69,7 +74,7 @@ export function Turnstile({
         strategy="afterInteractive"
         onReady={() => setReady(true)}
       />
-      <div ref={container} className="min-h-[65px]" />
+      <div ref={container} className={invisible ? undefined : "min-h-[65px]"} />
     </>
   );
 }

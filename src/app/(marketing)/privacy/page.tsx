@@ -9,7 +9,7 @@ import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
 // (lib/actions), the analytics beacon (api/events), sign-in (Supabase), emails (Resend) and
 // Turnstile. LAUNCH: have it reviewed for your jurisdiction before launch.
 
-const UPDATED = "2026-10-07";
+const UPDATED = "2026-10-12";
 const TITLE = "Privacy policy";
 const DESCRIPTION =
   "What YT Agencies collects when you browse, send an inquiry or manage a listing, who receives it, how long we keep it, and how to get a copy or have it deleted.";
@@ -68,7 +68,10 @@ const sections: LegalSection[] = [
         </p>
         <h3>When you manage a listing</h3>
         <ul>
-          <li>Your email address, which you use to sign in with an email link</li>
+          <li>
+            Your email address, which you use to sign in with an email link, or your Google account
+            name and email address if you sign in with Google
+          </li>
           <li>The work email you use to claim a listing</li>
           <li>The listing details, logo and case studies you add</li>
           <li>YouTube channel links you give us for verification, and their public statistics</li>
@@ -133,7 +136,10 @@ const sections: LegalSection[] = [
           <li>Vercel: hosting and analytics</li>
           <li>Resend: sending emails</li>
           <li>Cloudflare: bot protection (Turnstile) and image hosting</li>
-          <li>Google: the YouTube Data API, which receives channel links during verification</li>
+          <li>
+            Google: sign-in with Google, if you choose it, and the YouTube Data API, which receives
+            channel links during verification
+          </li>
         </ul>
         <p>
           When paid plans go on sale, the payment provider that sells them will process payment

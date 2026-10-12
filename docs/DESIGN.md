@@ -4,7 +4,7 @@
 
 Simple, calm, professional, in the spirit of Apple's product pages. That means generous whitespace, large confident type, few colors, and nothing decorative. The content (agencies and their results) does the talking.
 
-**The one memorable element:** the home hero. A large centred headline over a soft four-colour glow, two actions, a proof row, and a product window showing three real agencies for a real service × industry page, with service tabs. It's the only place the glow and the floating callouts are used.
+**The one memorable element:** the home hero. A large centred headline over a soft four-colour glow, two actions, a proof row, and a product window showing three real agencies for a real service × industry page, with service tabs. It's the only place the floating callouts are used; the glow appears here and behind the sign-in page.
 
 ## Color tokens
 
@@ -25,6 +25,7 @@ Public site only. The admin keeps its own design (its original tokens, Inter, no
 | `--accent-hover`           | `#1C55E6`  | accent 90% | Primary button hover (darker in light, keeps 4.5:1)      |
 | `--accent-on-soft`         | `#1C5AF5`  | `#6B9BFF`  | Accent text on `--accent-soft` (`#1F5EFF` is 4.49:1 there) |
 | `--violet-on-soft`         | `#6A4AE6`  | `#A28BFF`  | Violet text on `--violet-soft` (`#7C5CFF` is 3.76:1 there) |
+| `--coral-on-soft` | `#B8391F` | `#FF8A6E` | Error text on `--coral-soft` (sign-in; `#D1462A` is 4.07:1 there) |
 
 Tile colours, each with a `-soft` background (colour / soft):
 

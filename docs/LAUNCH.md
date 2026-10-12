@@ -14,13 +14,13 @@
      - Dev project: `http://localhost:3000/auth/callback**` and `http://localhost:3001/auth/callback**` (the second is the port used for production builds with `next start -p 3001`), plus your Preview URL's `/auth/callback**` if you test sign-in there.
 
      Keep the trailing `**`: sign-in links carry `?next=`, and without the wildcard Supabase drops the URL and sends people to the Site URL instead. A URL that isn't listed fails the same way. On localhost the session cookie is shared across ports, so an email link that lands on `:3000` (the dev Site URL) also signs you in on `:3001`.
-   - Leave Google and other social providers off: the app signs in by email link only.
+   - Enable Google (Authentication → Providers; OAuth client in Google Cloud, authorized domain `ytagencies.com`, redirect URI from the Supabase provider page). The "Continue with Google" button on /login appears only while it's enabled. Leave other social providers off.
    - Custom SMTP through Resend and a higher email rate limit: see "Supabase email" below.
    - Email templates (Authentication → Email Templates). Email links must go to `/auth/confirm` (token hash), so they work when opened in a different browser or device; the default `{{ .ConfirmationURL }}` uses PKCE and fails there with "expired or already used". Set the link in both **Magic Link** and **Confirm signup** to:
      ```html
      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next={{ .RedirectTo }}">Sign in to YT Agencies</a>
      ```
-     `{{ .RedirectTo }}` is the full `/auth/callback?next=…` URL the app sends; `/auth/confirm` accepts it only for this site's own origin and keeps just the path. Do this on the dev project too.
+     `{{ .RedirectTo }}` is the full `/auth/callback?next=…` URL the app sends; `/auth/confirm` accepts it only for this site's own origin and keeps just the path. Do this on the dev project too. Google sign-in still uses `/auth/callback`.
 4. Make yourself admin: `update profiles set role = 'admin' where id = '<your user id>';`
    Then open Admin → Settings and set the Founding programme (open/closed, max spots, free months; defaults: open, 50, 6).
 5. Daily backups and point-in-time recovery (paid plan).
@@ -83,7 +83,7 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 
 ## After deploy
 
-1. End-to-end test with real services: magic link (opened in a different browser than the one that asked for it), Turnstile, the three lead emails, a domain-matched claim, a logo upload, a verification lookup (YouTube API), and a guide image upload.
+1. End-to-end test with real services: magic link (opened in a different browser than the one that asked for it), Google sign-in, Turnstile, the three lead emails, a domain-matched claim, a logo upload, a verification lookup (YouTube API), and a guide image upload.
 2. Check `https://www.ytagencies.com/x` returns 308 to `https://ytagencies.com/x`, and canonicals, sitemaps and JSON-LD use `https://ytagencies.com`.
 3. PageSpeed Insights on mobile: home, a directory page, a profile.
 4. Google Search Console and Bing Webmaster Tools: verify `ytagencies.com` (domain property) and submit the three `/sitemaps/*.xml` files.

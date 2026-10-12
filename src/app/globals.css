@@ -37,6 +37,8 @@
   --violet-on-soft: #6a4ae6;
   --coral: #d1462a;
   --coral-soft: #ffefea;
+  /* Coral text on --coral-soft (#D1462A is 4.07:1 there): sign-in errors. */
+  --coral-on-soft: #b8391f;
   --mint: #0b7a5a;
   --mint-soft: #e5f7f0;
   --amber: #b26f00;
@@ -69,6 +71,7 @@
   --violet-on-soft: #a28bff;
   --coral: #ff8a6e;
   --coral-soft: #3a1e17;
+  --coral-on-soft: #ff8a6e;
   --mint: #3ccb9c;
   --mint-soft: #11302a;
   --amber: #f2b53a;
@@ -340,7 +343,8 @@
 
 /* Home hero: the segmented-control track and the glow colours, scoped to .home-hero. Its accent,
    tile colours and --raised are the site tokens above. */
-.home-hero {
+.home-hero,
+.auth-page {
   /* Secondary text sits on the glow, which lightens (dark: lightens) the background: --text-2
      there is 4.0:1 at worst, so the hero's is stronger (4.9:1 over the glow). */
   --text-2: #50545d;
@@ -350,8 +354,8 @@
   --glow-peach: rgba(255, 166, 120, 0.26);
   --glow-mint: rgba(80, 220, 170, 0.2);
 }
-[data-site-theme="dark"] .home-hero,
-[data-theme="dark"] .home-hero {
+[data-site-theme="dark"] :is(.home-hero, .auth-page),
+[data-theme="dark"] :is(.home-hero, .auth-page) {
   --text-2: #b4b8c0;
   --track: var(--bg);
   --glow-blue: rgba(79, 139, 255, 0.22);
@@ -374,6 +378,12 @@
     transform: translateY(24px);
   }
 }
+/* Sign-in page: the card and left column rise 12px once. */
+@keyframes rise-sm {
+  from {
+    transform: translateY(12px);
+  }
+}
 @keyframes hero-pop {
   from {
     transform: translateY(10px) scale(0.98);
@@ -382,6 +392,9 @@
 @media (prefers-reduced-motion: no-preference) {
   .hero-rise {
     animation: hero-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .rise-sm {
+    animation: rise-sm 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
   .hero-pop {
     animation: hero-pop 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;

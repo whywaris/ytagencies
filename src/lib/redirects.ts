@@ -22,7 +22,7 @@ export function safeNext(next: string | null | undefined): string | null {
   return path;
 }
 
-/** /auth/callback, carrying ?next= only when it's safe (the magic link's emailRedirectTo). */
+/** /auth/callback, carrying ?next= only when it's safe (magic link emailRedirectTo, Google redirectTo). */
 export function callbackUrl(next: string | null | undefined) {
   const path = safeNext(next);
   return path ? `/auth/callback?next=${encodeURIComponent(path)}` : "/auth/callback";

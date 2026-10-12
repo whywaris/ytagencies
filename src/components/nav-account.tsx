@@ -76,6 +76,7 @@ function SignOutItem() {
 /** Right side of the nav at desktop widths. Both states share one grid cell: no layout shift. */
 export function NavAccount() {
   const { signedIn, admin } = useAccount();
+  const onLogin = usePathname() === "/login";
   const menuId = useId();
   return (
     <div className="flex items-center gap-6">
@@ -86,7 +87,8 @@ export function NavAccount() {
         >
           <Link
             href="/login"
-            className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text"
+            aria-current={onLogin ? "page" : undefined}
+            className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text aria-[current=page]:font-semibold aria-[current=page]:text-text"
           >
             Sign in
           </Link>
@@ -139,10 +141,15 @@ export function NavAccount() {
 /** The account items inside the mobile menu. */
 export function NavAccountMenuItems() {
   const { signedIn, admin } = useAccount();
+  const onLogin = usePathname() === "/login";
   if (!signedIn) {
     return (
       <>
-        <Link href="/login" className={menuItem}>
+        <Link
+          href="/login"
+          aria-current={onLogin ? "page" : undefined}
+          className={cn(menuItem, "aria-[current=page]:font-semibold")}
+        >
           Sign in
         </Link>
         <Link href="/list-your-agency" className={cn(menuItem, "font-medium text-accent")}>

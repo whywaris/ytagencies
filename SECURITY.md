@@ -26,7 +26,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 
 ## Auth
 
-- Supabase Auth with email magic link only (token-hash links via `/auth/confirm`). No passwords, no social sign-in.
+- Supabase Auth with email magic link (token-hash links via `/auth/confirm`) and Google OAuth (`/auth/google` → `/auth/callback`; the button shows only while Google is enabled in Supabase). No passwords.
 - **Claiming a listing** requires verifying an email on the agency's own website domain (e.g. `@acmemedia.com`), or manual admin approval. Never auto-grant ownership.
 - Dashboard and admin routes are protected in middleware **and** re-checked in server actions.
 
@@ -37,7 +37,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
   - Zod validation on the server.
   - Rate limiting per IP and per email (e.g. 5 submissions/hour), stored in a `rate_limits` table or Upstash.
   - Honeypot field.
-- Sign-in (magic link) has no Turnstile: it's rate-limited per IP and per email (5 an hour, plus Supabase's own email limit) and has a honeypot. The response is the same whether or not the email has an account.
+- Sign-in (magic link) uses Turnstile in invisible mode (a box appears only when Cloudflare wants a challenge; the token is verified server-side), is rate-limited per IP and per email (5 an hour, plus Supabase's own email limit) and has a honeypot. The response is the same whether or not the email has an account.
 - Reviews: plain text only, length-capped, held for moderation before publishing.
 - Contact messages (`contact_messages`) are written only by the server action (service role, after the checks above); nobody else can read or write them, and admins handle them in Admin → Inbox. The confirmation email to the sender contains nothing they typed, so the form can't be used to send spam through us; the admin copy shows a reported link as text and uses reply-to, not the sender as From.
 - Never use `dangerouslySetInnerHTML` with user content.

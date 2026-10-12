@@ -20,7 +20,7 @@ export async function HomeHero() {
   const tabs = await getHeroTabs();
 
   return (
-    <section className="home-hero relative isolate overflow-hidden px-4 pt-10 pb-14 md:px-6 md:pt-14 md:pb-18">
+    <section className="home-hero relative isolate overflow-clip px-4 pt-10 pb-14 md:px-6 md:pt-14 md:pb-18">
       <div
         aria-hidden
         className="home-hero-glow pointer-events-none absolute [inset:-10%_-10%_30%_-10%] -z-10 blur-[60px]"
