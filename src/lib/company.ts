@@ -50,6 +50,17 @@ export const COMPANY = {
    */
   guideReviewCycle: null as string | null,
 
+  /**
+   * How long personal data is kept before the daily cron deletes it (lib/retention.ts). The
+   * privacy policy reads these, so changing a number here changes both.
+   */
+  retention: {
+    /** Inquiries (leads), with the record of which agencies received them. */
+    leadsMonths: 24,
+    /** Contact-form messages, counted from when they were closed. Open ones are kept. */
+    closedMessagesMonths: 12,
+  },
+
   /** Refund rules for paid plans (/refunds). */
   refunds: {
     /** Yearly plans: full refund if asked within this many days of purchase. */

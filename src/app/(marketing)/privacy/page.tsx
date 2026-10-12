@@ -154,8 +154,14 @@ const sections: LegalSection[] = [
     body: (
       <ul>
         <li>
-          <strong>Inquiries and contact messages:</strong> until you ask us to delete them. We
-          don&apos;t delete them automatically yet.
+          <strong>Inquiries:</strong> {COMPANY.retention.leadsMonths} months, then they&apos;re
+          deleted automatically, with the record of which agencies received them. You can ask us to
+          delete yours sooner.
+        </li>
+        <li>
+          <strong>Contact messages:</strong> {COMPANY.retention.closedMessagesMonths} months after
+          we close them, then they&apos;re deleted automatically. You can ask us to delete yours
+          sooner.
         </li>
         <li>
           <strong>Agency accounts and listings:</strong> until you ask us to close the account.

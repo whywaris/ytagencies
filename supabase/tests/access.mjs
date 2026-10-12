@@ -1107,5 +1107,27 @@ await as("anon", null, async () => {
     "anon: pricing details are readable",
   );
 });
+
+console.log("— retention (lib/retention.ts deletes old leads; their routes must go too) —");
+await db.exec(`reset role;
+  insert into leads (id, name, email, created_at) values ('cccccccc-0000-4000-8000-000000000001', 'Old', 'old@x.example', now() - interval '25 months');
+  insert into lead_routes (lead_id, agency_id) values ('cccccccc-0000-4000-8000-000000000001', '${PINE}');
+  insert into deleted_agency_routes (lead_id, agency_id, agency_name, agency_slug, sent_at)
+    values ('cccccccc-0000-4000-8000-000000000001', gen_random_uuid(), 'Gone', 'gone', now() - interval '25 months');
+  delete from leads where created_at < now() - interval '24 months';`);
+ok(
+  (await rows("select 1 from lead_routes where lead_id = 'cccccccc-0000-4000-8000-000000000001'"))
+    .length === 0 &&
+    (
+      await rows(
+        "select 1 from deleted_agency_routes where lead_id = 'cccccccc-0000-4000-8000-000000000001'",
+      )
+    ).length === 0,
+  "retention: deleting an old lead removes its lead_routes and deleted_agency_routes rows",
+);
+ok(
+  (await rows("select 1 from leads where created_at >= now() - interval '24 months'")).length > 0,
+  "retention: newer leads are kept",
+);
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;
