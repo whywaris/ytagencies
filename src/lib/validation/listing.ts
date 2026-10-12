@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { pricingUnit, startingPrice } from "@/lib/validation/dashboard";
+
 // /list-your-agency: search for an existing listing, or submit a new agency.
 // Shared by the form (client) and the server action, which always re-validates.
 
@@ -22,10 +24,8 @@ export const submitAgencySchema = z.object({
   services: slugs.min(1, "Choose at least one service.").max(8),
   industries: slugs.min(1, "Choose at least one industry.").max(12, "Choose up to 12 industries."),
   locations: slugs.max(10, "Choose up to 10 locations."),
-  minBudget: z
-    .string()
-    .trim()
-    .regex(/^\d{0,7}$/, "Enter a whole number of US dollars, or leave it empty."),
+  minBudget: startingPrice,
+  pricingModel: pricingUnit,
   description: z
     .string()
     .trim()

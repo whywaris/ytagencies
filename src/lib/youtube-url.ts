@@ -45,3 +45,49 @@ export function parseChannelUrl(raw: string): ParsedChannel {
   }
   return { ok: false, error: "Use a channel URL: /@handle, /channel/UC… or /user/name." };
 }
+
+/**
+ * The lookup for a case study's channel link. Like parseChannelUrl, but a legacy /c/name URL is
+ * tried as the handle @name: YouTube turned most custom URLs into the matching handle. null when
+ * the link isn't a channel URL.
+ */
+export function caseStudyChannelRef(raw: string): ChannelRef | null {
+  const parsed = parseChannelUrl(raw);
+  if (parsed.ok) return parsed.ref;
+  const m = raw.trim().match(/^(?:https?:\/\/)?(?:www\.|m\.)?youtube\.com\/c\/([^/?#]+)/i);
+  const handle = m ? `@${decodeURIComponent(m[1])}` : "";
+  return HANDLE.test(handle) ? { kind: "handle", value: handle } : null;
+}
+
+type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
+
+/**
+ * Resolves a case study's channel link to its channel ID with the YouTube Data API (channels.list,
+ * part=id: 1 quota unit). /channel/UC… links need no call. null when it can't be resolved (no key,
+ * not a channel URL, no such channel, YouTube unreachable). Server-side only: `key` is
+ * YOUTUBE_API_KEY. `fetcher` is swapped out in tests.
+ */
+export async function resolveChannelId(
+  raw: string,
+  key: string | undefined,
+  fetcher: Fetch = fetch,
+): Promise<string | null> {
+  const ref = caseStudyChannelRef(raw);
+  if (!ref) return null;
+  if (ref.kind === "id") return ref.value;
+  if (!key) return null;
+  const params = new URLSearchParams({ part: "id", key });
+  params.set(ref.kind === "handle" ? "forHandle" : "forUsername", ref.value);
+  try {
+    const res = await fetcher(`https://www.googleapis.com/youtube/v3/channels?${params}`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const body: { items?: { id?: unknown }[] } = await res.json();
+    const id = body.items?.[0]?.id;
+    return typeof id === "string" && CHANNEL_ID.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}

@@ -37,6 +37,8 @@ Tile colours, each with a `-soft` background (colour / soft):
 
 **Accent is the only colour for buttons, links and focus rings** across the public site, nav included. Violet, coral, mint, amber and pink are only for icon tiles, small badges and soft tile backgrounds, never for body text or buttons. Text on a soft tile must pass 4.5:1: in light mode mint passes (4.8:1) but violet, coral, pink and amber don't, so use those for icons there, or darken the colour (never the background) before putting text on them.
 
+Inside the home hero, `--text-2` is `#50545D` (dark `#B4B8C0`): the glow behind the lede and proof row lowers the standard grey to 4.0:1, the hero value keeps 4.9:1 at worst.
+
 Green `#188038` (dark `#34A853`) is reserved for "Verified" badges. Form errors use `--danger`: `#D70015` (dark `#FF6961`). The only gradient is the home hero glow.
 
 ### Theme

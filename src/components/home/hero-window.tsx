@@ -205,7 +205,7 @@ function AgencyCard({ agency: a }: { agency: HeroTab["agencies"][number] }) {
             {a.price.suffix}
           </span>
         ) : (
-          <span />
+          <span className="text-text-2">Price on request</span>
         )}
         <Link href={`/agency/${a.slug}`} className="font-medium text-accent hover:underline">
           View<span className="sr-only"> {a.name}</span>

@@ -73,7 +73,7 @@ export async function HomeHero() {
               <span className="flex flex-col gap-0.5">
                 <span className="text-[14px] font-semibold">Budget up front</span>
                 <span className="text-[13px] leading-snug text-text-2">
-                  Every agency shows its minimum monthly price.
+                  See each agency&apos;s starting price before you reach out.
                 </span>
               </span>
             </div>

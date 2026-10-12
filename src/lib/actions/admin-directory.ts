@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { NotApprovedEmail } from "@/emails/not-approved";
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
-import { removeCaseStudy, writeCaseStudy } from "@/lib/case-studies";
+import { removeCaseStudy, resolveCaseStudyChannels, writeCaseStudy } from "@/lib/case-studies";
 import { approveClaim } from "@/lib/claims";
 import { foundingAvailable, getFoundingProgram } from "@/lib/data/settings";
 import { getMailer, oneLine } from "@/lib/email";
@@ -465,6 +465,8 @@ export async function saveVerification(agencyId: string, raw: unknown): Promise<
     if (error) return { ok: false, error: SAVE_FAILED };
   }
   if (v.decision === "approve") {
+    // The hero shows case-study channels that match these stats, by stored channel ID.
+    await resolveCaseStudyChannels(ctx.db, agencyId);
     // Only the newest approval stands; older ones are superseded.
     await ctx.db
       .from("verifications")

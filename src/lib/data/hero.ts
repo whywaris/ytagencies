@@ -6,7 +6,6 @@ import { getPlacement } from "@/lib/data/placement";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { formatUsd, priceSuffix } from "@/lib/directory";
 import { createStaticClient } from "@/lib/supabase/server";
-import { parseChannelUrl } from "@/lib/youtube-url";
 
 // Home hero product window: one tab per service that has a service × industry page with at
 // least MIN_AGENCIES_TO_INDEX published agencies (the indexable combos). All real data, loaded
@@ -24,7 +23,7 @@ export type HeroAgency = {
   channels: { title: string; subscribers: number | null }[];
   /** Shown instead of channels when there are none (max 2). */
   industries: string[];
-  /** { amount: "$2k", suffix: "/mo" } or null without a minimum budget. */
+  /** { amount: "$2k", suffix: "/mo" }; null without a starting price ("Price on request"). */
   price: { amount: string; suffix: string } | null;
 };
 
@@ -70,28 +69,24 @@ export const getHeroTabs = cache(async (): Promise<HeroTab[]> => {
     getPlacement(),
   ]);
 
-  // Case-study channel links for the agencies on show (anon client: published agencies only).
+  // Case-study channel IDs for the agencies on show (anon client: published agencies only). The
+  // IDs were resolved from the links when the case studies were saved: no YouTube calls here.
   const shownIds = [...new Set(lists.flatMap((l) => l.slice(0, 3).map((a) => a.id)))];
   const { data: studies, error } = await createStaticClient()
     .from("case_studies")
-    .select("agency_id, channel_url, created_at")
+    .select("agency_id, channel_id, created_at")
     .in("agency_id", shownIds)
-    .not("channel_url", "is", null)
+    .not("channel_id", "is", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
 
-  /**
-   * Channels from the agency's case studies that its latest verified stats check covers. Stats
-   * are stored per channel ID, so a case study counts when its link resolves to that ID
-   * (youtube.com/channel/UC…); @handle links can't be matched without calling YouTube.
-   */
+  /** Channels from the agency's case studies that its latest verified stats check covers. */
   const channelsOf = (agencyId: string) => {
     const stats = placement.channels(agencyId);
     if (!stats.length) return [];
-    const ids = studies
-      .filter((s) => s.agency_id === agencyId && s.channel_url)
-      .map((s) => parseChannelUrl(s.channel_url!))
-      .flatMap((p) => (p.ok && p.ref.kind === "id" ? [p.ref.value] : []));
+    const ids = studies.flatMap((s) =>
+      s.agency_id === agencyId && s.channel_id ? [s.channel_id] : [],
+    );
     return [...new Set(ids)]
       .flatMap((id) => stats.filter((c) => c.channelId === id))
       .slice(0, 2)

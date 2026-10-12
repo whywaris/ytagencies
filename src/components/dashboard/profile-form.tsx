@@ -77,25 +77,22 @@ export function ProfileForm({
       </p>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <Field
-          id="p-budget"
-          label="Minimum budget (US$)"
-          optional
-          error={errors.minBudget?.message}
-        >
+        <Field id="p-budget" label="Starting price (US$)" error={errors.minBudget?.message}>
           <Input
             inputMode="numeric"
             {...register("minBudget")}
             {...a11yProps("p-budget", errors.minBudget?.message)}
           />
         </Field>
-        <Field id="p-pricing" label="Pricing model" optional error={errors.pricingModel?.message}>
+        <Field id="p-pricing" label="Pricing unit" error={errors.pricingModel?.message}>
           <select
             {...register("pricingModel")}
             {...a11yProps("p-pricing", errors.pricingModel?.message)}
             className={selectClasses}
           >
-            <option value="">Not set</option>
+            <option value="" disabled>
+              Choose one
+            </option>
             {PRICING_MODELS.map((m) => (
               <option key={m} value={m}>
                 {PRICING_LABEL[m]}

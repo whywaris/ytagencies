@@ -400,6 +400,7 @@ export type Database = {
           updated_at: string;
           agency_id: string;
           channel_url: string | null;
+          channel_id: string | null;
           client_industry_id: number | null;
           created_at: string;
           id: string;
@@ -411,6 +412,7 @@ export type Database = {
           updated_at?: string;
           agency_id: string;
           channel_url?: string | null;
+          channel_id?: string | null;
           client_industry_id?: number | null;
           created_at?: string;
           id?: string;
@@ -422,6 +424,7 @@ export type Database = {
           updated_at?: string;
           agency_id?: string;
           channel_url?: string | null;
+          channel_id?: string | null;
           client_industry_id?: number | null;
           created_at?: string;
           id?: string;

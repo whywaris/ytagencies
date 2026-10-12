@@ -163,7 +163,8 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
     name: input.name,
     website: input.siteUrl,
     description: input.description,
-    min_budget_usd: input.minBudget === "" ? null : Number(input.minBudget),
+    min_budget_usd: Number(input.minBudget),
+    pricing_model: input.pricingModel || null,
     submitted_by: user.id,
   };
   let { error } = await supabase.from("agencies").insert({ ...row, slug: base });

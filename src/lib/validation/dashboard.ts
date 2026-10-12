@@ -12,14 +12,21 @@ export const METRIC_UNITS = [
   { value: "pct", label: "%" },
 ] as const;
 
+/** Starting price and its unit: required on every agency form. "" is the unfilled form value. */
+export const startingPrice = z
+  .string()
+  .trim()
+  .regex(/^[1-9]\d{0,6}$/, "Enter your starting price in whole US dollars.");
+export const pricingUnit = z
+  .enum(["", ...PRICING_MODELS])
+  // ": boolean" keeps "" in the form type (an inferred type guard would narrow it out).
+  .refine((v): boolean => v !== "", "Choose how you charge.");
+
 export const profileSchema = z
   .object({
     description: z.string().trim().max(5000, "Use 5,000 characters or fewer."),
-    minBudget: z
-      .string()
-      .trim()
-      .regex(/^\d{0,7}$/, "Enter a whole number of US dollars, or leave it empty."),
-    pricingModel: z.enum(["", ...PRICING_MODELS]),
+    minBudget: startingPrice,
+    pricingModel: pricingUnit,
     services: z.array(slug).min(1, "Choose at least one service.").max(8),
     primaryService: slug.or(z.literal("")),
     industries: z.array(slug).max(12, "Choose up to 12 industries."),

@@ -107,6 +107,8 @@ create table case_studies (
   title text not null,
   client_industry_id int references industries(id),
   channel_url text,
+  -- channel_url resolved to a channel ID when saved (lib/case-studies.ts); the home hero matches on it.
+  channel_id text check (channel_id ~ '^UC[A-Za-z0-9_-]{22}$'),
   summary text,
   metrics jsonb default '{}',           -- {"subs_before":1200,"subs_after":45000,"roas":3.2}
   created_at timestamptz not null default now(),
@@ -388,7 +390,7 @@ create index if not exists agencies_submitted_by_idx on agencies (submitted_by) 
 -- keep their defaults (draft, null, false), so a user can't publish, own, verify or feature on insert.
 -- Admin inserts use the service role.
 revoke insert on agencies from anon, authenticated;
-grant insert (id, slug, name, website, description, min_budget_usd, submitted_by) on agencies to authenticated;
+grant insert (id, slug, name, website, description, min_budget_usd, pricing_model, submitted_by) on agencies to authenticated;
 
 -- Belt and braces on top of the grants, plus a cap of 3 open submissions per account.
 create policy "submit draft" on agencies for insert to authenticated with check (

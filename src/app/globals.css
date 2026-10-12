@@ -338,6 +338,9 @@
 /* Home hero: the segmented-control track and the glow colours, scoped to .home-hero. Its accent,
    tile colours and --raised are the site tokens above. */
 .home-hero {
+  /* Secondary text sits on the glow, which lightens (dark: lightens) the background: --text-2
+     there is 4.0:1 at worst, so the hero's is stronger (4.9:1 over the glow). */
+  --text-2: #50545d;
   --track: var(--surface);
   --glow-blue: rgba(79, 139, 255, 0.3);
   --glow-violet: rgba(167, 139, 250, 0.28);
@@ -346,6 +349,7 @@
 }
 [data-site-theme="dark"] .home-hero,
 [data-theme="dark"] .home-hero {
+  --text-2: #b4b8c0;
   --track: var(--bg);
   --glow-blue: rgba(79, 139, 255, 0.22);
   --glow-violet: rgba(167, 139, 250, 0.2);

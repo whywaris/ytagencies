@@ -280,7 +280,10 @@ await as("authenticated", SUBMITTER, async () => {
     await denied(`insert into agencies (id, slug, name) values ('${SUB(1)}', 'sub-x', 'Sub')`),
     "can't insert without submitted_by",
   );
-  ok(!(await denied(submit(SUB(1)))), "can insert a draft they submitted");
+  ok(
+    !(await denied(submit(SUB(1), ", min_budget_usd, pricing_model", ", 2000, 'per_video'"))),
+    "can insert a draft they submitted, with its starting price and unit",
+  );
   const [mine] = await rows(
     `select status, owner_id, is_verified, is_claimed from agencies where id = '${SUB(1)}'`,
   );

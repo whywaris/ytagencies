@@ -11,12 +11,15 @@ import {
   CheckboxGroup,
   Field,
   Honeypot,
+  selectClasses,
   textareaClasses,
 } from "@/components/forms/field";
 import { Turnstile } from "@/components/forms/turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { submitAgency } from "@/lib/actions/listing";
+import { PRICING_LABEL } from "@/lib/profile";
+import { PRICING_MODELS } from "@/lib/validation/dashboard";
 import { submitAgencySchema, type SubmitAgencyInput } from "@/lib/validation/listing";
 
 type Option = { slug: string; name: string };
@@ -51,6 +54,7 @@ export function SubmitAgencyForm({
       industries: [],
       locations: [],
       minBudget: "",
+      pricingModel: "",
       description: "",
       workEmail: "",
       turnstileToken: "",
@@ -176,17 +180,28 @@ export function SubmitAgencyForm({
       </CheckboxGroup>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <Field
-          id="sa-budget"
-          label="Minimum monthly budget (US$)"
-          optional
-          error={err("minBudget")}
-        >
+        <Field id="sa-budget" label="Starting price (US$)" error={err("minBudget")}>
           <Input
             inputMode="numeric"
             {...register("minBudget")}
             {...a11yProps("sa-budget", err("minBudget"))}
           />
+        </Field>
+        <Field id="sa-pricing" label="Pricing unit" error={err("pricingModel")}>
+          <select
+            {...register("pricingModel")}
+            {...a11yProps("sa-pricing", err("pricingModel"))}
+            className={selectClasses}
+          >
+            <option value="" disabled>
+              Choose one
+            </option>
+            {PRICING_MODELS.map((m) => (
+              <option key={m} value={m}>
+                {PRICING_LABEL[m]}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field id="sa-email" label="Your work email" error={err("workEmail")}>
           <Input
