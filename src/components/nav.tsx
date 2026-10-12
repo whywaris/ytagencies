@@ -8,7 +8,7 @@ const links = [
   { href: "/#services", label: "Services" },
   { href: "/#industries", label: "Industries" },
   { href: "/guides", label: "Guides" },
-  { href: "/get-matched", label: "Get matched" },
+  { href: "/#how", label: "How it works" },
 ];
 
 // DESIGN.md: 52px, sticky, frosted, hairline bottom border. Server-rendered and cookie-free so

@@ -33,6 +33,8 @@
      tile must pass 4.5:1; amber only passes 3:1 there, so it is for icons, not text. */
   --violet: #7c5cff;
   --violet-soft: #f0ecff;
+  /* Violet text on --violet-soft (#7C5CFF is 3.76:1 there). */
+  --violet-on-soft: #6a4ae6;
   --coral: #d1462a;
   --coral-soft: #ffefea;
   --mint: #0b7a5a;
@@ -64,6 +66,7 @@
   --accent-soft: #17213a;
   --violet: #a28bff;
   --violet-soft: #221b3d;
+  --violet-on-soft: #a28bff;
   --coral: #ff8a6e;
   --coral-soft: #3a1e17;
   --mint: #3ccb9c;

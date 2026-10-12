@@ -24,6 +24,7 @@ Public site only. The admin keeps its own design (its original tokens, Inter, no
 | `--accent-soft`            | `#EAF0FF`  | `#17213A`  | Soft accent tiles                                        |
 | `--accent-hover`           | `#1C55E6`  | accent 90% | Primary button hover (darker in light, keeps 4.5:1)      |
 | `--accent-on-soft`         | `#1C5AF5`  | `#6B9BFF`  | Accent text on `--accent-soft` (`#1F5EFF` is 4.49:1 there) |
+| `--violet-on-soft`         | `#6A4AE6`  | `#A28BFF`  | Violet text on `--violet-soft` (`#7C5CFF` is 3.76:1 there) |
 
 Tile colours, each with a `-soft` background (colour / soft):
 
@@ -35,7 +36,7 @@ Tile colours, each with a `-soft` background (colour / soft):
 | `--amber`  | `#B26F00` / `#FFF5E0` | `#F2B53A` / `#33270E` |
 | `--pink`   | `#C8326A` / `#FDEAF1` | `#FF7AA5` / `#3A1626` |
 
-**Accent is the only colour for buttons, links and focus rings** across the public site, nav included. Violet, coral, mint, amber and pink are only for icon tiles, small badges and soft tile backgrounds, never for body text or buttons. Text on a soft tile must pass 4.5:1: in light mode mint passes (4.8:1) but violet, coral, pink and amber don't, so use those for icons there, or darken the colour (never the background) before putting text on them.
+**Accent is the only colour for buttons, links and focus rings** across the public site, nav included. Violet, coral, mint, amber and pink are only for icon tiles, small badges and soft tile backgrounds, never for body text or buttons. Text on a soft tile must pass 4.5:1: in light mode mint passes (4.8:1) and violet has `--violet-on-soft`; coral, pink and amber don't, so use those for icons there, or darken the colour (never the background) before putting text on them.
 
 Inside the home hero, `--text-2` is `#50545D` (dark `#B4B8C0`): the glow behind the lede and proof row lowers the standard grey to 4.0:1, the hero value keeps 4.9:1 at worst.
 
