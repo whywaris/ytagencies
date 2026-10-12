@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 
 // Profile analytics (ADMIN_V2_SPEC §7): a view on load, and clicks on elements marked
-// data-track="website_click" | "contact_open". navigator.sendBeacon keeps the page static and
-// never delays navigation. The server dedupes per visitor per day and ignores bots.
+// data-track="website_click" | "contact_open". Website clicks also send data-source (the link's
+// utm_content: profile, directory, home_hero, guide). navigator.sendBeacon keeps the page static
+// and never delays navigation. The server dedupes per visitor per day and ignores bots.
 
 type TrackedType = "profile_view" | "website_click" | "contact_open";
 
-function send(agencyId: string, type: TrackedType) {
-  const body = JSON.stringify({ agencyId, type, path: location.pathname });
+function send(agencyId: string, type: TrackedType, source?: string) {
+  const body = JSON.stringify({ agencyId, type, path: location.pathname, source });
   try {
     navigator.sendBeacon?.("/api/events", body);
   } catch {
@@ -23,7 +24,8 @@ export function AgencyTracker({ agencyId }: { agencyId: string }) {
     const onClick = (e: MouseEvent) => {
       const el = (e.target as Element | null)?.closest<HTMLElement>("[data-track]");
       const type = el?.dataset.track;
-      if (type === "website_click" || type === "contact_open") send(agencyId, type);
+      if (type === "website_click" || type === "contact_open")
+        send(agencyId, type, el?.dataset.source);
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);

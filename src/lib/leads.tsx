@@ -6,7 +6,7 @@ import { AgencyLeadEmail } from "@/emails/agency-lead";
 import { LeadConfirmationEmail } from "@/emails/lead-confirmation";
 import { getMailer, oneLine } from "@/lib/email";
 import { getPlacement } from "@/lib/data/placement";
-import { absoluteUrl } from "@/lib/site";
+import { absoluteUrl, BRAND_NAME } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Lead storage, routing and notification. Call only after every form check has passed:
@@ -158,7 +158,7 @@ async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) 
         from,
         to,
         replyTo: lead.email,
-        subject: oneLine(`New inquiry from ${lead.name}`),
+        subject: oneLine(`New inquiry via ${BRAND_NAME}: ${lead.company || lead.name}`),
         react: <AgencyLeadEmail agencyName={agency.name} lead={lead} direct={direct} />,
       });
       if (error) console.error("agency lead email failed", { leadId, agencyId: agency.id });

@@ -395,6 +395,25 @@ const [daily] = await rows(
   `select count from agency_event_daily where agency_id = '${QUILL}' and type = 'profile_view'`,
 );
 ok(daily?.count === 2, "events: daily rollup counts unique visitors (2)");
+await db.query(`select record_agency_event($1, 'website_click', '/', 'v9', 'directory')`, [QUILL]);
+await db.query(`select record_agency_event($1, 'website_click', '/agency/x', 'v8', 'profile')`, [
+  QUILL,
+]);
+const clicks = await rows(
+  `select source, count from agency_event_daily where agency_id = '${QUILL}' and type = 'website_click' order by source`,
+);
+ok(
+  JSON.stringify(clicks) ===
+    JSON.stringify([
+      { source: "directory", count: 1 },
+      { source: "profile", count: 1 },
+    ]),
+  "events: website clicks are rolled up by source",
+);
+ok(
+  await denied(`select record_agency_event('${QUILL}', 'website_click', '/', 'v7', 'email')`),
+  "events: unknown click source refused",
+);
 await db.exec(
   `insert into agency_events (agency_id, type, visitor_hash, created_at) values ('${QUILL}', 'contact_open', 'old', now() - interval '91 days')`,
 );

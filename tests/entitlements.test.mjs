@@ -75,8 +75,5 @@ test("currentPlan ignores rows that are cancelled, expired, ended or not started
   assert.equal(currentPlan([sub("pro", { ends_at: "2026-10-07T11:59:59Z" })], now), "free");
   assert.equal(currentPlan([sub("pro", { starts_at: "2026-11-01T00:00:00Z" })], now), "free");
   assert.equal(currentPlan([sub("gold")], now), "free");
-  assert.equal(
-    currentPlan([sub("pro", { ends_at: "2026-10-07T12:00:01Z" })], now),
-    "pro",
-  );
+  assert.equal(currentPlan([sub("pro", { ends_at: "2026-10-07T12:00:01Z" })], now), "pro");
 });

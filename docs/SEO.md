@@ -78,6 +78,15 @@
 - Every profile → its service and industry pages.
 - Every guide → 2–3 relevant directory pages.
 
+## Outbound links to agency websites
+
+- One helper builds every link to an agency's website: `agencyWebsiteLink()` in `src/lib/outbound.ts`. Don't hand-build these links.
+- Only Pro and Founding agencies get a website link. Free profiles have none (businesses use the contact form); the website stays in the profile's JSON-LD.
+- Paid links: `rel="sponsored noopener"`, `target="_blank"`. Never `noreferrer`: the site's `Referrer-Policy: strict-origin-when-cross-origin` lets the agency's analytics see ytagencies.com as the referrer.
+- Every link carries `utm_source=ytagencies&utm_medium=referral&utm_campaign=directory_listing&utm_content=<profile | directory | home_hero | guide>`. The agency's own query string is kept; our `utm_*` values replace theirs, never duplicate them.
+- The link has `data-track="website_click"` and `data-source=<same as utm_content>`, so the click is counted (beacon, deduped per visitor per day, bots ignored) and shown to the agency by source on its dashboard.
+- Today only the profile links to agency websites.
+
 ## Off-page
 
 - "Featured on YT Agencies" embeddable badge for every claimed agency, linking to their profile.

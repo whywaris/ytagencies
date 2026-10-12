@@ -8,7 +8,7 @@ import { BRAND_NAME } from "@/lib/site";
 // How we make money and how paid placement is labeled. Must match lib/ranking.ts and the
 // public labels ("Sponsored", rel="sponsored") in the directory.
 
-const UPDATED = "2026-10-07";
+const UPDATED = "2026-10-12";
 const TITLE = "Disclosure";
 const DESCRIPTION =
   "How YT Agencies stays independent of YouTube and Google, how it makes money, how paid plans and sponsored places are labeled, and what money can't buy.";
@@ -60,8 +60,9 @@ const sections: LegalSection[] = [
       <ul>
         <li>Sponsored places always carry a &ldquo;Sponsored&rdquo; label.</li>
         <li>
-          Links to the websites of agencies on paid plans are marked as sponsored links for search
-          engines.
+          Only agencies on a paid plan (Pro or Founding) get a link to their website, and those
+          links are marked as paid (<code>rel=&quot;sponsored&quot;</code>) for search engines. They
+          carry tags that let the agency see the visits came from {BRAND_NAME}.
         </li>
         <li>
           Agencies that joined during our launch show a &ldquo;Founding agency&rdquo; badge. It

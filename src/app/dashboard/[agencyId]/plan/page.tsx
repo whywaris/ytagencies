@@ -25,7 +25,7 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
   const [events, verifications, subscription] = await Promise.all([
     supabase
       .from("agency_event_daily")
-      .select("type, count")
+      .select("type, source, count")
       .eq("agency_id", agency.id)
       .gte("day", daysAgo(e.analyticsDays)),
     supabase
@@ -42,8 +42,12 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
   ]);
   if (events.error || verifications.error) throw new Error("Couldn't load your plan");
   const totals = { profile_view: 0, website_click: 0, inquiry: 0 };
+  // Website clicks by where the link was (utm_content, lib/outbound.ts).
+  const bySource = { profile: 0, directory: 0, home_hero: 0, guide: 0 };
   for (const r of events.data) {
     if (r.type in totals) totals[r.type as keyof typeof totals] += r.count;
+    if (r.type === "website_click" && r.source in bySource)
+      bySource[r.source as keyof typeof bySource] += r.count;
   }
   const approved = verifications.data.some((v) => v.status === "approved");
   const requested = verifications.data.some((v) => v.status === "requested");
@@ -72,7 +76,7 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
           {(
             [
               ["Profile views", totals.profile_view],
-              ["Website clicks", totals.website_click],
+              ["Visitors sent to your website", totals.website_click],
               ["Inquiries", totals.inquiry],
             ] as const
           ).map(([label, value]) => (
@@ -82,9 +86,38 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
             </div>
           ))}
         </dl>
-        {!e.websiteLink && (
+        {e.websiteLink ? (
+          <div className="flex max-w-reading flex-col gap-3">
+            <h3 className="text-h3">Visitors sent to your website</h3>
+            <dl className="flex flex-col divide-y divide-line rounded-lg border border-line">
+              {(
+                [
+                  ["From your profile", bySource.profile],
+                  ["From directory pages", bySource.directory],
+                  ["From the home page", bySource.home_hero],
+                  ["From guides", bySource.guide],
+                ] as const
+              )
+                // Your profile always; the other places only once they've sent someone.
+                .filter(([label, n]) => n > 0 || label === "From your profile")
+                .map(([label, n]) => (
+                  <div
+                    key={label}
+                    className="flex min-h-11 items-center justify-between gap-4 px-4 py-2"
+                  >
+                    <dt className="text-text-2">{label}</dt>
+                    <dd className="tabular-nums">{count.format(n)}</dd>
+                  </div>
+                ))}
+            </dl>
+            <p className="text-small">
+              In Google Analytics these visits appear as source ytagencies, medium referral.
+            </p>
+          </div>
+        ) : (
           <p className="text-small">
-            Website clicks start counting once your profile links to your website, on a paid plan.
+            Visitors to your website start counting once your profile links to it, on Pro or as a
+            Founding agency.
           </p>
         )}
       </section>

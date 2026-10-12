@@ -1,4 +1,5 @@
 import { Details, EmailLayout, link, muted, text } from "@/emails/layout";
+import { BRAND_NAME } from "@/lib/site";
 
 type Props = {
   agencyName: string;
@@ -39,7 +40,12 @@ export function AgencyLeadEmail({ agencyName, lead, direct }: Props) {
         </a>
         . {direct ? "" : "Other matched agencies may have received this request too."}
       </p>
-      <p style={muted}>Please use these details only to respond to this inquiry.</p>
+      <p style={muted}>
+        {direct
+          ? `This inquiry came from your ${BRAND_NAME} profile.`
+          : `This inquiry came from ${BRAND_NAME}, where the business was matched with your profile.`}{" "}
+        Please use these details only to respond to it.
+      </p>
     </EmailLayout>
   );
 }

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { getAgencyBySlug, getAgencySlugs, getSimilarAgencies } from "@/lib/data/agencies";
 import { getLocations } from "@/lib/data/taxonomy";
 import { minBudgetLabel } from "@/lib/directory";
+import { agencyWebsiteLink } from "@/lib/outbound";
 import {
   formatMetrics,
   PRICING_LABEL,
@@ -68,15 +69,10 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
 
   const primary = agency.services[0];
   const website = safeExternalUrl(agency.website);
-  // §6: only paid plans get an outbound website link (rel="sponsored"), UTM-tagged where the
-  // plan includes it. Free profiles route businesses through the contact form instead; the
-  // website stays in the structured data either way.
-  const websiteLink = e.websiteLink && website ? new URL(website.href) : null;
-  if (websiteLink && e.utmLinks) {
-    websiteLink.searchParams.set("utm_source", "ytagencies");
-    websiteLink.searchParams.set("utm_medium", "directory");
-    websiteLink.searchParams.set("utm_campaign", "agency_profile");
-  }
+  // §6: only Pro and Founding get an outbound website link (sponsored, UTM-tagged: lib/outbound.ts).
+  // Free profiles route businesses through the contact form instead; the website stays in the
+  // structured data either way.
+  const websiteLink = agencyWebsiteLink(agency.website, e.plan, "profile");
   const caseStudies = agency.caseStudies.slice(0, e.caseStudies);
   const hqLocation = agency.hq && locations.find((l) => l.slug === agency.hq!.slug);
   const hqCountry = hqLocation?.parentId
@@ -161,16 +157,17 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                   Contact agency
                 </a>
               </Button>
-              {websiteLink && website && (
+              {websiteLink && (
                 <a
                   href={websiteLink.href}
-                  target="_blank"
+                  target={websiteLink.target}
                   data-track="website_click"
+                  data-source="profile"
                   // SECURITY.md: paid placements are marked sponsored.
-                  rel="sponsored noopener"
+                  rel={websiteLink.rel}
                   className="flex min-h-11 items-center text-accent hover:underline"
                 >
-                  {website.hostname.replace(/^www\./, "")}
+                  {websiteLink.label}
                   <span aria-hidden>&nbsp;↗</span>
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>

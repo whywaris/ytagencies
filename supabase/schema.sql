@@ -520,6 +520,8 @@ create table agency_events (
   type text not null check (type in ('profile_view', 'website_click', 'contact_open', 'inquiry')),
   page_path text check (char_length(page_path) <= 300),
   visitor_hash text not null check (char_length(visitor_hash) <= 128),
+  -- Website clicks: where the link was (its utm_content). '' for other types.
+  source text not null default '' check (source in ('', 'profile', 'directory', 'home_hero', 'guide')),
   created_at timestamptz not null default now()
 );
 create unique index agency_events_once_per_visitor on agency_events (agency_id, type, visitor_hash);
@@ -529,31 +531,34 @@ create table agency_event_daily (
   agency_id uuid not null references agencies(id) on delete cascade,
   day date not null,
   type text not null check (type in ('profile_view', 'website_click', 'contact_open', 'inquiry')),
+  source text not null default '' check (source in ('', 'profile', 'directory', 'home_hero', 'guide')),
   count int not null default 0 check (count >= 0),
-  primary key (agency_id, day, type)
+  primary key (agency_id, day, type, source)
 );
 
 -- The only way events are written: dedupes, bumps the rollup, prunes raw rows past 90 days.
 -- Service role only (the beacon endpoint and the lead_routes trigger).
-create or replace function record_agency_event(p_agency uuid, p_type text, p_path text, p_visitor text)
+create or replace function record_agency_event(
+  p_agency uuid, p_type text, p_path text, p_visitor text, p_source text default ''
+)
 returns boolean language plpgsql security definer set search_path = public as $$
 declare
   added int;
 begin
-  insert into agency_events (agency_id, type, page_path, visitor_hash)
-  values (p_agency, p_type, left(p_path, 300), p_visitor)
+  insert into agency_events (agency_id, type, page_path, visitor_hash, source)
+  values (p_agency, p_type, left(p_path, 300), p_visitor, p_source)
   on conflict (agency_id, type, visitor_hash) do nothing;
   get diagnostics added = row_count;
   if added = 0 then
     return false;
   end if;
-  insert into agency_event_daily (agency_id, day, type, count)
-  values (p_agency, (now() at time zone 'utc')::date, p_type, 1)
-  on conflict (agency_id, day, type) do update set count = agency_event_daily.count + 1;
+  insert into agency_event_daily (agency_id, day, type, source, count)
+  values (p_agency, (now() at time zone 'utc')::date, p_type, p_source, 1)
+  on conflict (agency_id, day, type, source) do update set count = agency_event_daily.count + 1;
   delete from agency_events where created_at < now() - interval '90 days';
   return true;
 end $$;
-revoke execute on function record_agency_event(uuid, text, text, text) from public, anon, authenticated;
+revoke execute on function record_agency_event(uuid, text, text, text, text) from public, anon, authenticated;
 
 -- Inquiries are counted where they happen, not from the browser: one per lead routed to an agency.
 create or replace function record_inquiry_event() returns trigger

@@ -124,18 +124,21 @@ export type Database = {
           agency_id: string;
           count: number;
           day: string;
+          source: string;
           type: string;
         };
         Insert: {
           agency_id: string;
           count?: number;
           day: string;
+          source?: string;
           type: string;
         };
         Update: {
           agency_id?: string;
           count?: number;
           day?: string;
+          source?: string;
           type?: string;
         };
         Relationships: [
@@ -154,6 +157,7 @@ export type Database = {
           created_at: string;
           id: number;
           page_path: string | null;
+          source: string;
           type: string;
           visitor_hash: string;
         };
@@ -162,6 +166,7 @@ export type Database = {
           created_at?: string;
           id?: never;
           page_path?: string | null;
+          source?: string;
           type: string;
           visitor_hash: string;
         };
@@ -170,6 +175,7 @@ export type Database = {
           created_at?: string;
           id?: never;
           page_path?: string | null;
+          source?: string;
           type?: string;
           visitor_hash?: string;
         };
@@ -1106,7 +1112,13 @@ export type Database = {
       };
       is_admin: { Args: never; Returns: boolean };
       record_agency_event: {
-        Args: { p_agency: string; p_type: string; p_path: string; p_visitor: string };
+        Args: {
+          p_agency: string;
+          p_type: string;
+          p_path: string;
+          p_visitor: string;
+          p_source?: string;
+        };
         Returns: boolean;
       };
     };

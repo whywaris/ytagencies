@@ -3,6 +3,7 @@ import { type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { clientIp, hitRateLimit } from "@/lib/forms/guard";
+import { LINK_SOURCES, type LinkSource } from "@/lib/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Profile analytics beacon (ADMIN_V2_SPEC §7, SECURITY.md "Analytics beacon"). Pages stay static:
@@ -12,7 +13,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const eventSchema = z.object({
   agencyId: z.uuid(),
   type: z.enum(["profile_view", "website_click", "contact_open"]),
-  path: z.string().regex(/^\/agency\/[a-z0-9-]{1,80}(\/[a-z0-9-]*)?$/),
+  // Profiles today; any site path, since website links may later sit on directory pages,
+  // the home page and guides (lib/outbound.ts).
+  path: z.string().regex(/^\/[a-z0-9/-]{0,300}$/),
+  // Website clicks only: where the link was (its utm_content).
+  source: z.enum(LINK_SOURCES as [LinkSource, ...LinkSource[]]).optional(),
 });
 
 const BOT =
@@ -48,7 +53,7 @@ export async function POST(request: NextRequest) {
     return done();
   }
   if (!parsed.success) return done();
-  const { agencyId, type, path } = parsed.data;
+  const { agencyId, type, path, source } = parsed.data;
 
   const ip = await clientIp();
   const visitor = visitorHash(ip, ua);
@@ -72,6 +77,7 @@ export async function POST(request: NextRequest) {
     p_type: type,
     p_path: path,
     p_visitor: visitor,
+    p_source: type === "website_click" ? (source ?? "profile") : "",
   });
   if (error) console.error("record_agency_event failed", { code: error.code });
   return done();
