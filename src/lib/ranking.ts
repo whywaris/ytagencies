@@ -16,9 +16,20 @@ export type QualityInput = {
   reviews: { count: number; average: number } | null;
   /** Approved verification; `withStats` when its YouTube channel stats were checked. */
   verification: "none" | "approved" | "withStats";
+  /** Median minutes to contact a lead (agency_response_times); null without enough data. */
+  responseMinutes: number | null;
 };
 
-/** Profile completeness (40) + published reviews (30) + verification (30). */
+/** Response time points (max 10): under 4 hours, a day, two days. */
+function responsePoints(minutes: number | null) {
+  if (minutes === null) return 0;
+  return minutes < 4 * 60 ? 10 : minutes < 24 * 60 ? 7 : minutes < 48 * 60 ? 4 : 0;
+}
+
+/**
+ * Profile completeness (36) + published reviews (27) + verification (27) + response time (10).
+ * The first three are the original 40/30/30 split scaled to 90, so they keep their proportions.
+ */
 export function qualityScore(q: QualityInput) {
   const completeness =
     (q.hasLogo ? 5 : 0) +
@@ -31,7 +42,9 @@ export function qualityScore(q: QualityInput) {
     ? Math.min(q.reviews.count, 10) * 1.5 + (q.reviews.average / 5) * 15
     : 0;
   const verification = q.verification === "withStats" ? 30 : q.verification === "approved" ? 15 : 0;
-  return Math.round(completeness + reviews + verification);
+  return Math.round(
+    (completeness + reviews + verification) * 0.9 + responsePoints(q.responseMinutes),
+  );
 }
 
 export const MAX_SPONSORED = 3;

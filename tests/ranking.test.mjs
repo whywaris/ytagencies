@@ -13,6 +13,7 @@ const empty = {
   locations: 0,
   reviews: null,
   verification: "none",
+  responseMinutes: null,
 };
 
 test("quality score: 0 for an empty profile, 100 for a complete, reviewed, checked one", () => {
@@ -27,18 +28,27 @@ test("quality score: 0 for an empty profile, 100 for a complete, reviewed, check
       locations: 2,
       reviews: { count: 12, average: 5 },
       verification: "withStats",
+      responseMinutes: 90,
     }),
     100,
   );
 });
 
-test("quality score: each part counts", () => {
-  assert.equal(qualityScore({ ...empty, descriptionLength: 60 }), 5);
-  assert.equal(qualityScore({ ...empty, descriptionLength: 250 }), 10);
-  assert.equal(qualityScore({ ...empty, caseStudies: 1 }), 10);
-  assert.equal(qualityScore({ ...empty, reviews: { count: 2, average: 4 } }), 15);
-  assert.equal(qualityScore({ ...empty, verification: "approved" }), 15);
-  assert.equal(qualityScore({ ...empty, verification: "withStats" }), 30);
+test("quality score: each part counts (the first three scaled to 90 points)", () => {
+  assert.equal(qualityScore({ ...empty, descriptionLength: 60 }), 5); // 4.5
+  assert.equal(qualityScore({ ...empty, descriptionLength: 250 }), 9);
+  assert.equal(qualityScore({ ...empty, caseStudies: 1 }), 9);
+  assert.equal(qualityScore({ ...empty, reviews: { count: 2, average: 4 } }), 14); // 13.5
+  assert.equal(qualityScore({ ...empty, verification: "approved" }), 14); // 13.5
+  assert.equal(qualityScore({ ...empty, verification: "withStats" }), 27);
+});
+
+test("quality score: response time is worth up to 10", () => {
+  assert.equal(qualityScore({ ...empty, responseMinutes: 3 * 60 }), 10);
+  assert.equal(qualityScore({ ...empty, responseMinutes: 20 * 60 }), 7);
+  assert.equal(qualityScore({ ...empty, responseMinutes: 40 * 60 }), 4);
+  assert.equal(qualityScore({ ...empty, responseMinutes: 72 * 60 }), 0);
+  assert.equal(qualityScore({ ...empty, responseMinutes: null }), 0);
 });
 
 const a = (id, paid, quality, name = id) => ({ id, name, paid, quality });

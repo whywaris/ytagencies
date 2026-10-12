@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import type { z } from "zod";
 
 import { applyProfile } from "@/lib/agency-profile";
@@ -159,5 +160,25 @@ export async function requestVerification(agencyId: string, urls: string[]): Pro
           : "We couldn't send your request. Please try again in a minute.",
     };
   }
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Marks a routed lead as contacted (dashboard → Leads). The time is the database's own (a
+ * trigger), set once, so response times can't be backdated. Owners can only touch their own
+ * routes: ownership is checked here, and RLS + the contacted_at column grant check it again.
+ */
+export async function markLeadContacted(agencyId: string, leadId: string): Promise<FormResult> {
+  const owned = await getOwnedAgency(agencyId);
+  if (!owned) return { ok: false, error: NOT_OWNER };
+  if (!/^[0-9a-f-]{36}$/i.test(leadId)) return { ok: false, error: "Unknown lead." };
+  const { error } = await owned.supabase
+    .from("lead_routes")
+    .update({ contacted_at: new Date().toISOString() })
+    .eq("agency_id", agencyId)
+    .eq("lead_id", leadId)
+    .is("contacted_at", null);
+  if (error) return { ok: false, error: SAVE_FAILED };
+  revalidatePath(`/dashboard/${agencyId}/leads`);
   return { ok: true, data: undefined };
 }

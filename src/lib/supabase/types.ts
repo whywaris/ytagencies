@@ -50,7 +50,10 @@ export type Database = {
           is_verified: boolean;
           languages: string[] | null;
           logo_path: string | null;
+          ad_spend: string | null;
           min_budget_usd: number | null;
+          min_contract: string | null;
+          setup_fee_usd: number | null;
           name: string;
           owner_id: string | null;
           submitted_by: string | null;
@@ -73,7 +76,10 @@ export type Database = {
           is_verified?: boolean;
           languages?: string[] | null;
           logo_path?: string | null;
+          ad_spend?: string | null;
           min_budget_usd?: number | null;
+          min_contract?: string | null;
+          setup_fee_usd?: number | null;
           name: string;
           owner_id?: string | null;
           submitted_by?: string | null;
@@ -96,7 +102,10 @@ export type Database = {
           is_verified?: boolean;
           languages?: string[] | null;
           logo_path?: string | null;
+          ad_spend?: string | null;
           min_budget_usd?: number | null;
+          min_contract?: string | null;
+          setup_fee_usd?: number | null;
           name?: string;
           owner_id?: string | null;
           submitted_by?: string | null;
@@ -682,17 +691,23 @@ export type Database = {
       lead_routes: {
         Row: {
           agency_id: string;
+          contacted_at: string | null;
           lead_id: string;
+          reminded_at: string | null;
           sent_at: string;
         };
         Insert: {
           agency_id: string;
+          contacted_at?: string | null;
           lead_id: string;
+          reminded_at?: string | null;
           sent_at?: string;
         };
         Update: {
           agency_id?: string;
+          contacted_at?: string | null;
           lead_id?: string;
+          reminded_at?: string | null;
           sent_at?: string;
         };
         Relationships: [
@@ -1073,6 +1088,14 @@ export type Database = {
       };
     };
     Views: {
+      agency_response_times: {
+        Row: {
+          agency_id: string;
+          contacted: number;
+          median_minutes: number;
+        };
+        Relationships: [];
+      };
       admin_agency_list: {
         Row: {
           created_at: string;

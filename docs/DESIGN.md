@@ -93,6 +93,8 @@ Light is the default for everyone, whatever the OS or browser says. Dark only af
 - **Agency row:** white on `--bg`, 1px `--line` border, 16px radius, no shadow. Hover: border darkens only.
 - **Inputs:** 44px, 12px radius, `--surface` fill, no border until focus.
 - **Badges:** small text pills: "Verified" (green), "Sponsored" (neutral outline, only on sponsored slots), "Founding agency" (neutral fill).
+- **"No lock-in" chip:** a small neutral chip (`--surface` fill, `--text-2`, 12px, pill) on directory rows (under the price) and home hero cards (next to Verified) when an agency's minimum contract is none or one month. Nothing for longer contracts. Component: `components/lock-in-chip.tsx`.
+- **Response time:** "Usually replies within a few hours / a day / 2 days" in body text, with "Based on <n> inquiries in the last 90 days." in small `--text-2` text. Only from real data (`agency_response_times`); otherwise nothing is shown.
 - Radius hierarchy: pills for buttons/badges, 16px for rows/cards, 12px for inputs, 8px for logos.
 
 ## Motion

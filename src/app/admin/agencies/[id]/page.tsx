@@ -54,7 +54,7 @@ export default async function AdminAgencyPage({
     db
       .from("agencies")
       .select(
-        "id, name, slug, tagline, website, logo_path, founded_year, team_size, languages, status, is_verified, is_claimed, owner_id, description, min_budget_usd, pricing_model, locations!agencies_hq_location_id_fkey(slug)",
+        "id, name, slug, tagline, website, logo_path, founded_year, team_size, languages, status, is_verified, is_claimed, owner_id, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, locations!agencies_hq_location_id_fkey(slug)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -148,6 +148,9 @@ async function ProfileTab({
     description: string | null;
     min_budget_usd: number | null;
     pricing_model: string | null;
+    min_contract: string | null;
+    ad_spend: string | null;
+    setup_fee_usd: number | null;
     locations: { slug: string } | null;
   };
 }) {
@@ -447,7 +450,7 @@ function daysAgo(n: number) {
 async function ActivityTab({ agencyId }: { agencyId: string }) {
   const db = createAdminClient();
   const since = daysAgo(30);
-  const [actions, events] = await Promise.all([
+  const [actions, events, routes] = await Promise.all([
     db
       .from("admin_actions")
       .select("id, action, details, created_at, admin_id")
@@ -456,8 +459,25 @@ async function ActivityTab({ agencyId }: { agencyId: string }) {
       .order("created_at", { ascending: false })
       .limit(50),
     db.from("agency_event_daily").select("type, count").eq("agency_id", agencyId).gte("day", since),
+    db
+      .from("lead_routes")
+      .select("sent_at, contacted_at")
+      .eq("agency_id", agencyId)
+      .gte("sent_at", daysAgo(90)),
   ]);
-  if (actions.error || events.error) throw new Error("Couldn't load activity");
+  if (actions.error || events.error || routes.error) throw new Error("Couldn't load activity");
+  // Replies over 90 days, raw (the public label needs 3+ and under 2 days: agency_response_times).
+  const waits = routes.data
+    .flatMap((r) =>
+      r.contacted_at ? [(Date.parse(r.contacted_at) - Date.parse(r.sent_at)) / 60_000] : [],
+    )
+    .sort((a, b) => a - b);
+  const median =
+    waits.length === 0
+      ? null
+      : waits.length % 2
+        ? waits[(waits.length - 1) / 2]
+        : (waits[waits.length / 2 - 1] + waits[waits.length / 2]) / 2;
   const totals = { profile_view: 0, website_click: 0, contact_open: 0, inquiry: 0 };
   for (const e of events.data) totals[e.type as keyof typeof totals] += e.count;
   const admins = new Map(
@@ -527,7 +547,37 @@ async function ActivityTab({ agencyId }: { agencyId: string }) {
             </div>
           ))}
         </dl>
+        <h2 id="responses" className="mt-4 text-admin-section">
+          Replies, last 90 days
+        </h2>
+        <dl
+          aria-labelledby="responses"
+          className="divide-y divide-line rounded-xl border border-line"
+        >
+          <div className="flex h-10 items-center justify-between px-4">
+            <dt className="text-text-2">Contacted</dt>
+            <dd className="num">
+              {routes.data.length === 0
+                ? "No leads"
+                : `${formatCount(waits.length)} of ${formatCount(routes.data.length)} (${Math.round((waits.length / routes.data.length) * 100)}%)`}
+            </dd>
+          </div>
+          <div className="flex h-10 items-center justify-between px-4">
+            <dt className="text-text-2">Median response</dt>
+            <dd className={cn("num", median === null && "text-text-2")}>
+              {median === null ? "Not enough data" : formatWait(median)}
+            </dd>
+          </div>
+        </dl>
       </section>
     </div>
   );
+}
+
+/** 95 → "1 h 35 min"; 2900 → "2 d 0 h". */
+function formatWait(minutes: number) {
+  const m = Math.round(minutes);
+  if (m < 60) return `${m} min`;
+  if (m < 48 * 60) return `${Math.floor(m / 60)} h ${m % 60} min`;
+  return `${Math.floor(m / 1440)} d ${Math.floor((m % 1440) / 60)} h`;
 }

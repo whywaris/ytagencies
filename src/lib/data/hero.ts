@@ -5,6 +5,7 @@ import { getAgenciesForCombo, getDirectoryIndex } from "@/lib/data/agencies";
 import { getPlacement } from "@/lib/data/placement";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { formatUsd, priceSuffix } from "@/lib/directory";
+import { noLockIn } from "@/lib/pricing";
 import { createStaticClient } from "@/lib/supabase/server";
 
 // Home hero product window: one tab per service that has a service × industry page with at
@@ -23,6 +24,8 @@ export type HeroAgency = {
   channels: { title: string; subscribers: number | null }[];
   /** Shown instead of channels when there are none (max 2). */
   industries: string[];
+  /** Month-to-month (lib/pricing.ts noLockIn): the "No lock-in" chip. */
+  noLockIn: boolean;
   /** { amount: "$2k", suffix: "/mo" }; null without a starting price ("Price on request"). */
   price: { amount: string; suffix: string } | null;
 };
@@ -110,6 +113,7 @@ export const getHeroTabs = cache(async (): Promise<HeroTab[]> => {
         .join(""),
       meta: [a.hq?.name, people(a.teamSize)].filter(Boolean).join(", "),
       isVerified: a.isVerified,
+      noLockIn: noLockIn(a.minContract),
       channels: channelsOf(a.id),
       industries: a.industries.slice(0, 2).map((t) => t.name),
       price:

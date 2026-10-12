@@ -18,6 +18,7 @@ import { Turnstile } from "@/components/forms/turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { submitAgency } from "@/lib/actions/listing";
+import { AD_SPEND_OPTION, AD_SPENDS, MIN_CONTRACT_OPTION, MIN_CONTRACTS } from "@/lib/pricing";
 import { PRICING_LABEL } from "@/lib/profile";
 import { PRICING_MODELS } from "@/lib/validation/dashboard";
 import { submitAgencySchema, type SubmitAgencyInput } from "@/lib/validation/listing";
@@ -55,6 +56,9 @@ export function SubmitAgencyForm({
       locations: [],
       minBudget: "",
       pricingModel: "",
+      minContract: "",
+      adSpend: "",
+      setupFee: "",
       description: "",
       workEmail: "",
       turnstileToken: "",
@@ -202,6 +206,45 @@ export function SubmitAgencyForm({
               </option>
             ))}
           </select>
+        </Field>
+        <Field id="sa-contract" label="Minimum contract" error={err("minContract")}>
+          <select
+            {...register("minContract")}
+            {...a11yProps("sa-contract", err("minContract"))}
+            className={selectClasses}
+          >
+            <option value="" disabled>
+              Choose one
+            </option>
+            {MIN_CONTRACTS.map((m) => (
+              <option key={m} value={m}>
+                {MIN_CONTRACT_OPTION[m]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id="sa-adspend" label="Ad spend" error={err("adSpend")}>
+          <select
+            {...register("adSpend")}
+            {...a11yProps("sa-adspend", err("adSpend"))}
+            className={selectClasses}
+          >
+            <option value="" disabled>
+              Choose one
+            </option>
+            {AD_SPENDS.map((m) => (
+              <option key={m} value={m}>
+                {AD_SPEND_OPTION[m]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id="sa-setup" label="Setup fee (US$)" optional error={err("setupFee")}>
+          <Input
+            inputMode="numeric"
+            {...register("setupFee")}
+            {...a11yProps("sa-setup", err("setupFee"))}
+          />
         </Field>
         <Field id="sa-email" label="Your work email" error={err("workEmail")}>
           <Input

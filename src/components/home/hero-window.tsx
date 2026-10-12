@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useId, useRef, useState } from "react";
 
+import { LockInChip } from "@/components/lock-in-chip";
 import type { HeroTab } from "@/lib/data/hero";
 import { cn } from "@/lib/utils";
 
@@ -157,11 +158,16 @@ function AgencyCard({ agency: a }: { agency: HeroTab["agencies"][number] }) {
         </div>
       </div>
 
-      {a.isVerified && (
-        <span className="inline-flex items-center gap-1 self-start rounded-full bg-(--mint-soft) px-2 py-0.5 text-[12px] font-semibold text-(--mint)">
-          <Check className="size-3 [stroke-width:2.5]" aria-hidden />
-          Verified
-        </span>
+      {(a.isVerified || a.noLockIn) && (
+        <div className="flex flex-wrap gap-1.5">
+          {a.isVerified && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-(--mint-soft) px-2 py-0.5 text-[12px] font-semibold text-(--mint)">
+              <Check className="size-3 [stroke-width:2.5]" aria-hidden />
+              Verified
+            </span>
+          )}
+          {a.noLockIn && <LockInChip />}
+        </div>
       )}
 
       {/* Fixed height, so switching tabs doesn't make the window jump. */}

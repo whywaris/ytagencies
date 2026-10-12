@@ -2,12 +2,14 @@ import { timingSafeEqual } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { type NextRequest } from "next/server";
 
+import { sendLeadReminders } from "@/lib/lead-reminders";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Scheduled guides (ADMIN_V2_SPEC §8). Guide pages revalidate hourly anyway, so a scheduled guide
 // shows up within an hour of its time; this daily sweep (vercel.json) refreshes the guides that
 // went live since yesterday, the /guides index and the sitemap. On Vercel Pro, change the
 // schedule to every 15 minutes ("*/15 * * * *") as the spec intends.
+// The same daily run sends lead reminders (lib/lead-reminders.ts): Vercel Hobby allows two crons.
 
 export const dynamic = "force-dynamic";
 const WINDOW_MS = 25 * 60 * 60 * 1000; // a little over a day, so nothing slips between runs
@@ -36,5 +38,12 @@ export async function GET(request: NextRequest) {
   }
   revalidatePath("/guides");
   revalidatePath("/sitemaps/guides.xml");
-  return Response.json({ revalidated: data.length });
+
+  let reminders: unknown;
+  try {
+    reminders = await sendLeadReminders();
+  } catch {
+    reminders = { error: "Couldn't send lead reminders" };
+  }
+  return Response.json({ revalidated: data.length, reminders });
 }

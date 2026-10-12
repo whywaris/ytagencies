@@ -7,18 +7,24 @@ import { AgencyRow } from "@/components/directory/agency-row";
 import { fieldClasses } from "@/components/ui/input";
 import type { AgencyListItem } from "@/lib/data/agencies";
 import { formatUsd } from "@/lib/directory";
+import { CONTRACT_FILTERS } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 const BUDGETS = [1000, 2500, 5000, 10000];
 const TEAM_SIZES = ["1-10", "11-50", "51-200", "200+"];
 
-type Filters = { budget?: number; size?: string; lang?: string };
+type ContractFilter = keyof typeof CONTRACT_FILTERS;
+const CONTRACTS = Object.keys(CONTRACT_FILTERS) as ContractFilter[];
+
+type Filters = { budget?: number; size?: string; lang?: string; contract?: ContractFilter };
 
 function parseFilters(params: URLSearchParams, languages: string[]): Filters {
   const budget = Number(params.get("budget"));
   const size = params.get("size") ?? undefined;
   const lang = params.get("lang") ?? undefined;
+  const contract = params.get("contract") as ContractFilter | null;
   return {
+    contract: contract && CONTRACTS.includes(contract) ? contract : undefined,
     budget: BUDGETS.includes(budget) ? budget : undefined,
     size: size && TEAM_SIZES.includes(size) ? size : undefined,
     lang: lang && languages.includes(lang) ? lang : undefined,
@@ -30,6 +36,7 @@ function matches(a: AgencyListItem, f: Filters) {
   if (f.budget && (a.minBudgetUsd === null || a.minBudgetUsd > f.budget)) return false;
   if (f.size && a.teamSize !== f.size) return false;
   if (f.lang && !a.languages.includes(f.lang)) return false;
+  if (f.contract && !CONTRACT_FILTERS[f.contract].test(a.minContract)) return false;
   return true;
 }
 
@@ -98,6 +105,14 @@ export function ResultsView({
           className={selectClass}
           options={TEAM_SIZES.map((s) => ({ value: s, label: `${s} people` }))}
           anyLabel="Any size"
+        />
+        <FilterSelect
+          label="Contract"
+          value={filters.contract ?? ""}
+          onChange={(v) => setFilter("contract", v)}
+          className={selectClass}
+          options={CONTRACTS.map((c) => ({ value: c, label: CONTRACT_FILTERS[c].label }))}
+          anyLabel="Any"
         />
         {languages.length > 1 && (
           <FilterSelect

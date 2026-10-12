@@ -66,25 +66,37 @@ export default function HowWeRankPage() {
           <h2 id="score" className="text-h2">
             The quality score
           </h2>
-          <h3 className="text-h3">Complete profile: up to 40 points</h3>
+          <p>
+            The profile, reviews and verification parts below are worth 90 points together (the
+            point values listed are scaled by 0.9). Response time is worth up to 10.
+          </p>
+          <h3 className="text-h3">Complete profile: up to 36 points</h3>
           <ul className="flex list-disc flex-col gap-1 pl-6">
             <li>Logo: 5</li>
             <li>Tagline: 5</li>
             <li>Description: 10 for 200 characters or more, 5 for at least 50</li>
-            <li>Minimum budget: 5</li>
+            <li>Starting price: 5</li>
             <li>At least one case study: 10</li>
             <li>At least one location: 5</li>
           </ul>
-          <h3 className="text-h3">Reviews: up to 30 points</h3>
+          <h3 className="text-h3">Reviews: up to 27 points</h3>
           <p>
             Only reviews we&apos;ve checked and published count: 1.5 points per review, up to 10
             reviews, plus up to 15 points for the average rating.
           </p>
-          <h3 className="text-h3">Verification: up to 30 points</h3>
+          <h3 className="text-h3">Verification: up to 27 points</h3>
           <p>
             30 points when we&apos;ve verified the agency and checked its YouTube channel stats, 15
             when it was verified before channel stats were recorded. Channel stats are re-checked
             every month.
+          </p>
+          <h3 className="text-h3">Response time: up to 10 points</h3>
+          <p>
+            Agencies mark each inquiry as contacted in their dashboard, and the time is recorded
+            when they do. We take the median time over the last 90 days, once an agency has at least
+            3 contacted inquiries: 10 points for under 4 hours, 7 for under a day, 4 for under 2
+            days. Agencies without enough data, or slower than that, get 0 here and nothing is shown
+            on their profile.
           </p>
         </section>
 

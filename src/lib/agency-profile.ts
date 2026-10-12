@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/types";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
+import { AD_SPENDS, MIN_CONTRACTS } from "@/lib/pricing";
 import { PRICING_MODELS, type ProfileInput } from "@/lib/validation/dashboard";
 
 // Saves the editable profile fields and the service/industry/location links. Shared by the owner
@@ -43,6 +44,9 @@ export async function applyProfile(
       description: input.description || null,
       min_budget_usd: input.minBudget === "" ? null : Number(input.minBudget),
       pricing_model: input.pricingModel || null,
+      min_contract: input.minContract || null,
+      ad_spend: input.adSpend || null,
+      setup_fee_usd: input.setupFee === "" ? null : Number(input.setupFee),
       updated_at: new Date().toISOString(),
     })
     .eq("id", agencyId);
@@ -114,6 +118,9 @@ export async function profileFormProps(
     description: string | null;
     min_budget_usd: number | null;
     pricing_model: string | null;
+    min_contract: string | null;
+    ad_spend: string | null;
+    setup_fee_usd: number | null;
   },
 ) {
   const [services, industries, locations, links] = await Promise.all([
@@ -138,6 +145,13 @@ export async function profileFormProps(
     pricingModel: (PRICING_MODELS as readonly string[]).includes(agency.pricing_model ?? "")
       ? (agency.pricing_model as ProfileInput["pricingModel"])
       : "",
+    minContract: (MIN_CONTRACTS as readonly string[]).includes(agency.min_contract ?? "")
+      ? (agency.min_contract as ProfileInput["minContract"])
+      : "",
+    adSpend: (AD_SPENDS as readonly string[]).includes(agency.ad_spend ?? "")
+      ? (agency.ad_spend as ProfileInput["adSpend"])
+      : "",
+    setupFee: agency.setup_fee_usd?.toString() ?? "",
     services: svc.map((r) => r.services.slug),
     primaryService: svc.find((r) => r.is_primary)?.services.slug ?? "",
     industries: ind.map((r) => r.industries.slug),

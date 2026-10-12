@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAgencyBySlug, getAgencySlugs, getSimilarAgencies } from "@/lib/data/agencies";
 import { getLocations } from "@/lib/data/taxonomy";
-import { minBudgetLabel } from "@/lib/directory";
+import { formatUsd, minBudgetLabel } from "@/lib/directory";
 import { agencyWebsiteLink } from "@/lib/outbound";
+import { adSpendLabel, contractLabel, responseLabel } from "@/lib/pricing";
 import {
   formatMetrics,
   PRICING_LABEL,
@@ -96,12 +97,24 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
     { name: agency.name, path: `/agency/${agency.slug}` },
   ];
 
+  // Pricing block near the top: what business owners ask first. Missing details are left out.
+  const startingPrice = minBudgetLabel(agency.minBudgetUsd, agency.pricingModel);
+  const pricing = [
+    startingPrice &&
+      [startingPrice, agency.pricingModel && PRICING_LABEL[agency.pricingModel]]
+        .filter(Boolean)
+        .join(" · "),
+    contractLabel(agency.minContract),
+    adSpendLabel(agency.adSpend),
+    agency.setupFeeUsd === null
+      ? null
+      : agency.setupFeeUsd === 0
+        ? "No setup fee"
+        : `${formatUsd(agency.setupFeeUsd)} setup fee`,
+  ].filter((p): p is string => Boolean(p));
+  const replies = responseLabel(agency.response?.medianMinutes ?? null);
+
   const facts = [
-    [
-      "Minimum budget",
-      minBudgetLabel(agency.minBudgetUsd, agency.pricingModel)?.replace(/^From /, ""),
-    ],
-    ["Pricing", agency.pricingModel && PRICING_LABEL[agency.pricingModel]],
     ["Team size", agency.teamSize && `${agency.teamSize} people`],
     ["Founded", agency.foundedYear?.toString()],
     ["Languages", agency.languages.join(", ")],
@@ -151,6 +164,14 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 </a>
               )}
             </div>
+            {replies && (
+              <p className="flex flex-col">
+                <span className="font-medium">{replies}</span>
+                <span className="text-small">
+                  Based on {agency.response!.contacted} inquiries in the last 90 days.
+                </span>
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <Button asChild>
                 <a href="#contact" data-track="contact_open">
@@ -178,6 +199,20 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
 
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
           <div className="flex max-w-reading min-w-0 flex-col gap-16">
+            {pricing.length > 0 && (
+              <section aria-labelledby="pricing" className="flex flex-col gap-4">
+                <h2 id="pricing" className={sectionTitle}>
+                  Pricing
+                </h2>
+                <ul className="flex flex-col divide-y divide-line rounded-lg border border-line">
+                  {pricing.map((p, i) => (
+                    <li key={p} className={i === 0 ? "px-4 py-3 font-semibold" : "px-4 py-3"}>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             {agency.description && (
               <section aria-labelledby="about" className="flex flex-col gap-4">
                 <h2 id="about" className={sectionTitle}>

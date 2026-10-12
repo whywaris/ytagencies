@@ -165,6 +165,9 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
     description: input.description,
     min_budget_usd: Number(input.minBudget),
     pricing_model: input.pricingModel || null,
+    min_contract: input.minContract || null,
+    ad_spend: input.adSpend || null,
+    setup_fee_usd: input.setupFee === "" ? null : Number(input.setupFee),
     submitted_by: user.id,
   };
   let { error } = await supabase.from("agencies").insert({ ...row, slug: base });

@@ -23,6 +23,12 @@ export type AgencyListItem = {
   minBudgetUsd: number | null;
   teamSize: string | null;
   pricingModel: string | null;
+  /** lib/pricing.ts values; null until the agency fills them in. */
+  minContract: string | null;
+  adSpend: string | null;
+  setupFeeUsd: number | null;
+  /** Median time to contact a lead, only with 3+ contacted in 90 days and under 2 days. */
+  response: { medianMinutes: number; contacted: number } | null;
   languages: string[];
   isVerified: boolean;
   /** On a paid plan (Founding or Pro): ranked above Free (§6). */
@@ -67,6 +73,7 @@ export type AgencyProfile = AgencyListItem & {
 
 const LIST_SELECT = `
   id, slug, name, tagline, description, logo_path, min_budget_usd, team_size, pricing_model, languages, is_verified,
+  min_contract, ad_spend, setup_fee_usd,
   hq:locations!agencies_hq_location_id_fkey(slug, name),
   case_study_count:case_studies(count),
   location_count:agency_locations(count),
@@ -104,9 +111,25 @@ type ListRow = NonNullable<Awaited<ReturnType<typeof listQuery>>["data"]>[number
 
 type Placement = Awaited<ReturnType<typeof getPlacement>>;
 
-function toListItem(row: ListRow, placement: Placement): AgencyListItem {
+/**
+ * Response times from the agency_response_times view: an aggregate over private lead routes that
+ * only lists agencies with enough recent data (3+ contacted leads in 90 days, median under 2 days).
+ */
+export const getResponseTimes = cache(async () => {
+  const { data, error } = await createStaticClient()
+    .from("agency_response_times")
+    .select("agency_id, median_minutes, contacted");
+  if (error) throw error;
+  return new Map(
+    data.map((r) => [r.agency_id, { medianMinutes: r.median_minutes, contacted: r.contacted }]),
+  );
+});
+type ResponseTimes = Awaited<ReturnType<typeof getResponseTimes>>;
+
+function toListItem(row: ListRow, placement: Placement, responses: ResponseTimes): AgencyListItem {
   const e = placement.entitlements(row.id);
   const rating = ratingOf(row.reviews);
+  const response = responses.get(row.id) ?? null;
   return {
     id: row.id,
     slug: row.slug,
@@ -116,6 +139,10 @@ function toListItem(row: ListRow, placement: Placement): AgencyListItem {
     minBudgetUsd: row.min_budget_usd,
     teamSize: row.team_size,
     pricingModel: row.pricing_model,
+    minContract: row.min_contract,
+    adSpend: row.ad_spend,
+    setupFeeUsd: row.setup_fee_usd,
+    response,
     languages: row.languages ?? [],
     isVerified: row.is_verified,
     paid: e.listTier === "paid",
@@ -129,6 +156,7 @@ function toListItem(row: ListRow, placement: Placement): AgencyListItem {
       locations: row.location_count[0]?.count ?? 0,
       reviews: rating,
       verification: placement.verification(row.id),
+      responseMinutes: response?.medianMinutes ?? null,
     }),
     sponsored: false,
     hq: row.hq,
@@ -144,13 +172,14 @@ async function rankedList(
   page: { serviceId: number; industryId?: number; locationId?: number },
 ) {
   if (ids.length === 0) return [];
-  const [{ data, error }, placement] = await Promise.all([
+  const [{ data, error }, placement, responses] = await Promise.all([
     listQuery().in("id", ids),
     getPlacement(),
+    getResponseTimes(),
   ]);
   if (error) throw error;
   return rankAgencies(
-    data.map((row) => toListItem(row, placement)),
+    data.map((row) => toListItem(row, placement, responses)),
     placement.sponsoredFor(page),
   );
 }
@@ -229,10 +258,10 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const placement = await getPlacement();
+  const [placement, responses] = await Promise.all([getPlacement(), getResponseTimes()]);
 
   return {
-    ...toListItem(data, placement),
+    ...toListItem(data, placement, responses),
     entitlements: placement.entitlements(data.id),
     description: data.description,
     website: data.website,
@@ -439,7 +468,11 @@ export async function getSimilarAgencies(agency: AgencyListItem, limit: number) 
 // ponytail: loads every published agency (PostgREST max rows cap, 1000 by default); only used to top up
 // "Similar agencies" when too few share a service. Replace with an industry-based query at scale.
 const getPublishedAgencies = cache(async () => {
-  const [{ data, error }, placement] = await Promise.all([listQuery(), getPlacement()]);
+  const [{ data, error }, placement, responses] = await Promise.all([
+    listQuery(),
+    getPlacement(),
+    getResponseTimes(),
+  ]);
   if (error) throw error;
-  return data.map((row) => toListItem(row, placement));
+  return data.map((row) => toListItem(row, placement, responses));
 });

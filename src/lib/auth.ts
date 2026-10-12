@@ -34,7 +34,9 @@ export async function getOwnedAgency(agencyId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("agencies")
-    .select("id, slug, name, description, min_budget_usd, pricing_model, logo_path, status")
+    .select(
+      "id, slug, name, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, logo_path, status",
+    )
     .eq("id", agencyId)
     .eq("owner_id", user.id)
     .maybeSingle();

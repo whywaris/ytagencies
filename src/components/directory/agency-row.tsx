@@ -1,13 +1,16 @@
 import Link from "next/link";
 
 import { AgencyLogo } from "@/components/agency-logo";
+import { LockInChip } from "@/components/lock-in-chip";
 import { Badge } from "@/components/ui/badge";
 import type { AgencyListItem } from "@/lib/data/agencies";
 import { minBudgetLabel } from "@/lib/directory";
+import { noLockIn, responseLabel } from "@/lib/pricing";
 
 // DESIGN.md agency row: one row per agency, 1px line border, 16px radius, no shadow, border darkens on hover.
 export function AgencyRow({ agency }: { agency: AgencyListItem }) {
   const budget = minBudgetLabel(agency.minBudgetUsd, agency.pricingModel);
+  const replies = responseLabel(agency.response?.medianMinutes ?? null);
   const meta = [
     agency.industries
       .slice(0, 3)
@@ -35,10 +38,22 @@ export function AgencyRow({ agency }: { agency: AgencyListItem }) {
           </div>
           {agency.tagline && <p className="text-text-2">{agency.tagline}</p>}
           {meta.length > 0 && <p className="text-small">{meta.join(" · ")}</p>}
+          {replies && (
+            <p className="text-[14px]">
+              {replies}
+              <span className="text-text-2">
+                {" "}
+                · Based on {agency.response!.contacted} inquiries in the last 90 days.
+              </span>
+            </p>
+          )}
         </div>
       </div>
       <div className="flex items-center justify-between gap-6 sm:flex-col sm:items-end sm:gap-1">
-        {budget && <p className="font-medium whitespace-nowrap">{budget}</p>}
+        <div className="flex items-center gap-2 sm:flex-col sm:items-end sm:gap-1">
+          {budget && <p className="font-medium whitespace-nowrap">{budget}</p>}
+          {noLockIn(agency.minContract) && <LockInChip />}
+        </div>
         <Link
           href={`/agency/${agency.slug}`}
           aria-label={`View ${agency.name} profile`}

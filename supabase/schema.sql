@@ -66,6 +66,10 @@ create table agencies (
   team_size text check (team_size in ('1-10','11-50','51-200','200+')),
   min_budget_usd int,
   pricing_model text check (pricing_model in ('retainer','per_video','performance','project')),
+  -- Pricing details (forms require them, setup fee optional; null = not filled in yet).
+  min_contract text check (min_contract in ('none', '1_month', '3_months', '6_months', '12_months')),
+  ad_spend text check (ad_spend in ('separate', 'included', 'not_applicable')),
+  setup_fee_usd int check (setup_fee_usd between 0 and 9999999),
   languages text[] default '{}',
   hq_location_id int references locations(id),
   status text not null default 'draft' check (status in ('draft','published','archived')),
@@ -145,6 +149,10 @@ create table lead_routes (               -- which agencies received which lead
   lead_id uuid references leads(id) on delete cascade,
   agency_id uuid references agencies(id) on delete cascade,
   sent_at timestamptz not null default now(),
+  -- Marked by the agency owner (server time, set once: lead_route_contacted trigger).
+  contacted_at timestamptz,
+  -- The one "a business is waiting for your reply" email (daily cron).
+  reminded_at timestamptz,
   primary key (lead_id, agency_id)
 );
 
@@ -242,6 +250,45 @@ create policy "agency reads routed leads" on leads for select to authenticated u
 create policy "agency reads own routes" on lead_routes for select to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and a.owner_id = auth.uid()) or is_admin());
 
+-- Owners mark their routed leads as contacted; response times are published only as an aggregate.
+revoke update on lead_routes from anon, authenticated;
+grant update (contacted_at) on lead_routes to authenticated;
+create policy "owner marks contacted" on lead_routes for update to authenticated
+  using (exists (select 1 from agencies a where a.id = agency_id and a.owner_id = auth.uid()))
+  with check (exists (select 1 from agencies a where a.id = agency_id and a.owner_id = auth.uid()));
+
+create or replace function lead_route_contacted() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if old.contacted_at is not null then
+    new.contacted_at := old.contacted_at; -- set once
+  elsif new.contacted_at is not null then
+    new.contacted_at := greatest(now(), new.sent_at); -- the server's clock, never the caller's
+  end if;
+  return new;
+end $$;
+create trigger lead_route_contacted before update of contacted_at on lead_routes
+  for each row execute function lead_route_contacted();
+
+-- Runs as its owner (not security_invoker) on purpose: it publishes only this aggregate.
+create view agency_response_times as
+select r.agency_id,
+  round(percentile_cont(0.5) within group (
+    order by extract(epoch from (r.contacted_at - r.sent_at)) / 60))::int as median_minutes,
+  count(*)::int as contacted
+from lead_routes r
+join agencies a on a.id = r.agency_id
+where a.status = 'published'
+  and r.contacted_at is not null
+  and r.sent_at >= now() - interval '90 days'
+group by r.agency_id
+having count(*) >= 3
+  and percentile_cont(0.5) within group (
+    order by extract(epoch from (r.contacted_at - r.sent_at))) < 48 * 3600;
+revoke all on agency_response_times from public, anon, authenticated;
+grant select on agency_response_times to anon, authenticated, service_role;
+
+
 -- Claims
 create policy "own claims" on claims for select using (user_id = auth.uid() or is_admin());
 create policy "create claim" on claims for insert with check (user_id = auth.uid() and status = 'pending');
@@ -306,14 +353,15 @@ create policy "owner update" on agencies for update to authenticated
   using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 revoke update on agencies from anon, authenticated;
 grant update (tagline, description, logo_path, min_budget_usd, pricing_model, team_size,
-  founded_year, languages, hq_location_id, updated_at) on agencies to authenticated;
+  founded_year, languages, hq_location_id, updated_at, min_contract, ad_spend, setup_fee_usd)
+  on agencies to authenticated;
 
 -- anon (the public anon key) reads every agencies column except owner_id, so visitors can't
 -- learn which account owns a listing. New agencies columns must be added to this grant.
 revoke select on agencies from anon;
 grant select (id, slug, name, tagline, description, website, logo_path, founded_year, team_size,
   min_budget_usd, pricing_model, languages, hq_location_id, status, is_claimed, is_verified,
-  search, created_at, updated_at) on agencies to anon;
+  search, created_at, updated_at, min_contract, ad_spend, setup_fee_usd) on agencies to anon;
 
 -- One open claim per user per agency.
 create unique index claims_one_pending on claims (agency_id, user_id) where status = 'pending';
@@ -390,7 +438,8 @@ create index if not exists agencies_submitted_by_idx on agencies (submitted_by) 
 -- keep their defaults (draft, null, false), so a user can't publish, own, verify or feature on insert.
 -- Admin inserts use the service role.
 revoke insert on agencies from anon, authenticated;
-grant insert (id, slug, name, website, description, min_budget_usd, pricing_model, submitted_by) on agencies to authenticated;
+grant insert (id, slug, name, website, description, min_budget_usd, pricing_model, submitted_by,
+  min_contract, ad_spend, setup_fee_usd) on agencies to authenticated;
 
 -- Belt and braces on top of the grants, plus a cap of 3 open submissions per account.
 create policy "submit draft" on agencies for insert to authenticated with check (

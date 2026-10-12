@@ -24,7 +24,7 @@
 | How we rank                             | `/how-we-rank`                      | Yes                             |
 | About, contact                          | `/about`, `/contact`                | Yes (`/contact?topic=` canonical to `/contact`) |
 | Policies                                | `/privacy`, `/terms`, `/refunds`, `/cookies`, `/disclosure`, `/editorial-policy` | Yes |
-| Filters (`?budget=`, `?sort=`)          | same path + params                  | No; canonical to the clean path |
+| Filters (`?budget=`, `?size=`, `?lang=`, `?contract=`) | same path + params | No; canonical to the clean path |
 | Dashboard / admin / get-matched success | —                                   | No (`noindex`)                  |
 
 ## Programmatic SEO

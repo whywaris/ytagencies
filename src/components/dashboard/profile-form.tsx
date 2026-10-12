@@ -14,6 +14,7 @@ import {
 } from "@/components/forms/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AD_SPEND_OPTION, AD_SPENDS, MIN_CONTRACT_OPTION, MIN_CONTRACTS } from "@/lib/pricing";
 import { PRICING_LABEL } from "@/lib/profile";
 import { PRICING_MODELS, profileSchema, type ProfileInput } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
@@ -99,6 +100,45 @@ export function ProfileForm({
               </option>
             ))}
           </select>
+        </Field>
+        <Field id="p-contract" label="Minimum contract" error={errors.minContract?.message}>
+          <select
+            {...register("minContract")}
+            {...a11yProps("p-contract", errors.minContract?.message)}
+            className={selectClasses}
+          >
+            <option value="" disabled>
+              Choose one
+            </option>
+            {MIN_CONTRACTS.map((m) => (
+              <option key={m} value={m}>
+                {MIN_CONTRACT_OPTION[m]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id="p-adspend" label="Ad spend" error={errors.adSpend?.message}>
+          <select
+            {...register("adSpend")}
+            {...a11yProps("p-adspend", errors.adSpend?.message)}
+            className={selectClasses}
+          >
+            <option value="" disabled>
+              Choose one
+            </option>
+            {AD_SPENDS.map((m) => (
+              <option key={m} value={m}>
+                {AD_SPEND_OPTION[m]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id="p-setup" label="Setup fee (US$)" optional error={errors.setupFee?.message}>
+          <Input
+            inputMode="numeric"
+            {...register("setupFee")}
+            {...a11yProps("p-setup", errors.setupFee?.message)}
+          />
         </Field>
       </div>
 

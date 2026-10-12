@@ -281,8 +281,14 @@ await as("authenticated", SUBMITTER, async () => {
     "can't insert without submitted_by",
   );
   ok(
-    !(await denied(submit(SUB(1), ", min_budget_usd, pricing_model", ", 2000, 'per_video'"))),
-    "can insert a draft they submitted, with its starting price and unit",
+    !(await denied(
+      submit(
+        SUB(1),
+        ", min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd",
+        ", 2000, 'per_video', '3_months', 'separate', 500",
+      ),
+    )),
+    "can insert a draft they submitted, with its pricing details",
   );
   const [mine] = await rows(
     `select status, owner_id, is_verified, is_claimed from agencies where id = '${SUB(1)}'`,
@@ -1021,5 +1027,85 @@ ok(
   (await rows("select * from rate_limits where key = 'email:stale'")).length === 0,
   "rate limit: expired rows of other keys pruned",
 );
+
+console.log("— response time (lead_routes.contacted_at, agency_response_times) —");
+// Quillfern was deleted by the agency-delete tests above: Saltmere is OWNER's agency here.
+const MINE = SALT;
+await db.exec(
+  `reset role; update agencies set owner_id = '${OWNER}', status = 'published' where id = '${MINE}'`,
+);
+const R = (n) => `bbbbbbbb-0000-4000-8000-00000000000${n}`;
+await db.exec(`reset role;
+  insert into leads (id, name, email) select ('bbbbbbbb-0000-4000-8000-00000000000' || n)::uuid, 'R' || n, 'r' || n || '@x.example' from generate_series(1, 7) n;
+  insert into lead_routes (lead_id, agency_id, sent_at) values
+    ('${R(1)}', '${MINE}', now() - interval '3 hours'),
+    ('${R(2)}', '${MINE}', now() - interval '2 hours'),
+    ('${R(3)}', '${MINE}', now() - interval '1 hour'),
+    ('${R(4)}', '${PINE}', now() - interval '3 days'),
+    ('${R(5)}', '${PINE}', now() - interval '3 days'),
+    ('${R(6)}', '${PINE}', now() - interval '3 days'),
+    ('${R(7)}', '${PINE}', now() - interval '1 hour');`);
+const route = async (n) =>
+  (await rows(`select contacted_at from lead_routes where lead_id = '${R(n)}'`))[0];
+const markAs = (n, extra = "contacted_at = now()") =>
+  `update lead_routes set ${extra} where lead_id = '${R(n)}' returning 1`;
+await as("authenticated", OWNER, async () => {
+  ok(
+    !(await denied(markAs(1, "contacted_at = '2000-01-01'"))),
+    "owner: can mark their own routed lead as contacted",
+  );
+  ok(await denied(markAs(7)), "owner: can't mark another agency's lead");
+  ok(await denied(markAs(2, "sent_at = now()")), "owner: can't change sent_at");
+  ok(await denied(markAs(2, "reminded_at = now()")), "owner: can't change reminded_at");
+});
+const first = await route(1);
+ok(
+  Date.now() - new Date(first.contacted_at).getTime() < 60_000,
+  "contacted_at is the server's time, never the one sent (no backdating)",
+);
+await as("authenticated", OWNER, async () => {
+  await db.query(markAs(1, "contacted_at = now() + interval '1 day'"));
+});
+ok(
+  new Date((await route(1)).contacted_at).getTime() === new Date(first.contacted_at).getTime(),
+  "contacted_at is set once",
+);
+await as("authenticated", OTHER, async () => {
+  ok(await denied(markAs(2)), "other user: can't mark someone else's lead");
+});
+await as("anon", null, async () => {
+  ok(await denied(markAs(2)), "anon: can't mark a lead");
+});
+ok(
+  (await rows(`select 1 from agency_response_times where agency_id = '${MINE}'`)).length === 0,
+  "response time: hidden with fewer than 3 contacted leads",
+);
+await as("authenticated", OWNER, async () => {
+  await db.query(markAs(2));
+  await db.query(markAs(3));
+});
+for (const n of [4, 5, 6]) await db.query(markAs(n));
+await as("anon", null, async () => {
+  const shown = await rows("select * from agency_response_times");
+  const quill = shown.find((r) => r.agency_id === MINE);
+  ok(
+    quill?.contacted === 3 && Math.abs(quill.median_minutes - 120) <= 1,
+    "response time: median of 3 contacted leads (2 hours), readable by anon",
+  );
+  ok(
+    Object.keys(quill ?? {})
+      .sort()
+      .join() === "agency_id,contacted,median_minutes",
+    "response time: the view exposes only the aggregate",
+  );
+  ok(
+    !shown.some((r) => r.agency_id === PINE),
+    "response time: hidden when the median is 2 days or more",
+  );
+  ok(
+    (await rows("select min_contract, ad_spend, setup_fee_usd from agencies limit 1")).length === 1,
+    "anon: pricing details are readable",
+  );
+});
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;
