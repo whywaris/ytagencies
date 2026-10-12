@@ -417,7 +417,9 @@ create extension if not exists btree_gist; -- sponsored slot overlap constraint
 
 -- ───────── Plans ─────────
 create table plans (
-  id text primary key check (id in ('free', 'founding', 'verified')),
+  -- The paid plan is 'pro' (renamed from 'verified', migration 20261016000100), so it can't be
+  -- confused with the Verified badge.
+  id text primary key check (id in ('free', 'founding', 'pro')),
   name text not null,
   price_monthly numeric(10, 2),
   price_yearly numeric(10, 2)
@@ -425,7 +427,7 @@ create table plans (
 insert into plans (id, name, price_monthly, price_yearly) values
   ('free', 'Free', 0, 0),
   ('founding', 'Founding', 0, 0),
-  ('verified', 'Verified', 29, 249)
+  ('pro', 'Pro', 29, 249)
 on conflict (id) do update set name = excluded.name, price_monthly = excluded.price_monthly,
   price_yearly = excluded.price_yearly;
 

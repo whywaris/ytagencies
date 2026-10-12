@@ -13,7 +13,7 @@ export type Billing = {
   /** Starts a checkout for an agency; returns the provider's checkout URL. */
   createCheckout(input: {
     agencyId: string;
-    plan: "verified";
+    plan: "pro";
     interval: "month" | "year";
     returnUrl: string;
   }): Promise<BillingResult<{ url: string }>>;

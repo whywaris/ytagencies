@@ -1,7 +1,7 @@
 // Plan entitlements (ADMIN_V2_SPEC §6). Pure rules with no imports, so tests load this file
 // directly; getEntitlements() in lib/data/entitlements.ts feeds it from the database.
 
-export type PlanId = "free" | "founding" | "verified";
+export type PlanId = "free" | "founding" | "pro";
 
 export type Subscription = {
   plan_id: string;
@@ -18,7 +18,7 @@ export type Entitlements = {
   websiteLink: boolean;
   showSimilarAgencies: boolean;
   matchPriority: "normal" | "high";
-  /** Directory order after sponsored slots: paid (Founding/Verified) above Free. */
+  /** Directory order after sponsored slots: paid (Founding/Pro) above Free. */
   listTier: "paid" | "free";
   analyticsDays: number;
   utmLinks: boolean;
@@ -38,7 +38,7 @@ export function currentPlan(subscriptions: Subscription[], now = new Date()): Pl
       new Date(s.starts_at).getTime() <= t &&
       (s.ends_at === null || new Date(s.ends_at).getTime() > t),
   );
-  return live?.plan_id === "founding" || live?.plan_id === "verified" ? live.plan_id : "free";
+  return live?.plan_id === "founding" || live?.plan_id === "pro" ? live.plan_id : "free";
 }
 
 export function entitlementsFor({
@@ -52,7 +52,7 @@ export function entitlementsFor({
   now?: Date;
 }): Entitlements {
   const plan = currentPlan(subscriptions, now);
-  const paid = plan !== "free"; // Founding gets Verified-level entitlements while it lasts
+  const paid = plan !== "free"; // Founding gets Pro entitlements while it lasts
   return {
     plan,
     caseStudies: paid ? Infinity : 2,

@@ -79,7 +79,9 @@ export function StatusBadge({ status }: { status: string }) {
 export const PLAN_LABEL: Record<string, string> = {
   free: "Free",
   founding: "Founding",
-  verified: "Verified",
+  pro: "Pro",
+  // The paid plan's id before it was renamed (still in older audit log entries).
+  verified: "Pro",
 };
 
 export function PlanBadge({ plan }: { plan: string }) {

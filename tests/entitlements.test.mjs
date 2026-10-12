@@ -29,8 +29,8 @@ test("no subscription means Free", () => {
 });
 
 test("Verified plan unlocks the paid entitlements", () => {
-  const e = entitlementsFor({ subscriptions: [sub("verified")], verificationApproved: false, now });
-  assert.equal(e.plan, "verified");
+  const e = entitlementsFor({ subscriptions: [sub("pro")], verificationApproved: false, now });
+  assert.equal(e.plan, "pro");
   assert.equal(e.caseStudies, Infinity);
   assert.equal(e.websiteLink, true);
   assert.equal(e.showSimilarAgencies, false);
@@ -71,12 +71,12 @@ test("Founding: Verified-level while it lasts, badge forever, Free after", () =>
 });
 
 test("currentPlan ignores rows that are cancelled, expired, ended or not started", () => {
-  assert.equal(currentPlan([sub("verified", { status: "cancelled" })], now), "free");
-  assert.equal(currentPlan([sub("verified", { ends_at: "2026-10-07T11:59:59Z" })], now), "free");
-  assert.equal(currentPlan([sub("verified", { starts_at: "2026-11-01T00:00:00Z" })], now), "free");
+  assert.equal(currentPlan([sub("pro", { status: "cancelled" })], now), "free");
+  assert.equal(currentPlan([sub("pro", { ends_at: "2026-10-07T11:59:59Z" })], now), "free");
+  assert.equal(currentPlan([sub("pro", { starts_at: "2026-11-01T00:00:00Z" })], now), "free");
   assert.equal(currentPlan([sub("gold")], now), "free");
   assert.equal(
-    currentPlan([sub("verified", { ends_at: "2026-10-07T12:00:01Z" })], now),
-    "verified",
+    currentPlan([sub("pro", { ends_at: "2026-10-07T12:00:01Z" })], now),
+    "pro",
   );
 });

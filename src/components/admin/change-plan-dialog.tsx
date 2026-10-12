@@ -11,8 +11,8 @@ import { changePlan } from "@/lib/actions/admin-directory";
 
 const PLANS = [
   { id: "free", hint: "Default. No paid entitlements." },
-  { id: "founding", hint: "Verified-level for a limited time, plus the Founding badge for good." },
-  { id: "verified", hint: "Paid plan, granted by hand while payments are off." },
+  { id: "founding", hint: "Pro for a limited time, plus the Founding badge for good." },
+  { id: "pro", hint: "Paid plan, granted by hand while payments are off." },
 ] as const;
 
 /** yyyy-mm-dd, `months` from today (UTC). */

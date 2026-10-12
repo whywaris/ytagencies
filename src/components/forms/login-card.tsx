@@ -246,7 +246,8 @@ export function LoginCard({
               Check your email
             </h2>
             <p className="text-text-2">
-              We sent a sign-in link to <strong className="text-text [overflow-wrap:anywhere]">{sentTo}</strong>.
+              We sent a sign-in link to{" "}
+              <strong className="[overflow-wrap:anywhere] text-text">{sentTo}</strong>.
             </p>
           </div>
           <ol className="flex flex-col gap-2.5 rounded-[14px] bg-surface p-4 text-[15px]">

@@ -370,7 +370,7 @@ await db.exec(`
   update profiles set role = 'admin' where id = '${ADMIN}';
   insert into agency_subscriptions (agency_id, plan_id, source, ends_at)
     values ('${QUILL}', 'founding', 'founding', now() + interval '6 months'),
-           ('${PINE}', 'verified', 'manual', null);
+           ('${PINE}', 'pro', 'manual', null);
   insert into verifications (agency_id, status) values ('${PINE}', 'requested');
   insert into admin_actions (admin_id, action, entity_type, entity_id) values ('${ADMIN}', 'agency.publish', 'agency', '${QUILL}');
   insert into sponsored_slots (service_id, industry_id, agency_id, position, starts_at, ends_at)
@@ -452,7 +452,7 @@ await as("authenticated", OWNER, async () => {
   ok((await rows("select * from sponsored_slots")).length === 0, "owner: sponsored slots hidden");
   ok(
     await denied(
-      `insert into agency_subscriptions (agency_id, plan_id, source) values ('${QUILL}', 'verified', 'manual')`,
+      `insert into agency_subscriptions (agency_id, plan_id, source) values ('${QUILL}', 'pro', 'manual')`,
     ),
     "owner: can't give themselves a plan",
   );
@@ -528,7 +528,7 @@ const fails = async (sql) => {
 };
 ok(
   await fails(
-    `insert into agency_subscriptions (agency_id, plan_id, source) values ('${QUILL}', 'verified', 'manual')`,
+    `insert into agency_subscriptions (agency_id, plan_id, source) values ('${QUILL}', 'pro', 'manual')`,
   ),
   "subscriptions: one active row per agency",
 );

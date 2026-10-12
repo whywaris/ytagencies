@@ -79,7 +79,7 @@ export function AgencyFilters({
             {field("plan", "Plan", [
               { value: "free", label: "Free" },
               { value: "founding", label: "Founding" },
-              { value: "verified", label: "Verified" },
+              { value: "pro", label: "Pro" },
             ])}
             {field("service", "Service", services)}
             {field("industry", "Industry", industries)}

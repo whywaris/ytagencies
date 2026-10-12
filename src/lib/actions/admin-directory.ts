@@ -108,7 +108,7 @@ export async function deleteAgencies(
 }
 
 const planSchema = z.object({
-  plan: z.enum(["free", "founding", "verified"]),
+  plan: z.enum(["free", "founding", "pro"]),
   // yyyy-mm-dd from a date input; empty = no end date
   endsOn: z
     .string()

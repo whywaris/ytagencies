@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Plans" };
 
-const TABS = ["founding", "verified", "free"] as const;
+const TABS = ["founding", "pro", "free"] as const;
 const SOURCE: Record<string, string> = {
   manual: "Manual",
   founding: "Founding programme",
@@ -64,8 +64,8 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
       <div className="flex max-w-reading flex-col gap-1">
         <h1 className="text-admin-title">Plans</h1>
         <p className="text-text-2">
-          Payments are off, so plans are granted by hand. Founding gives Verified-level benefits for
-          a set time and the Founding badge for good; afterwards the agency drops to Free.
+          Payments are off, so plans are granted by hand. Founding gives Pro benefits for a set time
+          and the Founding badge for good; afterwards the agency drops to Free.
         </p>
       </div>
 

@@ -7,7 +7,7 @@ import { getEntitlements } from "@/lib/data/entitlements";
 
 export const metadata = { title: "Plan and analytics" };
 
-const PLAN_NAME = { free: "Free", founding: "Founding", verified: "Verified" } as const;
+const PLAN_NAME = { free: "Free", founding: "Founding", pro: "Pro" } as const;
 const count = new Intl.NumberFormat("en-US");
 
 /** yyyy-mm-dd, n days before today (UTC). */

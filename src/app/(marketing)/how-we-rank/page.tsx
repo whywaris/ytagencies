@@ -47,10 +47,10 @@ export default function HowWeRankPage() {
             <li>
               <strong>Sponsored.</strong> Up to {MAX_SPONSORED} agencies can sponsor a page. They
               appear first, in the order of their slot, and carry a Sponsored label. Only agencies
-              on a paid plan (Founding or Verified) with the Verified badge can sponsor a page.
+              on a paid plan (Founding or Pro) with the Verified badge can sponsor a page.
             </li>
             <li>
-              <strong>Agencies on a paid plan.</strong> Founding and Verified agencies come next.
+              <strong>Agencies on a paid plan.</strong> Founding and Pro agencies come next.
             </li>
             <li>
               <strong>Free listings.</strong> Everyone else.

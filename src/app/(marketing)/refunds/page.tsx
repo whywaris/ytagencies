@@ -62,9 +62,8 @@ const sections: LegalSection[] = [
     title: "Founding programme",
     body: (
       <p>
-        Founding agencies get paid-plan features for free for a set time, so there&apos;s nothing to
-        refund. When the free period ends, the agency moves to the free plan unless it chooses a
-        paid one.
+        Founding agencies get Pro for free for a set time, so there&apos;s nothing to refund. When
+        the free period ends, the agency moves to the free plan unless it chooses a paid one.
       </p>
     ),
   },

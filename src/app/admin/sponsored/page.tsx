@@ -38,7 +38,7 @@ export default async function AdminSponsoredPage() {
       .select("id, name")
       .eq("status", "published")
       .eq("is_verified", true)
-      .in("plan", ["founding", "verified"])
+      .in("plan", ["founding", "pro"])
       .order("name"),
     getServices(),
     getIndustries(),

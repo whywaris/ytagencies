@@ -12,13 +12,13 @@ import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 
 export const revalidate = 3600;
 
-// ADMIN_V2_SPEC §6. While PAYMENTS_ENABLED isn't "true", Verified is free for Founding agencies
+// ADMIN_V2_SPEC §6. While PAYMENTS_ENABLED isn't "true", Pro is free for Founding agencies
 // (while the programme is open and has spots, §5.10) and Sponsored placements are arranged by email.
 
 export const metadata = buildMetadata({
   title: `Pricing for YouTube agencies | ${BRAND_NAME}`,
   description:
-    "List your YouTube agency for free. Upgrade to Verified for a website link, higher placement and priority in matched leads, or sponsor a directory page.",
+    "List your YouTube agency for free. Upgrade to Pro for a website link, higher placement and priority in matched leads, or sponsor a directory page.",
   path: "/for-agencies/pricing",
 });
 
@@ -36,7 +36,7 @@ const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 export default async function PricingPage() {
   const [plans, program] = await Promise.all([getPlanPrices(), getFoundingProgram()]);
   const founding = foundingAvailable(program);
-  const verified = plans.get("verified");
+  const pro = plans.get("pro");
   const live = paymentsEnabled();
 
   return (
@@ -72,12 +72,12 @@ export default async function PricingPage() {
             }
           />
           <Plan
-            name="Verified"
+            name="Pro"
             highlight
             price={
-              verified?.price_monthly ? (
+              pro?.price_monthly ? (
                 <>
-                  {usd(Number(verified.price_monthly))}
+                  {usd(Number(pro.price_monthly))}
                   <span className="text-[17px] font-normal text-text-2"> a month</span>
                 </>
               ) : (
@@ -86,11 +86,11 @@ export default async function PricingPage() {
             }
             note={
               live
-                ? verified?.price_yearly
-                  ? `or ${usd(Number(verified.price_yearly))} a year`
+                ? pro?.price_yearly
+                  ? `or ${usd(Number(pro.price_yearly))} a year`
                   : undefined
                 : founding
-                  ? "Free during launch: join as a Founding agency."
+                  ? `Founding agencies get Pro free for ${program.freeMonths} ${program.freeMonths === 1 ? "month" : "months"}.`
                   : "Founding spots are taken. Paid plans open soon."
             }
             summary="For agencies that want more of the right leads."
@@ -107,11 +107,7 @@ export default async function PricingPage() {
             cta={
               <Button asChild className="self-start">
                 <Link href="/list-your-agency">
-                  {live
-                    ? "Get Verified"
-                    : founding
-                      ? "Join as a Founding agency"
-                      : "List your agency"}
+                  {live ? "Get Pro" : founding ? "Join as a Founding agency" : "List your agency"}
                 </Link>
               </Button>
             }
@@ -129,7 +125,7 @@ export default async function PricingPage() {
               "Up to 3 sponsored agencies per page, shown first",
               "Clearly labeled Sponsored",
               "Pick the service, industry or location pages that matter to you",
-              "For agencies on a paid plan (Founding or Verified) with the Verified badge",
+              "For agencies on a paid plan (Founding or Pro) with the Verified badge",
             ]}
             cta={
               <Button asChild variant="link" className="self-start">
@@ -138,6 +134,11 @@ export default async function PricingPage() {
             }
           />
         </div>
+
+        <p className="-mt-6 max-w-reading text-[15px] text-text-2">
+          The Verified badge can&apos;t be bought. Any agency can apply, and it&apos;s only given
+          when our checks pass.
+        </p>
 
         <section aria-labelledby="badge" className="flex max-w-reading flex-col gap-3">
           <h2 id="badge" className="text-h3">

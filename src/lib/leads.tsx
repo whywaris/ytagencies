@@ -48,7 +48,7 @@ export async function matchAgencies(serviceId: number, industryId: number, budge
     .in("id", serviceIds);
   if (error) throw error;
 
-  // §6: among agencies that match (industry, then budget), Founding/Verified plans come first.
+  // §6: among agencies that match (industry, then budget), Founding/Pro plans come first.
   const placement = await getPlacement();
   const rank = (a: (typeof data)[number]) => [
     inIndustry.has(a.id) ? 1 : 0,

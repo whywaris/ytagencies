@@ -25,7 +25,7 @@ export type AgencyListItem = {
   pricingModel: string | null;
   languages: string[];
   isVerified: boolean;
-  /** On a paid plan (Founding or Verified): ranked above Free (§6). */
+  /** On a paid plan (Founding or Pro): ranked above Free (§6). */
   paid: boolean;
   /** Has ever been a Founding agency: the badge stays for good. */
   foundingBadge: boolean;

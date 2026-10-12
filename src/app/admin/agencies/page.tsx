@@ -37,7 +37,7 @@ export default async function AdminAgenciesPage({ searchParams }: PageProps<"/ad
   const filters = {
     claimed: ["yes", "no"].includes(one(sp.claimed)) ? one(sp.claimed) : "",
     verified: ["yes", "no"].includes(one(sp.verified)) ? one(sp.verified) : "",
-    plan: ["free", "founding", "verified"].includes(one(sp.plan)) ? one(sp.plan) : "",
+    plan: ["free", "founding", "pro"].includes(one(sp.plan)) ? one(sp.plan) : "",
     service: one(sp.service),
     industry: one(sp.industry),
   };

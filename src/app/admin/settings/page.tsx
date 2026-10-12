@@ -76,7 +76,7 @@ export default async function AdminSettingsPage() {
 
         <Section
           title="Founding programme"
-          description="Verified-level benefits for a set time, and the Founding badge for good."
+          description="Pro benefits for a set time, and the Founding badge for good."
         >
           <p className="mb-6 text-text-2 num">
             {program.open

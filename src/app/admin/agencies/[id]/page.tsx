@@ -280,7 +280,7 @@ async function PlanTab({
           History
         </h2>
         {subs.length === 0 ? (
-          <Empty>Always been on Free. Use Change plan to grant Founding or Verified.</Empty>
+          <Empty>Always been on Free. Use Change plan to grant Founding or Pro.</Empty>
         ) : (
           <Table>
             <thead>

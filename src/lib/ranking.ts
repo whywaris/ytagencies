@@ -2,7 +2,7 @@
 // No imports, so tests load this file directly.
 //
 // 1. Sponsored slots for the page, by position (max 3), labeled "Sponsored".
-// 2. Agencies on a paid plan (Founding or Verified).
+// 2. Agencies on a paid plan (Founding or Pro).
 // 3. Free agencies.
 // Within 2 and 3: quality score (0–100), then name.
 

@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Verification" };
 
-const PAID = new Set(["founding", "verified"]);
+const PAID = new Set(["founding", "pro"]);
 
 export default async function AdminVerificationPage({
   searchParams,

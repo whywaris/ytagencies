@@ -58,7 +58,7 @@ export async function saveSponsoredSlot(id: string | null, raw: unknown): Promis
   if (!agency.data || agency.data.status !== "published") {
     return { ok: false, error: "Only published agencies can hold a slot." };
   }
-  // Your decision for §5.8: a paid plan (Founding or Verified) and the Verified badge.
+  // Your decision for §5.8: a paid plan (Founding or Pro) and the Verified badge.
   const e = await getEntitlements(v.agencyId);
   if (!e.canBuySponsored || !e.verifiedBadge) {
     return {
