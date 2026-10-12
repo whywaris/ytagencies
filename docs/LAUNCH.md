@@ -2,7 +2,7 @@
 
 ## Supabase
 
-1. Create a production project and run all of `supabase/schema.sql` (SQL editor). It already contains everything the migrations in `supabase/migrations/` add, so on a fresh project don't run the migrations on top of it. Do this before the first deploy: the build reads the database while pre-rendering pages and fails if a table or column the code expects is missing. On the dev project, apply new migrations from `supabase/migrations/` in order.
+1. Create a production project and run all of `supabase/schema.sql` (SQL editor). It already contains everything the migrations in `supabase/migrations/` add, so on a fresh project don't run the migrations on top of it. Then mark them all as applied for the Supabase CLI (see "Supabase CLI" below, "Production project"), so `pnpm db:push` only ever runs migrations added after launch. Do this before the first deploy: the build reads the database while pre-rendering pages and fails if a table or column the code expects is missing. On the dev project, apply new migrations with `pnpm db:push`.
    - Defaults after `20261018000100_pricing_response.sql`: existing agencies have no minimum contract, ad spend or setup fee (nothing shows until they save their profile, where the first two are now required), and response times start empty. An agency's "Usually replies within…" appears only once it has marked 3 inquiries as contacted in the last 90 days.
 2. Seed production with taxonomy only (Part 1 of `seed.sql`), or run the whole seed and delete the samples:
    ```sql
@@ -31,7 +31,68 @@
 4. Make yourself admin: `update profiles set role = 'admin' where id = '<your user id>';`
    Then open Admin → Settings and set the Founding programme (open/closed, max spots, free months; defaults: open, 50, 6).
 5. Daily backups and point-in-time recovery (paid plan).
-6. Regenerate types: `pnpm dlx supabase gen types typescript --project-id <ref> --schema public > src/lib/supabase/types.ts`
+6. Regenerate types after a schema change: `pnpm db:types` (needs the CLI linked, below).
+
+## Supabase CLI (apply migrations with one command)
+
+The scripts run the CLI through `pnpm dlx supabase`: no global install, it downloads the Windows binary on first use. If that fails, install it with Scoop (`scoop bucket add supabase https://github.com/supabase/scoop-bucket.git`, then `scoop install supabase`) and run the same commands with `supabase` instead of `pnpm dlx supabase`. Docker isn't needed: nothing runs locally. `supabase/config.toml` holds the little the CLI needs.
+
+| Script | Does |
+|---|---|
+| `pnpm db:link <ref>` | Links this folder to a project (asks for its database password). |
+| `pnpm db:status` | Lists migrations: local files vs. what the linked project has recorded. |
+| `pnpm db:push` | Applies the migrations the linked project hasn't recorded yet, in order. |
+| `pnpm db:types` | Regenerates `src/lib/supabase/types.ts` from the linked project. |
+
+### Dev project (`lkpmdqybxkhirlsqhffs`): one-time setup in PowerShell
+
+Every migration up to `20261018000100` was pasted into the SQL editor by hand, so the CLI's history is empty and `db push` would try to run them all again. Mark them as applied first. All 16 were checked against the dev database on 2026-10-12:
+
+```powershell
+cd "C:\Users\LENOVO\Desktop\YT Agency"
+pnpm dlx supabase login
+pnpm db:link lkpmdqybxkhirlsqhffs
+pnpm dlx supabase migration repair --status applied 20261004000000 20261005000100 20261005000200 20261006000100 20261007000100 20261008000100 20261009000100 20261010000100 20261011000100 20261012000100 20261013000100 20261014000100 20261015000100 20261016000100 20261017000100 20261018000100
+pnpm db:status
+```
+
+`login` opens the browser. `db:link` asks for the database password (Project Settings → Database; reset it there if you don't have it). `db:status` should then show every migration under both Local and Remote. From then on, after pulling a new migration: `pnpm db:push`.
+
+To check a database before repairing (production later, or to double-check dev), paste this into its SQL editor. It checks one object each migration created and shows `true` for the applied ones; list only those in the repair command:
+
+```sql
+select version, applied from (values
+  ('20261004000000', to_regclass('public.rate_limits') is not null),
+  ('20261005000100', exists (select 1 from pg_policies where tablename = 'agency_services' and policyname = 'anon read published')),
+  ('20261005000200', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'services' and column_name = 'updated_at')),
+  ('20261006000100', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'agencies' and column_name = 'submitted_by')),
+  ('20261007000100', to_regclass('public.plans') is not null),
+  ('20261008000100', to_regclass('public.admin_agency_list') is not null),
+  ('20261009000100', not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'agencies' and column_name = 'is_featured')),
+  ('20261010000100', to_regclass('public.guides') is not null),
+  ('20261011000100', to_regclass('public.app_settings') is not null),
+  ('20261012000100', to_regclass('public.authors') is not null),
+  ('20261013000100', to_regclass('public.contact_messages') is not null),
+  ('20261014000100', to_regclass('public.deleted_agency_routes') is not null),
+  ('20261015000100', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'case_studies' and column_name = 'channel_id')),
+  ('20261016000100', exists (select 1 from pg_constraint where conname = 'plans_id_check' and pg_get_constraintdef(oid) like '%pro%')),
+  ('20261017000100', exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'agency_event_daily' and column_name = 'source')),
+  ('20261018000100', to_regclass('public.agency_response_times') is not null)
+) as m(version, applied)
+order by version;
+```
+
+### Production project (later)
+
+After creating it from `schema.sql` (step 1), in PowerShell:
+
+```powershell
+pnpm db:link <production-ref>
+pnpm dlx supabase migration repair --status applied <every version the query shows as true>
+pnpm db:status
+```
+
+On a fresh project built from `schema.sql`, every row is `true`, so the repair lists all of them. After that, push each new migration to dev first and production second: `db:link` switches the folder between projects, so run `pnpm db:status` to see which one you're on before `pnpm db:push`.
 
 ## Supabase email (custom SMTP via Resend)
 

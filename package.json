@@ -9,7 +9,11 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --test \"tests/**/*.test.mjs\" && node supabase/tests/access.mjs && node supabase/tests/access.mjs --migrations",
     "format": "prettier --write .",
-    "start": "next start"
+    "start": "next start",
+    "db:link": "pnpm dlx supabase link --project-ref",
+    "db:status": "pnpm dlx supabase migration list",
+    "db:push": "pnpm dlx supabase db push",
+    "db:types": "pnpm dlx supabase gen types typescript --linked --schema public > src/lib/supabase/types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

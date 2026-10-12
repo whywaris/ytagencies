@@ -1,0 +1,8 @@
+# Supabase CLI (docs/LAUNCH.md "Supabase CLI"). Only what `link`, `migration` and `db push` need:
+# the hosted projects are configured in the Supabase dashboard, not here, and there's no local
+# Docker stack. Migrations live in supabase/migrations and are applied with `pnpm db:push`.
+project_id = "yt-agencies"
+
+[db]
+# The hosted projects run Postgres 17. If `link` warns about a different version, set it here.
+major_version = 17
