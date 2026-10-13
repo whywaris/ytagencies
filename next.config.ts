@@ -18,6 +18,8 @@ const supabaseHost = supabaseUrl?.host ?? "*.supabase.co";
 // ponytail: static CSP with 'unsafe-inline' scripts, because a nonce CSP forces every page dynamic and breaks ISR.
 // Upgrade to hashes/SRI if Next supports them for static pages.
 // Google Analytics 4 (components/analytics.tsx): the gtag script, and where it sends hits.
+// Google profile photos in the account menu (lib/account.ts AVATAR_HOST).
+const AVATAR_HOST = "https://lh3.googleusercontent.com";
 const GA_SCRIPT = "https://www.googletagmanager.com";
 const GA_HITS =
   "https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com";
@@ -25,7 +27,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com ${GA_SCRIPT}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${supabaseHost}${media.map((h) => ` https://${h}`).join("")} ${GA_HITS}`,
+  `img-src 'self' data: blob: https://${supabaseHost}${media.map((h) => ` https://${h}`).join("")} ${GA_HITS} ${AVATAR_HOST}`,
   "font-src 'self'",
   `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} ${GA_HITS}${isDev ? " https://va.vercel-scripts.com" : ""}`,
   "frame-src https://challenges.cloudflare.com",
@@ -62,6 +64,8 @@ const nextConfig: NextConfig = {
     dangerouslyAllowLocalIP: isDev,
     remotePatterns: [
       ...media.map((hostname) => ({ protocol: "https" as const, hostname })),
+      // Google profile photos (the account menu avatar).
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
       {
         protocol: supabaseUrl?.protocol === "http:" ? "http" : "https",
         hostname: supabaseUrl?.hostname ?? "*.supabase.co",

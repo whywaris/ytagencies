@@ -1,19 +1,21 @@
 "use client";
 
-import { UserIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 
+import { AccountMenu, AvatarPlaceholder } from "@/components/account-menu";
+
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/actions/auth";
+import { accountFrom, type Account } from "@/lib/account";
 import { cn } from "@/lib/utils";
 
 // The Nav renders on static (ISR) pages, so it can't read cookies on the server: that would make
 // every page dynamic. The server HTML is the signed-out state; after hydration this checks for the
 // Supabase session cookie (no network, no Supabase JS) and swaps to the signed-in state.
-// Only signed-in visitors load the Supabase client, to ask whether they're an admin.
+// Only signed-in visitors load the Supabase client: the account (from the local session) and
+// whether they're an admin.
 
 const AUTH_COOKIE = (() => {
   try {
@@ -24,34 +26,49 @@ const AUTH_COOKIE = (() => {
   }
 })();
 
-let adminCheck: Promise<boolean> | null = null;
-function isAdmin() {
-  adminCheck ??= import("@/lib/supabase/client").then(async ({ createClient }) => {
-    const { data } = await createClient().from("profiles").select("role").maybeSingle();
-    return data?.role === "admin";
+let lookup: Promise<{ account: Account; admin: boolean } | null> | null = null;
+/**
+ * Signed in: the account from the local session (getSession reads the cookie, no network call)
+ * and whether the profile's role is admin (a database read under RLS). Only signed-in visitors
+ * load the Supabase client.
+ */
+function lookupAccount() {
+  lookup ??= import("@/lib/supabase/client").then(async ({ createClient }) => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user) return null;
+    const { data: profile } = await supabase.from("profiles").select("role").maybeSingle();
+    return { account: accountFrom(user), admin: profile?.role === "admin" };
   });
-  return adminCheck;
+  return lookup;
 }
 
-type Account = { signedIn: boolean; admin: boolean };
+type State =
+  { status: "out" } | { status: "loading" } | { status: "in"; account: Account; admin: boolean };
 
-function useAccount(): Account {
+function useAccount(): State {
   const pathname = usePathname();
-  const [account, setAccount] = useState<Account>({ signedIn: false, admin: false });
+  const [state, setState] = useState<State>({ status: "out" });
   useEffect(() => {
     // Re-checked on every navigation, so signing in or out updates the nav.
     const signedIn = !!AUTH_COOKIE?.test(document.cookie);
-    if (!signedIn) adminCheck = null;
+    if (!signedIn) lookup = null;
     let live = true;
     // Async on purpose: a cookie read is an external system, not render state.
-    Promise.resolve(signedIn ? isAdmin().catch(() => false) : false).then((admin) => {
-      if (live) setAccount({ signedIn, admin });
+    Promise.resolve().then(() => {
+      if (!live) return;
+      if (!signedIn) return setState({ status: "out" });
+      setState((s) => (s.status === "in" ? s : { status: "loading" }));
+      lookupAccount()
+        .catch(() => null)
+        .then((r) => live && setState(r ? { status: "in", ...r } : { status: "out" }));
     });
     return () => {
       live = false;
     };
   }, [pathname]);
-  return account;
+  return state;
 }
 
 const menuItem =
@@ -63,21 +80,11 @@ function closeOnSelect(e: React.MouseEvent<HTMLElement>) {
     e.currentTarget.hidePopover?.();
 }
 
-function SignOutItem() {
-  return (
-    <form action={signOut}>
-      <button type="submit" className={menuItem}>
-        Sign out
-      </button>
-    </form>
-  );
-}
-
 /** Right side of the nav at desktop widths. Both states share one grid cell: no layout shift. */
 export function NavAccount() {
-  const { signedIn, admin } = useAccount();
+  const state = useAccount();
+  const signedIn = state.status !== "out";
   const onLogin = usePathname() === "/login";
-  const menuId = useId();
   return (
     <div className="flex items-center gap-6">
       <ThemeToggle />
@@ -96,53 +103,38 @@ export function NavAccount() {
             <Link href="/list-your-agency">List your agency</Link>
           </Button>
         </div>
-        <div
-          className={cn(
-            "col-start-1 row-start-1 flex items-center gap-4",
-            !signedIn && "invisible",
-          )}
-        >
-          <Link
-            href="/dashboard"
-            className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text"
-          >
-            Dashboard
-          </Link>
-          <button
-            type="button"
-            popoverTarget={menuId}
-            aria-label="Account menu"
-            className="flex size-11 items-center justify-center rounded-full border border-line transition-colors duration-150 hover:border-text-2"
-          >
-            <UserIcon aria-hidden className="size-5" />
-          </button>
-          <div
-            id={menuId}
-            popover="auto"
-            onClick={closeOnSelect}
-            className="fixed inset-auto top-14 right-4 m-0 hidden w-56 flex-col gap-1 rounded-lg border border-line bg-bg p-2 text-text shadow-lg open:flex"
-          >
-            <Link href="/dashboard" className={menuItem}>
-              Dashboard
-            </Link>
-            {admin && (
-              <Link href="/admin" className={menuItem}>
-                Admin
-              </Link>
-            )}
-            <SignOutItem />
+        {signedIn && (
+          <div className="col-start-1 row-start-1">
+            <AccountSlot state={state} />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
+/** The avatar menu once the account is known; a same-size placeholder while it's read. */
+function AccountSlot({ state }: { state: State }) {
+  return state.status === "in" ? (
+    <AccountMenu account={state.account} admin={state.admin} />
+  ) : (
+    <span className="grid size-11 place-items-center">
+      <AvatarPlaceholder />
+    </span>
+  );
+}
+
+/** Small screens: the same avatar menu beside the Menu button (nothing when signed out). */
+export function MobileAccount() {
+  const state = useAccount();
+  return state.status === "out" ? null : <AccountSlot state={state} />;
+}
+
 /** The account items inside the mobile menu. */
 export function NavAccountMenuItems() {
-  const { signedIn, admin } = useAccount();
+  const state = useAccount();
   const onLogin = usePathname() === "/login";
-  if (!signedIn) {
+  if (state.status === "out") {
     return (
       <>
         <Link
@@ -158,19 +150,8 @@ export function NavAccountMenuItems() {
       </>
     );
   }
-  return (
-    <>
-      <Link href="/dashboard" className={menuItem}>
-        Dashboard
-      </Link>
-      {admin && (
-        <Link href="/admin" className={menuItem}>
-          Admin
-        </Link>
-      )}
-      <SignOutItem />
-    </>
-  );
+  // Signed in: Dashboard, Admin and Sign out are in the avatar menu (MobileAccount).
+  return null;
 }
 
 /** Mobile menu: a native popover under the nav (the browser handles open state, Esc and outside clicks). */

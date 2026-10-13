@@ -3,8 +3,9 @@ import Link from "next/link";
 
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountMenu } from "@/components/account-menu";
+import { accountFrom } from "@/lib/account";
 import { getAdminUser, requireUser } from "@/lib/auth";
-import { signOut } from "@/lib/actions/auth";
 import { BRAND_NAME } from "@/lib/site";
 
 // Private, per-user pages: never indexed (also sent as X-Robots-Tag by the proxy).
@@ -23,22 +24,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           <Link href="/" aria-label={`${BRAND_NAME} home`} className="flex min-h-11 items-center">
             <Logo className="h-7 w-auto" />
           </Link>
-          <div className="flex min-w-0 items-center gap-4 text-small">
+          <div className="flex items-center gap-4">
             <ThemeToggle />
-            <span className="hidden truncate sm:inline">{user.email}</span>
-            {isAdmin && (
-              <Link
-                href="/admin"
-                className="flex min-h-11 items-center text-accent hover:underline"
-              >
-                Admin
-              </Link>
-            )}
-            <form action={signOut}>
-              <button type="submit" className="min-h-11 text-accent hover:underline">
-                Sign out
-              </button>
-            </form>
+            <AccountMenu account={accountFrom(user)} admin={isAdmin} />
           </div>
         </div>
       </header>

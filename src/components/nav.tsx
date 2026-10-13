@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
-import { MobileMenu, NavAccount } from "@/components/nav-account";
+import { MobileAccount, MobileMenu, NavAccount } from "@/components/nav-account";
 import { BRAND_NAME } from "@/lib/site";
 
 const links = [
@@ -38,7 +38,8 @@ export function Nav() {
         <div className="ml-auto hidden @4xl:block">
           <NavAccount />
         </div>
-        <div className="ml-auto @4xl:hidden">
+        <div className="ml-auto flex items-center gap-2 @4xl:hidden">
+          <MobileAccount />
           <MobileMenu links={links} />
         </div>
       </nav>
