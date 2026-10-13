@@ -43,6 +43,8 @@
   --mint-soft: #e5f7f0;
   --amber: #b26f00;
   --amber-soft: #fff5e0;
+  /* Amber text on --amber-soft (#B26F00 is 3.75:1 there): the Founding agency badge. */
+  --amber-on-soft: #9a5f00;
   --pink: #c8326a;
   --pink-soft: #fdeaf1;
   /* Verified badges: 4.9:1 on --bg. */
@@ -76,6 +78,7 @@
   --mint-soft: #11302a;
   --amber: #f2b53a;
   --amber-soft: #33270e;
+  --amber-on-soft: #f2b53a;
   --pink: #ff7aa5;
   --pink-soft: #3a1626;
   --verified: #34a853;
@@ -398,5 +401,13 @@
   }
   .hero-pop {
     animation: hero-pop 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+/* Agency profile: under 980px a contact bar is fixed to the bottom; pad the page so it never
+   covers the footer. */
+@media (width < 980px) {
+  body:has(.profile-mbar) {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   }
 }

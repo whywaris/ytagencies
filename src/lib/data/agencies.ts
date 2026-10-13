@@ -6,6 +6,7 @@ import { getIndustries, getLocations, getServices, type Segment } from "@/lib/da
 import type { Entitlements } from "@/lib/entitlements";
 import { qualityScore, rankAgencies } from "@/lib/ranking";
 import { MIN_AGENCIES_TO_INDEX } from "@/lib/site";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createStaticClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 
@@ -56,6 +57,29 @@ export type AgencyProfile = AgencyListItem & {
   seoTitle: string | null;
   seoDescription: string | null;
   locations: (Tag & { type: string })[];
+  bestFor: string | null;
+  timezone: string | null;
+  reportingFrequency: string | null;
+  /** 0–5 steps, as the agency described its process. */
+  process: { title: string; description: string }[];
+  /** Per chosen service: focus %, what's included, optional own price. Primary first. */
+  serviceDetails: (Tag & {
+    focusPct: number | null;
+    included: string[];
+    startingPrice: number | null;
+    priceUnit: string | null;
+  })[];
+  /** Per chosen industry: focus %. Primary first. */
+  industryDetails: (Tag & { focusPct: number | null })[];
+  /** Up to 6 channels the agency worked on (agency_channels). */
+  channels: {
+    id: string;
+    url: string;
+    title: string | null;
+    subscribers: number | null;
+    industry: string | null;
+    confirmed: boolean;
+  }[];
   caseStudies: {
     id: string;
     title: string;
@@ -63,6 +87,7 @@ export type AgencyProfile = AgencyListItem & {
     channelUrl: string | null;
     metrics: Json | null;
     industry: Tag | null;
+    service: Tag | null;
   }[];
   reviews: {
     id: string;
@@ -71,7 +96,26 @@ export type AgencyProfile = AgencyListItem & {
     rating: number;
     body: string;
     createdAt: string;
+    service: string | null;
+    budgetRange: string | null;
+    projectStart: string | null;
+    projectEnd: string | null;
+    scores: { quality: number; schedule: number; cost: number; refer: number } | null;
+    overall: number | null;
+    reviewerTitle: string | null;
+    reviewerIndustry: string | null;
+    reviewerCompanySize: string | null;
+    reviewerCountry: string | null;
+    verifiedClient: boolean;
   }[];
+  /** The latest approved verification's checklist (read server-side: anon can't). */
+  verificationRecord: {
+    checkedAt: string;
+    domain: boolean;
+    business: boolean;
+    ownership: boolean;
+    channelsChecked: number;
+  } | null;
 };
 
 const LIST_SELECT = `
@@ -251,9 +295,16 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .select(
       `${LIST_SELECT},
       website, founded_year, is_claimed, updated_at, seo_title, seo_description,
+      best_for, timezone, reporting_frequency, process,
+      service_details:agency_services(is_primary, focus_pct, included, starting_price, price_unit, services(slug, name)),
+      industry_details:agency_industries(is_primary, focus_pct, industries(slug, name)),
+      agency_channels(id, channel_url, title, subscriber_count, status, created_at, industries(name)),
       agency_locations(locations(slug, name, type)),
-      case_studies(id, title, summary, channel_url, metrics, created_at, industries(slug, name)),
-      published_reviews:reviews(id, author_name, author_company, rating, body, created_at)`,
+      case_studies(id, title, summary, channel_url, metrics, created_at, industries(slug, name), services(slug, name)),
+      published_reviews:reviews(id, author_name, author_company, rating, body, created_at, budget_range,
+        project_start, project_end, score_quality, score_schedule, score_cost, score_refer, overall,
+        reviewer_title, reviewer_company_size, reviewer_country, verified_client,
+        services(name), reviewer_industry:industries(name))`,
     )
     .eq("slug", slug)
     .eq("status", "published")
@@ -261,7 +312,12 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const [placement, responses] = await Promise.all([getPlacement(), getResponseTimes()]);
+  const [placement, responses, verificationRecord] = await Promise.all([
+    getPlacement(),
+    getResponseTimes(),
+    getVerificationRecord(data.id),
+  ]);
+  const steps = Array.isArray(data.process) ? data.process : [];
 
   return {
     ...toListItem(data, placement, responses),
@@ -273,6 +329,43 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     updatedAt: data.updated_at,
     seoTitle: data.seo_title,
     seoDescription: data.seo_description,
+    bestFor: data.best_for,
+    timezone: data.timezone,
+    reportingFrequency: data.reporting_frequency,
+    process: steps.flatMap((s) =>
+      s && typeof s === "object" && !Array.isArray(s) && typeof s.title === "string"
+        ? [{ title: s.title, description: typeof s.description === "string" ? s.description : "" }]
+        : [],
+    ),
+    serviceDetails: [...data.service_details]
+      .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
+      .map((r) => ({
+        ...r.services,
+        focusPct: r.focus_pct,
+        included: r.included,
+        startingPrice: r.starting_price,
+        priceUnit: r.price_unit,
+      })),
+    industryDetails: [...data.industry_details]
+      .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
+      .map((r) => ({ ...r.industries, focusPct: r.focus_pct })),
+    channels: [...data.agency_channels]
+      // Confirmed first, then the order they were added.
+      .sort(
+        (a, b) =>
+          Number(b.status === "confirmed") - Number(a.status === "confirmed") ||
+          a.created_at.localeCompare(b.created_at),
+      )
+      .slice(0, 6)
+      .map((c) => ({
+        id: c.id,
+        url: c.channel_url,
+        title: c.title,
+        subscribers: c.subscriber_count,
+        industry: c.industries?.name ?? null,
+        confirmed: c.status === "confirmed",
+      })),
+    verificationRecord,
     locations: data.agency_locations
       .map((r) => r.locations)
       .filter((l): l is Tag & { type: string } => l !== null),
@@ -285,6 +378,7 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
         channelUrl: c.channel_url,
         metrics: c.metrics,
         industry: c.industries,
+        service: c.services,
       })),
     reviews: [...data.published_reviews]
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -295,9 +389,56 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
         rating: r.rating,
         body: r.body,
         createdAt: r.created_at,
+        service: r.services?.name ?? null,
+        budgetRange: r.budget_range,
+        projectStart: r.project_start,
+        projectEnd: r.project_end,
+        scores:
+          r.score_quality !== null &&
+          r.score_schedule !== null &&
+          r.score_cost !== null &&
+          r.score_refer !== null
+            ? {
+                quality: Number(r.score_quality),
+                schedule: Number(r.score_schedule),
+                cost: Number(r.score_cost),
+                refer: Number(r.score_refer),
+              }
+            : null,
+        overall: r.overall === null ? null : Number(r.overall),
+        reviewerTitle: r.reviewer_title,
+        reviewerIndustry: r.reviewer_industry?.name ?? null,
+        reviewerCompanySize: r.reviewer_company_size,
+        reviewerCountry: r.reviewer_country,
+        verifiedClient: r.verified_client,
       })),
   };
 });
+
+/**
+ * The latest approved verification's checklist, for the profile's "What was verified" (service
+ * role: anon can't read verifications). Only the ticks, the date and how many channels were
+ * checked are used; nothing private.
+ */
+async function getVerificationRecord(agencyId: string) {
+  const { data } = await createAdminClient()
+    .from("verifications")
+    .select("checklist, channels, reviewed_at, created_at")
+    .eq("agency_id", agencyId)
+    .eq("status", "approved")
+    .order("reviewed_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const checks = (data.checklist ?? {}) as Record<string, unknown>;
+  return {
+    checkedAt: data.reviewed_at ?? data.created_at,
+    domain: checks.domain === true,
+    business: checks.business === true,
+    ownership: checks.ownership === true,
+    channelsChecked: Array.isArray(data.channels) ? data.channels.length : 0,
+  };
+}
 
 /** Every published agency slug + last update, for generateStaticParams and the sitemap. */
 export const getAgencySlugs = cache(async () => {
