@@ -7,11 +7,12 @@ import { AdminSubmissionEmail } from "@/emails/admin-submission";
 import { ClaimVerificationEmail } from "@/emails/claim-verification";
 import { getUser } from "@/lib/auth";
 import { createClaimToken, emailMatchesWebsite } from "@/lib/claims";
+import { profileViews } from "@/lib/data/agency-stats";
 import { getMailer, oneLine } from "@/lib/email";
 import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient, createStaticClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import type { FormResult } from "@/lib/validation/lead";
 import { detailsColumns, industryColumns, serviceColumns } from "@/lib/profile-details-db";
 import { agencySearchSchema, submitAgencySchema } from "@/lib/validation/listing";
@@ -23,8 +24,18 @@ export type FoundAgency = {
   slug: string;
   name: string;
   website: string | null;
-  isClaimed: boolean;
+  /** Main service name, for telling similar names apart. */
+  service: string | null;
+  /** Who manages it: nobody yet, the signed-in user, or someone else. */
+  ownership: "none" | "mine" | "other";
+  /** Set only for the signed-in owner (their dashboard link). */
+  agencyId: string | null;
+  /** Profile views in the last 30 days, only when there are at least 5 (else null). */
+  views: number | null;
 };
+
+/** Below this, "n businesses viewed this profile" isn't worth saying. */
+const MIN_VIEWS_SHOWN = 5;
 
 /** "https://www.acme.com/about" or "acme.com" → "acme.com"; null if it doesn't look like a domain. */
 function hostFrom(input: string) {
@@ -36,7 +47,10 @@ function hostFrom(input: string) {
   }
 }
 
-/** Published agencies whose name or website matches. Public data, anon client. */
+/**
+ * Published agencies whose name or website matches. Owner ids aren't public, so this reads with
+ * the service role (published rows only) and returns just who manages it relative to the caller.
+ */
 export async function searchAgencies(raw: string): Promise<FoundAgency[]> {
   const parsed = agencySearchSchema.safeParse(raw);
   if (!parsed.success) return [];
@@ -47,23 +61,35 @@ export async function searchAgencies(raw: string): Promise<FoundAgency[]> {
   const filters = [`name.ilike.*${term}*`];
   if (host) filters.push(`website.ilike.*${host}*`);
 
-  const { data, error } = await createStaticClient()
-    .from("agencies")
-    .select("slug, name, website, is_claimed")
-    .eq("status", "published")
-    .or(filters.join(","))
-    .order("name")
-    .limit(8);
+  const [{ data, error }, user] = await Promise.all([
+    createAdminClient()
+      .from("agencies")
+      .select("id, slug, name, website, owner_id, agency_services(is_primary, services(name))")
+      .eq("status", "published")
+      .or(filters.join(","))
+      .order("name")
+      .limit(8),
+    getUser(),
+  ]);
   if (error) {
     console.error("agency search failed");
     return [];
   }
-  return data.map((a) => ({
-    slug: a.slug,
-    name: a.name,
-    website: a.website,
-    isClaimed: a.is_claimed,
-  }));
+  const views = await profileViews(data.filter((a) => !a.owner_id).map((a) => a.id));
+  return data.map((a) => {
+    const n = views.get(a.id) ?? 0;
+    const main = a.agency_services.find((s) => s.is_primary) ?? a.agency_services[0];
+    const mine = !!user && a.owner_id === user.id;
+    return {
+      slug: a.slug,
+      name: a.name,
+      website: a.website,
+      service: main?.services?.name ?? null,
+      ownership: mine ? "mine" : a.owner_id ? "other" : "none",
+      agencyId: mine ? a.id : null,
+      views: n >= MIN_VIEWS_SHOWN ? n : null,
+    };
+  });
 }
 
 const slugify = (name: string) =>
@@ -77,13 +103,19 @@ const slugify = (name: string) =>
     .slice(0, 60)
     .replace(/-+$/, "") || "agency";
 
-type Submitted = { kind: "verify" | "review"; workEmail: string; agencyName: string };
+type Submitted = {
+  kind: "verify" | "review";
+  workEmail: string;
+  agencyName: string;
+  /** The new draft, for "Subscribe now" (startSubmissionCheckout). */
+  agencyId: string;
+};
 
 export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>> {
   const user = await getUser();
   if (!user) return { ok: false, error: "Sign in to add your agency." };
   if (typeof raw === "object" && raw !== null && "website" in raw && raw.website) {
-    return { ok: true, data: { kind: "review", workEmail: "", agencyName: "" } };
+    return { ok: true, data: { kind: "review", workEmail: "", agencyName: "", agencyId: "" } };
   }
 
   const parsed = submitAgencySchema.safeParse(raw);
@@ -268,5 +300,8 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
         ),
     );
   }
-  return { ok: true, data: { kind, workEmail: input.workEmail, agencyName: input.name } };
+  return {
+    ok: true,
+    data: { kind, workEmail: input.workEmail, agencyName: input.name, agencyId: id },
+  };
 }

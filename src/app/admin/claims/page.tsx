@@ -14,7 +14,7 @@ export default async function AdminClaimsPage() {
   const { data: claims, error } = await db
     .from("claims")
     .select(
-      "id, work_email, user_id, created_at, agencies!inner(id, name, slug, website, is_claimed, status)",
+      "id, work_email, user_id, created_at, role, linkedin_url, note, agencies!inner(id, name, slug, website, is_claimed, status)",
     )
     .eq("status", "pending")
     // Claims on new submissions are decided in Submissions instead.
@@ -59,6 +59,25 @@ export default async function AdminClaimsPage() {
               ["Domain check", match ? "Matches the website" : "Doesn't match the website"],
               ["Signed in as", accounts.get(c.user_id) ?? "Unknown"],
               ["Listing", c.agencies.is_claimed ? "Already claimed by someone else" : "Unclaimed"],
+              // Proof sent instead of a work email on the agency's domain (/claim/<slug>).
+              ...(c.role ? [["Role", c.role] as [string, string]] : []),
+              ...(c.linkedin_url
+                ? [
+                    [
+                      "LinkedIn",
+                      <a
+                        key="li"
+                        href={c.linkedin_url}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="break-all text-accent hover:underline"
+                      >
+                        {c.linkedin_url}
+                      </a>,
+                    ] as [string, React.ReactNode],
+                  ]
+                : []),
+              ...(c.note ? [["Note", c.note] as [string, string]] : []),
             ]}
           />
           <p className="max-w-reading text-text-2">

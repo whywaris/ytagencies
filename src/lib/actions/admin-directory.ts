@@ -4,12 +4,15 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 
+import { ListingLiveEmail } from "@/emails/listing-live";
 import { NotApprovedEmail } from "@/emails/not-approved";
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { removeCaseStudy, resolveCaseStudyChannels, writeCaseStudy } from "@/lib/case-studies";
 import { approveClaim } from "@/lib/claims";
 import { getMailer, oneLine } from "@/lib/email";
+import { getEntitlements } from "@/lib/data/entitlements";
 import { revalidateAgency } from "@/lib/revalidate";
+import { absoluteUrl, BRAND_NAME } from "@/lib/site";
 import type { Json } from "@/lib/supabase/types";
 import { caseStudySchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
@@ -188,6 +191,39 @@ async function emailRejection(ctx: Ctx, userId: string | null, what: string, rea
   );
 }
 
+/**
+ * "Your listing is live" to the submitter, now the owner: subscribe to Pro (/claim/<slug>, the
+ * checkout step), or straight to the dashboard if they paid when they submitted.
+ */
+async function emailListingLive(
+  ctx: Ctx,
+  agency: { id: string; name: string; slug: string; submitted_by: string | null },
+) {
+  const mail = getMailer();
+  if (!mail || !agency.submitted_by) return;
+  const [{ data }, e] = await Promise.all([
+    ctx.db.auth.admin.getUserById(agency.submitted_by),
+    getEntitlements(agency.id),
+  ]);
+  const to = data.user?.email;
+  if (!to) return;
+  after(() =>
+    mail
+      .send({
+        from: mail.from,
+        to,
+        subject: oneLine(`${agency.name} is live on ${BRAND_NAME}`),
+        react: ListingLiveEmail({
+          agencyName: agency.name,
+          profileUrl: absoluteUrl(`/agency/${agency.slug}`),
+          managed: e.managed,
+          nextUrl: absoluteUrl(e.managed ? `/dashboard/${agency.id}` : `/claim/${agency.slug}`),
+        }),
+      })
+      .then(({ error }) => error && console.error("listing live email failed")),
+  );
+}
+
 const decisionSchema = z.enum(["approve", "reject"]);
 
 /**
@@ -247,6 +283,7 @@ export async function decideSubmission(
     if (error) return { ok: false, error: SAVE_FAILED };
     await ctx.log("submission.approve", "agency", agency.id);
     revalidateAgency(agency.slug);
+    await emailListingLive(ctx, agency);
   }
   revalidatePath("/admin/submissions");
   return { ok: true, data: undefined };

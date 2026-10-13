@@ -66,6 +66,10 @@ const nextConfig: NextConfig = {
       { source: "/for-agencies", destination: "/for-agencies/pricing", permanent: false },
       // Short link for reports; agency profiles link to /contact?topic=report&agency=<slug>.
       { source: "/report-listing", destination: "/contact?topic=report", permanent: true },
+      // Managing a listing moved from /agency/<slug>/claim to /claim/<slug>.
+      { source: "/agency/:slug/claim", destination: "/claim/:slug", permanent: true },
+      // Dashboard sections: Plan and analytics split into Plan (billing) and Analytics.
+      { source: "/dashboard/:id/plan", destination: "/dashboard/:id/analytics", permanent: true },
       {
         source: "/:path*",
         has: [{ type: "host", value: "www.ytagencies.com" }],

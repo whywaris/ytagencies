@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
+  const status = (await searchParams).status;
   const user = await requireUser("/dashboard");
   const supabase = await createClient();
   const [{ data: agencies }, { data: claims }, { data: submissions }] = await Promise.all([
@@ -30,12 +31,26 @@ export default async function DashboardPage() {
   const openClaims = claims?.filter((c) => !submittedIds.has(c.agencies?.id ?? "")) ?? [];
 
   // Most owners manage one listing: skip the list.
-  if (agencies?.length === 1 && !openClaims.length && !submissions?.length)
+  if (agencies?.length === 1 && !openClaims.length && !submissions?.length && !status)
     redirect(`/dashboard/${agencies[0].id}`);
 
   return (
     <div className="flex flex-col gap-12">
       <h1 className="text-h1">Your listings</h1>
+      {status === "subscribed" && (
+        <p role="status" className="max-w-reading rounded-lg bg-surface p-4">
+          Payment received. Pro starts as soon as we approve your listing; we&apos;ll email you.
+        </p>
+      )}
+      {status === "checkout-failed" && (
+        <p
+          role="alert"
+          className="max-w-reading rounded-lg border border-destructive p-4 text-destructive"
+        >
+          We couldn&apos;t open the payment page. Your listing was submitted; you can subscribe once
+          it&apos;s approved.
+        </p>
+      )}
 
       {agencies && agencies.length > 0 ? (
         <ul className="flex flex-col gap-3">

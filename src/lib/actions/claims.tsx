@@ -12,13 +12,33 @@ import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { claimSchema } from "@/lib/validation/auth";
+import { ContactAdminEmail } from "@/emails/contact";
+import { ACCESS_TOPIC } from "@/lib/contact-topics";
+import { accessRequestSchema, claimProofSchema, claimSchema } from "@/lib/validation/auth";
 import type { FormResult } from "@/lib/validation/lead";
 
 // SECURITY.md: ownership is never auto-granted. It needs a confirmed email on the agency's own
 // domain, or an admin approving the claim by hand.
 
 type ClaimStarted = { kind: "verify" | "review"; workEmail: string };
+
+const GENERIC = "Something went wrong on our side. Please try again in a minute.";
+const fieldErrors = (issues: { path: PropertyKey[]; message: string }[]) =>
+  Object.fromEntries(issues.map((i) => [String(i.path[0]), i.message]));
+
+/** Signed in, honeypot, Turnstile and rate limit: the checks every claim form shares. */
+async function guard(raw: unknown, key: string, token: string) {
+  const user = await getUser();
+  if (!user) return { error: "Sign in first." } as const;
+  if (typeof raw === "object" && raw !== null && "website" in raw && raw.website)
+    return { bot: true } as const;
+  const ip = await clientIp();
+  if (!(await verifyTurnstile(token, ip)))
+    return { error: "The security check didn't pass. Please try it again." } as const;
+  if (!(await underRateLimit(ip, key)))
+    return { error: "Too many attempts. Please try again in an hour." } as const;
+  return { user } as const;
+}
 
 export async function startClaim(raw: unknown): Promise<FormResult<ClaimStarted>> {
   const user = await getUser();
@@ -129,7 +149,7 @@ export async function startClaim(raw: unknown): Promise<FormResult<ClaimStarted>
 }
 
 /** Approves a domain-verified claim. Requires the claimant's session, not just the link. */
-export async function confirmClaim(token: string): Promise<FormResult<{ agencyId: string }>> {
+export async function confirmClaim(token: string): Promise<FormResult<{ next: string }>> {
   const user = await getUser();
   if (!user)
     return { ok: false, error: "Sign in with the account you used to claim this listing." };
@@ -169,5 +189,159 @@ export async function confirmClaim(token: string): Promise<FormResult<{ agencyId
   if (!approved) return { ok: false, error: "This listing has just been claimed." };
 
   revalidatePath(`/agency/${agency.slug}`); // drops the "Claim this listing" link
-  return { ok: true, data: { agencyId: claim.agency_id } };
+  // A published listing goes on to step 3 (choose Pro); a submission waits for review.
+  const next =
+    agency.status === "published" ? `/claim/${agency.slug}` : `/dashboard/${claim.agency_id}`;
+  return { ok: true, data: { next } };
+}
+
+/**
+ * No email on the agency's domain: a pending claim with proof (role, LinkedIn, note) that an admin
+ * approves or rejects in Admin → Claims. Recorded against the signed-in account's email.
+ */
+export async function submitClaimProof(raw: unknown): Promise<FormResult> {
+  const parsed = claimProofSchema.safeParse(raw);
+  if (!parsed.success)
+    return {
+      ok: false,
+      error: "Check the highlighted fields.",
+      fieldErrors: fieldErrors(parsed.error.issues),
+    };
+  const input = parsed.data;
+  const g = await guard(raw, input.linkedinUrl, input.turnstileToken);
+  if ("bot" in g) return { ok: true, data: undefined };
+  if ("error" in g) return { ok: false, error: g.error! };
+  const { user } = g;
+  if (!user.email) return { ok: false, error: GENERIC };
+
+  const supabase = await createClient();
+  const { data: agency } = await supabase
+    .from("agencies")
+    .select("id, name, website, is_claimed")
+    .eq("slug", input.agencySlug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (!agency) return { ok: false, error: "This agency is no longer listed." };
+  if (agency.is_claimed) return { ok: false, error: "Someone already manages this listing." };
+
+  const { data: claim, error } = await supabase
+    .from("claims")
+    .insert({
+      agency_id: agency.id,
+      user_id: user.id,
+      work_email: user.email,
+      role: input.role,
+      linkedin_url: input.linkedinUrl,
+      note: input.note || null,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    if (error.code === "23505")
+      return {
+        ok: false,
+        error: "You already have an open claim for this listing. We'll email you.",
+      };
+    console.error("claim proof insert failed", { code: error.code });
+    return { ok: false, error: GENERIC };
+  }
+
+  const mail = getMailer();
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (mail && adminEmail) {
+    after(() =>
+      mail
+        .send({
+          from: mail.from,
+          to: adminEmail,
+          subject: oneLine(`Claim to review: ${agency.name}`),
+          react: (
+            <AdminClaimEmail
+              claimId={claim.id}
+              agencyName={agency.name}
+              website={agency.website}
+              workEmail={user.email!}
+              accountEmail={user.email ?? null}
+            />
+          ),
+        })
+        .then(
+          ({ error: e }) => e && console.error("admin claim email failed", { claimId: claim.id }),
+        ),
+    );
+  }
+  revalidatePath(`/claim/${input.agencySlug}`);
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Someone else manages the listing: an "Access request" in Admin → Inbox, emailed to help@. The
+ * admin contacts the current manager and the agency and decides; nothing changes automatically.
+ */
+export async function requestAccess(raw: unknown): Promise<FormResult> {
+  const parsed = accessRequestSchema.safeParse(raw);
+  if (!parsed.success)
+    return {
+      ok: false,
+      error: "Check the highlighted fields.",
+      fieldErrors: fieldErrors(parsed.error.issues),
+    };
+  const input = parsed.data;
+  const g = await guard(raw, input.agencySlug, input.turnstileToken);
+  if ("bot" in g) return { ok: true, data: undefined };
+  if ("error" in g) return { ok: false, error: g.error! };
+  const { user } = g;
+  if (!user.email) return { ok: false, error: GENERIC };
+
+  const admin = createAdminClient();
+  const { data: agency } = await admin
+    .from("agencies")
+    .select("name, owner_id")
+    .eq("slug", input.agencySlug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (!agency) return { ok: false, error: "This agency is no longer listed." };
+  if (agency.owner_id === user.id) return { ok: false, error: "You already manage this listing." };
+
+  const agencyUrl = absoluteUrl(`/agency/${input.agencySlug}`);
+  const message = `Agency: ${agency.name}\nRole: ${input.role}\n\n${input.why}`;
+  const { data, error } = await admin
+    .from("contact_messages")
+    .insert({
+      topic: ACCESS_TOPIC.id,
+      name: user.email,
+      email: user.email,
+      message,
+      agency_url: agencyUrl,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    console.error("access request insert failed", { code: error?.code });
+    return { ok: false, error: GENERIC };
+  }
+  const mail = getMailer();
+  if (mail) {
+    after(() =>
+      mail
+        .send({
+          from: mail.from,
+          to: ACCESS_TOPIC.inbox,
+          replyTo: user.email!,
+          subject: oneLine(`${ACCESS_TOPIC.label}: ${agency.name}`),
+          react: (
+            <ContactAdminEmail
+              topic={ACCESS_TOPIC.label}
+              name={user.email!}
+              email={user.email!}
+              message={message}
+              agencyUrl={agencyUrl}
+              inboxUrl={absoluteUrl(`/admin/inbox/${data.id}`)}
+            />
+          ),
+        })
+        .then(({ error: e }) => e && console.error("access request email failed", { id: data.id })),
+    );
+  }
+  return { ok: true, data: undefined };
 }

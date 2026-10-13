@@ -53,5 +53,13 @@ export const PRO_TOPIC = {
   note: "An agency asked for Pro. Grant it in Agencies → Change plan.",
   response: COMPANY.responseTimes.agencies,
 } as const;
-export const INBOX_TOPICS = [...CONTACT_TOPICS, PRO_TOPIC] as const;
+// Not on /contact either: "Request access" on /claim/<slug> when someone else manages a listing.
+export const ACCESS_TOPIC = {
+  id: "access",
+  label: "Access request",
+  inbox: COMPANY.email,
+  note: "Someone asks to manage a listing another account manages. Contact both, then decide.",
+  response: COMPANY.responseTimes.agencies,
+} as const;
+export const INBOX_TOPICS = [...CONTACT_TOPICS, PRO_TOPIC, ACCESS_TOPIC] as const;
 export const topicOf = (id: string) => INBOX_TOPICS.find((t) => t.id === id) ?? CONTACT_TOPICS[0];

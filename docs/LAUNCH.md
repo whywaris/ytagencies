@@ -155,6 +155,7 @@ Creem is the merchant of record: it charges, handles tax and sends receipts and 
    - Creem dashboard → Developers → Webhooks: every delivery answered 200. Resending one is ignored (already processed).
 7. **Go live.** Turn Test Mode off and repeat steps 2–4 in live mode: create the two products again (new ids), add the webhook `https://ytagencies.com/api/billing/webhook` (new secret), copy the live API key. On Vercel **Production** set the live values, leave `CREEM_TEST_MODE` unset, and set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $29 purchase on your own agency, then refund it in Creem (a full refund ends Pro straight away).
 8. **Ongoing.** Refunds and cancellations happen in the Creem dashboard; the webhook updates the plan. Ending a paid plan from Admin → Change plan only changes our side, so cancel it in Creem too.
+9. **Rejecting a paid submission.** "Add your agency" lets the submitter subscribe before review. Admin → Submissions marks those ("Paid for Pro when submitting", with the `sub_…` id). Rejecting deletes the draft but not the charge: in the Creem dashboard, refund the payment in full and cancel the subscription (the full refund also arrives as a webhook, which is ignored because the agency no longer exists).
 
 ## Cloudflare DNS (DNS-only, grey cloud)
 

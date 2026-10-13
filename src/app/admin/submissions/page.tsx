@@ -15,7 +15,7 @@ export default async function AdminSubmissionsPage() {
   const { data: agencies, error } = await db
     .from("agencies")
     .select(
-      "id, name, slug, website, description, min_budget_usd, owner_id, submitted_by, created_at, agency_services(services(name)), agency_industries(industries(name)), agency_locations(locations(name)), claims(user_id, work_email, status)",
+      "id, name, slug, website, description, min_budget_usd, owner_id, submitted_by, created_at, agency_services(services(name)), agency_industries(industries(name)), agency_locations(locations(name)), claims(user_id, work_email, status), agency_subscriptions(source, status, external_id)",
     )
     .eq("status", "draft")
     .not("submitted_by", "is", null)
@@ -36,6 +36,10 @@ export default async function AdminSubmissionsPage() {
   const items: QueueItem[] = agencies.map((a) => {
     const claim = a.claims.find((c) => c.user_id === a.submitted_by && c.status !== "rejected");
     const match = claim ? emailMatchesWebsite(claim.work_email, a.website) : false;
+    // "Subscribe now" when submitting: rejecting deletes the draft but not the Creem charge.
+    const paid = a.agency_subscriptions.find(
+      (s) => s.source === "payment" && (s.status === "active" || s.status === "past_due"),
+    );
     return {
       id: a.id,
       title: a.name,
@@ -43,6 +47,13 @@ export default async function AdminSubmissionsPage() {
       since: a.created_at,
       detail: (
         <>
+          {paid && (
+            <p role="note" className="max-w-reading rounded-lg border border-line bg-surface-2 p-3">
+              Paid for Pro when submitting (Creem subscription{" "}
+              <span className="font-mono text-[12px]">{paid.external_id}</span>). If you reject it,
+              refund and cancel that subscription in the Creem dashboard too.
+            </p>
+          )}
           <DetailList
             rows={[
               [

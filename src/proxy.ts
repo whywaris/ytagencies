@@ -11,8 +11,7 @@ import type { Database } from "@/lib/supabase/types";
 
 // Any path this resolves to matches no route, so Next serves the root not-found with status 404.
 const NOT_FOUND_REWRITE = "/not-found/unknown/slug";
-const PRIVATE =
-  /^\/(dashboard|admin|login|auth|claim)(\/|$)|^\/agency\/[^/]+\/claim$|^\/list-your-agency\/new$/;
+const PRIVATE = /^\/(dashboard|admin|login|auth|claim)(\/|$)|^\/list-your-agency\/new$/;
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;

@@ -219,7 +219,8 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   });
   // The Get matched click isn't an agency event (nothing reaches the agency): untracked.
   const ctaTrack = mode.kind === "contact" ? "contact_open" : undefined;
-  const manageHref = agency.isClaimed ? "/login?next=/dashboard" : `/agency/${agency.slug}/claim`;
+  // /claim/<slug> handles every case: sign in, confirm, request access, or straight to Pro.
+  const manageHref = `/claim/${agency.slug}`;
 
   // Related directory pages: the main service for their industries and HQ country, if indexed.
   const indexed = new Set(combos.map((c) => `${c.serviceSlug}|${c.segment}`));

@@ -25,7 +25,7 @@ export function ConfirmClaimButton({ token }: { token: string }) {
         onClick={() =>
           startTransition(async () => {
             const res = await confirmClaim(token);
-            if (res.ok) router.push(`/dashboard/${res.data.agencyId}`);
+            if (res.ok) router.push(res.data.next);
             else setError(res.error);
           })
         }

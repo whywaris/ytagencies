@@ -6,6 +6,7 @@ import { billing, checkoutAvailable, type Interval } from "@/lib/billing";
 import { getOwnedAgency, getUser } from "@/lib/auth";
 import { isManaged } from "@/lib/entitlements";
 import { absoluteUrl } from "@/lib/site";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Dashboard → Billing (Creem). Each action re-checks ownership: owner_id is only set after a
 // verified claim or an approved submission (SECURITY.md). Called from plain <form action>s bound
@@ -32,7 +33,15 @@ async function paymentRow(o: Awaited<ReturnType<typeof owned>>) {
   return data;
 }
 
-export async function startCheckout(agencyId: string, interval: Interval) {
+/**
+ * Starts a Creem checkout for Pro. `from` decides where Creem sends the buyer back: the Billing
+ * page, the claim flow's welcome screen, or the dashboard after adding a new agency.
+ */
+export async function startCheckout(
+  agencyId: string,
+  interval: Interval,
+  from: "billing" | "claim" = "billing",
+) {
   if (interval !== "month" && interval !== "year") redirect(billingPage(agencyId));
   const o = await owned(agencyId);
   const user = await getUser();
@@ -50,10 +59,43 @@ export async function startCheckout(agencyId: string, interval: Interval) {
     userId: user.id,
     email: user.email ?? null,
     interval,
-    successUrl: absoluteUrl(`/dashboard/billing?status=success&agency=${o.agency.id}`),
+    successUrl: absoluteUrl(
+      from === "claim"
+        ? `/claim/${o.agency.slug}?status=success`
+        : `/dashboard/billing?status=success&agency=${o.agency.id}`,
+    ),
   });
   if (!res.ok) redirect(billingPage(agencyId, "?error=checkout"));
   redirect(res.data.url);
+}
+
+/**
+ * "Subscribe now" when adding an agency: the submitter pays for their own draft before review, so
+ * management starts as soon as it's approved. Only the submitter of an unowned draft. If the admin
+ * rejects it, Admin → Submissions reminds them to refund and cancel it in Creem.
+ */
+export async function startSubmissionCheckout(agencyId: string, interval: Interval) {
+  if (!/^[0-9a-f-]{36}$/i.test(agencyId) || (interval !== "month" && interval !== "year"))
+    redirect("/dashboard");
+  const user = await getUser();
+  if (!user || !checkoutAvailable()) redirect("/dashboard");
+  const { data: draft } = await createAdminClient()
+    .from("agencies")
+    .select("id")
+    .eq("id", agencyId)
+    .eq("submitted_by", user.id)
+    .eq("status", "draft")
+    .is("owner_id", null)
+    .maybeSingle();
+  if (!draft) redirect("/dashboard");
+  const res = await billing().createCheckout({
+    agencyId: draft.id,
+    userId: user.id,
+    email: user.email ?? null,
+    interval,
+    successUrl: absoluteUrl("/dashboard?status=subscribed"),
+  });
+  redirect(res.ok ? res.data.url : "/dashboard?status=checkout-failed");
 }
 
 export async function openBillingPortal(agencyId: string) {

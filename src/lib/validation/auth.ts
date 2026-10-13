@@ -29,3 +29,37 @@ export const claimSchema = z.object({
   ...botFields,
 });
 export type ClaimInput = z.infer<typeof claimSchema>;
+
+const slug = z.string().regex(/^[a-z0-9-]{1,80}$/, "This agency is no longer listed.");
+const role = z
+  .string()
+  .trim()
+  .min(2, "Enter your role at the agency.")
+  .max(100, "Use 100 characters or fewer.");
+
+/** No email on the agency's domain: proof an admin checks by hand. */
+export const claimProofSchema = z.object({
+  agencySlug: slug,
+  role,
+  linkedinUrl: z
+    .string()
+    .trim()
+    .max(300, "Use 300 characters or fewer.")
+    .regex(/^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/\S+$/i, "Paste your LinkedIn profile link."),
+  note: z.string().trim().max(1000, "Use 1,000 characters or fewer."),
+  ...botFields,
+});
+export type ClaimProofInput = z.infer<typeof claimProofSchema>;
+
+/** Someone else manages the listing: ask us for access. */
+export const accessRequestSchema = z.object({
+  agencySlug: slug,
+  role,
+  why: z
+    .string()
+    .trim()
+    .min(10, "Tell us a little more (at least 10 characters).")
+    .max(2000, "Use 2,000 characters or fewer."),
+  ...botFields,
+});
+export type AccessRequestInput = z.infer<typeof accessRequestSchema>;
