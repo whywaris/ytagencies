@@ -14,7 +14,7 @@ const base = {
 test("managed: contact the agency, no similar agencies", () => {
   const m = profileMode({ ...base, managed: true });
   assert.equal(m.kind, "contact");
-  assert.equal(m.ctaLabel, "Contact Goat Agency");
+  assert.equal(m.ctaLabel, "Contact agency");
   assert.equal(m.ctaHref, "#contact");
   assert.equal(m.note, null);
   assert.equal(m.similar, false);

@@ -119,7 +119,7 @@ export function AgencySearch() {
                           href={`/claim/${a.slug}`}
                           className="font-semibold text-accent hover:underline"
                         >
-                          Is this your agency? Request access
+                          Is this your agency?
                         </Link>
                       </p>
                     ) : (

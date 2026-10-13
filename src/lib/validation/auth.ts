@@ -50,16 +50,3 @@ export const claimProofSchema = z.object({
   ...botFields,
 });
 export type ClaimProofInput = z.infer<typeof claimProofSchema>;
-
-/** Someone else manages the listing: ask us for access. */
-export const accessRequestSchema = z.object({
-  agencySlug: slug,
-  role,
-  why: z
-    .string()
-    .trim()
-    .min(10, "Tell us a little more (at least 10 characters).")
-    .max(2000, "Use 2,000 characters or fewer."),
-  ...botFields,
-});
-export type AccessRequestInput = z.infer<typeof accessRequestSchema>;

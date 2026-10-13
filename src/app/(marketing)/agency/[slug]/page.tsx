@@ -28,6 +28,7 @@ import { agencyWebsiteLink } from "@/lib/outbound";
 import { contractLabel, responseLabel } from "@/lib/pricing";
 import { formatMetrics, safeExternalUrl } from "@/lib/profile";
 import { faq, glance, unitSuffix } from "@/lib/profile-copy";
+import { showClaimBar } from "@/lib/claim-rules";
 import { profileMode } from "@/lib/profile-mode";
 import { agencyDescription, agencyTitle } from "@/lib/profile-seo";
 import { breadcrumbJsonLd, faqJsonLd, professionalServiceJsonLd } from "@/lib/seo/json-ld";
@@ -219,8 +220,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   });
   // The Get matched click isn't an agency event (nothing reaches the agency): untracked.
   const ctaTrack = mode.kind === "contact" ? "contact_open" : undefined;
-  // /claim/<slug> handles every case: sign in, confirm, request access, or straight to Pro.
-  const manageHref = `/claim/${agency.slug}`;
 
   // Related directory pages: the main service for their industries and HQ country, if indexed.
   const indexed = new Set(combos.map((c) => `${c.serviceSlug}|${c.segment}`));
@@ -343,15 +342,27 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 {agency.timezone && <Fact icon={Clock}>{agency.timezone}</Fact>}
               </ul>
             )}
-            <div className="mt-[22px] flex flex-wrap gap-2.5">
-              <a href={mode.ctaHref} data-track={ctaTrack} className={btnPrimary}>
-                {mode.ctaLabel}
-              </a>
-              {websiteLink && <WebsiteButton link={websiteLink} className={btnLight} />}
-            </div>
+            {/* The one call to action is in the sidebar card (desktop) / bottom bar (mobile). */}
+            {websiteLink && <WebsiteLink link={websiteLink} />}
             {mode.note && <p className="mt-3 max-w-[40em] text-[14px] text-text-2">{mode.note}</p>}
           </div>
         </header>
+
+        {/* Unclaimed listings only (lib/claim-rules.ts); hidden for good once someone owns it. */}
+        {showClaimBar({ status: "published", isClaimed: agency.isClaimed }) && (
+          <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-line bg-surface px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[15px] text-text">
+              Is this your agency? Claim it to update your profile and receive inquiries.
+            </p>
+            <Link
+              href={`/claim/${agency.slug}`}
+              rel="nofollow"
+              className={cn(btnLight, "h-11 shrink-0 self-start sm:self-auto")}
+            >
+              Claim this listing
+            </Link>
+          </div>
+        )}
 
         <div className="grid items-start gap-14 pt-10 pb-20 min-[980px]:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0">
@@ -695,7 +706,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
             {mode.kind === "contact" && (
               <section id="contact" aria-labelledby="contact-h" className={sectionCls}>
                 <h2 id="contact-h" className={h2}>
-                  {mode.ctaLabel}
+                  Contact {agency.name}
                 </h2>
                 <p className={lede}>
                   Your message goes straight to the agency.
@@ -707,12 +718,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
 
             <div className="flex flex-wrap justify-between gap-2 pt-7 text-[13px] text-text-2">
               <span>Last updated {longDate(agency.updatedAt)}</span>
-              <span className="min-[980px]:hidden">
-                Is this your agency?{" "}
-                <Link href={manageHref} rel="nofollow" className="text-accent hover:underline">
-                  Manage this listing
-                </Link>
-              </span>
               <span>
                 Something wrong?{" "}
                 <Link
@@ -726,7 +731,8 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
             </div>
           </div>
 
-          {/* Sticky decision card (desktop) */}
+          {/* Sticky decision card (desktop): the page's one call to action. Below 980px the mobile
+              bar takes its place (the two never show together). */}
           <aside aria-label="Summary" className="sticky top-[84px] hidden gap-3.5 min-[980px]:grid">
             <div className="rounded-[22px] border border-line bg-raised p-[22px] shadow-[0_1px_2px_rgba(20,25,40,.05),0_12px_32px_-12px_rgba(20,25,40,.14)]">
               <p className="text-[13px] text-text-2">Starting price</p>
@@ -745,9 +751,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 {mode.ctaLabel}
               </a>
               {mode.note && <p className="mt-3 text-[13px] text-text-2">{mode.note}</p>}
-              {websiteLink && (
-                <WebsiteButton link={websiteLink} className={cn(btnLight, "mt-2.5 w-full")} />
-              )}
               {replies && (
                 <div className="mt-4 flex gap-2.5 border-t border-line-2 pt-4 text-[14px]">
                   <MessageSquare className="mt-0.5 size-[18px] shrink-0 text-accent" aria-hidden />
@@ -761,12 +764,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               )}
             </div>
             <VerifiedMini agency={agency} confirmedChannels={confirmedChannels} />
-            <p className="px-1 text-[13px] text-text-2">
-              Is this your agency?{" "}
-              <Link href={manageHref} rel="nofollow" className="text-accent hover:underline">
-                Manage this listing
-              </Link>
-            </p>
           </aside>
         </div>
       </div>
@@ -787,7 +784,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
           data-track={ctaTrack}
           className={cn(btnPrimary, "h-[38px] px-[18px] text-[14px]")}
         >
-          {mode.kind === "contact" ? "Contact" : "Get matched"}
+          {mode.kind === "contact" ? mode.ctaLabel : "Get matched"}
         </a>
       </div>
     </>
@@ -812,22 +809,16 @@ function Fact({ icon: Icon, children }: { icon: typeof MapPin; children: React.R
   );
 }
 
-function WebsiteButton({
-  link,
-  className,
-}: {
-  link: NonNullable<ReturnType<typeof agencyWebsiteLink>>;
-  className: string;
-}) {
+function WebsiteLink({ link }: { link: NonNullable<ReturnType<typeof agencyWebsiteLink>> }) {
   return (
     <a
       href={link.href}
       target={link.target}
-      // SECURITY.md: paid placements are marked sponsored (lib/outbound.ts).
+      // SECURITY.md: paid placements are marked sponsored (lib/outbound.ts); UTM-tagged there.
       rel={link.rel}
       data-track="website_click"
       data-source="profile"
-      className={className}
+      className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-accent hover:underline"
     >
       Visit website
       <ArrowUpRight className="size-4" aria-hidden />

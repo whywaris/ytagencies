@@ -19,7 +19,7 @@ export function profileMode(a: {
   if (a.managed)
     return {
       kind: "contact",
-      ctaLabel: `Contact ${a.name}`,
+      ctaLabel: "Contact agency",
       ctaHref: "#contact",
       note: null,
       similar: false,

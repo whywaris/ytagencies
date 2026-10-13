@@ -18,12 +18,10 @@ import { Turnstile } from "@/components/forms/turnstile";
 import { BillingToggle } from "@/components/pro-billing";
 import { Input } from "@/components/ui/input";
 import { startCheckout } from "@/lib/actions/billing";
-import { requestAccess, startClaim, submitClaimProof } from "@/lib/actions/claims";
+import { startClaim, submitClaimProof } from "@/lib/actions/claims";
 import {
-  accessRequestSchema,
   claimProofSchema,
   claimSchema,
-  type AccessRequestInput,
   type ClaimInput,
   type ClaimProofInput,
 } from "@/lib/validation/auth";
@@ -288,48 +286,6 @@ function ProofForm({
       </button>
       <button type="button" className={`${linkBtn} self-start text-[14.5px]`} onClick={onBack}>
         Back to email confirmation
-      </button>
-    </form>
-  );
-}
-
-/** Someone else manages the listing: ask us for access (Admin → Inbox). */
-export function RequestAccessForm({ agencySlug }: { agencySlug: string }) {
-  const [sent, setSent] = useState(false);
-  const form = useForm<AccessRequestInput>({
-    resolver: zodResolver(accessRequestSchema),
-    defaultValues: { agencySlug, role: "", why: "", turnstileToken: "", website: "" },
-  });
-  const { onSubmit, err, bot, alert } = useClaimForm(form, requestAccess, () => setSent(true));
-  if (sent)
-    return (
-      <p role="status" className="mt-[18px] rounded-2xl bg-surface p-4 text-[14px]">
-        Request sent. We&apos;ll contact the current manager and the agency, and email you with the
-        outcome.
-      </p>
-    );
-  return (
-    <form onSubmit={onSubmit} noValidate className="mt-4 flex flex-col gap-4">
-      <Field id="access-role" label="Your role at the agency" error={err("role")}>
-        <Input
-          placeholder="Founder, Head of Growth…"
-          {...form.register("role")}
-          {...a11yProps("access-role", err("role"))}
-        />
-      </Field>
-      <Field id="access-why" label="Why you need access" error={err("why")}>
-        <textarea
-          rows={4}
-          placeholder="For example, the person who claimed it has left the agency"
-          className={textareaClasses}
-          {...form.register("why")}
-          {...a11yProps("access-why", err("why"))}
-        />
-      </Field>
-      {alert}
-      {bot}
-      <button type="submit" disabled={form.formState.isSubmitting} className={btnPrimary}>
-        {form.formState.isSubmitting ? "Sending…" : "Request access"}
       </button>
     </form>
   );

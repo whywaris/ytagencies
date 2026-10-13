@@ -9,12 +9,12 @@ import { getUser } from "@/lib/auth";
 import { getMailer, oneLine } from "@/lib/email";
 import { approveClaim, createClaimToken, emailMatchesWebsite, readClaimToken } from "@/lib/claims";
 import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
-import { absoluteUrl } from "@/lib/site";
+import { alreadyManagedMessage, claimState } from "@/lib/claim-rules";
+import { revalidateAgency } from "@/lib/revalidate";
+import { absoluteUrl, CONTACT_EMAIL } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { ContactAdminEmail } from "@/emails/contact";
-import { ACCESS_TOPIC } from "@/lib/contact-topics";
-import { accessRequestSchema, claimProofSchema, claimSchema } from "@/lib/validation/auth";
+import { claimProofSchema, claimSchema } from "@/lib/validation/auth";
 import type { FormResult } from "@/lib/validation/lead";
 
 // SECURITY.md: ownership is never auto-granted. It needs a confirmed email on the agency's own
@@ -75,12 +75,9 @@ export async function startClaim(raw: unknown): Promise<FormResult<ClaimStarted>
     .eq("status", "published")
     .maybeSingle();
   if (!agency) return { ok: false, error: "This agency is no longer listed." };
-  if (agency.is_claimed) {
-    return {
-      ok: false,
-      error: "This listing has already been claimed. Contact us if that's wrong.",
-    };
-  }
+  // Owned listings can't be claimed again (lib/claim-rules.ts), whatever the page showed.
+  if (claimState({ status: "published", isClaimed: agency.is_claimed }) !== "open")
+    return { ok: false, error: alreadyManagedMessage(CONTACT_EMAIL) };
 
   // User's own client: RLS only allows a pending claim for themselves.
   const { data: claim, error } = await supabase
@@ -188,7 +185,7 @@ export async function confirmClaim(token: string): Promise<FormResult<{ next: st
   const approved = await approveClaim({ id: claim.id, agencyId: claim.agency_id, userId: user.id });
   if (!approved) return { ok: false, error: "This listing has just been claimed." };
 
-  revalidatePath(`/agency/${agency.slug}`); // drops the "Claim this listing" link
+  revalidateAgency(agency.slug); // the claim bar goes away straight away, not at the next ISR
   // A published listing goes on to step 3 (choose Pro); a submission waits for review.
   const next =
     agency.status === "published" ? `/claim/${agency.slug}` : `/dashboard/${agency.slug}`;
@@ -222,7 +219,8 @@ export async function submitClaimProof(raw: unknown): Promise<FormResult> {
     .eq("status", "published")
     .maybeSingle();
   if (!agency) return { ok: false, error: "This agency is no longer listed." };
-  if (agency.is_claimed) return { ok: false, error: "Someone already manages this listing." };
+  if (claimState({ status: "published", isClaimed: agency.is_claimed }) !== "open")
+    return { ok: false, error: alreadyManagedMessage(CONTACT_EMAIL) };
 
   const { data: claim, error } = await supabase
     .from("claims")
@@ -271,77 +269,5 @@ export async function submitClaimProof(raw: unknown): Promise<FormResult> {
     );
   }
   revalidatePath(`/claim/${input.agencySlug}`);
-  return { ok: true, data: undefined };
-}
-
-/**
- * Someone else manages the listing: an "Access request" in Admin → Inbox, emailed to help@. The
- * admin contacts the current manager and the agency and decides; nothing changes automatically.
- */
-export async function requestAccess(raw: unknown): Promise<FormResult> {
-  const parsed = accessRequestSchema.safeParse(raw);
-  if (!parsed.success)
-    return {
-      ok: false,
-      error: "Check the highlighted fields.",
-      fieldErrors: fieldErrors(parsed.error.issues),
-    };
-  const input = parsed.data;
-  const g = await guard(raw, input.agencySlug, input.turnstileToken);
-  if ("bot" in g) return { ok: true, data: undefined };
-  if ("error" in g) return { ok: false, error: g.error! };
-  const { user } = g;
-  if (!user.email) return { ok: false, error: GENERIC };
-
-  const admin = createAdminClient();
-  const { data: agency } = await admin
-    .from("agencies")
-    .select("name, owner_id")
-    .eq("slug", input.agencySlug)
-    .eq("status", "published")
-    .maybeSingle();
-  if (!agency) return { ok: false, error: "This agency is no longer listed." };
-  if (agency.owner_id === user.id) return { ok: false, error: "You already manage this listing." };
-
-  const agencyUrl = absoluteUrl(`/agency/${input.agencySlug}`);
-  const message = `Agency: ${agency.name}\nRole: ${input.role}\n\n${input.why}`;
-  const { data, error } = await admin
-    .from("contact_messages")
-    .insert({
-      topic: ACCESS_TOPIC.id,
-      name: user.email,
-      email: user.email,
-      message,
-      agency_url: agencyUrl,
-    })
-    .select("id")
-    .single();
-  if (error || !data) {
-    console.error("access request insert failed", { code: error?.code });
-    return { ok: false, error: GENERIC };
-  }
-  const mail = getMailer();
-  if (mail) {
-    after(() =>
-      mail
-        .send({
-          from: mail.from,
-          to: ACCESS_TOPIC.inbox,
-          replyTo: user.email!,
-          subject: oneLine(`${ACCESS_TOPIC.label}: ${agency.name}`),
-          react: (
-            <ContactAdminEmail
-              topic={ACCESS_TOPIC.label}
-              name={user.email!}
-              email={user.email!}
-              message={message}
-              agencyUrl={agencyUrl}
-              inboxUrl={absoluteUrl(`/admin/inbox/${data.id}`)}
-            />
-          ),
-        })
-        .then(({ error: e }) => e && console.error("access request email failed", { id: data.id })),
-    );
-  }
   return { ok: true, data: undefined };
 }

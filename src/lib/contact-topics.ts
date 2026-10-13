@@ -53,7 +53,8 @@ export const PRO_TOPIC = {
   note: "An agency asked for Pro. Grant it in Agencies → Change plan.",
   response: COMPANY.responseTimes.agencies,
 } as const;
-// Not on /contact either: "Request access" on /claim/<slug> when someone else manages a listing.
+// No longer created (an owned listing now just says to email us); kept so access requests
+// already in the Inbox keep their label.
 export const ACCESS_TOPIC = {
   id: "access",
   label: "Access request",

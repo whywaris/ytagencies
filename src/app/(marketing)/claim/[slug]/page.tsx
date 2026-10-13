@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AgencyLogo } from "@/components/agency-logo";
-import { ChoosePro, ClaimStep, RequestAccessForm } from "@/components/forms/claim-form";
+import { ChoosePro, ClaimStep } from "@/components/forms/claim-form";
 import { btnPrimary } from "@/components/forms/claim-ui";
 import { getProPrices } from "@/components/plan-columns";
 import { getUser } from "@/lib/auth";
@@ -13,7 +13,8 @@ import { getAgencyBySlug } from "@/lib/data/agencies";
 import { getIndustryBySlug, getServiceBySlug } from "@/lib/data/taxonomy";
 import { liveSubscription } from "@/lib/entitlements";
 import { profileStrength } from "@/lib/profile-strength";
-import { absoluteUrl, BRAND_NAME } from "@/lib/site";
+import { alreadyManagedMessage } from "@/lib/claim-rules";
+import { absoluteUrl, BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,8 @@ import { yearlySaving } from "@/lib/pricing";
 // /claim/<slug> (docs/mockups/claim.html, without the Founding card). One page for every step:
 // 1 sign in, 2 confirm a work email (domain match = a link; otherwise proof an admin reviews),
 // 3 choose Pro. Ownership is recorded after step 2; management turns on only after payment.
-// Someone else manages it: request access. Owner on Pro: the welcome screen.
+// Someone else manages it: a message, no form (the claim actions refuse it too). Owner on
+// Pro: the welcome screen.
 
 export async function generateMetadata({ params }: PageProps<"/claim/[slug]">) {
   const agency = await getAgencyBySlug((await params).slug);
@@ -189,22 +191,7 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
     card = (
       <>
         <h1 className={h1}>This listing is already managed</h1>
-        <p className={sub}>
-          Someone confirmed they work at {agency.name}. If you work there too, ask for access.
-        </p>
-        {user ? (
-          <>
-            <p className="mt-[18px] rounded-2xl bg-surface p-4 text-[14px] text-text-2">
-              We&apos;ll contact the current manager and the agency. If they don&apos;t reply within
-              5 business days, we review your request ourselves.
-            </p>
-            <RequestAccessForm agencySlug={agency.slug} />
-          </>
-        ) : (
-          <Link href={`/login?next=/claim/${agency.slug}`} className={cn(btnPrimary, "mt-[18px]")}>
-            Sign in to request access
-          </Link>
-        )}
+        <p className={sub}>{alreadyManagedMessage(CONTACT_EMAIL)}</p>
       </>
     );
   } else {
