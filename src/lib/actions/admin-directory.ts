@@ -217,7 +217,7 @@ async function emailListingLive(
           agencyName: agency.name,
           profileUrl: absoluteUrl(`/agency/${agency.slug}`),
           managed: e.managed,
-          nextUrl: absoluteUrl(e.managed ? `/dashboard/${agency.id}` : `/claim/${agency.slug}`),
+          nextUrl: absoluteUrl(e.managed ? `/dashboard/${agency.slug}` : `/claim/${agency.slug}`),
         }),
       })
       .then(({ error }) => error && console.error("listing live email failed")),

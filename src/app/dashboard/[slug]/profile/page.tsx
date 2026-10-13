@@ -8,8 +8,8 @@ import { dashboardContext } from "@/lib/data/dashboard";
 
 export const metadata = { title: "Profile" };
 
-export default async function ProfilePage({ params }: PageProps<"/dashboard/[agencyId]/profile">) {
-  const ctx = await dashboardContext((await params).agencyId);
+export default async function ProfilePage({ params }: PageProps<"/dashboard/[slug]/profile">) {
+  const ctx = await dashboardContext((await params).slug);
   // Editing is part of managing a listing; the actions refuse too (editableAgency).
   if (!ctx.e.canEdit)
     return <Paywall ctx={ctx} unlocks="With Pro you can edit your profile any time." />;

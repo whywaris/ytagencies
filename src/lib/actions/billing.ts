@@ -12,7 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // verified claim or an approved submission (SECURITY.md). Called from plain <form action>s bound
 // to (agencyId, …); failures come back to the Billing page as ?error=.
 
-const billingPage = (agencyId: string, query = "") => `/dashboard/${agencyId}/billing${query}`;
+const billingPage = (slug: string, query = "") => `/dashboard/${slug}/billing${query}`;
 
 async function owned(agencyId: string) {
   const o = await getOwnedAgency(agencyId);
@@ -42,17 +42,17 @@ export async function startCheckout(
   interval: Interval,
   from: "billing" | "claim" = "billing",
 ) {
-  if (interval !== "month" && interval !== "year") redirect(billingPage(agencyId));
+  if (interval !== "month" && interval !== "year") redirect("/dashboard");
   const o = await owned(agencyId);
   const user = await getUser();
-  if (!user || !checkoutAvailable()) redirect(billingPage(agencyId, "?error=unavailable"));
+  if (!user || !checkoutAvailable()) redirect(billingPage(o.agency.slug, "?error=unavailable"));
 
   // Already managed: nothing to buy (switching to yearly is its own button).
   const { data: subs } = await o.supabase
     .from("agency_subscriptions")
     .select("plan_id, status, starts_at, ends_at, cancel_at_period_end, past_due_since")
     .eq("agency_id", o.agency.id);
-  if (isManaged(subs ?? [])) redirect(billingPage(agencyId));
+  if (isManaged(subs ?? [])) redirect(billingPage(o.agency.slug));
 
   const res = await billing().createCheckout({
     agencyId: o.agency.id,
@@ -62,10 +62,10 @@ export async function startCheckout(
     successUrl: absoluteUrl(
       from === "claim"
         ? `/claim/${o.agency.slug}?status=success`
-        : `/dashboard/billing?status=success&agency=${o.agency.id}`,
+        : billingPage(o.agency.slug, "?status=success"),
     ),
   });
-  if (!res.ok) redirect(billingPage(agencyId, "?error=checkout"));
+  if (!res.ok) redirect(billingPage(o.agency.slug, "?error=checkout"));
   redirect(res.data.url);
 }
 
@@ -101,9 +101,9 @@ export async function startSubmissionCheckout(agencyId: string, interval: Interv
 export async function openBillingPortal(agencyId: string) {
   const o = await owned(agencyId);
   const row = await paymentRow(o);
-  if (!row?.customer_id) redirect(billingPage(agencyId, "?error=portal"));
+  if (!row?.customer_id) redirect(billingPage(o.agency.slug, "?error=portal"));
   const res = await billing().portalUrl(row.customer_id);
-  if (!res.ok) redirect(billingPage(agencyId, "?error=portal"));
+  if (!res.ok) redirect(billingPage(o.agency.slug, "?error=portal"));
   redirect(res.data.url);
 }
 
@@ -111,16 +111,16 @@ export async function switchToYearly(agencyId: string) {
   const o = await owned(agencyId);
   const row = await paymentRow(o);
   if (!row?.external_id || row.status !== "active" || row.billing_interval !== "month")
-    redirect(billingPage(agencyId));
+    redirect(billingPage(o.agency.slug));
   const res = await billing().switchToYearly(row.external_id);
   // The webhook (subscription.update) records the new interval and period.
-  redirect(billingPage(agencyId, res.ok ? "?status=switched" : "?error=switch"));
+  redirect(billingPage(o.agency.slug, res.ok ? "?status=switched" : "?error=switch"));
 }
 
 export async function keepPro(agencyId: string) {
   const o = await owned(agencyId);
   const row = await paymentRow(o);
-  if (!row?.external_id || !row.cancel_at_period_end) redirect(billingPage(agencyId));
+  if (!row?.external_id || !row.cancel_at_period_end) redirect(billingPage(o.agency.slug));
   const res = await billing().resume(row.external_id);
-  redirect(billingPage(agencyId, res.ok ? "?status=resumed" : "?error=resume"));
+  redirect(billingPage(o.agency.slug, res.ok ? "?status=resumed" : "?error=resume"));
 }

@@ -9,8 +9,8 @@ export const metadata = { title: "Case studies" };
 
 export default async function CaseStudiesPage({
   params,
-}: PageProps<"/dashboard/[agencyId]/case-studies">) {
-  const ctx = await dashboardContext((await params).agencyId);
+}: PageProps<"/dashboard/[slug]/case-studies">) {
+  const ctx = await dashboardContext((await params).slug);
   if (!ctx.e.canEdit)
     return <Paywall ctx={ctx} unlocks="With Pro you can add case studies with real numbers." />;
   const { agency, supabase } = ctx;

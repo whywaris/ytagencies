@@ -194,7 +194,7 @@ export async function markLeadContacted(agencyId: string, leadId: string): Promi
     .eq("lead_id", leadId)
     .is("contacted_at", null);
   if (error) return { ok: false, error: SAVE_FAILED };
-  revalidatePath(`/dashboard/${agencyId}/leads`);
+  revalidatePath(`/dashboard/${owned.agency.slug}/inquiries`);
   return { ok: true, data: undefined };
 }
 
@@ -273,7 +273,7 @@ export async function addChannel(agencyId: string, raw: unknown): Promise<FormRe
     return { ok: false, error: SAVE_FAILED };
   }
   await resolveChannel(data.id, url);
-  revalidatePath(`/dashboard/${agencyId}`);
+  revalidatePath(`/dashboard/${owned.agency.slug}`, "layout");
   revalidateAgency(owned.agency.slug);
   return { ok: true, data: undefined };
 }
@@ -304,7 +304,7 @@ export async function updateChannel(
     .eq("agency_id", agencyId);
   if (error) return { ok: false, error: SAVE_FAILED };
   if (before.channel_url !== url) await resolveChannel(channelId, url);
-  revalidatePath(`/dashboard/${agencyId}`);
+  revalidatePath(`/dashboard/${owned.agency.slug}`, "layout");
   revalidateAgency(owned.agency.slug);
   return { ok: true, data: undefined };
 }
@@ -318,7 +318,7 @@ export async function removeChannel(agencyId: string, channelId: string): Promis
     .eq("id", channelId)
     .eq("agency_id", agencyId);
   if (error) return { ok: false, error: SAVE_FAILED };
-  revalidatePath(`/dashboard/${agencyId}`);
+  revalidatePath(`/dashboard/${owned.agency.slug}`, "layout");
   revalidateAgency(owned.agency.slug);
   return { ok: true, data: undefined };
 }

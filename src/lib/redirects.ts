@@ -121,3 +121,14 @@ export function privateGate(path: string, signedIn: boolean, isAdmin: boolean): 
   if (isAdminArea && !isAdmin) return { action: "no-access" };
   return { action: "next" };
 }
+
+/**
+ * Where an old /dashboard/<agency id><rest> link goes: /dashboard/<slug><rest>, with sections that
+ * were renamed since (leads → inquiries, plan → analytics).
+ */
+export function newDashboardPath(slug: string, rest: string) {
+  const section = rest
+    .replace(/^\/leads(?=\/|$)/, "/inquiries")
+    .replace(/^\/plan(?=\/|$)/, "/analytics");
+  return `/dashboard/${slug}${section}`;
+}

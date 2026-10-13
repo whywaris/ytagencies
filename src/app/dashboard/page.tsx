@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
+import { AgencyDashboardShell } from "@/components/dashboard/shell";
+import { Overview } from "@/components/dashboard/overview";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
+import { dashboardContext } from "@/lib/data/dashboard";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
@@ -10,7 +12,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const user = await requireUser("/dashboard");
   const supabase = await createClient();
   const [{ data: agencies }, { data: claims }, { data: submissions }] = await Promise.all([
-    supabase.from("agencies").select("id, name, status").eq("owner_id", user.id).order("name"),
+    supabase
+      .from("agencies")
+      .select("id, slug, name, status")
+      .eq("owner_id", user.id)
+      .order("name"),
     supabase
       .from("claims")
       .select("id, status, work_email, created_at, agencies(id, name, slug)")
@@ -30,13 +36,21 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const submittedIds = new Set(submissions?.map((s) => s.id));
   const openClaims = claims?.filter((c) => !submittedIds.has(c.agencies?.id ?? "")) ?? [];
 
-  // Most owners manage one listing: skip the list.
-  if (agencies?.length === 1 && !openClaims.length && !submissions?.length && !status)
-    redirect(`/dashboard/${agencies[0].id}`);
+  // Most owners manage one listing: show its dashboard right here (no id or slug in the URL).
+  if (agencies?.length === 1 && !openClaims.length && !submissions?.length && !status) {
+    const ctx = await dashboardContext(agencies[0].slug);
+    return (
+      <AgencyDashboardShell ctx={ctx}>
+        <Overview ctx={ctx} />
+      </AgencyDashboardShell>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-12">
-      <h1 className="text-h1">Your listings</h1>
+      <h1 className="text-h1">
+        {agencies && agencies.length > 1 ? "Choose a listing" : "Your listings"}
+      </h1>
       {status === "subscribed" && (
         <p role="status" className="max-w-reading rounded-lg bg-surface p-4">
           Payment received. Pro starts as soon as we approve your listing; we&apos;ll email you.
@@ -57,7 +71,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           {agencies.map((a) => (
             <li key={a.id}>
               <Link
-                href={`/dashboard/${a.id}`}
+                href={`/dashboard/${a.slug}`}
                 className="flex min-h-11 items-center justify-between rounded-lg border border-line px-5 py-4 transition-colors duration-150 hover:border-text-2"
               >
                 <span className="font-medium">{a.name}</span>
@@ -69,7 +83,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       ) : (
         <div className="flex max-w-reading flex-col gap-4 rounded-lg bg-surface p-6">
           <div className="flex flex-col gap-2">
-            <p className="font-medium">You don&apos;t manage a listing yet.</p>
+            <p className="font-medium">List or claim your agency</p>
             <p className="text-text-2">
               If your agency is already listed, claim it. If not, add it and we&apos;ll review it.
             </p>

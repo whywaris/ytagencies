@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AgencyLogo } from "@/components/agency-logo";
-import { btnPrimary, ChoosePro, ClaimStep, RequestAccessForm } from "@/components/forms/claim-form";
+import { ChoosePro, ClaimStep, RequestAccessForm } from "@/components/forms/claim-form";
+import { btnPrimary } from "@/components/forms/claim-ui";
 import { getProPrices } from "@/components/plan-columns";
-import { yearlySaving } from "@/components/pro-billing";
 import { getUser } from "@/lib/auth";
 import { checkoutAvailable } from "@/lib/billing";
 import { profileViews, requestsThisMonth, strengthInput } from "@/lib/data/agency-stats";
@@ -17,6 +17,7 @@ import { absoluteUrl, BRAND_NAME } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+import { yearlySaving } from "@/lib/pricing";
 
 // /claim/<slug> (docs/mockups/claim.html, without the Founding card). One page for every step:
 // 1 sign in, 2 confirm a work email (domain match = a link; otherwise proof an admin reviews),
@@ -139,7 +140,7 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
             </ul>
             {strength.percent < 100 && (
               <Link
-                href={`/dashboard/${agency.id}/profile`}
+                href={`/dashboard/${agency.slug}/profile`}
                 className={cn(btnPrimary, "mt-[18px]")}
               >
                 Complete profile
@@ -148,14 +149,14 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
           </section>
           <p className="mt-[22px] text-[14px]">
             <Link
-              href={`/dashboard/${agency.id}`}
+              href={`/dashboard/${agency.slug}`}
               className="font-semibold text-accent hover:underline"
             >
               Go to your dashboard
             </Link>{" "}
             ·{" "}
             <Link
-              href={`/dashboard/${agency.id}/leads`}
+              href={`/dashboard/${agency.slug}/inquiries`}
               className="font-semibold text-accent hover:underline"
             >
               See your inquiries
@@ -389,7 +390,7 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
         <p className="pb-10 text-center text-[14px] text-text-2">
           Not now?{" "}
           <Link
-            href={`/dashboard/${agency.id}`}
+            href={`/dashboard/${agency.slug}`}
             className={cn("font-semibold text-accent hover:underline")}
           >
             Go to your dashboard

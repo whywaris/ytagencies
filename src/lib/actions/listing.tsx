@@ -28,8 +28,6 @@ export type FoundAgency = {
   service: string | null;
   /** Who manages it: nobody yet, the signed-in user, or someone else. */
   ownership: "none" | "mine" | "other";
-  /** Set only for the signed-in owner (their dashboard link). */
-  agencyId: string | null;
   /** Profile views in the last 30 days, only when there are at least 5 (else null). */
   views: number | null;
 };
@@ -86,7 +84,6 @@ export async function searchAgencies(raw: string): Promise<FoundAgency[]> {
       website: a.website,
       service: main?.services?.name ?? null,
       ownership: mine ? "mine" : a.owner_id ? "other" : "none",
-      agencyId: mine ? a.id : null,
       views: n >= MIN_VIEWS_SHOWN ? n : null,
     };
   });

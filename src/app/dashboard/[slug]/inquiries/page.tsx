@@ -5,8 +5,8 @@ import { BUDGET_RANGES } from "@/lib/validation/lead";
 
 export const metadata = { title: "Inquiries" };
 
-export default async function LeadsPage({ params }: PageProps<"/dashboard/[agencyId]/leads">) {
-  const ctx = await dashboardContext((await params).agencyId);
+export default async function LeadsPage({ params }: PageProps<"/dashboard/[slug]/inquiries">) {
+  const ctx = await dashboardContext((await params).slug);
   // Never on Pro: the paywall. Lapsed: past inquiries, read-only (RLS refuses changes too).
   if (!ctx.e.managed && !ctx.lapsed)
     return (

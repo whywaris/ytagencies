@@ -7,8 +7,8 @@ import { BRAND_NAME } from "@/lib/site";
 
 export const metadata = { title: "Badge" };
 
-export default async function BadgePage({ params }: PageProps<"/dashboard/[agencyId]/badge">) {
-  const { agency } = await dashboardContext((await params).agencyId);
+export default async function BadgePage({ params }: PageProps<"/dashboard/[slug]/badge">) {
+  const { agency } = await dashboardContext((await params).slug);
   return (
     <section aria-labelledby="badge-h" className={`${card} max-w-reading`}>
       <h2 id="badge-h" className={cardTitle}>

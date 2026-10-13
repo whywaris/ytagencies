@@ -5,8 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Billing" };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 // /dashboard/billing: where "Get Pro" on the pricing page and Creem's success_url land. Sends the
 // owner to their agency's Billing page (keeping status/interval), or to the listings list when
 // they have several, or to List your agency when they have none.
@@ -22,11 +20,12 @@ export default async function BillingRedirect({ searchParams }: PageProps<"/dash
 
   const user = await requireUser(`/dashboard/billing${q}`);
   const supabase = await createClient();
-  const { data } = await supabase.from("agencies").select("id").eq("owner_id", user.id);
-  const ids = data?.map((a) => a.id) ?? [];
-  const wanted = one(sp.agency);
-  if (wanted && UUID.test(wanted) && ids.includes(wanted.toLowerCase()))
-    redirect(`/dashboard/${wanted.toLowerCase()}/billing${q}`);
-  if (ids.length === 1) redirect(`/dashboard/${ids[0]}/billing${q}`);
-  redirect(ids.length ? "/dashboard" : "/list-your-agency");
+  const { data } = await supabase.from("agencies").select("id, slug").eq("owner_id", user.id);
+  const owned = data ?? [];
+  const wanted = one(sp.agency)?.toLowerCase();
+  // ?agency= by id (older Creem return links) or slug.
+  const match = owned.find((a) => a.id === wanted || a.slug === wanted);
+  if (match) redirect(`/dashboard/${match.slug}/billing${q}`);
+  if (owned.length === 1) redirect(`/dashboard/${owned[0].slug}/billing${q}`);
+  redirect(owned.length ? "/dashboard" : "/list-your-agency");
 }

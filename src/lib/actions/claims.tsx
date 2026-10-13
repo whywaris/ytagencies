@@ -191,7 +191,7 @@ export async function confirmClaim(token: string): Promise<FormResult<{ next: st
   revalidatePath(`/agency/${agency.slug}`); // drops the "Claim this listing" link
   // A published listing goes on to step 3 (choose Pro); a submission waits for review.
   const next =
-    agency.status === "published" ? `/claim/${agency.slug}` : `/dashboard/${claim.agency_id}`;
+    agency.status === "published" ? `/claim/${agency.slug}` : `/dashboard/${agency.slug}`;
   return { ok: true, data: { next } };
 }
 

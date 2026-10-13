@@ -6,8 +6,8 @@ export const metadata = { title: "Verification" };
 
 export default async function VerificationPage({
   params,
-}: PageProps<"/dashboard/[agencyId]/verification">) {
-  const ctx = await dashboardContext((await params).agencyId);
+}: PageProps<"/dashboard/[slug]/verification">) {
+  const ctx = await dashboardContext((await params).slug);
   const { agency, supabase, e } = ctx;
   if (!e.managed && !e.verifiedBadge)
     return (

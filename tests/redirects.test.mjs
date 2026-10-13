@@ -7,6 +7,7 @@ import {
   authOrigin,
   callbackUrl,
   confirmEmailLink,
+  newDashboardPath,
   nextFromRedirectTo,
   postLoginPath,
   privateGate,
@@ -218,4 +219,13 @@ test("authOrigin keeps local dev ports and the site, else falls back to SITE_URL
   ]) {
     assert.equal(authOrigin(spoofed, prod), prod, spoofed);
   }
+});
+
+test("old /dashboard/<id> links map to /dashboard/<slug>, renamed sections included", () => {
+  assert.equal(newDashboardPath("goat-agency", ""), "/dashboard/goat-agency");
+  assert.equal(newDashboardPath("goat-agency", "/billing"), "/dashboard/goat-agency/billing");
+  assert.equal(newDashboardPath("goat-agency", "/leads"), "/dashboard/goat-agency/inquiries");
+  assert.equal(newDashboardPath("goat-agency", "/plan"), "/dashboard/goat-agency/analytics");
+  // Only whole segments are renamed.
+  assert.equal(newDashboardPath("goat-agency", "/leadsx"), "/dashboard/goat-agency/leadsx");
 });

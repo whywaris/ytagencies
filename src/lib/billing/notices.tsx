@@ -24,7 +24,7 @@ async function ownerEmail(ownerId: string | null) {
 }
 
 export async function sendBillingEmail(
-  agency: { id: string; name: string; owner_id: string | null },
+  agency: { id: string; slug: string; name: string; owner_id: string | null },
   kind: Email | "ending",
   endsAt?: string,
 ) {
@@ -33,7 +33,7 @@ export async function sendBillingEmail(
   if (!mail || !to) return false;
   const props = {
     agencyName: agency.name,
-    billingUrl: absoluteUrl(`/dashboard/${agency.id}/billing`),
+    billingUrl: absoluteUrl(`/dashboard/${agency.slug}/billing`),
   };
   const message =
     kind === "welcome"
@@ -63,7 +63,7 @@ export async function sendEndingNotices() {
   const now = Date.now();
   const { data, error } = await db
     .from("agency_subscriptions")
-    .select("id, ends_at, agencies(id, name, owner_id)")
+    .select("id, ends_at, agencies(id, slug, name, owner_id)")
     .eq("status", "active")
     .eq("cancel_at_period_end", true)
     .is("ending_notice_sent_at", null)

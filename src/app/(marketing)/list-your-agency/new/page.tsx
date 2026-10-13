@@ -2,11 +2,11 @@ import Link from "next/link";
 
 import { SubmitAgencyForm } from "@/components/forms/submit-agency-form";
 import { getProPrices } from "@/components/plan-columns";
-import { yearlySaving } from "@/components/pro-billing";
 import { requireUser } from "@/lib/auth";
 import { checkoutAvailable } from "@/lib/billing";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { BRAND_NAME } from "@/lib/site";
+import { yearlySaving } from "@/lib/pricing";
 
 // Sign-in required, so dynamic and noindex. /list-your-agency is the indexable page.
 export const metadata = {

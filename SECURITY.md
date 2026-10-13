@@ -78,6 +78,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 ## External links
 
 - Only managed agencies (live Pro) get a link to their website, with `rel="sponsored noopener"`, opening in a new tab. Unmanaged profiles have no outbound website link and no contact form; `contactAgency` refuses them server-side too.
+- Dashboard URLs use the agency's slug (`/dashboard/<slug>/…`). The slug only finds the row: `getOwnedAgencyBySlug` also requires `owner_id` = the signed-in user (RLS applies too), so another agency's slug is a 404. Old `/dashboard/<id>` links 308 to the slug URL only for that agency's owner.
 - Editing a listing needs ownership and a live Pro subscription: every dashboard mutation goes through `editableAgency()` (lib/actions/dashboard.ts).
 - Marking an inquiry as contacted is also enforced in the database: the `lead_routes` update policy requires `agency_managed()` (the managed rule in SQL). A lapsed owner can still read inquiries received while on Pro, read-only. A submitted HQ city we don't list is stored as plain text (`hq_other`) for an admin to map; owners can't change it.
 - `/claim/<slug>`: ownership still needs a confirmed email on the agency's domain or an admin approving a claim with proof (role, LinkedIn, note). Asking for access to a listing someone else manages only creates an Inbox message; nothing changes until an admin acts. Checkout for a pending submission is allowed only to its submitter, while it's an unowned draft.

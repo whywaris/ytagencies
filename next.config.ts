@@ -36,6 +36,12 @@ const csp = [
   "upgrade-insecure-requests",
 ].join("; ");
 
+/**
+ * Agency slugs never change once published (CLAUDE.md). If one must, add { from, to } here: the
+ * profile, its claim page and the owner's dashboard (every section) all redirect permanently.
+ */
+const AGENCY_SLUG_REDIRECTS: { from: string; to: string }[] = [];
+
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
@@ -73,6 +79,15 @@ const nextConfig: NextConfig = {
       { source: "/report-listing", destination: "/contact?topic=report", permanent: true },
       // Managing a listing moved from /agency/<slug>/claim to /claim/<slug>.
       { source: "/agency/:slug/claim", destination: "/claim/:slug", permanent: true },
+      ...AGENCY_SLUG_REDIRECTS.flatMap(({ from, to }) => [
+        { source: `/agency/${from}`, destination: `/agency/${to}`, permanent: true },
+        { source: `/claim/${from}`, destination: `/claim/${to}`, permanent: true },
+        {
+          source: `/dashboard/${from}/:path*`,
+          destination: `/dashboard/${to}/:path*`,
+          permanent: true,
+        },
+      ]),
       // Dashboard sections: Plan and analytics split into Plan (billing) and Analytics.
       { source: "/dashboard/:id/plan", destination: "/dashboard/:id/analytics", permanent: true },
       {

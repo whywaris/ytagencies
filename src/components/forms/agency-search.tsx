@@ -106,7 +106,7 @@ export function AgencySearch() {
                   <div className="ml-auto text-right">
                     {a.ownership === "mine" ? (
                       <Link
-                        href={`/dashboard/${a.agencyId}`}
+                        href={`/dashboard/${a.slug}`}
                         className={`${btnSm} border border-line bg-raised hover:border-text-2`}
                       >
                         Go to dashboard

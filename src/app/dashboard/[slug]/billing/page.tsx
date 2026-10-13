@@ -35,8 +35,8 @@ const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 export default async function BillingPage({
   params,
   searchParams,
-}: PageProps<"/dashboard/[agencyId]/billing">) {
-  const owned = await getOwnedAgency((await params).agencyId);
+}: PageProps<"/dashboard/[slug]/billing">) {
+  const owned = await getOwnedAgency((await params).slug);
   if (!owned) notFound();
   const { agency, supabase } = owned;
   const sp = await searchParams;

@@ -60,3 +60,7 @@ export function responseLabel(medianMinutes: number | null) {
   if (medianMinutes < 48 * 60) return "Usually replies within 2 days";
   return null;
 }
+
+/** "Save 20%": yearly against twelve months. */
+export const yearlySaving = (monthly: number, yearly: number) =>
+  Math.round((1 - yearly / (monthly * 12)) * 100);

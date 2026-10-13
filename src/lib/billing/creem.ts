@@ -246,7 +246,10 @@ async function applyRow(
   return !error;
 }
 
-async function notify(agency: { id: string; name: string; owner_id: string | null }, email: Email) {
+async function notify(
+  agency: { id: string; slug: string; name: string; owner_id: string | null },
+  email: Email,
+) {
   try {
     await sendBillingEmail(agency, email);
   } catch {

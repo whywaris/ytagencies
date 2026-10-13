@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { RequestProForm } from "@/components/forms/request-pro-form";
 import { track } from "@/lib/track";
+import { yearlySaving } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
@@ -89,7 +90,3 @@ export function BillingToggle({
     </div>
   );
 }
-
-/** "Save 20%": yearly against twelve months. */
-export const yearlySaving = (monthly: number, yearly: number) =>
-  Math.round((1 - yearly / (monthly * 12)) * 100);

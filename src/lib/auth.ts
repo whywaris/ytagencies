@@ -29,6 +29,19 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export async function getOwnedAgency(agencyId: string) {
   if (!UUID.test(agencyId)) return null;
+  return ownedBy("id", agencyId);
+}
+
+/**
+ * The same, by slug (dashboard URLs: /dashboard/<slug>). The slug only finds the row; ownership
+ * is still owner_id = the signed-in user, so someone else's slug is null (a 404), never a hint.
+ */
+export async function getOwnedAgencyBySlug(slug: string) {
+  if (!/^[a-z0-9-]{1,80}$/.test(slug)) return null;
+  return ownedBy("slug", slug);
+}
+
+async function ownedBy(column: "id" | "slug", value: string) {
   const user = await getUser();
   if (!user) return null;
   const supabase = await createClient();
@@ -37,7 +50,7 @@ export async function getOwnedAgency(agencyId: string) {
     .select(
       "id, slug, name, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, logo_path, status",
     )
-    .eq("id", agencyId)
+    .eq(column, value)
     .eq("owner_id", user.id)
     .maybeSingle();
   if (error || !data) return null;

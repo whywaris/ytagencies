@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { publicPathExists } from "@/lib/public-slugs";
-import { privateGate } from "@/lib/redirects";
+import { newDashboardPath, privateGate } from "@/lib/redirects";
 import type { Database } from "@/lib/supabase/types";
 
 // 1. Unknown public slugs → full server-rendered 404 (see lib/public-slugs.ts for why).
@@ -11,6 +11,8 @@ import type { Database } from "@/lib/supabase/types";
 
 // Any path this resolves to matches no route, so Next serves the root not-found with status 404.
 const NOT_FOUND_REWRITE = "/not-found/unknown/slug";
+const OLD_DASHBOARD =
+  /^\/dashboard\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\/.*)?$/i;
 const PRIVATE = /^\/(dashboard|admin|login|auth|claim)(\/|$)|^\/list-your-agency\/new$/;
 
 export async function proxy(request: NextRequest) {
@@ -62,6 +64,26 @@ export async function proxy(request: NextRequest) {
 
   const gate = privateGate(path, !!user, isAdmin);
   if (gate.action === "login") return redirectKeepingCookies(request, response, gate.to);
+
+  // Old dashboard links (/dashboard/<agency id>/…, in emails and bookmarks) → /dashboard/<slug>/…
+  // Only the owner's own agency resolves (RLS + owner_id); anything else falls through to a 404.
+  const old = user && path.match(OLD_DASHBOARD);
+  if (old) {
+    const { data: agency } = await supabase
+      .from("agencies")
+      .select("slug")
+      .eq("id", old[1])
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    if (agency) {
+      const to = request.nextUrl.clone();
+      to.pathname = newDashboardPath(agency.slug, old[2] ?? "");
+      const moved = NextResponse.redirect(to, 308);
+      response.cookies.getAll().forEach((c) => moved.cookies.set(c));
+      moved.headers.set("X-Robots-Tag", "noindex, nofollow");
+      return moved;
+    }
+  }
   if (gate.action === "no-access") {
     // Same URL, clear message (src/app/(marketing)/no-access) instead of a silent redirect.
     const denied = NextResponse.rewrite(new URL("/no-access", request.url), { status: 403 });

@@ -20,7 +20,7 @@ export async function sendLeadReminders() {
   const now = Date.now();
   const { data, error } = await db
     .from("lead_routes")
-    .select("lead_id, agency_id, leads(name, company), agencies(name, owner_id)")
+    .select("lead_id, agency_id, leads(name, company), agencies(name, slug, owner_id)")
     .is("contacted_at", null)
     .is("reminded_at", null)
     .lte("sent_at", new Date(now - 24 * HOUR).toISOString())
@@ -44,7 +44,7 @@ export async function sendLeadReminders() {
         <LeadReminderEmail
           agencyName={r.agencies!.name}
           business={r.leads.company || r.leads.name}
-          url={absoluteUrl(`/dashboard/${r.agency_id}/leads#lead-${r.lead_id}`)}
+          url={absoluteUrl(`/dashboard/${r.agencies!.slug}/inquiries#lead-${r.lead_id}`)}
         />
       ),
     });

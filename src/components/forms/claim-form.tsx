@@ -12,6 +12,7 @@ import {
 } from "react-hook-form";
 
 import { a11yProps, Field, Honeypot, textareaClasses } from "@/components/forms/field";
+import { btnLight, btnPrimary } from "@/components/forms/claim-ui";
 import { RequestProForm } from "@/components/forms/request-pro-form";
 import { Turnstile } from "@/components/forms/turnstile";
 import { BillingToggle } from "@/components/pro-billing";
@@ -31,10 +32,6 @@ import type { FormResult } from "@/lib/validation/lead";
 // /claim/<slug>: the claim card's forms (docs/mockups/claim.html). Every action re-checks on the
 // server: ownership only after a confirmed domain email or an admin's review (SECURITY.md).
 
-export const btnPrimary =
-  "inline-flex h-[46px] w-full items-center justify-center rounded-full bg-accent px-[22px] text-[15px] font-semibold text-on-accent shadow-[0_1px_2px_rgba(31,94,255,.3),0_8px_20px_-6px_rgba(31,94,255,.45)] transition-transform duration-150 motion-safe:hover:-translate-y-px disabled:opacity-60";
-export const btnLight =
-  "inline-flex h-[46px] w-full items-center justify-center rounded-full border border-line bg-raised px-[22px] text-[15px] font-semibold hover:border-text-2";
 const linkBtn = "font-semibold text-accent hover:underline";
 const h1 = "text-[26px] leading-tight font-[650] tracking-[-0.03em]";
 const sub = "mt-1.5 text-[15px] text-text-2";

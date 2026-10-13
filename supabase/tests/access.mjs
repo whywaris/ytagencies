@@ -1495,5 +1495,47 @@ await as("authenticated", HQ_USER, async () => {
     "submission: the unlisted city is length-limited",
   );
 });
+console.log("— Dashboard by slug (/dashboard/<slug>) —");
+// The dashboard resolves its agency with exactly this query (lib/auth.ts getOwnedAgencyBySlug):
+// slug AND owner_id = the signed-in user, under RLS. The slug alone must never be enough.
+const mineSlug = (await rows(`select slug from agencies where id = '${MINE}'`))[0].slug;
+const bySlug = (uid) =>
+  `select id from agencies where slug = '${mineSlug}' and owner_id = '${uid}'`;
+await db.exec(`reset role; delete from agency_subscriptions where agency_id = '${MINE}';
+  insert into agency_subscriptions (agency_id, plan_id, source, status, starts_at, ends_at)
+    values ('${MINE}', 'pro', 'manual', 'active', now() - interval '1 day', now() + interval '30 days');`);
+await as("authenticated", OWNER, async () => {
+  ok(
+    (await rows(bySlug(OWNER))).length === 1,
+    "dashboard: owner with Pro finds their agency by slug",
+  );
+  ok(
+    (await rows(`select agency_managed('${MINE}') m`))[0].m === true,
+    "dashboard: …and it's managed",
+  );
+});
+await db.exec(`reset role; update agency_subscriptions set status = 'expired', ends_at = now() - interval '1 hour'
+  where agency_id = '${MINE}'`);
+await as("authenticated", OWNER, async () => {
+  ok(
+    (await rows(bySlug(OWNER))).length === 1,
+    "dashboard: claimed owner without Pro still finds their agency (the paywall shows)",
+  );
+  ok(
+    (await rows(`select agency_managed('${MINE}') m`))[0].m === false,
+    "dashboard: …and it's not managed",
+  );
+});
+await as("authenticated", OTHER, async () => {
+  ok(
+    (await rows(bySlug(OTHER))).length === 0,
+    "dashboard: a non-owner gets nothing for that slug (404)",
+  );
+});
+await as("anon", null, async () =>
+  ok(await denied(bySlug(OWNER)), "dashboard: signed out gets nothing"),
+);
+await db.exec(`reset role; update agency_subscriptions set status = 'active', ends_at = now() + interval '6 months'
+  where agency_id = '${MINE}'`);
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

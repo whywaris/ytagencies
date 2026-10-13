@@ -21,12 +21,12 @@ import { cn } from "@/lib/utils";
 // a scrolling row on small screens. Sections that need Pro carry a lock and show the paywall.
 
 export function DashboardTabs({
-  agencyId,
+  slug,
   managed,
   lapsed,
   waiting,
 }: {
-  agencyId: string;
+  slug: string;
   managed: boolean;
   /** Had Pro before: past inquiries stay readable. */
   lapsed: boolean;
@@ -34,11 +34,17 @@ export function DashboardTabs({
   waiting: number;
 }) {
   const pathname = usePathname();
-  const base = `/dashboard/${agencyId}`;
+  const base = `/dashboard/${slug}`;
   const groups = [
     [
       { href: base, label: "Overview", icon: LayoutGrid },
-      { href: `${base}/leads`, label: "Inquiries", icon: MessageSquare, pro: true, count: waiting },
+      {
+        href: `${base}/inquiries`,
+        label: "Inquiries",
+        icon: MessageSquare,
+        pro: true,
+        count: waiting,
+      },
       { href: `${base}/profile`, label: "Profile", icon: UserRound, pro: true },
       { href: `${base}/channels`, label: "Channels", icon: Clapperboard, pro: true },
       { href: `${base}/case-studies`, label: "Case studies", icon: FileText, pro: true },
@@ -65,8 +71,9 @@ export function DashboardTabs({
           )}
         >
           {group.map(({ href, label, icon: Icon, pro, count }) => {
-            const current = pathname === href;
-            const locked = pro && !managed && !(lapsed && href === `${base}/leads`);
+            // The overview is also /dashboard itself for owners of one agency.
+            const current = pathname === href || (href === base && pathname === "/dashboard");
+            const locked = pro && !managed && !(lapsed && href === `${base}/inquiries`);
             return (
               <Link
                 key={href}

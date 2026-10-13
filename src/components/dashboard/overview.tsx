@@ -13,7 +13,7 @@ import { profileFormProps } from "@/lib/agency-profile";
 import { COMPANY } from "@/lib/company";
 import { agencyActivity, demandFor, strengthInput, type DemandRow } from "@/lib/data/agency-stats";
 import { getAgencyBySlug, getResponseTimes, getSimilarAgencies } from "@/lib/data/agencies";
-import { dashboardContext } from "@/lib/data/dashboard";
+import type { DashboardContext } from "@/lib/data/dashboard";
 import { responseLabel } from "@/lib/pricing";
 import { profileStrength } from "@/lib/profile-strength";
 import { CONTACT_EMAIL } from "@/lib/site";
@@ -22,8 +22,6 @@ import { BUDGET_RANGES } from "@/lib/validation/lead";
 
 // Overview (docs/mockups/agency-dashboard.html, without Founding). Real numbers only: anything
 // without data is left out, and what's locked says what Pro unlocks instead of showing a number.
-
-export const metadata = { title: "Overview" };
 
 const count = new Intl.NumberFormat("en-US");
 const longDate = (iso: string) =>
@@ -40,10 +38,9 @@ const delta = (now: number, before: number) =>
   before > 0 ? Math.round(((now - before) / before) * 100) : null;
 const STRENGTH_HREF = { profile: "profile", channels: "channels", "case-studies": "case-studies" };
 
-export default async function OverviewPage({ params }: PageProps<"/dashboard/[agencyId]">) {
-  const ctx = await dashboardContext((await params).agencyId);
+export async function Overview({ ctx }: { ctx: DashboardContext }) {
   const { agency, supabase, e, live, pro } = ctx;
-  const base = `/dashboard/${agency.id}`;
+  const base = `/dashboard/${agency.slug}`;
 
   const [tags, activity, form, strength, responses, public_] = await Promise.all([
     supabase
@@ -227,7 +224,10 @@ export default async function OverviewPage({ params }: PageProps<"/dashboard/[ag
                   Mark them as contacted to show your reply time on your profile.
                 </p>
               </div>
-              <Link href={`${base}/leads`} className={cn(linkCls, "text-[14px] whitespace-nowrap")}>
+              <Link
+                href={`${base}/inquiries`}
+                className={cn(linkCls, "text-[14px] whitespace-nowrap")}
+              >
                 All inquiries
               </Link>
             </div>

@@ -3,20 +3,20 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { getProPrices } from "@/components/plan-columns";
-import { yearlySaving } from "@/components/pro-billing";
-import { getOwnedAgency } from "@/lib/auth";
+import { getOwnedAgencyBySlug } from "@/lib/auth";
 import { checkoutAvailable } from "@/lib/billing";
 import { getEntitlements } from "@/lib/data/entitlements";
 import { liveSubscription } from "@/lib/entitlements";
 import { absoluteUrl } from "@/lib/site";
+import { yearlySaving } from "@/lib/pricing";
 
 /**
- * Everything every dashboard page needs: the owned agency (404 otherwise: someone else's id
- * doesn't confirm it exists), what it's entitled to, its plan and the Pro prices. Cached, so the
+ * Everything every dashboard page needs: the owned agency, found by its slug (/dashboard/<slug>)
+ * and still checked against owner_id (404 otherwise: someone else's slug confirms nothing), what it's entitled to, its plan and the Pro prices. Cached, so the
  * layout and the page share one lookup.
  */
-export const dashboardContext = cache(async (agencyId: string) => {
-  const owned = await getOwnedAgency(agencyId);
+export const dashboardContext = cache(async (slug: string) => {
+  const owned = await getOwnedAgencyBySlug(slug);
   if (!owned) notFound();
   const { agency, supabase } = owned;
   const [e, subs, prices] = await Promise.all([

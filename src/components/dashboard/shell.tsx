@@ -5,15 +5,18 @@ import { DashboardTabs } from "@/components/dashboard/tabs";
 import { btnLight, btnPrimary } from "@/components/dashboard/ui";
 import { UpgradeDialog } from "@/components/dashboard/upgrade-dialog";
 import { COMPANY } from "@/lib/company";
-import { dashboardContext } from "@/lib/data/dashboard";
+import type { DashboardContext } from "@/lib/data/dashboard";
 import { cn } from "@/lib/utils";
 
 // docs/mockups/agency-dashboard.html: the agency, its plan pill and actions, a section sidebar.
-export default async function AgencyDashboardLayout({
+// Used by /dashboard/[slug]/layout.tsx, and by /dashboard itself for owners of one agency.
+export async function AgencyDashboardShell({
+  ctx,
   children,
-  params,
-}: LayoutProps<"/dashboard/[agencyId]">) {
-  const ctx = await dashboardContext((await params).agencyId);
+}: {
+  ctx: DashboardContext;
+  children: React.ReactNode;
+}) {
   const { agency, supabase, e, lapsed, endedAt, pro } = ctx;
   const { count: waiting } = e.managed
     ? await supabase
@@ -27,7 +30,7 @@ export default async function AgencyDashboardLayout({
     <div className="grid gap-6 min-[900px]:grid-cols-[200px_minmax(0,1fr)] min-[900px]:gap-10">
       <div className="min-[900px]:row-span-2">
         <DashboardTabs
-          agencyId={agency.id}
+          slug={agency.slug}
           managed={e.managed}
           lapsed={lapsed}
           waiting={waiting ?? 0}
@@ -64,7 +67,7 @@ export default async function AgencyDashboardLayout({
           </div>
           <div className="flex flex-wrap gap-2.5">
             {e.managed ? (
-              <Link href={`/dashboard/${agency.id}/profile`} className={btnLight}>
+              <Link href={`/dashboard/${agency.slug}/profile`} className={btnLight}>
                 Edit profile
               </Link>
             ) : (
@@ -90,7 +93,7 @@ export default async function AgencyDashboardLayout({
                 ? `Your Pro plan ended on ${new Date(endedAt).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}.`
                 : "Your Pro plan has ended."}{" "}
               <Link
-                href={`/dashboard/${agency.id}/billing`}
+                href={`/dashboard/${agency.slug}/billing`}
                 className="text-accent hover:underline"
               >
                 Resubscribe

@@ -13,10 +13,8 @@ function daysAgo(n: number) {
   return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 }
 
-export default async function AnalyticsPage({
-  params,
-}: PageProps<"/dashboard/[agencyId]/analytics">) {
-  const owned = await getOwnedAgency((await params).agencyId);
+export default async function AnalyticsPage({ params }: PageProps<"/dashboard/[slug]/analytics">) {
+  const owned = await getOwnedAgency((await params).slug);
   if (!owned) notFound();
   const { agency, supabase } = owned;
   const e = await getEntitlements(agency.id);
@@ -92,7 +90,10 @@ export default async function AnalyticsPage({
         ) : (
           <p className="text-small">
             Visitors to your website start counting once your profile links to it, on{" "}
-            <Link href={`/dashboard/${agency.id}/billing`} className="text-accent hover:underline">
+            <Link
+              href={`/dashboard/${agency.slug}/billing`}
+              className="text-accent hover:underline"
+            >
               Pro
             </Link>
             .

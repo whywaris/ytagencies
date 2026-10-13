@@ -84,7 +84,7 @@ export async function saveAgency(
         ok: false,
         error: "Check the highlighted fields.",
         fieldErrors: {
-          slug: "Slugs can't change after publishing. Unpublish first, and add a 301 redirect in next.config.",
+          slug: "Slugs can't change after publishing. Unpublish first, and add it to AGENCY_SLUG_REDIRECTS in next.config.",
         },
       };
     }
