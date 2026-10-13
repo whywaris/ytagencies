@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
 import { RequestProForm } from "@/components/forms/request-pro-form";
 import { Button } from "@/components/ui/button";
 import { keepPro, openBillingPortal, startCheckout, switchToYearly } from "@/lib/actions/billing";
-import { getOwnedAgency } from "@/lib/auth";
 import { checkoutAvailable } from "@/lib/billing";
-import { getEntitlements } from "@/lib/data/entitlements";
+import { dashboardContext } from "@/lib/data/dashboard";
 import { getPlanPrices } from "@/lib/data/placement";
 import { liveSubscription } from "@/lib/entitlements";
 import { absoluteUrl } from "@/lib/site";
@@ -36,14 +34,12 @@ export default async function BillingPage({
   params,
   searchParams,
 }: PageProps<"/dashboard/[slug]/billing">) {
-  const owned = await getOwnedAgency((await params).slug);
-  if (!owned) notFound();
-  const { agency, supabase } = owned;
+  // Owner only (404 otherwise); every plan state renders.
+  const { agency, supabase, e } = await dashboardContext((await params).slug);
   const sp = await searchParams;
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  const [e, subs, prices] = await Promise.all([
-    getEntitlements(agency.id),
+  const [subs, prices] = await Promise.all([
     // Owners read their own subscriptions (RLS).
     supabase
       .from("agency_subscriptions")

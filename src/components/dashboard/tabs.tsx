@@ -51,7 +51,7 @@ export function DashboardTabs({
       { href: `${base}/verification`, label: "Verification", icon: ShieldCheck, pro: true },
     ],
     [
-      { href: `${base}/analytics`, label: "Analytics", icon: BarChart3 },
+      { href: `${base}/analytics`, label: "Analytics", icon: BarChart3, pro: true },
       { href: `${base}/billing`, label: "Plan", icon: Star },
       { href: `${base}/badge`, label: "Badge", icon: Tag },
     ],

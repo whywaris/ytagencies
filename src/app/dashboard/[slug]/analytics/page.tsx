@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-
-import { getOwnedAgency } from "@/lib/auth";
-import { getEntitlements } from "@/lib/data/entitlements";
+import { card, cardSub, cardTitle, linkCls } from "@/components/dashboard/ui";
+import { dashboardContext } from "@/lib/data/dashboard";
 
 export const metadata = { title: "Analytics" };
 
@@ -14,10 +12,26 @@ function daysAgo(n: number) {
 }
 
 export default async function AnalyticsPage({ params }: PageProps<"/dashboard/[slug]/analytics">) {
-  const owned = await getOwnedAgency((await params).slug);
-  if (!owned) notFound();
-  const { agency, supabase } = owned;
-  const e = await getEntitlements(agency.id);
+  // Owner only (404 otherwise); never a 404 for a listing that isn't on Pro.
+  const { agency, supabase, e, pro } = await dashboardContext((await params).slug);
+  if (!e.managed)
+    return (
+      <section aria-labelledby="analytics-h" className={`${card} max-w-reading`}>
+        <h2 id="analytics-h" className={cardTitle}>
+          Upgrade to Pro to see analytics
+        </h2>
+        <p className={cardSub}>
+          Profile views, visitors sent to your website and inquiries, with 12 months of history. Pro
+          is ${pro.monthly} a month or ${pro.yearly} a year.
+        </p>
+        <Link
+          href={`/dashboard/${agency.slug}/billing`}
+          className={`${linkCls} mt-3 inline-block text-[14px]`}
+        >
+          Get Pro
+        </Link>
+      </section>
+    );
 
   // §6: analytics limited to the plan's history window. Owners read their own rollups (RLS).
   const events = await supabase
