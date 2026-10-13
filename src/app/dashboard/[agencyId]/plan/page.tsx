@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { RequestVerification } from "@/components/dashboard/request-verification";
+import { RequestProForm } from "@/components/forms/request-pro-form";
 import { getOwnedAgency } from "@/lib/auth";
+import { paymentsEnabled } from "@/lib/billing";
 import { getEntitlements } from "@/lib/data/entitlements";
+import { absoluteUrl } from "@/lib/site";
 
 export const metadata = { title: "Plan and analytics" };
 
-const PLAN_NAME = { free: "Free", founding: "Founding", pro: "Pro" } as const;
 const count = new Intl.NumberFormat("en-US");
 
 /** yyyy-mm-dd, n days before today (UTC). */
@@ -35,9 +37,9 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
       .in("status", ["requested", "approved"]),
     supabase
       .from("agency_subscriptions")
-      .select("ends_at")
+      .select("ends_at, cancel_at_period_end, status")
       .eq("agency_id", agency.id)
-      .eq("status", "active")
+      .in("status", ["active", "past_due"])
       .maybeSingle(),
   ]);
   if (events.error || verifications.error) throw new Error("Couldn't load your plan");
@@ -51,17 +53,25 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
   }
   const approved = verifications.data.some((v) => v.status === "approved");
   const requested = verifications.data.some((v) => v.status === "requested");
-  const endsAt = e.plan !== "free" ? subscription.data?.ends_at : null;
+  const sub = e.managed ? subscription.data : null;
+  const endsAt = sub?.ends_at ?? null;
   const window = e.analyticsDays >= 365 ? "12 months" : "30 days";
 
+  const yes = (b: boolean) => (b ? "Yes" : "No");
   const includes: [string, string][] = [
-    ["Case studies", e.caseStudies === Infinity ? "Unlimited" : `Up to ${e.caseStudies}`],
+    ["Edit your listing", yes(e.canEdit)],
+    ["Contact form and inquiries", yes(e.contactForm)],
+    ["Requests from Get matched", yes(e.managed)],
     ["Link to your website", e.websiteLink ? "Yes, tagged so you can track visits" : "No"],
-    ["Placement on directory pages", e.listTier === "paid" ? "Above Free agencies" : "Standard"],
-    ["Get matched", e.matchPriority === "high" ? "Priority" : "Standard"],
-    ["Other agencies suggested on your profile", e.showSimilarAgencies ? "Yes" : "No"],
+    [
+      "Placement on directory pages",
+      e.listTier === "managed" ? "Above unmanaged agencies" : "Below managed agencies",
+    ],
+    ["Other agencies suggested on your profile", yes(e.showSimilarAgencies)],
     ["Analytics history", window],
   ];
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   return (
     <div className="flex flex-col gap-16">
@@ -116,8 +126,7 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
           </div>
         ) : (
           <p className="text-small">
-            Visitors to your website start counting once your profile links to it, on Pro or as a
-            Founding agency.
+            Visitors to your website start counting once your profile links to it, on Pro.
           </p>
         )}
       </section>
@@ -125,15 +134,18 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
       <section aria-labelledby="plan" className="flex flex-col gap-6">
         <div className="flex flex-col gap-1">
           <h2 id="plan" className="text-h2">
-            Your plan: {PLAN_NAME[e.plan]}
+            {e.managed ? "Your plan: Pro" : "Your listing is unmanaged"}
           </h2>
           <p className="text-text-2">
-            {endsAt
-              ? `Until ${new Date(endsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`
-              : e.plan === "free"
-                ? "Free, for as long as you like."
-                : "No end date."}
-            {e.foundingBadge && " Your Founding agency badge stays on your profile for good."}
+            {!e.managed
+              ? "Your profile stays public with the details we hold, but businesses can't contact you and editing is locked. Pro is $29 a month or $279 a year."
+              : sub?.status === "past_due"
+                ? "Your last payment didn't go through. Pro stays on for 7 days while we retry it."
+                : endsAt
+                  ? sub?.cancel_at_period_end
+                    ? `Cancelled. Pro stays on until ${fmt(endsAt)}.`
+                    : `Until ${fmt(endsAt)}.`
+                  : "No end date."}
           </p>
         </div>
         <dl className="flex max-w-reading flex-col divide-y divide-line rounded-lg border border-line">
@@ -144,10 +156,19 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
             </div>
           ))}
         </dl>
-        {e.plan === "free" && (
-          <Link href="/for-agencies/pricing" className="self-start text-accent hover:underline">
-            See what paid plans include
-          </Link>
+        {!e.managed && (
+          <div className="flex max-w-reading flex-col gap-3">
+            {paymentsEnabled() ? (
+              <Link href="/for-agencies/pricing" className="self-start text-accent hover:underline">
+                Get Pro
+              </Link>
+            ) : (
+              <RequestProForm agency={absoluteUrl(`/agency/${agency.slug}`)} />
+            )}
+            <Link href="/for-agencies/pricing" className="self-start text-accent hover:underline">
+              What Pro includes
+            </Link>
+          </div>
         )}
       </section>
 
@@ -166,7 +187,7 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
           <>
             <p className="max-w-reading text-text-2">
               We check your YouTube channels, your website domain and that your business is real.
-              Any plan can ask; paid plans are reviewed first.
+              Any agency can ask, managed or not.
             </p>
             <RequestVerification agencyId={agency.id} />
           </>

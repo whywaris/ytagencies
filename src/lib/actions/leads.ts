@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { getEntitlements } from "@/lib/data/entitlements";
 import { getPublishedAgency, matchAgencies, queueLeadEmails, saveLead } from "@/lib/leads";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -102,6 +103,7 @@ export async function submitGetMatched(raw: unknown): Promise<FormResult<Matched
 
     const leadId = await saveLead(
       {
+        ref: input.ref || null,
         name: input.name,
         email: input.email,
         company: input.company || null,
@@ -150,6 +152,12 @@ export async function contactAgency(raw: unknown): Promise<FormResult<Contacted>
   try {
     const agency = await getPublishedAgency(input.agencySlug);
     if (!agency) return { ok: false, error: "This agency is no longer listed." };
+    // Unmanaged listings have nobody to pass messages to (the profile shows Get matched instead).
+    if (!(await getEntitlements(agency.id)).contactForm)
+      return {
+        ok: false,
+        error: `${agency.name} hasn't joined YT Agencies yet, so we can't pass messages to them. Use Get matched to reach similar agencies.`,
+      };
 
     const leadId = await saveLead(
       {

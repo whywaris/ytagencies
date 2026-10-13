@@ -6,7 +6,6 @@ import { AgencyFilters } from "@/components/admin/agency-filters";
 import { Empty } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth";
-import { getFoundingProgram } from "@/lib/data/settings";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { formatCount } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -37,7 +36,7 @@ export default async function AdminAgenciesPage({ searchParams }: PageProps<"/ad
   const filters = {
     claimed: ["yes", "no"].includes(one(sp.claimed)) ? one(sp.claimed) : "",
     verified: ["yes", "no"].includes(one(sp.verified)) ? one(sp.verified) : "",
-    plan: ["free", "founding", "pro"].includes(one(sp.plan)) ? one(sp.plan) : "",
+    plan: ["free", "pro"].includes(one(sp.plan)) ? one(sp.plan) : "",
     service: one(sp.service),
     industry: one(sp.industry),
   };
@@ -52,11 +51,7 @@ export default async function AdminAgenciesPage({ searchParams }: PageProps<"/ad
           : "desc";
   const page = Math.max(1, Number.parseInt(one(sp.page), 10) || 1);
 
-  const [services, industries, founding] = await Promise.all([
-    getServices(),
-    getIndustries(),
-    getFoundingProgram(),
-  ]);
+  const [services, industries] = await Promise.all([getServices(), getIndustries()]);
   const serviceId = services.find((s) => s.slug === filters.service)?.id;
   const industryId = industries.find((i) => i.slug === filters.industry)?.id;
 
@@ -213,7 +208,6 @@ export default async function AdminAgenciesPage({ searchParams }: PageProps<"/ad
         <>
           <AgenciesTable
             rows={list.data}
-            foundingMonths={founding.freeMonths}
             header={
               <>
                 {sortHeader("name", "Agency")}

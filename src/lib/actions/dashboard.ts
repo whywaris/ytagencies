@@ -23,6 +23,19 @@ const SAVE_FAILED = "We couldn't save that. Please try again in a minute.";
 const LOGO_BUCKET = "agency-media";
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
+const LOCKED = "Editing is locked because your Pro plan has ended. Renew Pro to edit your listing.";
+
+/** Owner check plus the Pro lock: only managed listings can be edited (lib/entitlements.ts). */
+// ponytail: the lock lives here, not in RLS; an owner calling PostgREST directly with their own
+// session can still edit their own row. Add a can_manage(agency_id) check to the owner write
+// policies if that ever matters.
+async function editableAgency(agencyId: string) {
+  const owned = await getOwnedAgency(agencyId);
+  if (!owned) return { error: NOT_OWNER };
+  if (!(await getEntitlements(owned.agency.id)).canEdit) return { error: LOCKED };
+  return owned;
+}
+
 function invalid(error: z.ZodError) {
   const fieldErrors: Record<string, string> = {};
   for (const issue of error.issues) fieldErrors[issue.path.join(".")] ??= issue.message;
@@ -30,8 +43,8 @@ function invalid(error: z.ZodError) {
 }
 
 export async function updateProfile(agencyId: string, raw: unknown): Promise<FormResult> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   const parsed = profileSchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
   const error = await applyProfile(owned.supabase, owned.agency.id, parsed.data);
@@ -45,8 +58,8 @@ export async function uploadLogo(
   agencyId: string,
   formData: FormData,
 ): Promise<FormResult<{ logoPath: string }>> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   const { supabase, agency } = owned;
 
   const file = formData.get("logo");
@@ -84,12 +97,12 @@ export async function saveCaseStudy(
   agencyId: string,
   raw: unknown,
 ): Promise<FormResult<{ id: string }>> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   const parsed = caseStudySchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
   if (!parsed.data.id) {
-    // §6: Free includes 2 case studies; paid plans are unlimited.
+    // Unlimited on Pro (Infinity); kept as a guard in case a limit comes back.
     const { caseStudies: limit } = await getEntitlements(owned.agency.id);
     const { count } = await owned.supabase
       .from("case_studies")
@@ -109,8 +122,8 @@ export async function saveCaseStudy(
 }
 
 export async function deleteCaseStudy(agencyId: string, caseStudyId: string): Promise<FormResult> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   if (!(await removeCaseStudy(owned.supabase, owned.agency.id, caseStudyId)))
     return { ok: false, error: SAVE_FAILED };
   revalidateAgency(owned.agency.slug);
@@ -118,7 +131,7 @@ export async function deleteCaseStudy(agencyId: string, caseStudyId: string): Pr
 }
 
 /**
- * Asks for the Verified badge (§5.4, §6). Any plan can request; paid plans are reviewed first.
+ * Asks for the Verified badge (§5.4, §6). Any owner can request, managed or not; Pro is reviewed first.
  * Owners can't write verifications under RLS, so this inserts with the service role after the
  * ownership check. One open request per agency (unique index).
  */
@@ -170,8 +183,8 @@ export async function requestVerification(agencyId: string, urls: string[]): Pro
  * routes: ownership is checked here, and RLS + the contacted_at column grant check it again.
  */
 export async function markLeadContacted(agencyId: string, leadId: string): Promise<FormResult> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   if (!/^[0-9a-f-]{36}$/i.test(leadId)) return { ok: false, error: "Unknown lead." };
   const { error } = await owned.supabase
     .from("lead_routes")
@@ -238,8 +251,8 @@ async function industryIdFor(
 
 /** Adds a channel the agency worked on (max 6; the database enforces it too). */
 export async function addChannel(agencyId: string, raw: unknown): Promise<FormResult> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   const parsed = channelSchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
   const url = httpsChannelUrl(parsed.data.url);
@@ -270,8 +283,8 @@ export async function updateChannel(
   channelId: string,
   raw: unknown,
 ): Promise<FormResult> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   const parsed = channelSchema.safeParse(raw);
   if (!parsed.success || !/^[0-9a-f-]{36}$/i.test(channelId))
     return { ok: false, error: SAVE_FAILED };
@@ -296,8 +309,8 @@ export async function updateChannel(
 }
 
 export async function removeChannel(agencyId: string, channelId: string): Promise<FormResult> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   const { error } = await owned.supabase
     .from("agency_channels")
     .delete()

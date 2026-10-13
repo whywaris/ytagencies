@@ -2,23 +2,24 @@ import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
+import { ProBilling } from "@/components/pro-billing";
 import { Button } from "@/components/ui/button";
 import { paymentsEnabled } from "@/lib/billing";
+import { COMPANY } from "@/lib/company";
 import { getPlanPrices } from "@/lib/data/placement";
-import { foundingAvailable, getFoundingProgram } from "@/lib/data/settings";
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 
 export const revalidate = 3600;
 
-// ADMIN_V2_SPEC §6. While PAYMENTS_ENABLED isn't "true", Pro is free for Founding agencies
-// (while the programme is open and has spots, §5.10) and Sponsored placements are arranged by email.
+// Listings are free; managing one takes Pro (lib/entitlements.ts). While PAYMENTS_ENABLED isn't
+// "true", Get Pro opens the Request Pro form and Sponsored placements are arranged by email.
 
 export const metadata = buildMetadata({
   title: `Pricing for YouTube agencies | ${BRAND_NAME}`,
   description:
-    "List your YouTube agency for free. Upgrade to Pro for a website link, higher placement and priority in matched leads, or sponsor a directory page.",
+    "Listings are free. Pro lets you manage your listing and receive inquiries from businesses, from $29 a month. Sponsor a directory page from $49.",
   path: "/for-agencies/pricing",
 });
 
@@ -30,13 +31,12 @@ const breadcrumbs = [
 
 /** Sponsored slots are priced per page and arranged by hand for now. */
 const SPONSORED_FROM_USD = 49;
-
-const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
+/** Fallbacks if the plans table can't be read: the launch prices. */
+const PRO_MONTHLY_USD = 29;
+const PRO_YEARLY_USD = 279;
 
 export default async function PricingPage() {
-  const [plans, program] = await Promise.all([getPlanPrices(), getFoundingProgram()]);
-  const founding = foundingAvailable(program);
-  const pro = plans.get("pro");
+  const pro = (await getPlanPrices()).get("pro");
   const live = paymentsEnabled();
 
   return (
@@ -48,22 +48,21 @@ export default async function PricingPage() {
           <header className="flex max-w-reading flex-col gap-4">
             <h1 className="text-h1">Pricing for agencies</h1>
             <p className="text-text-2">
-              Every agency can list for free. Paid plans move you up the directory and send you more
-              of the leads that fit.
+              Every agency can be listed for free. To manage your listing and hear from the
+              businesses that find you, you need Pro.
             </p>
           </header>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           <Plan
-            name="Free"
-            price={<>$0</>}
-            summary="A profile businesses can find and contact."
+            name="Listing"
+            price={<p className="text-h2">Free</p>}
+            summary="Listed by us or submitted by you. Businesses can find you, but can't contact you."
             features={[
-              "Profile on every page for your services, industries and locations",
-              "Inquiries through your profile's contact form",
-              "Up to 2 case studies",
-              "30 days of profile analytics",
+              "Profile on the pages for your services, industries and locations",
+              "Visitors are offered Get matched with agencies on Pro",
+              "Can earn the Verified badge",
             ]}
             cta={
               <Button asChild variant="link" className="self-start">
@@ -75,57 +74,40 @@ export default async function PricingPage() {
             name="Pro"
             highlight
             price={
-              pro?.price_monthly ? (
-                <>
-                  {usd(Number(pro.price_monthly))}
-                  <span className="text-[17px] font-normal text-text-2"> a month</span>
-                </>
-              ) : (
-                <>Paid plan</>
-              )
+              <ProBilling
+                monthly={Number(pro?.price_monthly ?? PRO_MONTHLY_USD)}
+                yearly={Number(pro?.price_yearly ?? PRO_YEARLY_USD)}
+                live={live}
+              />
             }
-            note={
-              live
-                ? pro?.price_yearly
-                  ? `or ${usd(Number(pro.price_yearly))} a year`
-                  : undefined
-                : founding
-                  ? `Founding agencies get Pro free for ${program.freeMonths} ${program.freeMonths === 1 ? "month" : "months"}.`
-                  : "Founding spots are taken. Paid plans open soon."
-            }
-            summary="For agencies that want more of the right leads."
+            summary="Manage your listing and receive inquiries."
             features={[
-              "Everything in Free",
-              "Listed above Free agencies on directory pages",
-              "Priority when we match businesses with agencies",
+              "Edit your profile any time",
+              "A contact form on your profile: inquiries go straight to you",
+              "Requests from Get matched that fit your services",
+              "Listed above unmanaged agencies on directory pages",
               "A link to your website, tagged so you can track visits",
-              "Unlimited case studies",
-              "12 months of profile analytics",
+              "Your reply time on your profile",
+              "Unlimited case studies and channels",
               "No other agencies suggested on your profile",
+              "12 months of profile analytics",
               "Can sponsor directory pages",
             ]}
-            cta={
-              <Button asChild className="self-start">
-                <Link href="/list-your-agency">
-                  {live ? "Get Pro" : founding ? "Join as a Founding agency" : "List your agency"}
-                </Link>
-              </Button>
-            }
           />
           <Plan
             name="Sponsored"
             price={
-              <>
-                From {usd(SPONSORED_FROM_USD)}
+              <p className="text-h2">
+                From ${SPONSORED_FROM_USD}
                 <span className="text-[17px] font-normal text-text-2"> a month per page</span>
-              </>
+              </p>
             }
             summary="The top of a directory page, labeled Sponsored."
             features={[
               "Up to 3 sponsored agencies per page, shown first",
               "Clearly labeled Sponsored",
               "Pick the service, industry or location pages that matter to you",
-              "For agencies on a paid plan (Founding or Pro) with the Verified badge",
+              "For agencies on Pro with the Verified badge",
             ]}
             cta={
               <Button asChild variant="link" className="self-start">
@@ -135,18 +117,39 @@ export default async function PricingPage() {
           />
         </div>
 
-        <p className="-mt-6 max-w-reading text-[15px] text-text-2">
-          The Verified badge can&apos;t be bought. Any agency can apply, and it&apos;s only given
-          when our checks pass.
-        </p>
+        <div className="-mt-6 flex max-w-reading flex-col gap-2 text-[15px] text-text-2">
+          <p>
+            Rankings can&apos;t be bought. Pro and Sponsored change where you&apos;re shown, never
+            your ranking among agencies on the same plan.
+          </p>
+          <p>
+            The Verified badge can&apos;t be bought. Any agency can apply, and it&apos;s only given
+            when our checks pass.
+          </p>
+        </div>
+
+        <section aria-labelledby="billing" className="flex max-w-reading flex-col gap-3">
+          <h2 id="billing" className="text-h3">
+            Cancelling and refunds
+          </h2>
+          <p className="text-text-2">
+            Monthly: cancel any time. You keep Pro until the end of the month you&apos;ve paid for;
+            there are no partial refunds. Yearly: a full refund if you ask within{" "}
+            {COMPANY.refunds.yearlyFullRefundDays} days of paying. When Pro ends, your listing stays
+            public, unmanaged, and we keep your details for when you come back.{" "}
+            <Link href="/refunds" className="text-accent hover:underline">
+              Refund policy
+            </Link>
+          </p>
+        </section>
 
         <section aria-labelledby="badge" className="flex max-w-reading flex-col gap-3">
           <h2 id="badge" className="text-h3">
             The Verified badge is separate
           </h2>
           <p className="text-text-2">
-            Any agency, on any plan, can ask us to verify it. We check its YouTube channels, its
-            website and that it&apos;s a real business. Paid plans are reviewed first.{" "}
+            Any agency can ask us to verify it. We check its YouTube channels, its website and that
+            it&apos;s a real business.{" "}
             <Link href="/how-we-rank" className="text-accent hover:underline">
               How we rank agencies
             </Link>
@@ -160,7 +163,6 @@ export default async function PricingPage() {
 function Plan({
   name,
   price,
-  note,
   summary,
   features,
   cta,
@@ -168,10 +170,9 @@ function Plan({
 }: {
   name: string;
   price: React.ReactNode;
-  note?: string;
   summary: string;
   features: string[];
-  cta: React.ReactNode;
+  cta?: React.ReactNode;
   highlight?: boolean;
 }) {
   return (
@@ -183,8 +184,7 @@ function Plan({
         <h2 id={`plan-${name}`} className="text-h3">
           {name}
         </h2>
-        <p className="text-h2">{price}</p>
-        {note && <p className="font-medium text-accent">{note}</p>}
+        {price}
         <p className="text-text-2">{summary}</p>
       </div>
       <ul className="flex flex-1 flex-col gap-2">

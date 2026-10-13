@@ -123,7 +123,7 @@ export function professionalServiceJsonLd(agency: {
   /** "$3,000+/month" */
   priceRange: string | null;
   knowsAbout: string[];
-  /** Website (paid plans only), LinkedIn, YouTube channel. */
+  /** Website (Pro only), LinkedIn, YouTube channel. */
   sameAs: string[];
   rating: { average: number; count: number } | null;
   /** Published, moderated reviews only. */

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Empty, Table } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/auth";
-import { CONTACT_TOPICS, topicOf } from "@/lib/contact-topics";
+import { INBOX_TOPICS, topicOf } from "@/lib/contact-topics";
 import { formatCount, formatRelative } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ export default async function AdminInboxPage({ searchParams }: PageProps<"/admin
   await requireAdmin("/admin/inbox");
   const sp = await searchParams;
   const status = STATUSES.find((s) => s.id === sp.status)?.id ?? "open";
-  const topic = CONTACT_TOPICS.find((t) => t.id === sp.topic)?.id ?? "";
+  const topic = INBOX_TOPICS.find((t) => t.id === sp.topic)?.id ?? "";
 
   const db = createAdminClient();
   let query = db
@@ -75,7 +75,7 @@ export default async function AdminInboxPage({ searchParams }: PageProps<"/admin
           ))}
         </nav>
         <nav aria-label="Filter by topic" className="flex flex-wrap gap-1 pb-2">
-          {[{ id: "", label: "All topics" }, ...CONTACT_TOPICS].map((t) => (
+          {[{ id: "", label: "All topics" }, ...INBOX_TOPICS].map((t) => (
             <Link
               key={t.id || "all"}
               href={href({ topic: t.id })}

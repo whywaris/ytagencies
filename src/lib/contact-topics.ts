@@ -43,4 +43,15 @@ export const CONTACT_TOPICS = [
 
 export type ContactTopic = (typeof CONTACT_TOPICS)[number]["id"];
 export const TOPIC_IDS = CONTACT_TOPICS.map((t) => t.id) as [ContactTopic, ...ContactTopic[]];
-export const topicOf = (id: string) => CONTACT_TOPICS.find((t) => t.id === id) ?? CONTACT_TOPICS[0];
+
+// Not on /contact: "Request Pro" on the pricing page and dashboard (lib/actions/pro.tsx) while
+// payments are off. Shown in Admin → Inbox with the other topics.
+export const PRO_TOPIC = {
+  id: "pro",
+  label: "Pro request",
+  inbox: COMPANY.email,
+  note: "An agency asked for Pro. Grant it in Agencies → Change plan.",
+  response: COMPANY.responseTimes.agencies,
+} as const;
+export const INBOX_TOPICS = [...CONTACT_TOPICS, PRO_TOPIC] as const;
+export const topicOf = (id: string) => INBOX_TOPICS.find((t) => t.id === id) ?? CONTACT_TOPICS[0];

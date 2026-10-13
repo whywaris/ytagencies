@@ -363,10 +363,10 @@ where a.is_verified
   and a.id::text like '00000000-0000-4000-8000-%'
   and not exists (select 1 from verifications v where v.agency_id = a.id and v.status = 'approved');
 
--- Plans (ADMIN_V2_SPEC §6). The two samples that used to be "Featured" are Founding agencies,
--- so ranking has paid agencies to order above Free ones.
+-- Plans (ADMIN_V2_SPEC §6). Two samples are on Pro (managed), so ranking has managed agencies
+-- to order above unmanaged ones.
 insert into agency_subscriptions (agency_id, plan_id, status, starts_at, ends_at, source)
-select a.id, 'founding', 'active', now(), now() + interval '6 months', 'founding'
+select a.id, 'pro', 'active', now(), now() + interval '6 months', 'manual'
 from agencies a
 where a.slug in ('quillfern-media', 'marigold-lantern-media')
   and not exists (select 1 from agency_subscriptions s where s.agency_id = a.id and s.status = 'active');

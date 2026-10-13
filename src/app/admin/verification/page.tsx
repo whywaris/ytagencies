@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Verification" };
 
-const PAID = new Set(["founding", "pro"]);
+const PAID = new Set(["pro"]);
 
 export default async function AdminVerificationPage({
   searchParams,
@@ -63,8 +63,8 @@ export default async function AdminVerificationPage({
       <div className="flex max-w-reading flex-col gap-1">
         <h1 className="text-admin-title">Verification</h1>
         <p className="text-text-2">
-          Requests from agencies, paid plans first. Verifying checks their YouTube channels and
-          shows the Verified badge.
+          Requests from agencies, Pro first. Verifying checks their YouTube channels and shows the
+          Verified badge.
         </p>
       </div>
 

@@ -10,9 +10,14 @@ import { PLAN_LABEL } from "@/components/admin/ui";
 import { changePlan } from "@/lib/actions/admin-directory";
 
 const PLANS = [
-  { id: "free", hint: "Default. No paid entitlements." },
-  { id: "founding", hint: "Pro for a limited time, plus the Founding badge for good." },
-  { id: "pro", hint: "Paid plan, granted by hand while payments are off." },
+  {
+    id: "pro",
+    hint: "The agency manages its listing: contact form, inquiries, editing. Granted by hand while payments are off.",
+  },
+  {
+    id: "free",
+    hint: "Ends the subscription. The listing stays public but unmanaged: no contact form, editing locked.",
+  },
 ] as const;
 
 /** yyyy-mm-dd, `months` from today (UTC). */
@@ -27,23 +32,19 @@ export function ChangePlanDialog({
   agencyId,
   agencyName,
   currentPlan,
-  foundingMonths,
   open,
   onOpenChange,
 }: {
   agencyId: string;
   agencyName: string;
   currentPlan: string;
-  /** Default Founding term, from Settings (§5.10). */
-  foundingMonths: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
   const container = usePortalContainer();
-  const [plan, setPlan] = useState(currentPlan === "free" ? "founding" : currentPlan);
-  const termFor = (p: string) => monthsFromNow(p === "founding" ? foundingMonths : 6);
-  const [endsOn, setEndsOn] = useState(termFor(plan));
+  const [plan, setPlan] = useState(currentPlan === "pro" ? "free" : "pro");
+  const [endsOn, setEndsOn] = useState(monthsFromNow(1));
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -81,10 +82,7 @@ export function ChangePlanDialog({
                     name="plan"
                     value={p.id}
                     checked={plan === p.id}
-                    onChange={() => {
-                      setPlan(p.id);
-                      setEndsOn(termFor(p.id));
-                    }}
+                    onChange={() => setPlan(p.id)}
                     className="mt-1 accent-[var(--accent)]"
                   />
                   <span className="flex flex-col">

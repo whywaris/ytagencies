@@ -48,6 +48,12 @@ export const getMatchedSchema = z.object({
     .max(2000, "Use 2,000 characters or fewer.")
     .optional()
     .or(z.literal("")),
+  /** Where the request started, e.g. "profile:<slug>" from an unmanaged profile. */
+  ref: z
+    .string()
+    .regex(/^[a-z]+(:[a-z0-9-]{1,80})?$/)
+    .optional()
+    .or(z.literal("")),
   ...botFields,
 });
 export type GetMatchedInput = z.infer<typeof getMatchedSchema>;

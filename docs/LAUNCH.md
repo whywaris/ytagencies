@@ -29,7 +29,6 @@
      ```
      `{{ .RedirectTo }}` is the full `/auth/callback?next=…` URL the app sends; `/auth/confirm` accepts it only for this site's own origin and keeps just the path. Do this on the dev project too. Google sign-in still uses `/auth/callback`.
 4. Make yourself admin: `update profiles set role = 'admin' where id = '<your user id>';`
-   Then open Admin → Settings and set the Founding programme (open/closed, max spots, free months; defaults: open, 50, 6).
 5. Daily backups and point-in-time recovery (paid plan).
 6. Regenerate types after a schema change: `pnpm db:types` (needs the CLI linked, below).
 
@@ -126,7 +125,7 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    | `ADMIN_EMAIL` | server | recommended | Gets a note for every new lead, agency submission and claim that needs review. Unset: those notes are skipped (the admin queues still show everything). |
    | `EMAIL_FROM` | server | no | Defaults to `YT Agencies <help@send.ytagencies.com>` (the Resend-verified subdomain). Every email the app sends sets Reply-To `help@ytagencies.com`, except lead emails to agencies, which reply to the business. |
    | `MEDIA_HOSTS` | server | yes | Host name(s) of your Cloudflare image hosting, comma-separated, e.g. `images.ytagencies.com` (an R2 bucket on a custom domain) or `imagedelivery.net` (Cloudflare Images). Guide covers are pasted links and must be on one of these; it also opens the CSP `img-src` and `next/image` to them. Changing it needs a redeploy. |
-   | `PAYMENTS_ENABLED` | server | no | Leave unset for launch. Only exactly `true` turns payments on; while off nothing is charged, billing is a no-op and the pricing page offers the Founding programme. |
+   | `PAYMENTS_ENABLED` | server | no | Leave unset for launch. Only exactly `true` turns payments on; while off nothing is charged, billing is a no-op and "Get Pro" opens the Request Pro form (Admin → Inbox); grant Pro in Agencies → Change plan. |
 
 3. Enable Web Analytics.
 4. Cron jobs come from `vercel.json` and run on Production only:

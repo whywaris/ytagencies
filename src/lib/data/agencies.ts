@@ -29,14 +29,12 @@ export type AgencyListItem = {
   minContract: string | null;
   adSpend: string | null;
   setupFeeUsd: number | null;
-  /** Median time to contact a lead, only with 3+ contacted in 90 days and under 2 days. */
+  /** Median time to contact a lead (3+ contacted in 90 days, under 2 days); managed only. */
   response: { medianMinutes: number; contacted: number } | null;
   languages: string[];
   isVerified: boolean;
-  /** On a paid plan (Founding or Pro): ranked above Free (§6). */
-  paid: boolean;
-  /** Has ever been a Founding agency: the badge stays for good. */
-  foundingBadge: boolean;
+  /** Live Pro subscription (lib/entitlements.ts): contactable, ranked above unmanaged. */
+  managed: boolean;
   /** 0–100, orders agencies within their group (lib/ranking.ts, /how-we-rank). */
   quality: number;
   /** Holds a sponsored slot on the page being rendered. */
@@ -184,7 +182,8 @@ type ResponseTimes = Awaited<ReturnType<typeof getResponseTimes>>;
 function toListItem(row: ListRow, placement: Placement, responses: ResponseTimes): AgencyListItem {
   const e = placement.entitlements(row.id);
   const rating = ratingOf(row.reviews);
-  const response = responses.get(row.id) ?? null;
+  // Unmanaged listings get no inquiries, so no reply time either.
+  const response = e.responseTime ? (responses.get(row.id) ?? null) : null;
   return {
     id: row.id,
     slug: row.slug,
@@ -200,8 +199,7 @@ function toListItem(row: ListRow, placement: Placement, responses: ResponseTimes
     response,
     languages: row.languages ?? [],
     isVerified: row.is_verified,
-    paid: e.listTier === "paid",
-    foundingBadge: e.foundingBadge,
+    managed: e.managed,
     quality: qualityScore({
       hasLogo: !!row.logo_path,
       hasTagline: !!row.tagline?.trim(),
@@ -630,11 +628,18 @@ export async function getSimilarAgencies(agency: AgencyListItem, limit: number) 
 
   const industries = new Set(agency.industries.map((i) => i.slug));
   const ownServices = new Set(agency.services.map((s) => s.slug));
-  const candidates = new Map(lists.flat().map((a) => [a.id, a]));
+  // Only managed agencies: the point is to reach someone who replies.
+  const candidates = new Map(
+    lists
+      .flat()
+      .filter((a) => a.managed)
+      .map((a) => [a.id, a]),
+  );
   candidates.delete(agency.id);
   if (candidates.size < limit) {
-    // Too few share a service: widen to every published agency, ranked the same way.
-    for (const a of await getPublishedAgencies()) if (a.id !== agency.id) candidates.set(a.id, a);
+    // Too few share a service: widen to every published managed agency, ranked the same way.
+    for (const a of await getPublishedAgencies())
+      if (a.id !== agency.id && a.managed) candidates.set(a.id, a);
   }
 
   const score = (a: AgencyListItem) =>

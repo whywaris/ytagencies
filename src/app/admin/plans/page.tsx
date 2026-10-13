@@ -3,16 +3,16 @@ import Link from "next/link";
 import { ChangePlanButton } from "@/components/admin/change-plan-button";
 import { Empty, PLAN_LABEL, Table } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/auth";
-import { getFoundingProgram } from "@/lib/data/settings";
 import { formatCount, formatDate } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Plans" };
 
-const TABS = ["founding", "pro", "free"] as const;
+// "free" = unmanaged: listed, no live Pro subscription.
+const TABS = ["pro", "free"] as const;
 const SOURCE: Record<string, string> = {
   manual: "Manual",
-  founding: "Founding programme",
+  founding: "Founding (now Pro)",
   payment: "Payment",
 };
 const PER_PAGE = 50;
@@ -20,12 +20,11 @@ const PER_PAGE = 50;
 export default async function AdminPlansPage({ searchParams }: PageProps<"/admin/plans">) {
   await requireAdmin("/admin/plans");
   const raw = (await searchParams).plan;
-  const tab = TABS.find((t) => t === raw) ?? "founding";
+  const tab = TABS.find((t) => t === raw) ?? "pro";
   const db = createAdminClient();
   const now = new Date();
   const in30 = new Date(now.getTime() + 30 * 86_400_000).toISOString();
 
-  const founding = await getFoundingProgram();
   const [counts, expiring, rows] = await Promise.all([
     Promise.all(
       TABS.map((p) =>
@@ -64,12 +63,13 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
       <div className="flex max-w-reading flex-col gap-1">
         <h1 className="text-admin-title">Plans</h1>
         <p className="text-text-2">
-          Payments are off, so plans are granted by hand. Founding gives Pro benefits for a set time
-          and the Founding badge for good; afterwards the agency drops to Free.
+          Listings are free; managing one needs Pro. Payments are off, so Pro is granted by hand
+          (Change plan), usually after a Pro request in the Inbox. When Pro ends, the listing stays
+          public but unmanaged: no contact form, editing locked.
         </p>
       </div>
 
-      <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line">
         {TABS.map((p) => (
           <div key={p} className="flex flex-col gap-1 bg-bg p-5">
             <dt className="text-text-2">{PLAN_LABEL[p]}</dt>
@@ -83,7 +83,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
           Ending in the next 30 days
         </h2>
         {expiring.data.length === 0 ? (
-          <p className="text-text-2">No paid plans end in the next 30 days.</p>
+          <p className="text-text-2">No Pro subscriptions end in the next 30 days.</p>
         ) : (
           <ul className="divide-y divide-line rounded-xl border border-line">
             {expiring.data.map((s) => (
@@ -127,7 +127,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
 
         {tab === "free" ? (
           rows.data.length === 0 ? (
-            <Empty>No agencies on Free.</Empty>
+            <Empty>No unmanaged agencies.</Empty>
           ) : (
             <>
               <Table>
@@ -150,12 +150,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
                       </td>
                       <td className="text-text-2 capitalize">{a.status}</td>
                       <td className="text-right">
-                        <ChangePlanButton
-                          agencyId={a.id}
-                          agencyName={a.name}
-                          currentPlan="free"
-                          foundingMonths={founding.freeMonths}
-                        />
+                        <ChangePlanButton agencyId={a.id} agencyName={a.name} currentPlan="free" />
                       </td>
                     </tr>
                   ))}
@@ -170,7 +165,9 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
             </>
           )
         ) : rows.data.length === 0 ? (
-          <Empty action={{ href: "/admin/plans?plan=free", label: "Grant a plan from Free" }}>
+          <Empty
+            action={{ href: "/admin/plans?plan=free", label: "Grant Pro to an unmanaged agency" }}
+          >
             No agencies on {PLAN_LABEL[tab]} yet.
           </Empty>
         ) : (
@@ -216,7 +213,6 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
                       agencyId={s.agency_id}
                       agencyName={s.agencies?.name ?? "this agency"}
                       currentPlan={tab}
-                      foundingMonths={founding.freeMonths}
                     />
                   </td>
                 </tr>

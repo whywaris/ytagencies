@@ -30,6 +30,8 @@ await db.exec(`
   create function storage.foldername(name text) returns text[] language sql immutable as $$ select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
   grant execute on function storage.foldername(text) to anon, authenticated;
 `);
+// Not the seed's sample prefix (00000000-0000-4000-8000-…), which the seed deletes.
+const FOUNDING_X = "f0000000-0000-4000-8000-000000000001";
 const noExt = (sql) => sql.replace('create extension if not exists "pgcrypto";', "");
 if (MIGRATIONS) {
   // Existing-project path: the initial schema, then every migration in order.
@@ -39,6 +41,11 @@ if (MIGRATIONS) {
   });
   await db.exec(noExt(initial));
   for (const f of readdirSync(root + "supabase/migrations").sort()) {
+    // A Founding agency as it existed before Pro-only, to check the conversion keeps its access.
+    if (f.includes("pro_only"))
+      await db.exec(`insert into agencies (id, slug, name) values ('${FOUNDING_X}', 'founding-x', 'Founding X');
+        insert into agency_subscriptions (agency_id, plan_id, status, starts_at, ends_at, source)
+          values ('${FOUNDING_X}', 'founding', 'active', now(), now() + interval '90 days', 'founding');`);
     await db.exec(readFileSync(root + "supabase/migrations/" + f, "utf8"));
     console.log("applied migration", f);
   }
@@ -371,11 +378,11 @@ const QUILL = await idOf("quillfern-media"); // owned by OWNER
 const PINE = await idOf("pinecask-creative");
 const SALT = await idOf("saltmere-studios");
 await db.exec(`
-  delete from agency_subscriptions; -- the seed's sample Founding agencies; these tests set their own
+  delete from agency_subscriptions where agency_id <> '${FOUNDING_X}'; -- the seed's samples; these tests set their own
   insert into auth.users (id, email) values ('${ADMIN}', 'admin@x.example');
   update profiles set role = 'admin' where id = '${ADMIN}';
   insert into agency_subscriptions (agency_id, plan_id, source, ends_at)
-    values ('${QUILL}', 'founding', 'founding', now() + interval '6 months'),
+    values ('${QUILL}', 'pro', 'manual', now() + interval '6 months'),
            ('${PINE}', 'pro', 'manual', null);
   insert into verifications (agency_id, status) values ('${PINE}', 'requested');
   insert into admin_actions (admin_id, action, entity_type, entity_id) values ('${ADMIN}', 'agency.publish', 'agency', '${QUILL}');
@@ -463,7 +470,7 @@ await as("anon", null, async () => {
   );
 });
 await as("authenticated", OWNER, async () => {
-  ok((await rows("select * from plans")).length === 3, "owner: plans readable (3)");
+  ok((await rows("select * from plans")).length === 1, "owner: plans readable (Pro)");
   const subs = await rows("select agency_id from agency_subscriptions");
   ok(subs.length === 1 && subs[0].agency_id === QUILL, "owner: only their own subscription");
   ok(
@@ -527,7 +534,8 @@ await as("authenticated", OTHER, async () => {
 });
 await as("authenticated", ADMIN, async () => {
   ok(
-    (await rows("select * from agency_subscriptions")).length === 2,
+    (await rows(`select * from agency_subscriptions where agency_id <> '${FOUNDING_X}'`)).length ===
+      2,
     "admin: reads all subscriptions",
   );
   ok((await rows("select * from admin_actions")).length === 1, "admin: reads the audit log");
@@ -559,7 +567,7 @@ ok(
 );
 ok(
   !(await fails(
-    `insert into agency_subscriptions (agency_id, plan_id, status, source) values ('${QUILL}', 'free', 'expired', 'manual')`,
+    `insert into agency_subscriptions (agency_id, plan_id, status, source) values ('${QUILL}', 'pro', 'expired', 'manual')`,
   )),
   "subscriptions: past rows can sit alongside the active one",
 );
@@ -699,7 +707,7 @@ await db.exec("reset role");
 const [quillRow] = await rows(
   `select plan, leads_30d, service_ids from admin_agency_list where id = '${QUILL}'`,
 );
-ok(quillRow.plan === "founding", "admin_agency_list: current plan from the active subscription");
+ok(quillRow.plan === "pro", "admin_agency_list: current plan from the active subscription");
 ok(quillRow.leads_30d >= 2, "admin_agency_list: counts leads routed in the last 30 days");
 ok(
   Array.isArray(quillRow.service_ids) && quillRow.service_ids.length > 0,
@@ -984,7 +992,7 @@ for (const [role, uid, who] of [
   await as(role, uid, async () => {
     ok(await denied("select * from app_settings"), `app_settings: ${who} can't read`);
     ok(
-      await denied("update app_settings set founding_open = false"),
+      await denied("update app_settings set updated_at = now()"),
       `app_settings: ${who} can't edit`,
     );
   });
@@ -995,7 +1003,7 @@ await as("authenticated", ADMIN, async () => {
     "app_settings: admin reads the one row",
   );
   ok(
-    (await db.query("update app_settings set founding_max_spots = 20")).affectedRows === 1,
+    (await db.query("update app_settings set updated_at = now()")).affectedRows === 1,
     "app_settings: admin can edit",
   );
   ok(
@@ -1008,9 +1016,49 @@ ok(
   await fails("insert into app_settings (id) values (false)"),
   "app_settings: only one row is possible",
 );
+
+console.log("— Pro-only (migration 20261020000100) —");
+if (MIGRATIONS) {
+  const [converted] = await rows(
+    `select plan_id, source, status, ends_at > now() + interval '89 days' as kept from agency_subscriptions where agency_id = '${FOUNDING_X}'`,
+  );
+  ok(
+    converted?.plan_id === "pro" &&
+      converted.source === "manual" &&
+      converted.status === "active" &&
+      converted.kept === true,
+    "migration: a Founding subscription becomes Pro (manual) with the same end date",
+  );
+}
 ok(
-  await fails("update app_settings set founding_free_months = 0"),
-  "app_settings: free months must be at least 1",
+  JSON.stringify(await rows("select id, price_monthly::int m, price_yearly::int y from plans")) ===
+    JSON.stringify([{ id: "pro", m: 29, y: 279 }]),
+  "plans: only Pro, $29 / $279",
+);
+ok(
+  await fails(
+    `insert into agency_subscriptions (agency_id, plan_id, source) values ('${SALT}', 'founding', 'founding')`,
+  ),
+  "subscriptions: no Founding plan or source any more",
+);
+ok(
+  await fails(
+    `insert into agency_subscriptions (agency_id, plan_id, source, status) values ('${SALT}', 'pro', 'manual', 'past_due')`,
+  ),
+  "subscriptions: past_due needs past_due_since",
+);
+await db.exec(
+  `delete from agency_subscriptions where agency_id = '${SALT}'; insert into agency_subscriptions (agency_id, plan_id, source) values ('${SALT}', 'pro', 'manual')`,
+);
+ok(
+  await fails(
+    `insert into agency_subscriptions (agency_id, plan_id, source, status, past_due_since) values ('${SALT}', 'pro', 'manual', 'past_due', now())`,
+  ),
+  "subscriptions: one live (active or past due) subscription per agency",
+);
+ok(
+  await fails(`select founding_open from app_settings`),
+  "app_settings: Founding programme fields are gone",
 );
 
 // Rate limiter: 6th hit refused, and expired rows for any key are pruned (privacy policy claim).
@@ -1267,19 +1315,14 @@ ok(
   "reviews: overall is the average of the four scores, verified_client follows lead_id",
 );
 ok(
-  await fails(
-    `update reviews set score_cost = 4.3 where author_name = 'Verified Reviewer'`,
-  ),
+  await fails(`update reviews set score_cost = 4.3 where author_name = 'Verified Reviewer'`),
   "reviews: scores are in half steps from 1 to 5",
 );
 await as("anon", null, async () => {
+  ok(await denied("select lead_id from reviews limit 1"), "reviews: anon can't read lead_id");
   ok(
-    await denied("select lead_id from reviews limit 1"),
-    "reviews: anon can't read lead_id",
-  );
-  ok(
-    (await rows("select overall, verified_client from reviews where status = 'published'"))
-      .length > 0,
+    (await rows("select overall, verified_client from reviews where status = 'published'")).length >
+      0,
     "reviews: anon reads scores and verified_client of published reviews",
   );
 });

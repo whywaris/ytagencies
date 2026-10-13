@@ -16,9 +16,8 @@ import { hqLocationOptions } from "@/lib/admin-locations";
 import { profileFormProps } from "@/lib/agency-profile";
 import { requireAdmin } from "@/lib/auth";
 import { getEntitlements } from "@/lib/data/entitlements";
-import { getFoundingProgram } from "@/lib/data/settings";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
-import { currentPlan } from "@/lib/entitlements";
+import { isManaged } from "@/lib/entitlements";
 import { formatCount, formatDate, formatDateTime, formatRelative } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
@@ -61,13 +60,16 @@ export default async function AdminAgencyPage({
       .maybeSingle(),
     db
       .from("agency_subscriptions")
-      .select("id, plan_id, status, starts_at, ends_at, source, created_at")
+      .select(
+        "id, plan_id, status, starts_at, ends_at, source, created_at, cancel_at_period_end, past_due_since",
+      )
       .eq("agency_id", id)
       .order("created_at", { ascending: false }),
   ]);
   if (!agency) notFound();
   if (subs.error) throw new Error("Couldn't load the plan");
-  const plan = currentPlan(subs.data);
+  // "pro" while managed, "free" (shown as Unmanaged) otherwise.
+  const plan = isManaged(subs.data) ? "pro" : "free";
   const owner = agency.owner_id ? await db.auth.admin.getUserById(agency.owner_id) : null;
 
   return (
@@ -101,7 +103,6 @@ export default async function AdminAgencyPage({
             status: agency.status,
             plan,
           }}
-          foundingMonths={(await getFoundingProgram()).freeMonths}
         />
       </header>
 
@@ -232,7 +233,7 @@ async function CaseStudiesTab({ agencyId }: { agencyId: string }) {
 
 const SOURCE: Record<string, string> = {
   manual: "Manual",
-  founding: "Founding programme",
+  founding: "Founding (now Pro)",
   payment: "Payment",
 };
 
@@ -253,17 +254,18 @@ async function PlanTab({
   plan: string;
 }) {
   const e = await getEntitlements(agencyId);
-  const active = subs.find((s) => s.status === "active");
+  const active = subs.find((s) => s.status === "active" || s.status === "past_due");
+  const yes = (v: boolean) => (v ? "Yes" : "No");
   const rows: [string, string][] = [
-    ["Case studies", e.caseStudies === Infinity ? "Unlimited" : `Up to ${e.caseStudies}`],
-    ["Website link on profile", e.websiteLink ? "Yes" : "No"],
+    ["Managed", e.managed ? "Yes (Pro)" : "No (unmanaged)"],
+    ["Contact form and inquiries", yes(e.contactForm)],
+    ["Owner can edit", yes(e.canEdit)],
+    ["Website link on profile", yes(e.websiteLink)],
+    ["Response time on profile", yes(e.responseTime)],
     ["Similar agencies on profile", e.showSimilarAgencies ? "Shown" : "Hidden"],
-    ["Get-matched priority", e.matchPriority === "high" ? "High" : "Normal"],
-    ["List position", e.listTier === "paid" ? "Above Free" : "Normal"],
+    ["List position", e.listTier === "managed" ? "Above unmanaged" : "Below managed"],
     ["Analytics history", e.analyticsDays >= 365 ? "12 months" : "30 days"],
-    ["UTM-tagged links", e.utmLinks ? "Yes" : "No"],
-    ["Can buy Sponsored slots", e.canBuySponsored ? "Yes" : "No"],
-    ["Founding badge", e.foundingBadge ? "Yes" : "No"],
+    ["Can buy Sponsored slots", yes(e.canBuySponsored)],
   ];
   return (
     <div className="grid gap-10 lg:grid-cols-2">
@@ -278,7 +280,7 @@ async function PlanTab({
               ? active.ends_at
                 ? `Since ${formatDate(active.starts_at)}, ends ${formatDate(active.ends_at)}`
                 : `Since ${formatDate(active.starts_at)}, no end date`
-              : "No paid plan. Payments are off, so plans are granted by hand."}
+              : "Unmanaged: no live Pro subscription. Payments are off, so Pro is granted by hand."}
           </p>
         </div>
         <dl className="divide-y divide-line rounded-xl border border-line">
@@ -295,7 +297,7 @@ async function PlanTab({
           History
         </h2>
         {subs.length === 0 ? (
-          <Empty>Always been on Free. Use Change plan to grant Founding or Pro.</Empty>
+          <Empty>Never had a subscription. Use Change plan to grant Pro.</Empty>
         ) : (
           <Table>
             <thead>

@@ -152,8 +152,8 @@ Table with filters (service, industry, budget, date range), search by email/comp
 Every service × industry and service × location combination: agencies count, indexed/noindex, copy status (Complete / Missing), leads in 30d, last updated, link to edit copy and to the live page. Filter: Missing copy, Close to indexable (2 agencies), Indexed.
 
 ### 5.7 Plans & subscriptions (`/admin/plans`)
-- List of agencies by plan (Free, Founding, Pro), start/end dates, source (manual, founding, payment).
-- Change plan manually (e.g., grant Founding for 6 months) with end date.
+- List of agencies by plan (Pro, Unmanaged), start/end dates, source (manual, payment).
+- Change plan manually: grant Pro with an end date (source manual), or end it (the listing becomes unmanaged).
 - Summary: count per plan, upcoming expiries (next 30 days).
 
 ### 5.8 Sponsored slots (`/admin/sponsored`)
@@ -164,7 +164,7 @@ Every service × industry and service × location combination: agencies count, i
 ### 5.9 Guides (`/admin/guides`) — see §8.
 
 ### 5.10 Taxonomy and Settings
-Taxonomy: same functionality as today, restyled. Settings: admin profile, `PAYMENTS_ENABLED` status (read-only display of env), founding-agency settings (program open/closed, max spots, free months).
+Taxonomy: same functionality as today, restyled. Settings: admin profile, `PAYMENTS_ENABLED` status (read-only display of env).
 
 ---
 
@@ -173,26 +173,31 @@ Taxonomy: same functionality as today, restyled. Settings: admin profile, `PAYME
 ### Entitlements
 One server function `getEntitlements(agency)` used everywhere:
 
-| Entitlement | Free | Founding | Pro |
-|---|---|---|---|
-| Case studies | 2 | Unlimited | Unlimited |
-| Website link on profile | No | Yes | Yes |
-| "Similar agencies" block on own profile | Shown | Hidden | Hidden |
-| Get-matched priority | Normal | High | High |
-| List position | Normal | Above Free | Above Free |
-| Analytics history | 30 days | 12 months | 12 months |
-| UTM-tagged links | No | Yes | Yes |
-| Can buy Sponsored slots | No | Yes | Yes |
-| Verified badge | Only if verification approved (any plan can request it; Free requests are queued behind paid ones) |
+Listings are free and can exist without an owner. Managing one needs an active Pro subscription ($29/month or $279/year). There is no free managed plan and no Founding plan (removed in migration 20261020000100, which turned Founding subscriptions into Pro with source manual and the same end date).
 
-Founding = Pro entitlements for a limited period (default 6 months), plus a "Founding agency" badge forever. After it ends the agency drops to Free unless upgraded.
+**Managed** (`isManaged` in `lib/entitlements.ts`, the one helper used everywhere) = an active Pro subscription within its dates (including one cancelling at the period end, until `ends_at`), or a `past_due` one within a 7-day grace. Everything else is **unmanaged**.
+
+| Entitlement | Unmanaged | Managed (Pro) |
+|---|---|---|
+| Contact form, inquiries, Get matched requests, lead and reminder emails | No | Yes |
+| Website link on profile (sponsored, UTM-tagged) | No | Yes |
+| Response time, Mark as contacted | No | Yes |
+| "Similar agencies" (managed only) on own profile | Shown | Hidden |
+| Case studies and channels | All shown | Unlimited |
+| List position | Below managed | Above unmanaged |
+| Analytics history | 30 days | 12 months |
+| Owner can edit | No (locked) | Yes |
+| Can buy Sponsored slots | No | Yes (with Verified) |
+| Verified badge | Only if verification approved, managed or not |
+
+Unmanaged profiles replace Contact with "Get matched with similar agencies" (`/get-matched?service=&industry=&ref=profile:<slug>`), a note that the agency hasn't joined, and "Is this your agency? Manage this listing". When Pro ends the profile stays public as unmanaged, data is kept, editing is locked, inquiries stop, and the dashboard shows a renew banner.
 
 ### Public site changes
-- **Ranking order on directory pages:** sponsored slots (max 3, labeled "Sponsored") → Founding/Verified → Free; within each group by a quality score (profile completeness, published reviews, verified stats, scaled to 90 points, plus up to 10 for response time: the median time an agency takes to mark inquiries as contacted, from 3+ in the last 90 days). Document this on **/how-we-rank** (indexable page).
+- **Ranking order on directory pages:** sponsored slots (max 3, labeled "Sponsored") → managed (Pro) → unmanaged; within each group by a quality score (profile completeness, published reviews, verified stats, scaled to 90 points, plus up to 10 for response time: the median time an agency takes to mark inquiries as contacted, from 3+ in the last 90 days). Document this on **/how-we-rank** (indexable page).
 - **Pricing details and response time:** agencies give a minimum contract, ad spend (separate / included / not applicable) and an optional setup fee; the profile shows a Pricing block, directory rows and hero cards a "No lock-in" chip for no minimum or month-to-month. Owners mark routed leads as contacted (dashboard → Leads; server time, set once); profiles and rows show "Usually replies within …" from the `agency_response_times` view (3+ contacted in 90 days, median under 2 days). Unanswered leads get one reminder email after 24 hours (daily cron). Admin → agency → Activity shows the median and contacted rate.
-- Paid/sponsored website links: `rel="sponsored noopener"`; free profiles have no outbound website link (inquiries go through the contact form).
-- Get-matched routing: prefer Pro/Founding agencies that match, then Free.
-- **/for-agencies/pricing** page: three plans (Free, Pro $29/mo or $249/yr, Sponsored from $49/mo per page). While `PAYMENTS_ENABLED !== "true"`, Pro shows "Founding agencies get Pro free for <n> months" (n from app_settings) and the CTA goes to /list-your-agency; Sponsored shows "Contact us".
+- Website links (Pro only): `rel="sponsored noopener"`; unmanaged profiles have no outbound website link and no contact form.
+- Get-matched routing: only managed agencies (up to 3). If none match, the request is saved and the admin is notified to follow up by hand.
+- **/for-agencies/pricing** page: three columns (Listing: free, can't be contacted; Pro $29/mo or $279/yr with a monthly/yearly toggle and "Save 20%"; Sponsored from $49/mo per page, Pro + Verified only). While `PAYMENTS_ENABLED !== "true"`, every "Get Pro" opens a Request Pro form (name, email, agency, monthly/yearly) that lands in Admin → Inbox (topic `pro`) and emails help@; the admin grants Pro by hand (source manual). Sponsored shows "Contact us".
 - Agency dashboard: shows current plan, entitlements, and an analytics panel (profile views, website clicks, inquiries) limited to the plan's history window.
 
 ### Payments (not active)
@@ -202,8 +207,8 @@ Founding = Pro entitlements for a limited period (default 6 months), plus a "Fou
 
 ## 7. Database changes (new migration files + update schema.sql; RLS on every table; extend access tests)
 
-- `plans` (id: 'free' | 'founding' | 'pro', name, price_monthly, price_yearly) — seeded. The paid plan is "Pro" (it was 'verified' until migration 20261016000100) so it can't be confused with the Verified badge, which can't be bought.
-- `agency_subscriptions` (agency_id, plan_id, status: active/expired/cancelled, starts_at, ends_at, source: manual/founding/payment, external_id, created_at, updated_at). One active row per agency.
+- `plans` (id: 'pro', name, price_monthly 29, price_yearly 279) — seeded. The paid plan is "Pro" (it was 'verified' until migration 20261016000100) so it can't be confused with the Verified badge, which can't be bought.
+- `agency_subscriptions` (agency_id, plan_id, status: active/past_due/expired/cancelled, starts_at, ends_at, cancel_at_period_end, past_due_since, source: manual/payment, external_id, created_at, updated_at). One live (active or past_due) row per agency.
 - `sponsored_slots` (id, service_id, industry_id nullable, location_id nullable, agency_id, position 1–3, starts_at, ends_at, price_usd, created_at, updated_at). Unique (page, position) for overlapping dates — enforce with an exclusion constraint or a check in the server action plus a test.
 - `verifications` (id, agency_id, status: requested/approved/rejected, channels jsonb, stats_snapshot jsonb, checklist jsonb, reviewed_by, reviewed_at, created_at, updated_at).
 - `agency_events` (id, agency_id, type: profile_view/website_click/contact_open/inquiry, page_path, visitor_hash, created_at) — written by a small beacon endpoint (`navigator.sendBeacon`) so pages stay static. Rate-limited, ignores bots (user-agent check), visitor_hash = salted daily hash of IP+UA (no raw IP stored). Add a daily rollup table `agency_event_daily` and prune raw events older than 90 days.

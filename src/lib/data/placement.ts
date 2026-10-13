@@ -21,7 +21,11 @@ export const getPlacement = cache(async (now = new Date()) => {
   const db = createAdminClient();
   const iso = now.toISOString();
   const [subs, verifications, slots] = await Promise.all([
-    db.from("agency_subscriptions").select("agency_id, plan_id, status, starts_at, ends_at"),
+    db
+      .from("agency_subscriptions")
+      .select(
+        "agency_id, plan_id, status, starts_at, ends_at, cancel_at_period_end, past_due_since",
+      ),
     db.from("verifications").select("agency_id, stats_snapshot").eq("status", "approved"),
     db
       .from("sponsored_slots")
@@ -63,7 +67,7 @@ export const getPlacement = cache(async (now = new Date()) => {
     /** The agency's channels from its latest approved stats check (empty without one). */
     channels: (agencyId: string) => channels.get(agencyId) ?? [],
     /**
-     * Active slot holders for a page, by position. Holders must still be eligible (paid plan and
+     * Active slot holders for a page, by position. Holders must still be eligible (Pro and
      * the Verified badge, §5.8); a slot whose agency lapsed is skipped rather than shown.
      */
     sponsoredFor(page: { serviceId: number; industryId?: number; locationId?: number }) {

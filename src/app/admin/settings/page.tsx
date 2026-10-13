@@ -1,10 +1,7 @@
 import Link from "next/link";
 
-import { FoundingSettingsForm } from "@/components/admin/founding-settings-form";
 import { requireAdmin } from "@/lib/auth";
 import { paymentsEnabled } from "@/lib/billing";
-import { getFoundingProgram } from "@/lib/data/settings";
-import { formatCount, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Settings" };
@@ -29,12 +26,10 @@ function Section({
   );
 }
 
-/** ADMIN_V2_SPEC §5.10: admin profile, payments status (read-only), Founding programme. */
+/** ADMIN_V2_SPEC §5.10: admin profile and payments status (read-only). */
 export default async function AdminSettingsPage() {
   const admin = await requireAdmin("/admin/settings");
-  const program = await getFoundingProgram();
   const payments = paymentsEnabled();
-  const left = Math.max(program.maxSpots - program.used, 0);
 
   return (
     <div className="flex max-w-[880px] flex-col">
@@ -72,26 +67,6 @@ export default async function AdminSettingsPage() {
             )}
             {!payments && "."}
           </p>
-        </Section>
-
-        <Section
-          title="Founding programme"
-          description="Pro benefits for a set time, and the Founding badge for good."
-        >
-          <p className="mb-6 text-text-2 num">
-            {program.open
-              ? left > 0
-                ? `Open. ${formatCount(left)} of ${formatCount(program.maxSpots)} spots left.`
-                : `Open, but all ${formatCount(program.maxSpots)} spots are taken.`
-              : "Closed to new agencies."}{" "}
-            Last changed {formatDateTime(program.updatedAt)}.
-          </p>
-          <FoundingSettingsForm
-            open={program.open}
-            maxSpots={program.maxSpots}
-            freeMonths={program.freeMonths}
-            used={program.used}
-          />
         </Section>
       </div>
     </div>

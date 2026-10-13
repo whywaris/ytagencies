@@ -119,7 +119,7 @@ export default async function EditorialPolicyPage() {
       title: "Independence from sponsors",
       body: (
         <p>
-          Paid plans and sponsored places affect where an agency appears in the directory, as our{" "}
+          Pro and sponsored places affect where an agency appears in the directory, as our{" "}
           <Link href="/disclosure">disclosure</Link> explains. They never affect what we write in
           our guides.
         </p>

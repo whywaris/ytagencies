@@ -7,6 +7,7 @@ import { ProfileForm } from "@/components/dashboard/profile-form";
 import { SeoHiddenNotice } from "@/components/seo-hidden-notice";
 import { deleteCaseStudy, saveCaseStudy, updateProfile } from "@/lib/actions/dashboard";
 import { getOwnedAgency } from "@/lib/auth";
+import { getEntitlements } from "@/lib/data/entitlements";
 import { profileFormProps } from "@/lib/agency-profile";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { jsonToMetrics } from "@/lib/validation/dashboard";
@@ -18,7 +19,7 @@ export default async function EditAgencyPage({ params }: PageProps<"/dashboard/[
   if (!owned) notFound();
   const { agency, supabase } = owned;
 
-  const [form, caseStudies, industries, services, channels] = await Promise.all([
+  const [form, caseStudies, industries, services, channels, e] = await Promise.all([
     profileFormProps(supabase, agency),
     supabase
       .from("case_studies")
@@ -32,13 +33,16 @@ export default async function EditAgencyPage({ params }: PageProps<"/dashboard/[
       .select("id, channel_url, title, subscriber_count, status, industries(slug)")
       .eq("agency_id", agency.id)
       .order("created_at"),
+    getEntitlements(agency.id),
   ]);
   if (caseStudies.error || channels.error) throw new Error("Couldn't load the listing");
   const options = (rows: { slug: string; name: string }[]) =>
     rows.map(({ slug, name }) => ({ slug, name }));
 
   return (
-    <div className="flex flex-col gap-16">
+    // Locked while unmanaged (the banner above says why); the actions refuse too.
+    <fieldset disabled={!e.canEdit} className="flex min-w-0 flex-col gap-16 disabled:opacity-60">
+      <legend className="sr-only">Your listing</legend>
       <SeoHiddenNotice
         profile={form.defaults}
         className="-mb-8 rounded-lg border border-line bg-(--amber-soft) px-4 py-3 text-[15px] text-text"
@@ -101,6 +105,6 @@ export default async function EditAgencyPage({ params }: PageProps<"/dashboard/[
           }))}
         />
       </section>
-    </div>
+    </fieldset>
   );
 }

@@ -61,7 +61,7 @@ export const COMPANY = {
     closedMessagesMonths: 12,
   },
 
-  /** Refund rules for paid plans (/refunds). */
+  /** Refund rules for Pro (/refunds). */
   refunds: {
     /** Yearly plans: full refund if asked within this many days of purchase. */
     yearlyFullRefundDays: 14,

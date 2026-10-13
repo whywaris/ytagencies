@@ -8,10 +8,10 @@ import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
 // LAUNCH: plain-language terms. Fill in the legal name and jurisdiction in lib/company.ts and
 // have them reviewed before launch.
 
-const UPDATED = "2026-10-07";
+const UPDATED = "2026-10-13";
 const TITLE = "Terms of use";
 const DESCRIPTION =
-  "Terms for using YT Agencies: how the directory works, what agencies agree to when they list, how reviews, paid plans and sponsored places work, and our limits.";
+  "Terms for using YT Agencies: how the directory works, what agencies agree to when they list, how reviews, Pro and sponsored places work, and our limits.";
 
 export const metadata = buildMetadata({
   title: `Terms of use | ${BRAND_NAME}`,
@@ -117,14 +117,16 @@ const sections: LegalSection[] = [
   },
   {
     id: "paid-plans",
-    title: "Paid plans and sponsored places",
+    title: "Pro and sponsored places",
     body: (
       <>
         <p>
-          Agencies can choose a paid plan or sponsor a directory page. Paid plans place an agency
-          above free listings and add features, as described on the{" "}
-          <Link href="/for-agencies/pricing">pricing page</Link>. Sponsored places are labeled
-          &ldquo;Sponsored&rdquo; wherever they appear. How placement works is explained in{" "}
+          Listings are free. Managing a listing (editing it and receiving inquiries) requires an
+          active Pro subscription; Pro also places an agency above unmanaged listings, as described
+          on the <Link href="/for-agencies/pricing">pricing page</Link>. When Pro ends, the listing
+          stays public as unmanaged, we keep its details, editing is locked and inquiries stop.
+          Agencies on Pro with the Verified badge can sponsor a directory page. Sponsored places are
+          labeled &ldquo;Sponsored&rdquo; wherever they appear. How placement works is explained in{" "}
           <Link href="/how-we-rank">How we rank</Link> and our{" "}
           <Link href="/disclosure">disclosure</Link>.
         </p>
@@ -237,7 +239,7 @@ export default function TermsPage() {
       summary={[
         "YT Agencies is a free directory. We help you find agencies; we don't do agency work ourselves.",
         "Agencies must keep their listings accurate. We review listings and reviews and can remove ones that break these terms.",
-        "Paid plans and sponsored places are optional and always clearly labeled.",
+        "Listings are free. Pro and sponsored places are optional and always clearly labeled.",
         "We aren't responsible for the work agencies do for you.",
       ]}
       sections={sections}

@@ -134,8 +134,8 @@ export function SponsoredSlotDialog({
                 ))}
               </select>,
               options.agencies.length
-                ? "Agencies on a paid plan with the Verified badge."
-                : "No agency is eligible yet: it needs a paid plan and the Verified badge.",
+                ? "Agencies on Pro with the Verified badge."
+                : "No agency is eligible yet: it needs Pro and the Verified badge.",
             )}
             <div className="grid gap-4 sm:grid-cols-3">
               {field(

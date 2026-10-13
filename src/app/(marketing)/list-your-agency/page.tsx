@@ -15,7 +15,7 @@ export const revalidate = 3600;
 export const metadata = buildMetadata({
   title: `List your YouTube agency for free | ${BRAND_NAME}`,
   description:
-    "Get your YouTube agency in front of businesses looking to hire. Free profile, matched leads by service and industry, and space for your case studies.",
+    "Get your YouTube agency in front of businesses looking to hire. A free profile, and with Pro, inquiries and matched leads by service and industry.",
   path: "/list-your-agency",
 });
 
@@ -31,7 +31,7 @@ const benefits = [
   },
   {
     title: "Leads that fit",
-    body: "Businesses tell us what they need. We send their request to agencies that do that work for their industry and budget.",
+    body: "With Pro, businesses contact you from your profile, and we send you Get matched requests that fit your services, industry and budget.",
   },
   {
     title: "Proof of your work",
@@ -50,7 +50,12 @@ export default function ListYourAgencyPage() {
             <h1 className="text-h1">List your YouTube agency</h1>
             <p className="text-text-2">
               Businesses use {BRAND_NAME} to find agencies for YouTube ads, SEO, channel management,
-              production and Shorts. Listing your agency is free.
+              production and Shorts. Listing your agency is free; managing it and receiving
+              inquiries takes{" "}
+              <Link href="/for-agencies/pricing" className="text-accent hover:underline">
+                Pro
+              </Link>
+              .
             </p>
           </header>
           <ul className="flex flex-col gap-6">
@@ -69,8 +74,8 @@ export default function ListYourAgencyPage() {
             Check if you&apos;re already listed
           </h2>
           <p className="text-text-2">
-            We may have listed your agency already. If so, claim it to edit the profile and receive
-            inquiries.
+            We may have listed your agency already. If so, claim it, then get Pro to edit the
+            profile and receive inquiries.
           </p>
           <AgencySearch />
         </section>

@@ -38,7 +38,7 @@ export default async function AdminSponsoredPage() {
       .select("id, name")
       .eq("status", "published")
       .eq("is_verified", true)
-      .in("plan", ["founding", "pro"])
+      .eq("plan", "pro")
       .order("name"),
     getServices(),
     getIndustries(),
@@ -127,8 +127,7 @@ export default async function AdminSponsoredPage() {
           <h1 className="text-admin-title">Sponsored</h1>
           <p className="text-text-2">
             Up to 3 sponsored agencies per directory page, shown first and labeled Sponsored.
-            Holders need a paid plan and the Verified badge; a slot whose agency loses either stops
-            showing.
+            Holders need Pro and the Verified badge; a slot whose agency loses either stops showing.
           </p>
         </div>
         <SponsoredSlotDialog
@@ -180,7 +179,7 @@ export default async function AdminSponsoredPage() {
           <Empty>
             No sponsored slots yet.{" "}
             {options.agencies.length === 0 &&
-              "No agency is eligible yet: give one a paid plan in Plans and verify it."}
+              "No agency is eligible yet: give one Pro in Plans and verify it."}
           </Empty>
         ) : (
           <Table>

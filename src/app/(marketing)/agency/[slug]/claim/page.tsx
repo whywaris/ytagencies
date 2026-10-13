@@ -47,7 +47,8 @@ export default async function ClaimPage({ params }: PageProps<"/agency/[slug]/cl
       <header className="flex flex-col gap-2">
         <h1 className="text-h1">Claim {agency.name}</h1>
         <p className="text-text-2">
-          Claiming lets you edit this listing, add case studies and see inquiries sent to you.
+          Claiming links this listing to your account. With Pro you can then edit it, add case
+          studies and receive inquiries.
         </p>
       </header>
 

@@ -6,6 +6,7 @@ import { AgencyLeadEmail } from "@/emails/agency-lead";
 import { LeadConfirmationEmail } from "@/emails/lead-confirmation";
 import { getMailer, oneLine } from "@/lib/email";
 import { getPlacement } from "@/lib/data/placement";
+import { pickMatches } from "@/lib/match";
 import { absoluteUrl, BRAND_NAME } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -20,14 +21,13 @@ export type RoutedAgency = {
   ownerId: string | null;
 };
 
-const MAX_ROUTES = 3;
-
 /**
- * Up to 3 published agencies for a service + industry. Ranking: offers both, claimed (so someone
- * actually receives the lead), minimum budget fits, verified, then name.
+ * Up to 3 published, managed agencies for a service + industry (lib/match.ts). Unmanaged
+ * listings have nobody to answer, so they never receive a request; none at all leaves the lead
+ * unrouted for the admin to follow up by hand.
  */
 // ponytail: deterministic ranking sends every lead for a combo to the same top 3; add rotation
-// (least recently routed first) once agencies pay for leads.
+// (least recently routed first) once agencies pay per lead.
 export async function matchAgencies(serviceId: number, industryId: number, budgetMax: number) {
   const admin = createAdminClient();
   const [byService, byIndustry] = await Promise.all([
@@ -48,23 +48,17 @@ export async function matchAgencies(serviceId: number, industryId: number, budge
     .in("id", serviceIds);
   if (error) throw error;
 
-  // §6: among agencies that match (industry, then budget), Founding/Pro plans come first.
   const placement = await getPlacement();
-  const rank = (a: (typeof data)[number]) => [
-    inIndustry.has(a.id) ? 1 : 0,
-    a.min_budget_usd === null || a.min_budget_usd <= budgetMax ? 1 : 0,
-    placement.entitlements(a.id).matchPriority === "high" ? 1 : 0,
-    a.is_claimed ? 1 : 0,
-    a.is_verified ? 1 : 0,
-  ];
-  return data
-    .sort((a, b) => {
-      const [ra, rb] = [rank(a), rank(b)];
-      for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return rb[i] - ra[i];
-      return a.name.localeCompare(b.name);
-    })
-    .slice(0, MAX_ROUTES)
-    .map(toRouted);
+  return pickMatches(
+    data.map((a) => ({
+      ...a,
+      managed: placement.entitlements(a.id).managed,
+      inIndustry: inIndustry.has(a.id),
+      minBudgetUsd: a.min_budget_usd,
+      isVerified: a.is_verified,
+    })),
+    budgetMax,
+  ).map(toRouted);
 }
 
 export async function getPublishedAgency(slug: string) {
@@ -89,6 +83,8 @@ function toRouted(a: {
 }
 
 type LeadRow = {
+  /** Where a Get matched request started, e.g. "profile:<slug>". */
+  ref?: string | null;
   name: string;
   email: string;
   company: string | null;

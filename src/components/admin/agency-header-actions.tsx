@@ -16,10 +16,8 @@ const button =
 /** Agency detail header: view live, publish/unpublish (confirmed), change plan. */
 export function AgencyHeaderActions({
   agency,
-  foundingMonths,
 }: {
   agency: { id: string; name: string; slug: string; status: string; plan: string };
-  foundingMonths: number;
 }) {
   const router = useRouter();
   const [planOpen, setPlanOpen] = useState(false);
@@ -87,7 +85,6 @@ export function AgencyHeaderActions({
           agencyId={agency.id}
           agencyName={agency.name}
           currentPlan={agency.plan}
-          foundingMonths={foundingMonths}
           open
           onOpenChange={setPlanOpen}
         />

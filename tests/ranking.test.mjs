@@ -51,9 +51,9 @@ test("quality score: response time is worth up to 10", () => {
   assert.equal(qualityScore({ ...empty, responseMinutes: null }), 0);
 });
 
-const a = (id, paid, quality, name = id) => ({ id, name, paid, quality });
+const a = (id, managed, quality, name = id) => ({ id, name, managed, quality });
 
-test("order: sponsored by position, then paid, then free, each by quality then name", () => {
+test("order: sponsored by position, then managed, then unmanaged, each by quality then name", () => {
   const items = [
     a("free-hi", false, 90),
     a("paid-lo", true, 10),

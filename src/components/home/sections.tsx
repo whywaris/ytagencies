@@ -336,7 +336,7 @@ const FAQS = [
   {
     question: `Is ${BRAND_NAME} free for businesses?`,
     answer:
-      "Yes. Searching, comparing and contacting agencies is free. Agencies can pay for extra visibility, and those placements are always labeled Sponsored.",
+      "Yes. Searching, comparing and contacting agencies is free. Agencies pay to manage their listing and for extra visibility, and paid placements are always labeled Sponsored.",
   },
   {
     question: "Do you take a cut of what I pay the agency?",
@@ -345,12 +345,12 @@ const FAQS = [
   {
     question: "What happens when I use Find my agency?",
     answer:
-      "You answer a few questions about your business and budget. We send your request to up to three agencies that match, and they contact you directly.",
+      "You answer a few questions about your business and budget. We send your request to up to three matching agencies that manage their listing with us, and they contact you directly.",
   },
   {
     question: "I run an agency. How do I get listed?",
     answer:
-      "Listing is free. Create a profile from List your agency and we review it before it goes live.",
+      "Listing is free: create a profile from List your agency and we review it before it goes live. To manage your listing and receive inquiries, you need Pro.",
   },
   {
     question: `Is ${BRAND_NAME} part of YouTube or Google?`,

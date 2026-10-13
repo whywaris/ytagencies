@@ -4,8 +4,8 @@ import { test } from "node:test";
 
 import { agencyWebsiteLink } from "../src/lib/outbound.ts";
 
-test("Pro and Founding: sponsored, new tab, never noreferrer", () => {
-  for (const plan of ["pro", "founding"]) {
+test("Pro (managed): sponsored, new tab, never noreferrer", () => {
+  for (const plan of ["pro"]) {
     const link = agencyWebsiteLink("https://www.acmemedia.com/", plan, "profile");
     assert.equal(link.rel, "sponsored noopener", plan);
     assert.equal(link.target, "_blank");
@@ -19,7 +19,9 @@ test("Pro and Founding: sponsored, new tab, never noreferrer", () => {
   }
 });
 
-test("Free: no website link", () => {
+test("Unmanaged (no plan, or the old Founding id): no website link", () => {
+  assert.equal(agencyWebsiteLink("https://acmemedia.com", "none", "profile"), null);
+  assert.equal(agencyWebsiteLink("https://acmemedia.com", "founding", "profile"), null);
   assert.equal(agencyWebsiteLink("https://acmemedia.com", "free", "profile"), null);
   assert.equal(agencyWebsiteLink("https://acmemedia.com", "verified", "profile"), null);
 });

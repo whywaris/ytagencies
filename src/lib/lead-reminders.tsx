@@ -1,6 +1,7 @@
 import "server-only";
 
 import { LeadReminderEmail } from "@/emails/lead-reminder";
+import { getPlacement } from "@/lib/data/placement";
 import { getMailer } from "@/lib/email";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,10 +27,12 @@ export async function sendLeadReminders() {
     .gt("sent_at", new Date(now - 72 * HOUR).toISOString());
   if (error) throw error;
 
+  const placement = await getPlacement();
   let sent = 0;
   for (const r of data) {
     const ownerId = r.agencies?.owner_id;
-    if (!ownerId || !r.leads) continue;
+    // Managed agencies only: an unmanaged (lapsed) listing gets no more inquiry emails.
+    if (!ownerId || !r.leads || !placement.entitlements(r.agency_id).managed) continue;
     const { data: owner } = await db.auth.admin.getUserById(ownerId);
     const to = owner.user?.email;
     if (!to) continue;

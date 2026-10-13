@@ -57,7 +57,7 @@ const STEPS = {
     },
     {
       title: "Hear from the right businesses",
-      text: "Inquiries arrive in your dashboard and inbox. Paid plans are optional.",
+      text: "With Pro, inquiries arrive in your dashboard and inbox.",
     },
   ],
 };
@@ -155,10 +155,10 @@ export default async function AboutPage() {
             How we make money
           </h2>
           <p className="text-[17px] leading-relaxed">
-            Businesses never pay us, and listing an agency is free. Agencies can choose a paid plan,
-            which adds features and lists them above free listings, or sponsor a place at the top of
-            a directory page. Sponsored places are always labeled, and nothing else about the order
-            can be bought.
+            Businesses never pay us, and listing an agency is free. To manage its listing and
+            receive inquiries, an agency needs Pro, which also lists it above unmanaged listings.
+            Agencies on Pro can also sponsor a place at the top of a directory page. Sponsored
+            places are always labeled, and nothing else about the order can be bought.
           </p>
           <p className="text-[17px]">
             <Link href="/disclosure" className="text-accent underline underline-offset-2">

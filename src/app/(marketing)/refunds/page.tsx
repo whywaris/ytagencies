@@ -9,7 +9,7 @@ import { BRAND_NAME } from "@/lib/site";
 // Refund rules for paid plans and sponsored places. Rules come from lib/company.ts.
 export const revalidate = 3600;
 
-const UPDATED = "2026-10-07";
+const UPDATED = "2026-10-13";
 const TITLE = "Refund policy";
 const DESCRIPTION =
   "How cancellations and refunds work for YT Agencies paid plans and sponsored places: monthly and yearly plans, sponsored page slots, and how to request a refund.";
@@ -30,9 +30,9 @@ const sections: LegalSection[] = [
     title: "Monthly plans",
     body: (
       <p>
-        You can cancel a monthly plan at any time. You keep your plan until the end of the period
-        you&apos;ve paid for, and it doesn&apos;t renew after that. We don&apos;t refund part of a
-        month.
+        You can cancel monthly Pro at any time. You keep Pro until the end of the month you&apos;ve
+        paid for, and it doesn&apos;t renew after that. We don&apos;t refund part of a month. When
+        Pro ends, your listing stays public but unmanaged, and we keep your details.
       </p>
     ),
   },
@@ -41,9 +41,9 @@ const sections: LegalSection[] = [
     title: "Yearly plans",
     body: (
       <p>
-        If you ask within {days} days of buying a yearly plan, we refund it in full. After {days}{" "}
-        days you can cancel so it doesn&apos;t renew, and you keep the plan until the end of the
-        year you&apos;ve paid for.
+        If you ask within {days} days of buying yearly Pro, we refund it in full. After {days} days
+        you can cancel so it doesn&apos;t renew, and you keep the plan until the end of the year
+        you&apos;ve paid for.
       </p>
     ),
   },
@@ -54,16 +54,6 @@ const sections: LegalSection[] = [
       <p>
         If you cancel a sponsored place before its start date, we refund it in full. Once it has
         started, we don&apos;t refund it.
-      </p>
-    ),
-  },
-  {
-    id: "founding-programme",
-    title: "Founding programme",
-    body: (
-      <p>
-        Founding agencies get Pro for free for a set time, so there&apos;s nothing to refund. When
-        the free period ends, the agency moves to the free plan unless it chooses a paid one.
       </p>
     ),
   },
@@ -102,20 +92,20 @@ export default function RefundsPage() {
       updated={UPDATED}
       contactEmail={email}
       summary={[
-        "Monthly plans: cancel any time and keep the plan until the period ends. No partial refunds.",
-        `Yearly plans: a full refund if you ask within ${days} days of buying.`,
+        "Monthly Pro: cancel any time and keep Pro until the period ends. No partial refunds.",
+        `Yearly Pro: a full refund if you ask within ${days} days of buying.`,
         "Sponsored places: a full refund if cancelled before the start date, none after.",
-        "Listing an agency is free, so most agencies never pay anything.",
+        "Listing an agency is free. Managing it takes Pro.",
       ]}
       sections={sections}
     >
       {!live && (
         <p className="rounded-2xl border border-line px-6 py-4 text-[16px] text-text-2">
-          Paid plans aren&apos;t on sale yet. During launch, agencies can join the{" "}
+          Online payments aren&apos;t live yet. Agencies can{" "}
           <Link href="/for-agencies/pricing" className="text-accent underline underline-offset-2">
-            Founding programme
+            request Pro
           </Link>{" "}
-          for free. This policy applies once paid plans are available.
+          and we set it up by email. This policy applies to every Pro plan.
         </p>
       )}
     </LegalPage>

@@ -142,6 +142,8 @@ create table leads (
   industry_id int references industries(id),
   budget_range text,
   message text,
+  -- Where a Get matched request started, e.g. "profile:<slug>" (an unmanaged profile's button).
+  ref text check (ref ~ '^[a-z]+(:[a-z0-9-]{1,80})?$'),
   created_at timestamptz not null default now()
 );
 
@@ -466,36 +468,41 @@ create extension if not exists btree_gist; -- sponsored slot overlap constraint
 
 -- ───────── Plans ─────────
 create table plans (
-  -- The paid plan is 'pro' (renamed from 'verified', migration 20261016000100), so it can't be
-  -- confused with the Verified badge.
-  id text primary key check (id in ('free', 'founding', 'pro')),
+  -- One plan: Pro. Listings are free; managing one needs Pro (migration 20261020000100 removed
+  -- Founding and Free). Named 'pro' so it can't be confused with the Verified badge.
+  id text primary key check (id in ('pro')),
   name text not null,
   price_monthly numeric(10, 2),
   price_yearly numeric(10, 2)
 );
 insert into plans (id, name, price_monthly, price_yearly) values
-  ('free', 'Free', 0, 0),
-  ('founding', 'Founding', 0, 0),
-  ('pro', 'Pro', 29, 249)
+  ('pro', 'Pro', 29, 279)
 on conflict (id) do update set name = excluded.name, price_monthly = excluded.price_monthly,
   price_yearly = excluded.price_yearly;
 
 -- ───────── Subscriptions ─────────
--- No row, or no active row in date, means Free. One active row per agency.
+-- Managed = a live Pro subscription (lib/entitlements.ts): active in date (incl. cancelling at
+-- the period end), or past_due for up to 7 days. Otherwise the listing is unmanaged.
+-- One live (active or past_due) row per agency.
 create table agency_subscriptions (
   id uuid primary key default gen_random_uuid(),
   agency_id uuid not null references agencies(id) on delete cascade,
   plan_id text not null references plans(id),
-  status text not null default 'active' check (status in ('active', 'expired', 'cancelled')),
+  status text not null default 'active'
+    check (status in ('active', 'past_due', 'expired', 'cancelled')),
   starts_at timestamptz not null default now(),
   ends_at timestamptz,
-  source text not null check (source in ('manual', 'founding', 'payment')),
+  source text not null check (source in ('manual', 'payment')),
   external_id text,
+  cancel_at_period_end boolean not null default false,
+  past_due_since timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (ends_at is null or ends_at > starts_at)
+  check (ends_at is null or ends_at > starts_at),
+  constraint agency_subscriptions_past_due check (status <> 'past_due' or past_due_since is not null)
 );
-create unique index agency_subscriptions_one_active on agency_subscriptions (agency_id) where status = 'active';
+create unique index agency_subscriptions_one_active on agency_subscriptions (agency_id)
+  where status in ('active', 'past_due');
 create index agency_subscriptions_ends_at_idx on agency_subscriptions (ends_at) where status = 'active';
 
 -- ───────── Sponsored slots ─────────
@@ -777,9 +784,6 @@ create policy "admin write" on authors for all to authenticated using (is_admin(
 -- ───────── Settings (ADMIN_V2_SPEC §5.10) ─────────
 create table app_settings (
   id boolean primary key default true check (id),
-  founding_open boolean not null default true,
-  founding_max_spots int not null default 50 check (founding_max_spots between 1 and 1000),
-  founding_free_months int not null default 6 check (founding_free_months between 1 and 36),
   updated_at timestamptz not null default now()
 );
 create trigger set_updated_at before update on app_settings for each row execute function set_updated_at();
@@ -795,7 +799,7 @@ create policy "admin update" on app_settings for update to authenticated using (
 -- ───────── Contact messages (/contact, Admin → Inbox) ─────────
 create table contact_messages (
   id uuid primary key default gen_random_uuid(),
-  topic text not null check (topic in ('general', 'agencies', 'report', 'press', 'privacy')),
+  topic text not null check (topic in ('general', 'agencies', 'report', 'press', 'privacy', 'pro')),
   name text not null check (char_length(name) between 1 and 100),
   email text not null check (char_length(email) <= 254),
   message text not null check (char_length(message) between 1 and 5000),

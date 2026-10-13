@@ -395,6 +395,8 @@ export type Database = {
       };
       agency_subscriptions: {
         Row: {
+          cancel_at_period_end: boolean;
+          past_due_since: string | null;
           agency_id: string;
           created_at: string;
           ends_at: string | null;
@@ -407,6 +409,8 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          cancel_at_period_end?: boolean;
+          past_due_since?: string | null;
           agency_id: string;
           created_at?: string;
           ends_at?: string | null;
@@ -419,6 +423,8 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          cancel_at_period_end?: boolean;
+          past_due_since?: string | null;
           agency_id?: string;
           created_at?: string;
           ends_at?: string | null;
@@ -442,23 +448,14 @@ export type Database = {
       };
       app_settings: {
         Row: {
-          founding_free_months: number;
-          founding_max_spots: number;
-          founding_open: boolean;
           id: boolean;
           updated_at: string;
         };
         Insert: {
-          founding_free_months?: number;
-          founding_max_spots?: number;
-          founding_open?: boolean;
           id?: boolean;
           updated_at?: string;
         };
         Update: {
-          founding_free_months?: number;
-          founding_max_spots?: number;
-          founding_open?: boolean;
           id?: boolean;
           updated_at?: string;
         };
@@ -838,6 +835,7 @@ export type Database = {
       };
       leads: {
         Row: {
+          ref: string | null;
           budget_range: string | null;
           company: string | null;
           created_at: string;
@@ -849,6 +847,7 @@ export type Database = {
           service_id: number | null;
         };
         Insert: {
+          ref?: string | null;
           budget_range?: string | null;
           company?: string | null;
           created_at?: string;
@@ -860,6 +859,7 @@ export type Database = {
           service_id?: number | null;
         };
         Update: {
+          ref?: string | null;
           budget_range?: string | null;
           company?: string | null;
           created_at?: string;

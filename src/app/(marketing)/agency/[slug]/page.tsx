@@ -28,6 +28,7 @@ import { agencyWebsiteLink } from "@/lib/outbound";
 import { contractLabel, responseLabel } from "@/lib/pricing";
 import { formatMetrics, safeExternalUrl } from "@/lib/profile";
 import { faq, glance, unitSuffix } from "@/lib/profile-copy";
+import { profileMode } from "@/lib/profile-mode";
 import { agencyDescription, agencyTitle } from "@/lib/profile-seo";
 import { breadcrumbJsonLd, faqJsonLd, professionalServiceJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -145,14 +146,14 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   const agency = await load(params);
   const e = agency.entitlements;
   const [similar, combos] = await Promise.all([
-    // §6: "Similar agencies" shows on Free profiles only.
+    // Unmanaged profiles only: managed agencies a visitor can actually reach.
     e.showSimilarAgencies ? getSimilarAgencies(agency, 3) : [],
     getIndexableCombos(),
   ]);
 
   const primary = agency.services[0];
   const website = safeExternalUrl(agency.website);
-  // §6: only Pro and Founding get a website link (sponsored, UTM-tagged: lib/outbound.ts).
+  // Managed (Pro) only: a website link, sponsored and UTM-tagged (lib/outbound.ts).
   const websiteLink = agencyWebsiteLink(agency.website, e.plan, "profile");
 
   // Location facts: HQ (city, country) plus up to two other places they work.
@@ -171,7 +172,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
           count: agency.reviews.length,
         }
       : null;
-  const replies = responseLabel(agency.response?.medianMinutes ?? null);
+  const replies = e.responseTime ? responseLabel(agency.response?.medianMinutes ?? null) : null;
   const replyCount = agency.response?.contacted ?? null;
 
   const breadcrumbs = [
@@ -209,7 +210,15 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   const domain = website?.hostname.replace(/^www\./, "");
   const price = agency.minBudgetUsd;
   const suffix = unitSuffix(agency.pricingModel);
-  const contactLabel = `Contact ${agency.name}`;
+  const mode = profileMode({
+    managed: e.managed,
+    name: agency.name,
+    slug: agency.slug,
+    mainService: primary?.slug ?? null,
+    mainIndustry: agency.industries[0]?.slug ?? null,
+  });
+  // The Get matched click isn't an agency event (nothing reaches the agency): untracked.
+  const ctaTrack = mode.kind === "contact" ? "contact_open" : undefined;
   const manageHref = agency.isClaimed ? "/login?next=/dashboard" : `/agency/${agency.slug}/claim`;
 
   // Related directory pages: the main service for their industries and HQ country, if indexed.
@@ -258,7 +267,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               : null,
           knowsAbout: agency.services.map((s) => s.name),
           sameAs: [
-            // The website only where we link to it (Pro / Founding).
+            // The website only where we link to it (managed).
             websiteLink ? website?.href : null,
             agency.linkedinUrl,
             agency.youtubeChannelUrl,
@@ -291,11 +300,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 <span className="inline-flex h-[26px] items-center gap-1.5 rounded-full bg-(--mint-soft) px-2.5 text-[12.5px] font-semibold text-(--mint)">
                   <Check className="size-[13px] [stroke-width:2.5]" aria-hidden />
                   Verified
-                </span>
-              )}
-              {agency.foundingBadge && (
-                <span className="inline-flex h-[26px] items-center rounded-full bg-(--amber-soft) px-2.5 text-[12.5px] font-semibold text-(--amber-on-soft)">
-                  Founding agency
                 </span>
               )}
             </div>
@@ -339,11 +343,12 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               </ul>
             )}
             <div className="mt-[22px] flex flex-wrap gap-2.5">
-              <a href="#contact" data-track="contact_open" className={btnPrimary}>
-                {contactLabel}
+              <a href={mode.ctaHref} data-track={ctaTrack} className={btnPrimary}>
+                {mode.ctaLabel}
               </a>
               {websiteLink && <WebsiteButton link={websiteLink} className={btnLight} />}
             </div>
+            {mode.note && <p className="mt-3 max-w-[40em] text-[14px] text-text-2">{mode.note}</p>}
           </div>
         </header>
 
@@ -686,19 +691,27 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               </section>
             )}
 
-            <section id="contact" aria-labelledby="contact-h" className={sectionCls}>
-              <h2 id="contact-h" className={h2}>
-                {contactLabel}
-              </h2>
-              <p className={lede}>
-                Your message goes straight to the agency.
-                {replies && ` They ${replies.replace(/^Usually replies/, "usually reply")}.`}
-              </p>
-              <LazyContactForm agencySlug={agency.slug} agencyName={agency.name} />
-            </section>
+            {mode.kind === "contact" && (
+              <section id="contact" aria-labelledby="contact-h" className={sectionCls}>
+                <h2 id="contact-h" className={h2}>
+                  {mode.ctaLabel}
+                </h2>
+                <p className={lede}>
+                  Your message goes straight to the agency.
+                  {replies && ` They ${replies.replace(/^Usually replies/, "usually reply")}.`}
+                </p>
+                <LazyContactForm agencySlug={agency.slug} agencyName={agency.name} />
+              </section>
+            )}
 
             <div className="flex flex-wrap justify-between gap-2 pt-7 text-[13px] text-text-2">
               <span>Last updated {longDate(agency.updatedAt)}</span>
+              <span className="min-[980px]:hidden">
+                Is this your agency?{" "}
+                <Link href={manageHref} rel="nofollow" className="text-accent hover:underline">
+                  Manage this listing
+                </Link>
+              </span>
               <span>
                 Something wrong?{" "}
                 <Link
@@ -727,9 +740,10 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 )}
               </p>
               <SideChips agency={agency} />
-              <a href="#contact" data-track="contact_open" className={cn(btnPrimary, "w-full")}>
-                {contactLabel}
+              <a href={mode.ctaHref} data-track={ctaTrack} className={cn(btnPrimary, "w-full")}>
+                {mode.ctaLabel}
               </a>
+              {mode.note && <p className="mt-3 text-[13px] text-text-2">{mode.note}</p>}
               {websiteLink && (
                 <WebsiteButton link={websiteLink} className={cn(btnLight, "mt-2.5 w-full")} />
               )}
@@ -758,7 +772,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
 
       {/* Contact bar (mobile): the price, the reply time and one button. */}
       <div
-        aria-label="Contact bar"
+        aria-label={mode.kind === "contact" ? "Contact bar" : "Get matched bar"}
         className="profile-mbar fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-bg/80 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] backdrop-blur-[20px] min-[980px]:hidden print:hidden"
       >
         <div className="min-w-0">
@@ -768,11 +782,11 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
           {replies && <span className="block truncate text-[12.5px] text-text-2">{replies}</span>}
         </div>
         <a
-          href="#contact"
-          data-track="contact_open"
+          href={mode.ctaHref}
+          data-track={ctaTrack}
           className={cn(btnPrimary, "h-[38px] px-[18px] text-[14px]")}
         >
-          Contact
+          {mode.kind === "contact" ? "Contact" : "Get matched"}
         </a>
       </div>
     </>

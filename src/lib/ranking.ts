@@ -2,8 +2,8 @@
 // No imports, so tests load this file directly.
 //
 // 1. Sponsored slots for the page, by position (max 3), labeled "Sponsored".
-// 2. Agencies on a paid plan (Founding or Pro).
-// 3. Free agencies.
+// 2. Managed agencies (live Pro subscription).
+// 3. Unmanaged agencies (listed, nobody manages them yet).
 // Within 2 and 3: quality score (0–100), then name.
 
 export type QualityInput = {
@@ -49,7 +49,7 @@ export function qualityScore(q: QualityInput) {
 
 export const MAX_SPONSORED = 3;
 
-export type Rankable = { id: string; name: string; paid: boolean; quality: number };
+export type Rankable = { id: string; name: string; managed: boolean; quality: number };
 
 /**
  * Orders a page's agencies. `sponsoredIds` are the page's active slot holders in position order;
@@ -66,7 +66,9 @@ export function rankAgencies<T extends Rankable>(items: T[], sponsoredIds: strin
     .filter((i) => !taken.has(i.id))
     .sort(
       (a, b) =>
-        Number(b.paid) - Number(a.paid) || b.quality - a.quality || a.name.localeCompare(b.name),
+        Number(b.managed) - Number(a.managed) ||
+        b.quality - a.quality ||
+        a.name.localeCompare(b.name),
     )
     .map((i) => ({ ...i, sponsored: false as const }));
   return [...sponsored, ...rest];

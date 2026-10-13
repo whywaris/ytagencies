@@ -14,7 +14,7 @@ export const revalidate = 3600;
 export const metadata = buildMetadata({
   title: `How we rank agencies | ${BRAND_NAME}`,
   description:
-    "How YT Agencies orders agencies on directory pages: sponsored placements, then paid plans, then free listings, each sorted by profile quality, reviews and verification.",
+    "How YT Agencies orders agencies on directory pages: sponsored placements, then agencies on Pro, then unmanaged listings, each sorted by profile quality, reviews and verification.",
   path: "/how-we-rank",
 });
 
@@ -47,13 +47,16 @@ export default function HowWeRankPage() {
             <li>
               <strong>Sponsored.</strong> Up to {MAX_SPONSORED} agencies can sponsor a page. They
               appear first, in the order of their slot, and carry a Sponsored label. Only agencies
-              on a paid plan (Founding or Pro) with the Verified badge can sponsor a page.
+              on Pro with the Verified badge can sponsor a page.
             </li>
             <li>
-              <strong>Agencies on a paid plan.</strong> Founding and Pro agencies come next.
+              <strong>Managed agencies.</strong> Agencies on Pro, who manage their listing and
+              answer inquiries, come next.
             </li>
             <li>
-              <strong>Free listings.</strong> Everyone else.
+              <strong>Unmanaged listings.</strong> Everyone else: agencies listed by us or that
+              haven&apos;t joined. Visitors can&apos;t contact them through us, so we offer to match
+              them with managed agencies instead.
             </li>
           </ol>
           <p>
@@ -107,7 +110,7 @@ export default function HowWeRankPage() {
           <ul className="flex list-disc flex-col gap-1 pl-6">
             <li>How many inquiries an agency has received.</li>
             <li>Whether an agency has claimed its listing.</li>
-            <li>Anything an agency pays us, except a labeled Sponsored slot or a paid plan.</li>
+            <li>Anything an agency pays us, except a labeled Sponsored slot or Pro.</li>
           </ul>
           <p className="text-text-2">
             Pages need {MIN_AGENCIES_TO_INDEX} published agencies before search engines index them.

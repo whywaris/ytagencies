@@ -52,8 +52,22 @@ export function GetMatchedForm({
       message: "",
       turnstileToken: "",
       website: "",
+      ref: "",
     },
   });
+
+  // Prefill from the link (e.g. an unmanaged profile's "Get matched with similar agencies"):
+  // ?service=<slug>&industry=<slug>&ref=profile:<slug>. Read after hydration, so the page stays
+  // static; unknown slugs are ignored.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const service = q.get("service");
+    const industry = q.get("industry");
+    const ref = q.get("ref");
+    if (service && services.some((o) => o.slug === service)) setValue("service", service);
+    if (industry && industries.some((o) => o.slug === industry)) setValue("industry", industry);
+    if (ref && /^[a-z]+(:[a-z0-9-]{1,80})?$/.test(ref)) setValue("ref", ref);
+  }, [services, industries, setValue]);
 
   useEffect(() => {
     if (success) successHeading.current?.focus();

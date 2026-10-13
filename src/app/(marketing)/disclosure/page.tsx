@@ -8,10 +8,10 @@ import { BRAND_NAME } from "@/lib/site";
 // How we make money and how paid placement is labeled. Must match lib/ranking.ts and the
 // public labels ("Sponsored", rel="sponsored") in the directory.
 
-const UPDATED = "2026-10-12";
+const UPDATED = "2026-10-13";
 const TITLE = "Disclosure";
 const DESCRIPTION =
-  "How YT Agencies stays independent of YouTube and Google, how it makes money, how paid plans and sponsored places are labeled, and what money can't buy.";
+  "How YT Agencies stays independent of YouTube and Google, how it makes money, how Pro and sponsored places are labeled, and what money can't buy.";
 
 export const metadata = buildMetadata({
   title: `Disclosure: independence and paid placement | ${BRAND_NAME}`,
@@ -41,9 +41,10 @@ const sections: LegalSection[] = [
         </p>
         <ul>
           <li>
-            <strong>Paid plans for agencies.</strong> They add features, such as a link to the
-            agency&apos;s website and more case studies, and list the agency above free listings
-            within its group. See <Link href="/for-agencies/pricing">pricing</Link>.
+            <strong>Pro for agencies.</strong> Listings are free, but to manage a listing and
+            receive inquiries an agency needs Pro. Pro also adds a link to the agency&apos;s website
+            and lists it above unmanaged listings. See{" "}
+            <Link href="/for-agencies/pricing">pricing</Link>.
           </li>
           <li>
             <strong>Sponsored places.</strong> An agency can pay to appear at the top of a specific
@@ -60,13 +61,13 @@ const sections: LegalSection[] = [
       <ul>
         <li>Sponsored places always carry a &ldquo;Sponsored&rdquo; label.</li>
         <li>
-          Only agencies on a paid plan (Pro or Founding) get a link to their website, and those
-          links are marked as paid (<code>rel=&quot;sponsored&quot;</code>) for search engines. They
-          carry tags that let the agency see the visits came from {BRAND_NAME}.
+          Only agencies on Pro get a link to their website, and those links are marked as paid (
+          <code>rel=&quot;sponsored&quot;</code>) for search engines. They carry tags that let the
+          agency see the visits came from {BRAND_NAME}.
         </li>
         <li>
-          Agencies that joined during our launch show a &ldquo;Founding agency&rdquo; badge. It
-          means they joined early, not that they&apos;re better.
+          Profiles of agencies that haven&apos;t joined say so, and offer to match you with agencies
+          that have. Their details come from public sources and stay on the directory.
         </li>
       </ul>
     ),

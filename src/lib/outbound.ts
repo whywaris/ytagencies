@@ -5,10 +5,10 @@
 export type LinkSource = "profile" | "directory" | "home_hero" | "guide";
 export const LINK_SOURCES: readonly LinkSource[] = ["profile", "directory", "home_hero", "guide"];
 
-const PAID_PLANS = new Set(["pro", "founding"]);
+const PAID_PLANS = new Set(["pro"]);
 
 /**
- * The website link for an agency, or null when it gets none (Free plan, or no usable http(s)
+ * The website link for an agency, or null when it gets none (not managed, or no usable http(s)
  * website). Paid links are rel="sponsored noopener" and open in a new tab. Never "noreferrer":
  * with our Referrer-Policy (strict-origin-when-cross-origin) the agency's analytics sees
  * ytagencies.com as the referrer, alongside the UTM tags. The agency's own query string is kept;

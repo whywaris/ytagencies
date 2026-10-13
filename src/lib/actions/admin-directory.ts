@@ -8,7 +8,6 @@ import { NotApprovedEmail } from "@/emails/not-approved";
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { removeCaseStudy, resolveCaseStudyChannels, writeCaseStudy } from "@/lib/case-studies";
 import { approveClaim } from "@/lib/claims";
-import { foundingAvailable, getFoundingProgram } from "@/lib/data/settings";
 import { getMailer, oneLine } from "@/lib/email";
 import { revalidateAgency } from "@/lib/revalidate";
 import type { Json } from "@/lib/supabase/types";
@@ -108,7 +107,8 @@ export async function deleteAgencies(
 }
 
 const planSchema = z.object({
-  plan: z.enum(["free", "founding", "pro"]),
+  // "free" = no subscription: the listing becomes unmanaged.
+  plan: z.enum(["free", "pro"]),
   // yyyy-mm-dd from a date input; empty = no end date
   endsOn: z
     .string()
@@ -120,8 +120,8 @@ const planSchema = z.object({
 });
 
 /**
- * Manual plan change: ends the current active subscription (cancelled) and, unless the new plan is
- * Free, starts a new one now. Founding uses source "founding" (it keeps the badge forever).
+ * Manual plan change: ends the current live subscription (cancelled) and, for Pro, starts a new one
+ * now (source "manual"). "free" leaves the agency unmanaged: still listed, editing and inquiries off.
  */
 export async function changePlan(agencyId: string, raw: unknown): Promise<FormResult> {
   const ctx = await adminContext();
@@ -142,32 +142,12 @@ export async function changePlan(agencyId: string, raw: unknown): Promise<FormRe
     .eq("id", agencyId)
     .maybeSingle();
   if (!agency) return { ok: false, error: "Unknown agency." };
-  if (plan === "founding") {
-    // §5.10: new Founding agencies only while the programme is open and has spots. An agency that
-    // has been Founding before already holds a spot, so it can be extended.
-    const { data: before } = await ctx.db
-      .from("agency_subscriptions")
-      .select("id")
-      .eq("agency_id", agencyId)
-      .eq("plan_id", "founding")
-      .limit(1);
-    if (!before?.length) {
-      const program = await getFoundingProgram();
-      if (!program.open) {
-        return { ok: false, error: "The Founding programme is closed. Open it in Settings." };
-      }
-      if (!foundingAvailable(program)) {
-        return { ok: false, error: "All Founding spots are taken. Add spots in Settings." };
-      }
-    }
-  }
-
   const now = new Date().toISOString();
   const { error: endError } = await ctx.db
     .from("agency_subscriptions")
     .update({ status: "cancelled", ends_at: now })
     .eq("agency_id", agencyId)
-    .eq("status", "active");
+    .in("status", ["active", "past_due"]);
   if (endError) return { ok: false, error: SAVE_FAILED };
   if (plan !== "free") {
     const { error } = await ctx.db.from("agency_subscriptions").insert({
@@ -176,13 +156,12 @@ export async function changePlan(agencyId: string, raw: unknown): Promise<FormRe
       status: "active",
       starts_at: now,
       ends_at: endsOn ? `${endsOn}T23:59:59Z` : null,
-      source: plan === "founding" ? "founding" : "manual",
+      source: "manual",
     });
     if (error) return { ok: false, error: SAVE_FAILED };
   }
   await ctx.log("agency.change_plan", "agency", agencyId, { plan, ends_on: endsOn || null });
   revalidateAgency(agency.slug);
-  if (plan === "founding") revalidatePath("/for-agencies/pricing"); // may have filled the last spot
   revalidatePath("/admin/agencies");
   revalidatePath(`/admin/agencies/${agencyId}`);
   return { ok: true, data: undefined };
