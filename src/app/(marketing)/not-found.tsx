@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import { NotFoundContent } from "@/components/not-found-content";
 import { BRAND_NAME } from "@/lib/site";
 
-export const metadata: Metadata = { title: { absolute: `Page not found | ${BRAND_NAME}` } };
+export const metadata: Metadata = {
+  title: { absolute: `Page not found · ${BRAND_NAME}` },
+  robots: { index: false, follow: false },
+};
 
 /**
  * notFound() inside public routes (unknown service, agency or guide). The (marketing) layout already

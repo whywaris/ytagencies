@@ -58,8 +58,9 @@ export function GetMatchedForm({
   });
 
   // Prefill from the link (e.g. an unmanaged profile's "Get matched with similar agencies"):
-  // ?service=<slug>&industry=<slug>&ref=profile:<slug>. Read after hydration, so the page stays
-  // static; unknown slugs are ignored.
+  // ?service=<slug>&industry=<slug>&ref=profile:<slug>, and ?need=<text> from the 404 page's
+  // search box into the message. Read after hydration, so the page stays static; unknown slugs
+  // are ignored.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     const service = q.get("service");
@@ -68,6 +69,8 @@ export function GetMatchedForm({
     if (service && services.some((o) => o.slug === service)) setValue("service", service);
     if (industry && industries.some((o) => o.slug === industry)) setValue("industry", industry);
     if (ref && /^[a-z]+(:[a-z0-9-]{1,80})?$/.test(ref)) setValue("ref", ref);
+    const need = q.get("need")?.trim();
+    if (need) setValue("message", need.slice(0, 500));
   }, [services, industries, setValue]);
 
   useEffect(() => {

@@ -26,6 +26,8 @@ type Events = {
   claim_start: { agency_slug: string };
   checkout_start: { interval: "month" | "year" };
   list_agency_search: { has_results: boolean };
+  /** The 404 page: the path only, never the query string. */
+  page_not_found: { path: string };
 };
 
 type Gtag = (command: "event", name: string, params: Record<string, unknown>) => void;
