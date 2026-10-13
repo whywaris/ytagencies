@@ -1385,5 +1385,60 @@ ok(
   ),
   "subscriptions: billing interval is month or year",
 );
+console.log("— Agency pages (migration 20261022000100) —");
+await db.exec(`select record_page_view('/youtube-ads-agencies/for-gaming', 'v1');
+  select record_page_view('/youtube-ads-agencies/for-gaming', 'v1');
+  select record_page_view('/youtube-ads-agencies/for-gaming', 'v2');`);
+ok(
+  (
+    await rows("select count from page_view_daily where path = '/youtube-ads-agencies/for-gaming'")
+  )[0]?.count === 2,
+  "page views: once per visitor per day, rolled up per day",
+);
+ok(
+  await fails(`select record_page_view('/not-a-directory-page', 'v3')`),
+  "page views: only directory page paths",
+);
+await as("anon", null, async () => {
+  ok(await denied("select * from page_view_daily"), "page views: anon can't read");
+  ok(
+    await fails(`select record_page_view('/youtube-ads-agencies', 'x')`),
+    "page views: anon can't call the recorder",
+  );
+});
+await as("authenticated", OWNER, async () => {
+  ok(
+    await denied("select * from page_view_daily"),
+    "page views: an owner can't read the raw rollup",
+  );
+  ok(
+    await denied("select * from page_view_events"),
+    "page views: nobody signed in reads raw events",
+  );
+});
+await as("authenticated", ADMIN, async () =>
+  ok((await rows("select * from page_view_daily")).length > 0, "page views: an admin can read"),
+);
+await as("authenticated", OTHER, async () => {
+  const slugId = (await rows("select id from agencies where slug = 'saltmere-studios'"))[0]?.id;
+  ok(
+    !(await fails(
+      `insert into claims (agency_id, user_id, work_email, role, linkedin_url, note) values ('${slugId}', '${OTHER}', 'x@y.example', 'Founder', 'https://linkedin.com/in/x', 'Hi')`,
+    )),
+    "claims: proof (role, LinkedIn, note) can be sent with a claim",
+  );
+  ok(
+    await fails(
+      `insert into claims (agency_id, user_id, work_email, role) values ('${slugId}', '${OTHER}', 'z@y.example', repeat('a', 101))`,
+    ),
+    "claims: proof fields are length-limited",
+  );
+});
+ok(
+  !(await fails(
+    `insert into contact_messages (topic, name, email, message) values ('access', 'a', 'a@b.example', 'please')`,
+  )),
+  "contact messages: access requests have their own topic",
+);
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

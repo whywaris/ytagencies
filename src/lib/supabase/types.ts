@@ -625,6 +625,9 @@ export type Database = {
           status: string;
           user_id: string;
           work_email: string;
+          role: string | null;
+          linkedin_url: string | null;
+          note: string | null;
         };
         Insert: {
           agency_id: string;
@@ -633,6 +636,9 @@ export type Database = {
           status?: string;
           user_id: string;
           work_email: string;
+          role?: string | null;
+          linkedin_url?: string | null;
+          note?: string | null;
         };
         Update: {
           agency_id?: string;
@@ -641,6 +647,9 @@ export type Database = {
           status?: string;
           user_id?: string;
           work_email?: string;
+          role?: string | null;
+          linkedin_url?: string | null;
+          note?: string | null;
         };
         Relationships: [
           {
@@ -965,6 +974,18 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      page_view_daily: {
+        Row: { path: string; day: string; count: number };
+        Insert: { path: string; day: string; count?: number };
+        Update: { path?: string; day?: string; count?: number };
+        Relationships: [];
+      };
+      page_view_events: {
+        Row: { id: number; path: string; visitor_hash: string; created_at: string };
+        Insert: { id?: number; path: string; visitor_hash: string; created_at?: string };
+        Update: { id?: number; path?: string; visitor_hash?: string; created_at?: string };
+        Relationships: [];
       };
       plans: {
         Row: {
@@ -1349,6 +1370,10 @@ export type Database = {
         Returns: boolean;
       };
       is_admin: { Args: never; Returns: boolean };
+      record_page_view: {
+        Args: { p_path: string; p_visitor: string };
+        Returns: boolean;
+      };
       record_agency_event: {
         Args: {
           p_agency: string;

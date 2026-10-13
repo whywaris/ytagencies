@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { Breadcrumbs, type Crumb } from "@/components/breadcrumbs";
 import { Results, ResultsView } from "@/components/directory/results";
 import { JsonLd } from "@/components/json-ld";
+import { PageTracker } from "@/components/page-tracker";
 import type { AgencyListItem } from "@/lib/data/agencies";
 import type { Faq } from "@/lib/data/taxonomy";
 import { breadcrumbJsonLd, faqJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
@@ -34,6 +35,7 @@ export function DirectoryPage({
   const groups = related.filter((g) => g.links.length > 0);
   return (
     <>
+      <PageTracker />
       <JsonLd data={breadcrumbJsonLd(breadcrumbs)} />
       <JsonLd data={itemListJsonLd(agencies.map((a) => `/agency/${a.slug}`))} />
       {faqs.length > 0 && <JsonLd data={faqJsonLd(faqs)} />}

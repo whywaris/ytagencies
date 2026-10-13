@@ -52,6 +52,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 - Ignores bots (user-agent check) and is rate-limited per IP (hashed key, 120 an hour). Always answers 204, so it reveals nothing.
 - Stores `visitor_hash` only: an HMAC of IP + user agent with a key that changes every UTC day (derived from `CLAIM_TOKEN_SECRET`). No raw IP or user agent is stored, and visitors can't be linked across days.
 - One event per visitor, agency, type and day. Raw events are pruned after 90 days; daily rollups (`agency_event_daily`) are kept.
+- Directory pages send `{ type: "page_view", path }` the same way: the path must be a real service (and industry or location) page, and it's counted once per visitor per path per day in `page_view_events` (pruned after 90 days) and `page_view_daily`. Both are admin-read only; owners see only aggregates for their own services on the dashboard, read server-side after the ownership check.
 
 ## Image links (guide covers)
 
@@ -76,6 +77,7 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 
 - Only managed agencies (live Pro) get a link to their website, with `rel="sponsored noopener"`, opening in a new tab. Unmanaged profiles have no outbound website link and no contact form; `contactAgency` refuses them server-side too.
 - Editing a listing needs ownership and a live Pro subscription: every dashboard mutation goes through `editableAgency()` (lib/actions/dashboard.ts).
+- `/claim/<slug>`: ownership still needs a confirmed email on the agency's domain or an admin approving a claim with proof (role, LinkedIn, note). Asking for access to a listing someone else manages only creates an Inbox message; nothing changes until an admin acts. Checkout for a pending submission is allowed only to its submitter, while it's an unowned draft.
 
 ## Privacy
 

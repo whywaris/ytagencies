@@ -9,6 +9,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Profile analytics beacon (ADMIN_V2_SPEC §7, SECURITY.md "Analytics beacon"). Pages stay static:
 // the browser posts here with navigator.sendBeacon. Always 204, so callers learn nothing.
 // Inquiries aren't accepted here: they're counted server-side when a lead is routed.
+// Directory pages send { type: "page_view", path } ("Where businesses are looking" on the agency
+// dashboard): same bot filter, visitor hash and rate limit, counted once per visitor per day.
+
+/** "/<service>-agencies" or "/<service>-agencies/(for|in)-<slug>", as in page_view_events. */
+const DIRECTORY_PATH = /^\/([a-z0-9-]{1,80}-agencies)(?:\/(for|in)-([a-z0-9-]{1,80}))?$/;
+const pageViewSchema = z.object({
+  type: z.literal("page_view"),
+  path: z.string().regex(DIRECTORY_PATH),
+});
 
 const eventSchema = z.object({
   agencyId: z.uuid(),
@@ -46,14 +55,15 @@ export async function POST(request: NextRequest) {
   const ua = request.headers.get("user-agent") ?? "";
   if (!ua || BOT.test(ua)) return done();
 
-  let parsed;
+  let body: unknown;
   try {
-    parsed = eventSchema.safeParse(JSON.parse(await request.text()));
+    body = JSON.parse(await request.text());
   } catch {
     return done();
   }
-  if (!parsed.success) return done();
-  const { agencyId, type, path, source } = parsed.data;
+  const pageView = pageViewSchema.safeParse(body);
+  const parsed = eventSchema.safeParse(body);
+  if (!pageView.success && !parsed.success) return done();
 
   const ip = await clientIp();
   const visitor = visitorHash(ip, ua);
@@ -64,6 +74,29 @@ export async function POST(request: NextRequest) {
   if (!(await hitRateLimit("beacon", ip, 120, "1 hour"))) return done();
 
   const db = createAdminClient();
+  if (pageView.success) {
+    // Only real pages: the service and the industry or location must exist.
+    const [, serviceSlug, kind, slug] = pageView.data.path.match(DIRECTORY_PATH)!;
+    const [service, segment] = await Promise.all([
+      db.from("services").select("id").eq("slug", serviceSlug).maybeSingle(),
+      kind
+        ? db
+            .from(kind === "for" ? "industries" : "locations")
+            .select("id")
+            .eq("slug", slug)
+            .maybeSingle()
+        : { data: true },
+    ]);
+    if (!service.data || !segment.data) return done();
+    const { error } = await db.rpc("record_page_view", {
+      p_path: pageView.data.path,
+      p_visitor: visitor,
+    });
+    if (error) console.error("record_page_view failed", { code: error.code });
+    return done();
+  }
+  if (!parsed.success) return done();
+  const { agencyId, type, path, source } = parsed.data;
   const { data: agency } = await db
     .from("agencies")
     .select("id")

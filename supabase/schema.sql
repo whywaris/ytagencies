@@ -164,6 +164,10 @@ create table claims (
   user_id uuid not null references auth.users(id),
   work_email text not null,
   status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  -- Proof for a claim without a matching work email (reviewed by an admin).
+  role text check (char_length(role) <= 100),
+  linkedin_url text check (char_length(linkedin_url) <= 300),
+  note text check (char_length(note) <= 1000),
   created_at timestamptz not null default now()
 );
 
@@ -822,7 +826,7 @@ create policy "admin update" on app_settings for update to authenticated using (
 -- ───────── Contact messages (/contact, Admin → Inbox) ─────────
 create table contact_messages (
   id uuid primary key default gen_random_uuid(),
-  topic text not null check (topic in ('general', 'agencies', 'report', 'press', 'privacy', 'pro')),
+  topic text not null check (topic in ('general', 'agencies', 'report', 'press', 'privacy', 'pro', 'access')),
   name text not null check (char_length(name) between 1 and 100),
   email text not null check (char_length(email) <= 254),
   message text not null check (char_length(message) between 1 and 5000),
@@ -1059,3 +1063,47 @@ grant select (id, agency_id, author_name, author_company, rating, body, status, 
   updated_at, service_id, budget_range, project_start, project_end, score_quality, score_schedule,
   score_cost, score_refer, overall, reviewer_title, reviewer_industry_id, reviewer_company_size,
   reviewer_country, verified_client) on reviews to anon;
+
+-- ───────── Directory page views (agency dashboard, /list-your-agency) ─────────
+create table page_view_events (
+  id bigint generated always as identity primary key,
+  -- "/<service>-agencies" or "/<service>-agencies/(for|in)-<slug>"
+  path text not null check (path ~ '^/[a-z0-9-]{1,80}-agencies(/(for|in)-[a-z0-9-]{1,80})?$'),
+  visitor_hash text not null check (char_length(visitor_hash) <= 128),
+  created_at timestamptz not null default now()
+);
+create unique index page_view_events_once_per_visitor on page_view_events (path, visitor_hash);
+create index page_view_events_created_at_idx on page_view_events (created_at);
+
+create table page_view_daily (
+  path text not null check (path ~ '^/[a-z0-9-]{1,80}-agencies(/(for|in)-[a-z0-9-]{1,80})?$'),
+  day date not null,
+  count int not null default 0 check (count >= 0),
+  primary key (path, day)
+);
+create index page_view_daily_day_idx on page_view_daily (day);
+
+create or replace function record_page_view(p_path text, p_visitor text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  added int;
+begin
+  insert into page_view_events (path, visitor_hash) values (p_path, p_visitor)
+  on conflict (path, visitor_hash) do nothing;
+  get diagnostics added = row_count;
+  if added = 0 then
+    return false;
+  end if;
+  insert into page_view_daily (path, day, count)
+  values (p_path, (now() at time zone 'utc')::date, 1)
+  on conflict (path, day) do update set count = page_view_daily.count + 1;
+  delete from page_view_events where created_at < now() - interval '90 days';
+  return true;
+end $$;
+revoke execute on function record_page_view(text, text) from public, anon, authenticated;
+
+alter table page_view_events enable row level security;
+alter table page_view_daily enable row level security;
+revoke all on page_view_events, page_view_daily from anon, authenticated;
+grant select on page_view_daily to authenticated;
+create policy "admin read" on page_view_daily for select to authenticated using (is_admin());
