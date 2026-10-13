@@ -144,7 +144,7 @@ const sections: LegalSection[] = [
           On our public pages, a banner asks whether we may use analytics cookies. Only if you
           choose Accept does Google Analytics set these cookies. Until then, and if you decline, it
           sets none (it runs in Google&apos;s Consent Mode with all storage denied). It never runs
-          in the dashboard, the claim pages, sign-in or admin.
+          for signed-in users, or in the dashboard, the claim pages, sign-in or admin.
         </p>
         <CookieTable rows={ANALYTICS_COOKIES} />
         <p>

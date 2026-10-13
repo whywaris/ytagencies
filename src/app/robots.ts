@@ -1,17 +1,13 @@
 import type { MetadataRoute } from "next";
 
+import { indexingAllowed, robotsRules } from "@/lib/indexing";
 import { absoluteUrl } from "@/lib/site";
 
-// docs/SEO.md: keep private areas and parameterized (filtered) URLs out of the crawl.
+// docs/SEO.md: keep private areas and parameterized (filtered) URLs out of the crawl. Until launch
+// (ALLOW_INDEXING isn't "true", lib/indexing.ts) nothing may be crawled and there's no sitemap.
 export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: {
-      userAgent: "*",
-      // "/*?" also matches optimized images (/_next/image?url=…); the longer allow rule wins,
-      // so logos stay fetchable. Social images live at query-free /og/… paths.
-      allow: ["/", "/_next/image"],
-      disallow: ["/dashboard", "/admin", "/api", "/auth", "/*?"],
-    },
-    sitemap: ["agencies", "categories", "guides"].map((s) => absoluteUrl(`/sitemaps/${s}.xml`)),
-  };
+  return robotsRules(
+    indexingAllowed(),
+    ["agencies", "categories", "guides"].map((s) => absoluteUrl(`/sitemaps/${s}.xml`)),
+  );
 }

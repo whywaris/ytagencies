@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 import { companyTodos } from "./src/lib/company";
+import { indexingAllowed, noindexHeaders } from "./src/lib/indexing";
 import { mediaHosts } from "./src/lib/media";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -83,7 +84,13 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    // Until launch (ALLOW_INDEXING), every response also says noindex (lib/indexing.ts).
+    return [
+      {
+        source: "/:path*",
+        headers: [...securityHeaders, ...noindexHeaders(indexingAllowed())],
+      },
+    ];
   },
 };
 

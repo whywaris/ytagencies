@@ -5,15 +5,15 @@ import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useState } from "react";
 
-import { CONSENT_KEY } from "@/lib/track";
+import { CONSENT_KEY, shouldLoadGa } from "@/lib/track";
 
 // Google Analytics 4 with Consent Mode v2, for public pages only (mounted in the (marketing)
 // layout, and only when lib/analytics.ts gaId() allows it). Everything starts denied; analytics
-// storage is granted only after "Accept", and ad storage never is (we run no ads). Private areas
-// never load it, and if a visitor moves there from a public page, GA is switched off
-// (ga-disable-<id>) so nothing is sent.
+// storage is granted only after "Accept", and ad storage never is (we run no ads).
+// Never for signed-in visitors or on private routes (lib/track.ts shouldLoadGa): the check runs in
+// the browser after load, so pages stay static. If it stops holding later in the tab (signing in,
+// or moving into a private area), GA is switched off (ga-disable-<id>) and track() sends nothing.
 
-const PRIVATE = /^\/(admin|dashboard|login|claim|auth)(\/|$)/;
 /** The footer's "Cookie settings" link opens the banner with this event. */
 export const COOKIE_SETTINGS_EVENT = "yta:cookie-settings";
 
@@ -21,13 +21,19 @@ type W = Window & { gtag?: (...args: unknown[]) => void } & Record<string, unkno
 
 export function Analytics({ id }: { id: string }) {
   const pathname = usePathname();
-  const blocked = PRIVATE.test(pathname);
-  const [loaded] = useState(() => !blocked); // decided on the first page; never loaded on private ones
+  /** GA may run here, for this visitor (re-checked on every page). */
+  const [allowed, setAllowed] = useState(false);
+  /** Scripts injected; once they are, they stay (switched off with ga-disable when not allowed). */
+  const [loaded, setLoaded] = useState(false);
   const [banner, setBanner] = useState(false);
 
   useEffect(() => {
-    (window as unknown as W)[`ga-disable-${id}`] = blocked;
-  }, [id, blocked]);
+    const ok = shouldLoadGa({ pathname, cookie: document.cookie });
+    (window as unknown as W)[`ga-disable-${id}`] = !ok;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- cookies are only readable after mount
+    setAllowed(ok);
+    if (ok) setLoaded(true);
+  }, [id, pathname]);
   // Leaving the public layout (e.g. into the dashboard): stop sending.
   useEffect(
     () => () => {
@@ -76,7 +82,7 @@ gtag('js',new Date());gtag('config','${id}');`}
           />
         </>
       )}
-      {banner && !blocked && (
+      {banner && allowed && (
         <div
           role="region"
           aria-label="Cookie consent"

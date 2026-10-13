@@ -1,8 +1,23 @@
-// The one way to send a GA4 event (components/analytics.tsx loads GA). Sends nothing without
-// analytics consent or when GA isn't loaded. Only the fields typed here: never names, emails,
-// messages, search text or other personal data.
+// GA4 in the browser: when it may load, and the one way to send an event
+// (components/analytics.tsx loads GA). No imports: tests load this file directly.
+//
+// Never for signed-in visitors, on any page: a Supabase session is a readable cookie
+// (@supabase/ssr, "sb-<project>-auth-token", split into .0/.1 when long), so checking for it is a
+// local read with no network call and pages stay static. Never on private routes either.
+// Events carry only the fields typed here: never names, emails, messages, search text or other
+// personal data.
 
 export const CONSENT_KEY = "yta-consent";
+
+const PRIVATE_ROUTE = /^\/(admin|dashboard|login|claim|auth)(\/|$)/;
+const SESSION_COOKIE = /(?:^|;\s*)sb-[^=;]+-auth-token(?:\.\d+)?=[^;]+/;
+
+/** A Supabase session cookie is present (signed in, in this browser). */
+export const hasSession = (cookie: string) => SESSION_COOKIE.test(cookie);
+
+/** GA may load: a public route and nobody signed in. */
+export const shouldLoadGa = ({ pathname, cookie }: { pathname: string; cookie: string }) =>
+  !PRIVATE_ROUTE.test(pathname) && !hasSession(cookie);
 
 type Events = {
   get_matched_submit: { service: string; industry: string };
@@ -18,7 +33,12 @@ type Gtag = (command: "event", name: string, params: Record<string, unknown>) =>
 export function track<E extends keyof Events>(name: E, params: Events[E]) {
   try {
     const gtag = (window as unknown as { gtag?: Gtag }).gtag;
-    if (gtag && localStorage.getItem(CONSENT_KEY) === "granted") gtag("event", name, params);
+    if (
+      gtag &&
+      localStorage.getItem(CONSENT_KEY) === "granted" &&
+      shouldLoadGa({ pathname: location.pathname, cookie: document.cookie })
+    )
+      gtag("event", name, params);
   } catch {
     // Analytics must never break the page.
   }

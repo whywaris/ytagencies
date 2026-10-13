@@ -55,7 +55,8 @@ const sections: LegalSection[] = [
           actions such as sending an inquiry form, with no names, emails, messages or search text.
           It sets the cookies listed in our <Link href="/cookies">cookie policy</Link>. Until you
           accept, and if you decline, it stores nothing in your browser. It never runs in the agency
-          dashboard, the claim pages, sign-in or admin.
+          dashboard, the claim pages, sign-in or admin. We don&apos;t use Google Analytics for
+          signed-in users.
         </p>
         <p>
           When you view an agency&apos;s profile, open its contact form or click its website link,

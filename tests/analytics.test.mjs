@@ -1,37 +1,82 @@
-// When Google Analytics may load (src/lib/analytics.ts).
+// When Google Analytics may load (src/lib/analytics.ts, src/lib/track.ts) and whether the site
+// may be indexed (src/lib/indexing.ts).
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { gaId } from "../src/lib/analytics.ts";
+import { indexingAllowed, noindexHeaders, robotsRules } from "../src/lib/indexing.ts";
+import { hasSession, shouldLoadGa } from "../src/lib/track.ts";
 
-const withEnv = (env, fn) => {
-  const saved = { ...process.env };
-  Object.assign(process.env, env);
-  for (const [k, v] of Object.entries(env)) if (v === undefined) delete process.env[k];
-  try {
-    return fn();
-  } finally {
-    process.env = saved;
-  }
-};
+const ID = "G-E6X061VCPX";
+const SESSION = "sb-lkpmdqybxkhirlsqhffs-auth-token";
 
-test("loads only with an ID and ALLOW_INDEXING exactly true", () => {
+test("GA: only with an ID on Vercel production, whatever ALLOW_INDEXING says", () => {
+  assert.equal(gaId({ NEXT_PUBLIC_GA_ID: ID, VERCEL_ENV: "production" }), ID);
   assert.equal(
-    withEnv({ NEXT_PUBLIC_GA_ID: "G-FQQQRPFK9N", ALLOW_INDEXING: "true" }, gaId),
-    "G-FQQQRPFK9N",
+    gaId({ NEXT_PUBLIC_GA_ID: ID, VERCEL_ENV: "production", ALLOW_INDEXING: "false" }),
+    ID,
   );
   assert.equal(
-    withEnv({ NEXT_PUBLIC_GA_ID: "G-FQQQRPFK9N", ALLOW_INDEXING: undefined }, gaId),
+    gaId({ NEXT_PUBLIC_GA_ID: ID, VERCEL_ENV: "preview", ALLOW_INDEXING: "true" }),
     null,
   );
-  assert.equal(withEnv({ NEXT_PUBLIC_GA_ID: "G-FQQQRPFK9N", ALLOW_INDEXING: "1" }, gaId), null);
-  assert.equal(withEnv({ NEXT_PUBLIC_GA_ID: undefined, ALLOW_INDEXING: "true" }, gaId), null);
+  assert.equal(gaId({ NEXT_PUBLIC_GA_ID: ID }), null); // localhost
+  assert.equal(gaId({ VERCEL_ENV: "production" }), null);
 });
 
-test("rejects anything that isn't a GA4 measurement ID", () => {
-  assert.equal(withEnv({ NEXT_PUBLIC_GA_ID: "UA-1234-1", ALLOW_INDEXING: "true" }, gaId), null);
-  assert.equal(
-    withEnv({ NEXT_PUBLIC_GA_ID: "G-x');alert(1)//", ALLOW_INDEXING: "true" }, gaId),
-    null,
-  );
+test("GA: rejects anything that isn't a GA4 measurement ID", () => {
+  assert.equal(gaId({ NEXT_PUBLIC_GA_ID: "UA-1234-1", VERCEL_ENV: "production" }), null);
+  assert.equal(gaId({ NEXT_PUBLIC_GA_ID: "G-x');alert(1)//", VERCEL_ENV: "production" }), null);
+});
+
+test("GA: signed in = no GA, on any page", () => {
+  for (const cookie of [
+    `${SESSION}=base64-abc`,
+    `theme=dark; ${SESSION}.0=base64-abc; ${SESSION}.1=def`,
+  ]) {
+    assert.equal(hasSession(cookie), true, cookie);
+    assert.equal(shouldLoadGa({ pathname: "/", cookie }), false, cookie);
+    assert.equal(shouldLoadGa({ pathname: "/youtube-ads-agencies", cookie }), false, cookie);
+  }
+});
+
+test("GA: signed out on a public page = GA may load", () => {
+  assert.equal(shouldLoadGa({ pathname: "/", cookie: "" }), true);
+  assert.equal(shouldLoadGa({ pathname: "/agency/goat-agency", cookie: "_ga=GA1.1.1" }), true);
+  // The sign-in flow's code verifier alone isn't a session.
+  assert.equal(hasSession(`${SESSION}-code-verifier=x`), false);
+});
+
+test("GA: never on private routes, signed in or not", () => {
+  for (const pathname of [
+    "/admin",
+    "/dashboard/x",
+    "/login",
+    "/claim/goat-agency",
+    "/auth/callback",
+  ])
+    assert.equal(shouldLoadGa({ pathname, cookie: "" }), false, pathname);
+  assert.equal(shouldLoadGa({ pathname: "/claims-guide", cookie: "" }), true);
+});
+
+test("indexing: off unless ALLOW_INDEXING is exactly true", () => {
+  assert.equal(indexingAllowed({ ALLOW_INDEXING: "true" }), true);
+  for (const v of [undefined, "", "1", "TRUE", "false"])
+    assert.equal(indexingAllowed({ ALLOW_INDEXING: v }), false, String(v));
+});
+
+test("indexing off: every response says noindex; on: no extra header", () => {
+  assert.deepEqual(noindexHeaders(false), [{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
+  assert.deepEqual(noindexHeaders(true), []);
+});
+
+test("robots.txt: blocks everything with no sitemap until launch, normal rules after", () => {
+  const sitemaps = ["https://ytagencies.com/sitemaps/agencies.xml"];
+  const off = robotsRules(false, sitemaps);
+  assert.deepEqual(off, { rules: { userAgent: "*", disallow: "/" } });
+  assert.equal("sitemap" in off, false);
+  const on = robotsRules(true, sitemaps);
+  assert.deepEqual(on.sitemap, sitemaps);
+  assert.ok(on.rules.disallow.includes("/dashboard"));
+  assert.ok(on.rules.allow.includes("/"));
 });
