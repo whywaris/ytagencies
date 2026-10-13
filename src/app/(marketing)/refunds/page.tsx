@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
-import { paymentsEnabled } from "@/lib/billing";
+import { checkoutAvailable } from "@/lib/billing";
 import { COMPANY } from "@/lib/company";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
@@ -83,7 +83,7 @@ const sections: LegalSection[] = [
 ];
 
 export default function RefundsPage() {
-  const live = paymentsEnabled();
+  const live = checkoutAvailable();
   return (
     <LegalPage
       title={TITLE}

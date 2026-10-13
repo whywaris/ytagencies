@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { requireAdmin } from "@/lib/auth";
-import { paymentsEnabled } from "@/lib/billing";
+import { creemConfig, paymentsEnabled } from "@/lib/billing";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Settings" };
@@ -29,7 +29,9 @@ function Section({
 /** ADMIN_V2_SPEC §5.10: admin profile and payments status (read-only). */
 export default async function AdminSettingsPage() {
   const admin = await requireAdmin("/admin/settings");
-  const payments = paymentsEnabled();
+  const creem = creemConfig();
+  const webhook = !!process.env.CREEM_WEBHOOK_SECRET;
+  const payments = paymentsEnabled() && !!creem;
 
   return (
     <div className="flex max-w-[880px] flex-col">
@@ -47,7 +49,7 @@ export default async function AdminSettingsPage() {
 
         <Section
           title="Payments"
-          description="Read-only. Set by PAYMENTS_ENABLED in the Vercel environment."
+          description="Read-only. Set by PAYMENTS_ENABLED and the CREEM_* variables in the Vercel environment."
         >
           <p className="flex items-center gap-2 font-medium">
             <span
@@ -58,14 +60,23 @@ export default async function AdminSettingsPage() {
           </p>
           <p className="mt-1 text-text-2">
             {payments
-              ? "Agencies can pay for plans."
-              : "No one is charged. Plans are granted by hand on "}
+              ? `Agencies can buy Pro through Creem${creem?.test ? " (test mode: no real charges)" : ""}.`
+              : paymentsEnabled()
+                ? "PAYMENTS_ENABLED is on but the Creem keys or product ids are missing, so Get Pro still opens the request form. Plans are granted by hand on "
+                : "No one is charged. Plans are granted by hand on "}
             {!payments && (
               <Link href="/admin/plans" className="text-accent hover:underline">
                 Plans
               </Link>
             )}
             {!payments && "."}
+          </p>
+          <p className="mt-1 text-text-2">
+            Creem webhook:{" "}
+            {webhook
+              ? "secret set"
+              : "CREEM_WEBHOOK_SECRET missing, so payments won't update plans"}
+            .
           </p>
         </Section>
       </div>

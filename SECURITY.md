@@ -9,6 +9,9 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 - `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `CLAIM_TOKEN_SECRET` and `YOUTUBE_API_KEY` (YouTube Data API v3, used only by admin verification) are server-only. Import them only in files with `import "server-only"` or route handlers, and never log them.
 - `CRON_SECRET` is server-only. Scheduled routes under `/api/cron/` refuse any request without `Authorization: Bearer <CRON_SECRET>` (Vercel Cron sends it), compared in constant time.
 - `PAYMENTS_ENABLED` is a server-side switch, not a secret. Anything that charges money stays off unless it is exactly `"true"`; while it's off the billing interface is a no-op.
+- `CREEM_API_KEY` and `CREEM_WEBHOOK_SECRET` are server-only secrets, used only in `lib/billing/creem.ts` (`import "server-only"`) and never logged. `CREEM_PRODUCT_PRO_MONTHLY`, `CREEM_PRODUCT_PRO_YEARLY` and `CREEM_TEST_MODE` (exactly `"true"` = the test API) are server-only settings. Test keys only on Preview and local; live keys only on Production.
+- Checkout needs `PAYMENTS_ENABLED` **and** the Creem keys. Only a signed-in owner (owner_id, set after a verified claim or an approved submission) can start a checkout, open the customer portal, switch to yearly or resume; every action re-checks ownership. The agency comes from the server, never from the browser's metadata.
+- `/api/billing/webhook` verifies `creem-signature` (hex HMAC-SHA256 of the raw body with `CREEM_WEBHOOK_SECRET`) in constant time and answers 400 otherwise, before parsing anything. Events are recorded by Creem event id in `billing_events` (admin read only) and skipped once processed; older events never overwrite newer state. Subscriptions are written only by the webhook (service role) or an admin.
 - Keep a `.env.example` with names and no values.
 
 ## Database (Supabase)

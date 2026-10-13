@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { type NextRequest } from "next/server";
 
+import { sendEndingNotices } from "@/lib/billing/notices";
 import { sendLeadReminders } from "@/lib/lead-reminders";
 import { purgeExpiredData } from "@/lib/retention";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,7 +11,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // shows up within an hour of its time; this daily sweep (vercel.json) refreshes the guides that
 // went live since yesterday, the /guides index and the sitemap. On Vercel Pro, change the
 // schedule to every 15 minutes ("*/15 * * * *") as the spec intends.
-// The same daily run sends lead reminders (lib/lead-reminders.ts) and deletes data past its
+// The same daily run sends lead reminders (lib/lead-reminders.ts), "Pro ends in 3 days" emails
+// (lib/billing/notices.tsx) and deletes data past its
 // retention period (lib/retention.ts): Vercel Hobby allows two crons.
 
 export const dynamic = "force-dynamic";
@@ -47,6 +49,12 @@ export async function GET(request: NextRequest) {
   } catch {
     reminders = { error: "Couldn't send lead reminders" };
   }
+  let endingNotices: unknown;
+  try {
+    endingNotices = await sendEndingNotices();
+  } catch {
+    endingNotices = { error: "Couldn't send Pro ending notices" };
+  }
   let purged: unknown;
   try {
     purged = await purgeExpiredData();
@@ -55,5 +63,5 @@ export async function GET(request: NextRequest) {
     purged = { error: "Couldn't purge expired data" };
     console.error("retention purge failed");
   }
-  return Response.json({ revalidated: data.length, reminders, purged });
+  return Response.json({ revalidated: data.length, reminders, endingNotices, purged });
 }

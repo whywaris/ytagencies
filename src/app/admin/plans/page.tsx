@@ -16,6 +16,20 @@ const SOURCE: Record<string, string> = {
   payment: "Payment",
 };
 const PER_PAGE = 50;
+// The only Creem dashboard URL the docs give; search it for the subscription id shown here.
+const CREEM_DASHBOARD = "https://www.creem.io/dashboard";
+const EVENT_LABEL: Record<string, string> = {
+  "checkout.completed": "Checkout completed",
+  "subscription.active": "Subscription active",
+  "subscription.paid": "Payment received",
+  "subscription.update": "Subscription updated",
+  "subscription.scheduled_cancel": "Cancel scheduled",
+  "subscription.past_due": "Payment failed",
+  "subscription.unpaid": "Unpaid",
+  "subscription.canceled": "Cancelled",
+  "subscription.expired": "Expired",
+  "refund.created": "Refund",
+};
 
 export default async function AdminPlansPage({ searchParams }: PageProps<"/admin/plans">) {
   await requireAdmin("/admin/plans");
@@ -25,7 +39,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
   const now = new Date();
   const in30 = new Date(now.getTime() + 30 * 86_400_000).toISOString();
 
-  const [counts, expiring, rows] = await Promise.all([
+  const [counts, expiring, rows, events] = await Promise.all([
     Promise.all(
       TABS.map((p) =>
         db.from("admin_agency_list").select("id", { count: "exact", head: true }).eq("plan", p),
@@ -47,15 +61,26 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
           .limit(PER_PAGE)
       : db
           .from("agency_subscriptions")
-          .select("id, agency_id, plan_id, starts_at, ends_at, source, agencies(name, status)")
-          .eq("status", "active")
+          .select(
+            "id, agency_id, plan_id, status, starts_at, ends_at, source, external_id, cancel_at_period_end, billing_interval, agencies(name, status)",
+          )
+          .in("status", ["active", "past_due"])
           .eq("plan_id", tab)
           .lte("starts_at", now.toISOString())
-          .or(`ends_at.is.null,ends_at.gt.${now.toISOString()}`)
+          .or(`ends_at.is.null,ends_at.gt.${now.toISOString()},status.eq.past_due`)
           .order("starts_at", { ascending: false }),
+    // Latest Creem events, for the "Last billing event" column.
+    db
+      .from("billing_events")
+      .select("agency_id, type, received_at")
+      .not("agency_id", "is", null)
+      .order("received_at", { ascending: false })
+      .limit(500),
   ]);
-  if (counts.some((c) => c.error) || expiring.error || rows.error)
+  if (counts.some((c) => c.error) || expiring.error || rows.error || events.error)
     throw new Error("Couldn't load plans");
+  const lastEvent = new Map<string, { type: string; received_at: string }>();
+  for (const ev of events.data) if (!lastEvent.has(ev.agency_id!)) lastEvent.set(ev.agency_id!, ev);
   const countOf = (p: (typeof TABS)[number]) => counts[TABS.indexOf(p)].count ?? 0;
 
   return (
@@ -63,9 +88,11 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
       <div className="flex max-w-reading flex-col gap-1">
         <h1 className="text-admin-title">Plans</h1>
         <p className="text-text-2">
-          Listings are free; managing one needs Pro. Payments are off, so Pro is granted by hand
-          (Change plan), usually after a Pro request in the Inbox. When Pro ends, the listing stays
-          public but unmanaged: no contact form, editing locked.
+          Listings are free; managing one needs Pro. Agencies buy Pro through Creem (source Payment)
+          once payments are on; you can still grant it by hand (Change plan, source Manual), e.g.
+          after a Pro request in the Inbox. When Pro ends, the listing stays public but unmanaged:
+          no contact form, editing locked. Ending a paid plan here doesn&apos;t cancel it in Creem:
+          cancel or refund it in the Creem dashboard too.
         </p>
       </div>
 
@@ -178,6 +205,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
                 <th scope="col">Started</th>
                 <th scope="col">Ends</th>
                 <th scope="col">Source</th>
+                <th scope="col">Last billing event</th>
                 <th scope="col">
                   <span className="sr-only">Action</span>
                 </th>
@@ -188,9 +216,13 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
                 rows.data as {
                   id: string;
                   agency_id: string;
+                  status: string;
                   starts_at: string;
                   ends_at: string | null;
                   source: string;
+                  external_id: string | null;
+                  cancel_at_period_end: boolean;
+                  billing_interval: string | null;
                   agencies: { name: string; status: string } | null;
                 }[]
               ).map((s) => (
@@ -205,9 +237,36 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
                   </td>
                   <td className="whitespace-nowrap num">{formatDate(s.starts_at)}</td>
                   <td className="whitespace-nowrap text-text-2 num">
-                    {s.ends_at ? formatDate(s.ends_at) : "No end date"}
+                    {s.status === "past_due"
+                      ? "Past due"
+                      : s.ends_at
+                        ? `${s.cancel_at_period_end ? "Ends" : s.source === "payment" ? "Renews" : "Ends"} ${formatDate(s.ends_at)}`
+                        : "No end date"}
                   </td>
-                  <td className="text-text-2">{SOURCE[s.source] ?? s.source}</td>
+                  <td className="text-text-2">
+                    {SOURCE[s.source] ?? s.source}
+                    {s.billing_interval &&
+                      `, ${s.billing_interval === "year" ? "yearly" : "monthly"}`}
+                    {s.external_id && (
+                      <a
+                        href={CREEM_DASHBOARD}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Open the Creem dashboard and search for this subscription"
+                        className="block font-mono text-[12px] text-accent hover:underline"
+                      >
+                        {s.external_id}
+                      </a>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap text-text-2">
+                    {(() => {
+                      const ev = lastEvent.get(s.agency_id);
+                      return ev
+                        ? `${EVENT_LABEL[ev.type] ?? ev.type}, ${formatDate(ev.received_at)}`
+                        : "None";
+                    })()}
+                  </td>
                   <td className="text-right">
                     <ChangePlanButton
                       agencyId={s.agency_id}

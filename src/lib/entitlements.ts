@@ -46,7 +46,7 @@ export type Entitlements = {
 };
 
 /** The live Pro subscription at `now`, if any (see isManaged). */
-export function liveSubscription(subscriptions: Subscription[], now = new Date()) {
+export function liveSubscription<T extends Subscription>(subscriptions: T[], now = new Date()) {
   const t = now.getTime();
   const graceMs = PAST_DUE_GRACE_DAYS * 86_400_000;
   return (

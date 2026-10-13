@@ -46,7 +46,7 @@ export default async function AgencyDashboardLayout({
               : "Your listing is unmanaged: editing is locked and businesses can't contact you. Pro lets you manage it and receive inquiries."}
           </p>
           <Link
-            href={`/dashboard/${agency.id}/plan`}
+            href={`/dashboard/${agency.id}/billing`}
             className="self-start font-semibold text-accent hover:underline"
           >
             {lapsed ? "Renew Pro" : "Get Pro"}

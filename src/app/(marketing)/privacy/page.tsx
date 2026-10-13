@@ -9,7 +9,7 @@ import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
 // (lib/actions), the analytics beacon (api/events), sign-in (Supabase), emails (Resend) and
 // Turnstile. LAUNCH: have it reviewed for your jurisdiction before launch.
 
-const UPDATED = "2026-10-12";
+const UPDATED = "2026-10-13";
 const TITLE = "Privacy policy";
 const DESCRIPTION =
   "What YT Agencies collects when you browse, send an inquiry or manage a listing, who receives it, how long we keep it, and how to get a copy or have it deleted.";
@@ -142,8 +142,9 @@ const sections: LegalSection[] = [
           </li>
         </ul>
         <p>
-          When paid plans go on sale, the payment provider that sells them will process payment
-          details. We never see or store card numbers.
+          Creem sells Pro as merchant of record: it processes payment details, your billing address
+          and tax information, and sends receipts. We receive your email, Creem customer and
+          subscription ids and the plan&apos;s status, never card numbers.
         </p>
       </>
     ),

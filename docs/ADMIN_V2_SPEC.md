@@ -200,8 +200,8 @@ Unmanaged profiles replace Contact with "Get matched with similar agencies" (`/g
 - **/for-agencies/pricing** page: three columns (Listing: free, can't be contacted; Pro $29/mo or $279/yr with a monthly/yearly toggle and "Save 20%"; Sponsored from $49/mo per page, Pro + Verified only). While `PAYMENTS_ENABLED !== "true"`, every "Get Pro" opens a Request Pro form (name, email, agency, monthly/yearly) that lands in Admin → Inbox (topic `pro`) and emails help@; the admin grants Pro by hand (source manual). Sponsored shows "Contact us".
 - Agency dashboard: shows current plan, entitlements, and an analytics panel (profile views, website clicks, inquiries) limited to the plan's history window.
 
-### Payments (not active)
-- Create a `lib/billing/` interface (`createCheckout`, `handleWebhook`, `cancel`) with a no-op implementation. Provider (Lemon Squeezy or Paddle) will be added later. Everything gated by `PAYMENTS_ENABLED`.
+### Payments (Creem)
+- `lib/billing/` interface (`createCheckout`, `portalUrl`, `switchToYearly`, `resume`), implemented by Creem (`lib/billing/creem.ts`); webhooks at `/api/billing/webhook` map Creem events to `agency_subscriptions` (source `payment`) and log them in `billing_events`. Checkout is gated by `PAYMENTS_ENABLED` and the Creem env (docs/LAUNCH.md "Creem").
 
 ---
 

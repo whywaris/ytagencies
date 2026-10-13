@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
 // Pro's price with a monthly/yearly toggle, and its button: "Get Pro" opens the Request Pro form
-// while payments are off.
+// while payments are off, and leads to the Creem checkout once they're on.
 export function ProBilling({
   monthly,
   yearly,
@@ -57,8 +57,9 @@ export function ProBilling({
         </span>
       </p>
       {live ? (
+        // Sign in if needed, then the agency's Billing page starts the Creem checkout.
         <Link
-          href="/login?next=/dashboard"
+          href={`/dashboard/billing?interval=${period === "yearly" ? "year" : "month"}`}
           className="inline-flex h-11 items-center self-start rounded-full bg-accent px-5 font-semibold text-on-accent"
         >
           Get Pro

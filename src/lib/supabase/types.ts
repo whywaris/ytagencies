@@ -397,6 +397,10 @@ export type Database = {
         Row: {
           cancel_at_period_end: boolean;
           past_due_since: string | null;
+          billing_interval: string | null;
+          customer_id: string | null;
+          last_event_at: string | null;
+          ending_notice_sent_at: string | null;
           agency_id: string;
           created_at: string;
           ends_at: string | null;
@@ -411,6 +415,10 @@ export type Database = {
         Insert: {
           cancel_at_period_end?: boolean;
           past_due_since?: string | null;
+          billing_interval?: string | null;
+          customer_id?: string | null;
+          last_event_at?: string | null;
+          ending_notice_sent_at?: string | null;
           agency_id: string;
           created_at?: string;
           ends_at?: string | null;
@@ -425,6 +433,10 @@ export type Database = {
         Update: {
           cancel_at_period_end?: boolean;
           past_due_since?: string | null;
+          billing_interval?: string | null;
+          customer_id?: string | null;
+          last_event_at?: string | null;
+          ending_notice_sent_at?: string | null;
           agency_id?: string;
           created_at?: string;
           ends_at?: string | null;
@@ -439,6 +451,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agency_subscriptions_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      billing_events: {
+        Row: {
+          id: string;
+          type: string;
+          agency_id: string | null;
+          payload: Json;
+          received_at: string;
+          processed_at: string | null;
+        };
+        Insert: {
+          id: string;
+          type: string;
+          agency_id?: string | null;
+          payload: Json;
+          received_at?: string;
+          processed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          type?: string;
+          agency_id?: string | null;
+          payload?: Json;
+          received_at?: string;
+          processed_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_agency_id_fkey";
             columns: ["agency_id"];
             isOneToOne: false;
             referencedRelation: "agencies";

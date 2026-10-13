@@ -1,34 +1,46 @@
 import "server-only";
 
-// Billing interface (ADMIN_V2_SPEC §6). Payments are off: the active implementation is a no-op
-// that says so. A provider (Lemon Squeezy or Paddle) implements `Billing` later and replaces
-// `noop` below; nothing else in the app should talk to the provider.
-// Everything is gated by PAYMENTS_ENABLED, which must be exactly "true" (SECURITY.md).
+import { creem, creemConfig } from "@/lib/billing/creem";
+
+export { creemConfig };
+
+// Billing interface (ADMIN_V2_SPEC §6). Creem (merchant of record) implements it; nothing else in
+// the app talks to Creem. Checkout is gated by PAYMENTS_ENABLED, which must be exactly "true"
+// (SECURITY.md), and by the Creem env being present. Webhooks are applied whenever the webhook
+// secret is set, so existing subscriptions stay in sync even if checkout is switched off.
 
 export const paymentsEnabled = () => process.env.PAYMENTS_ENABLED === "true";
 
 export type BillingResult<T> = { ok: true; data: T } | { ok: false; error: string };
+export type Interval = "month" | "year";
 
 export type Billing = {
-  /** Starts a checkout for an agency; returns the provider's checkout URL. */
+  /** A Creem checkout for Pro; returns the hosted checkout URL. */
   createCheckout(input: {
     agencyId: string;
-    plan: "pro";
-    interval: "month" | "year";
-    returnUrl: string;
+    userId: string;
+    email: string | null;
+    interval: Interval;
+    successUrl: string;
   }): Promise<BillingResult<{ url: string }>>;
-  /** Verifies and applies a provider webhook (subscription created, renewed, cancelled…). */
-  handleWebhook(request: Request): Promise<BillingResult<{ handled: boolean }>>;
-  /** Cancels an agency's paid subscription at the end of the current period. */
-  cancel(agencyId: string): Promise<BillingResult<null>>;
+  /** The customer portal: card, cancel, invoices. */
+  portalUrl(customerId: string): Promise<BillingResult<{ url: string }>>;
+  /** Monthly → yearly on the same subscription (prorated now). */
+  switchToYearly(subscriptionId: string): Promise<BillingResult<null>>;
+  /** Undo a cancel scheduled for the period end. */
+  resume(subscriptionId: string): Promise<BillingResult<null>>;
 };
+
+/** "Get Pro" starts a checkout (instead of the Request Pro form). */
+export const checkoutAvailable = () => paymentsEnabled() && creemConfig() !== null;
 
 const OFF = { ok: false as const, error: "Payments aren't enabled yet." };
-
 const noop: Billing = {
   createCheckout: async () => OFF,
-  handleWebhook: async () => OFF,
-  cancel: async () => OFF,
+  portalUrl: async () => OFF,
+  switchToYearly: async () => OFF,
+  resume: async () => OFF,
 };
 
-export const billing: Billing = noop;
+/** Portal, switch and resume work for existing subscribers even if new checkouts are off. */
+export const billing = (): Billing => (creemConfig() ? creem : noop);

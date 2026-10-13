@@ -125,13 +125,36 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    | `ADMIN_EMAIL` | server | recommended | Gets a note for every new lead, agency submission and claim that needs review. Unset: those notes are skipped (the admin queues still show everything). |
    | `EMAIL_FROM` | server | no | Defaults to `YT Agencies <help@send.ytagencies.com>` (the Resend-verified subdomain). Every email the app sends sets Reply-To `help@ytagencies.com`, except lead emails to agencies, which reply to the business. |
    | `MEDIA_HOSTS` | server | yes | Host name(s) of your Cloudflare image hosting, comma-separated, e.g. `images.ytagencies.com` (an R2 bucket on a custom domain) or `imagedelivery.net` (Cloudflare Images). Guide covers are pasted links and must be on one of these; it also opens the CSP `img-src` and `next/image` to them. Changing it needs a redeploy. |
-   | `PAYMENTS_ENABLED` | server | no | Leave unset for launch. Only exactly `true` turns payments on; while off nothing is charged, billing is a no-op and "Get Pro" opens the Request Pro form (Admin → Inbox); grant Pro in Agencies → Change plan. |
+   | `PAYMENTS_ENABLED` | server | no | Only exactly `true` turns checkout on (with the Creem variables below). While off nothing is charged and "Get Pro" opens the Request Pro form (Admin → Inbox); grant Pro in Agencies → Change plan. |
+   | `CREEM_API_KEY` | server, secret | for payments | Creem API key. Test key on Preview/local, live key on Production ("Creem" below). |
+   | `CREEM_WEBHOOK_SECRET` | server, secret | for payments | The webhook's signing secret from Creem. Without it, payments don't update plans. |
+   | `CREEM_PRODUCT_PRO_MONTHLY` | server | for payments | Product id of "YT Agencies Pro" monthly (`prod_…`). |
+   | `CREEM_PRODUCT_PRO_YEARLY` | server | for payments | Product id of "YT Agencies Pro" yearly (`prod_…`). |
+   | `CREEM_TEST_MODE` | server | no | `true` uses Creem's test API (`test-api.creem.io`). Set on Preview and local; leave unset on Production. |
 
 3. Enable Web Analytics.
 4. Cron jobs come from `vercel.json` and run on Production only:
    - `/api/cron/verification-stats` on the 1st of each month at 06:00 UTC (re-checks verified channels' YouTube stats).
    - `/api/cron/guides` daily at 07:00 UTC. It refreshes guides whose scheduled time passed (guide pages also refresh hourly, so a scheduled guide appears within an hour either way; on Vercel Pro you can run it every 15 minutes, `*/15 * * * *`), sends the one "A business is waiting for your reply" email for leads not marked contacted after 24 hours, and deletes data past its retention period: leads after 24 months, closed contact messages 12 months after closing (set in `src/lib/company.ts`, shown in the privacy policy). Its response and logs hold counts only.
    After the first deploy, check both under Project → Settings → Cron Jobs and run each once with "Run" to see a 200.
+
+## Creem (payments for Pro)
+
+Creem is the merchant of record: it charges, handles tax and sends receipts and invoices. Test mode and live mode are separate (keys, products and webhooks don't carry over).
+
+1. **Account and verification.** Sign up at creem.io, create the store "YT Agencies", and complete account verification in the dashboard (Balances → Payout Account). Live payments need it; test mode works before it.
+2. **Products (test mode first).** Toggle Test Mode (bottom of the left sidebar). Create two recurring products, both named "YT Agencies Pro": $29, billed every month, and $279, billed every year. The Creem docs only let an existing customer switch plans between products in a bundle with self-service upgrades, so also put both in one product bundle if you want switching from the portal (our "Switch to yearly" button works either way, through the API). Copy each product id (`prod_…`).
+3. **Webhook (test).** Developers → Webhooks → add an endpoint. Dev: a tunnel to your machine (e.g. `ngrok http 3000`, then `https://<tunnel>/api/billing/webhook`), or the Preview deployment's URL plus `/api/billing/webhook`. Copy its signing secret.
+4. **Keys (test).** Developers → API keys (with Test Mode on) → copy the test key.
+5. **Env (Preview and `.env.local`).** `CREEM_API_KEY` = test key, `CREEM_WEBHOOK_SECRET` = test webhook secret, `CREEM_PRODUCT_PRO_MONTHLY` / `CREEM_PRODUCT_PRO_YEARLY` = the test product ids, `CREEM_TEST_MODE=true`, `PAYMENTS_ENABLED=true`. Admin → Settings → Payments then says "On (test mode)".
+6. **Test the flow.** As an agency owner: Dashboard → Billing → Get Pro (monthly). Pay with `4111 1111 1111 1111`, any future date, any CVC. You land on Billing with "Payment received"; within seconds the plan shows Pro, the profile gets its contact form, and you get "You're on Pro". Then check:
+   - Admin → Plans: source Payment, the `sub_…` id, last event "Payment received".
+   - Billing → Switch to yearly: the interval changes after the webhook.
+   - Billing → Manage billing opens the Creem portal; cancel there: the plan ends (the portal cancels immediately) and "Your Pro plan has ended" arrives.
+   - A declined card (`4507 9900 0000 0028`) at checkout shows Creem's error and changes nothing.
+   - Creem dashboard → Developers → Webhooks: every delivery answered 200. Resending one is ignored (already processed).
+7. **Go live.** Turn Test Mode off and repeat steps 2–4 in live mode: create the two products again (new ids), add the webhook `https://ytagencies.com/api/billing/webhook` (new secret), copy the live API key. On Vercel **Production** set the live values, leave `CREEM_TEST_MODE` unset, and set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $29 purchase on your own agency, then refund it in Creem (a full refund ends Pro straight away).
+8. **Ongoing.** Refunds and cancellations happen in the Creem dashboard; the webhook updates the plan. Ending a paid plan from Admin → Change plan only changes our side, so cancel it in Creem too.
 
 ## Cloudflare DNS (DNS-only, grey cloud)
 
@@ -150,7 +173,7 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 
 ## After deploy
 
-1. End-to-end test with real services: magic link (opened in a different browser than the one that asked for it), Google sign-in, Turnstile, the three lead emails, a domain-matched claim, a logo upload, a verification lookup (YouTube API), and a guide image upload.
+1. End-to-end test with real services: a Creem test purchase ("Creem" step 6), magic link (opened in a different browser than the one that asked for it), Google sign-in, Turnstile, the three lead emails, a domain-matched claim, a logo upload, a verification lookup (YouTube API), and a guide image upload.
 2. Check `https://www.ytagencies.com/x` returns 308 to `https://ytagencies.com/x`, and canonicals, sitemaps and JSON-LD use `https://ytagencies.com`.
 3. PageSpeed Insights on mobile: home, a directory page, a profile.
 4. Google Search Console and Bing Webmaster Tools: verify `ytagencies.com` (domain property) and submit the three `/sitemaps/*.xml` files.

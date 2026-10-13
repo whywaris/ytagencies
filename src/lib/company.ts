@@ -67,11 +67,8 @@ export const COMPANY = {
     yearlyFullRefundDays: 14,
   },
 
-  /**
-   * Payment provider that sells our plans as merchant of record (Lemon Squeezy or Paddle).
-   * TODO once payments go live; until then the refund page says plans aren't on sale.
-   */
-  paymentProvider: null as string | null,
+  /** Payment provider that sells Pro as merchant of record (lib/billing/creem.ts). */
+  paymentProvider: "Creem" as string | null,
 } as const;
 
 /** The name to put after ©: the legal name once it's filled in. */

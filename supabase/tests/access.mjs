@@ -1345,5 +1345,45 @@ ok(
   ),
   "case studies: at most 3 metrics",
 );
+console.log("— Creem billing (migration 20261021000100) —");
+await db.exec(`insert into billing_events (id, type, agency_id, payload, processed_at)
+  values ('evt_test_1', 'subscription.paid', '${SALT}', '{"id":"evt_test_1"}', now())`);
+ok(
+  await fails(
+    `insert into billing_events (id, type, payload) values ('evt_test_1', 'subscription.paid', '{}')`,
+  ),
+  "billing_events: a Creem event id is stored once",
+);
+await as("anon", null, async () =>
+  ok(await denied("select * from billing_events"), "billing_events: anon can't read"),
+);
+await as("authenticated", OWNER, async () => {
+  ok(await denied("select * from billing_events"), "billing_events: an owner can't read");
+  ok(
+    await denied(`insert into billing_events (id, type, payload) values ('evt_x', 'x', '{}')`),
+    "billing_events: an owner can't write",
+  );
+});
+await as("authenticated", ADMIN, async () =>
+  ok(
+    (await rows("select id from billing_events where id = 'evt_test_1'")).length === 1,
+    "billing_events: an admin can read",
+  ),
+);
+await db.exec(`delete from agency_subscriptions where agency_id = '${SALT}';
+  insert into agency_subscriptions (agency_id, plan_id, source, status, ends_at, external_id, billing_interval)
+    values ('${SALT}', 'pro', 'payment', 'cancelled', now() + interval '1 day', 'sub_dupe', 'month')`);
+ok(
+  await fails(
+    `insert into agency_subscriptions (agency_id, plan_id, source, external_id) values ('${SALT}', 'pro', 'payment', 'sub_dupe')`,
+  ),
+  "subscriptions: a Creem subscription id maps to one row",
+);
+ok(
+  await fails(
+    `update agency_subscriptions set billing_interval = 'week' where external_id = 'sub_dupe'`,
+  ),
+  "subscriptions: billing interval is month or year",
+);
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

@@ -10,7 +10,8 @@ export function DashboardTabs({ agencyId }: { agencyId: string }) {
   const tabs = [
     { href: `/dashboard/${agencyId}`, label: "Profile" },
     { href: `/dashboard/${agencyId}/leads`, label: "Leads" },
-    { href: `/dashboard/${agencyId}/plan`, label: "Plan and analytics" },
+    { href: `/dashboard/${agencyId}/billing`, label: "Billing" },
+    { href: `/dashboard/${agencyId}/plan`, label: "Analytics" },
   ];
   return (
     <nav aria-label="Listing sections" className="flex gap-6 border-b border-line">

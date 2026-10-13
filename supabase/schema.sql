@@ -496,6 +496,11 @@ create table agency_subscriptions (
   external_id text,
   cancel_at_period_end boolean not null default false,
   past_due_since timestamptz,
+  -- Creem (lib/billing): interval, customer (for the portal), last applied event, 3-day notice.
+  billing_interval text check (billing_interval in ('month', 'year')),
+  customer_id text check (char_length(customer_id) <= 200),
+  last_event_at timestamptz,
+  ending_notice_sent_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (ends_at is null or ends_at > starts_at),
@@ -504,6 +509,19 @@ create table agency_subscriptions (
 create unique index agency_subscriptions_one_active on agency_subscriptions (agency_id)
   where status in ('active', 'past_due');
 create index agency_subscriptions_ends_at_idx on agency_subscriptions (ends_at) where status = 'active';
+create unique index agency_subscriptions_external_id on agency_subscriptions (external_id)
+  where source = 'payment';
+
+-- Creem webhook events, by Creem event id: retries are skipped once processed.
+create table billing_events (
+  id text primary key check (char_length(id) between 1 and 200),
+  type text not null check (char_length(type) between 1 and 100),
+  agency_id uuid references agencies(id) on delete set null,
+  payload jsonb not null,
+  received_at timestamptz not null default now(),
+  processed_at timestamptz
+);
+create index billing_events_agency_idx on billing_events (agency_id, received_at desc);
 
 -- ───────── Sponsored slots ─────────
 -- A page is a service hub (no industry/location), service × industry or service × location.
@@ -680,6 +698,11 @@ create policy "owner or admin read" on agency_event_daily for select to authenti
   is_admin() or exists (select 1 from agencies a where a.id = agency_id and a.owner_id = auth.uid()));
 
 create policy "admin read" on admin_actions for select to authenticated using (is_admin());
+
+alter table billing_events enable row level security;
+revoke all on billing_events from anon, authenticated;
+grant select on billing_events to authenticated;
+create policy "admin read" on billing_events for select to authenticated using (is_admin());
 
 -- ───────── Admin agencies list (ADMIN_V2_SPEC §5.2) ─────────
 -- Owner-rights view across subscriptions and lead routes: service role only.

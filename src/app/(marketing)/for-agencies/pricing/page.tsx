@@ -4,7 +4,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { ProBilling } from "@/components/pro-billing";
 import { Button } from "@/components/ui/button";
-import { paymentsEnabled } from "@/lib/billing";
+import { checkoutAvailable } from "@/lib/billing";
 import { COMPANY } from "@/lib/company";
 import { getPlanPrices } from "@/lib/data/placement";
 import { breadcrumbJsonLd } from "@/lib/seo/json-ld";
@@ -13,8 +13,8 @@ import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 
 export const revalidate = 3600;
 
-// Listings are free; managing one takes Pro (lib/entitlements.ts). While PAYMENTS_ENABLED isn't
-// "true", Get Pro opens the Request Pro form and Sponsored placements are arranged by email.
+// Listings are free; managing one takes Pro (lib/entitlements.ts). Until checkout is available
+// (PAYMENTS_ENABLED and the Creem env, lib/billing), Get Pro opens the Request Pro form and Sponsored placements are arranged by email.
 
 export const metadata = buildMetadata({
   title: `Pricing for YouTube agencies | ${BRAND_NAME}`,
@@ -37,7 +37,7 @@ const PRO_YEARLY_USD = 279;
 
 export default async function PricingPage() {
   const pro = (await getPlanPrices()).get("pro");
-  const live = paymentsEnabled();
+  const live = checkoutAvailable();
 
   return (
     <>
