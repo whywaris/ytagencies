@@ -131,13 +131,14 @@ export async function deleteCaseStudy(agencyId: string, caseStudyId: string): Pr
 }
 
 /**
- * Asks for the Verified badge (§5.4, §6). Any owner can request, managed or not; Pro is reviewed first.
+ * Asks for the Verified badge (§5.4, §6). Managed (Pro) listings only.
  * Owners can't write verifications under RLS, so this inserts with the service role after the
  * ownership check. One open request per agency (unique index).
  */
 export async function requestVerification(agencyId: string, urls: string[]): Promise<FormResult> {
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) return { ok: false, error: NOT_OWNER };
+  // Verification is part of managing a listing: Pro only, like editing.
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
   const list = Array.isArray(urls)
     ? urls
         .filter((u): u is string => typeof u === "string")

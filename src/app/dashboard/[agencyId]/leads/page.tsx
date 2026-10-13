@@ -1,20 +1,22 @@
-import { notFound } from "next/navigation";
-
 import { MarkContacted } from "@/components/dashboard/mark-contacted";
-import { getOwnedAgency } from "@/lib/auth";
-import { getEntitlements } from "@/lib/data/entitlements";
+import { Paywall } from "@/components/dashboard/paywall";
+import { dashboardContext } from "@/lib/data/dashboard";
 import { BUDGET_RANGES } from "@/lib/validation/lead";
 
-export const metadata = { title: "Leads" };
+export const metadata = { title: "Inquiries" };
 
 export default async function LeadsPage({ params }: PageProps<"/dashboard/[agencyId]/leads">) {
-  const owned = await getOwnedAgency((await params).agencyId);
-  if (!owned) notFound();
-  const { agency, supabase } = owned;
+  const ctx = await dashboardContext((await params).agencyId);
+  if (!ctx.e.managed)
+    return (
+      <Paywall
+        ctx={ctx}
+        unlocks="With Pro, businesses contact you and their inquiries land here."
+      />
+    );
+  const { agency, supabase } = ctx;
 
-  // RLS: owners only see leads routed to their own agencies. Past leads stay readable after Pro
-  // ends; Mark as contacted needs Pro (it feeds the reply time on the profile).
-  const e = await getEntitlements(agency.id);
+  // RLS: owners only see leads routed to their own agencies.
   const { data, error } = await supabase
     .from("lead_routes")
     .select(
@@ -81,7 +83,7 @@ export default async function LeadsPage({ params }: PageProps<"/dashboard/[agenc
               {l.contactedAt ? (
                 <p className="text-small">Contacted {day(l.contactedAt)}</p>
               ) : (
-                e.managed && <MarkContacted agencyId={agency.id} leadId={l.id} />
+                <MarkContacted agencyId={agency.id} leadId={l.id} />
               )}
             </div>
           </li>

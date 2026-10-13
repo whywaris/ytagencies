@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getAdminUser, requireUser } from "@/lib/auth";
 import { signOut } from "@/lib/actions/auth";
 import { BRAND_NAME } from "@/lib/site";
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
             <Logo className="h-7 w-auto" />
           </Link>
           <div className="flex min-w-0 items-center gap-4 text-small">
+            <ThemeToggle />
             <span className="hidden truncate sm:inline">{user.email}</span>
             {isAdmin && (
               <Link
@@ -40,7 +42,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
           </div>
         </div>
       </header>
-      <main id="main" className="mx-auto max-w-content px-4 py-12 md:px-6">
+      <main id="main" className="mx-auto max-w-[1240px] px-4 pt-7 pb-20 md:px-6">
         {children}
       </main>
     </>

@@ -1,60 +1,94 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 
+import { AgencyLogo } from "@/components/agency-logo";
 import { DashboardTabs } from "@/components/dashboard/tabs";
-import { getOwnedAgency } from "@/lib/auth";
-import { getEntitlements } from "@/lib/data/entitlements";
+import { btnLight, btnPrimary } from "@/components/dashboard/ui";
+import { UpgradeDialog } from "@/components/dashboard/upgrade-dialog";
+import { COMPANY } from "@/lib/company";
+import { dashboardContext } from "@/lib/data/dashboard";
+import { cn } from "@/lib/utils";
 
+// docs/mockups/agency-dashboard.html: the agency, its plan pill and actions, a section sidebar.
 export default async function AgencyDashboardLayout({
   children,
   params,
 }: LayoutProps<"/dashboard/[agencyId]">) {
-  const { agencyId } = await params;
-  // Someone else's agency id is a 404, not a "forbidden" that confirms it exists.
-  const owned = await getOwnedAgency(agencyId);
-  if (!owned) notFound();
-  const { agency, supabase } = owned;
-  const [e, past] = await Promise.all([
-    getEntitlements(agency.id),
-    supabase
-      .from("agency_subscriptions")
-      .select("id", { count: "exact", head: true })
-      .eq("agency_id", agency.id),
-  ]);
-  const lapsed = (past.count ?? 0) > 0;
+  const ctx = await dashboardContext((await params).agencyId);
+  const { agency, supabase, e, lapsed, pro } = ctx;
+  const { count: waiting } = e.managed
+    ? await supabase
+        .from("lead_routes")
+        .select("lead_id", { count: "exact", head: true })
+        .eq("agency_id", agency.id)
+        .is("contacted_at", null)
+    : { count: 0 };
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-h1">{agency.name}</h1>
-        {agency.status === "published" ? (
-          <Link href={`/agency/${agency.slug}`} className="self-start text-accent hover:underline">
-            View public profile
-          </Link>
-        ) : (
-          <p className="text-small">This listing isn&apos;t public yet ({agency.status}).</p>
-        )}
-      </header>
-      {!e.managed && (
-        <div
-          role="status"
-          className="flex flex-col gap-2 rounded-lg border border-line bg-(--amber-soft) px-4 py-3 text-[15px] text-text"
-        >
-          <p>
-            {lapsed
-              ? "Your Pro plan has ended, so your listing is unmanaged: editing is locked and businesses can't contact you. Your details are kept and your profile stays public."
-              : "Your listing is unmanaged: editing is locked and businesses can't contact you. Pro lets you manage it and receive inquiries."}
+    <div className="grid gap-6 min-[900px]:grid-cols-[200px_minmax(0,1fr)] min-[900px]:gap-10">
+      <div className="min-[900px]:row-span-2">
+        <DashboardTabs agencyId={agency.id} managed={e.managed} waiting={waiting ?? 0} />
+      </div>
+      <div className="flex min-w-0 flex-col gap-[22px]">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <AgencyLogo name={agency.name} logoPath={agency.logo_path} />
+            <div className="min-w-0">
+              <h1 className="truncate text-[26px] font-[650] tracking-[-0.03em]">{agency.name}</h1>
+              <div className="flex flex-wrap items-center gap-2.5 text-[13.5px] text-text-2">
+                <span
+                  className={cn(
+                    "inline-flex h-[22px] items-center rounded-full px-[9px] text-[12px] font-[650]",
+                    e.managed
+                      ? "bg-(--accent-soft) text-(--accent-on-soft)"
+                      : "bg-surface text-text",
+                  )}
+                >
+                  {e.managed ? "Pro" : "Not managed"}
+                </span>
+                <span className="capitalize">{agency.status}</span>
+                {agency.status === "published" && (
+                  <Link
+                    href={`/agency/${agency.slug}`}
+                    className="font-semibold text-accent hover:underline"
+                  >
+                    View public profile
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            {e.managed ? (
+              <Link href={`/dashboard/${agency.id}/profile`} className={btnLight}>
+                Edit profile
+              </Link>
+            ) : (
+              <UpgradeDialog
+                className={btnPrimary}
+                label={lapsed ? "Renew Pro" : "Get Pro"}
+                agencyId={agency.id}
+                agencyUrl={pro.agencyUrl}
+                monthly={pro.monthly}
+                yearly={pro.yearly}
+                saving={pro.saving}
+                live={pro.checkout}
+                from="billing"
+                refundDays={COMPANY.refunds.yearlyFullRefundDays}
+              />
+            )}
+          </div>
+        </header>
+        {lapsed && (
+          <p role="status" className="rounded-2xl bg-(--amber-soft) px-[18px] py-4 text-[15px]">
+            <b className="block">Your Pro plan has ended</b>
+            <span className="text-text-2">
+              Your profile stays public with the details you added, but editing is locked and
+              businesses can&apos;t contact you. Renew Pro to manage it again.
+            </span>
           </p>
-          <Link
-            href={`/dashboard/${agency.id}/billing`}
-            className="self-start font-semibold text-accent hover:underline"
-          >
-            {lapsed ? "Renew Pro" : "Get Pro"}
-          </Link>
-        </div>
-      )}
-      <DashboardTabs agencyId={agency.id} />
-      {children}
+        )}
+        {children}
+      </div>
     </div>
   );
 }

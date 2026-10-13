@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { RequestVerification } from "@/components/dashboard/request-verification";
 import { getOwnedAgency } from "@/lib/auth";
 import { getEntitlements } from "@/lib/data/entitlements";
 
@@ -14,26 +13,21 @@ function daysAgo(n: number) {
   return new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 }
 
-export default async function PlanPage({ params }: PageProps<"/dashboard/[agencyId]/plan">) {
+export default async function AnalyticsPage({
+  params,
+}: PageProps<"/dashboard/[agencyId]/analytics">) {
   const owned = await getOwnedAgency((await params).agencyId);
   if (!owned) notFound();
   const { agency, supabase } = owned;
   const e = await getEntitlements(agency.id);
 
   // §6: analytics limited to the plan's history window. Owners read their own rollups (RLS).
-  const [events, verifications] = await Promise.all([
-    supabase
-      .from("agency_event_daily")
-      .select("type, source, count")
-      .eq("agency_id", agency.id)
-      .gte("day", daysAgo(e.analyticsDays)),
-    supabase
-      .from("verifications")
-      .select("status")
-      .eq("agency_id", agency.id)
-      .in("status", ["requested", "approved"]),
-  ]);
-  if (events.error || verifications.error) throw new Error("Couldn't load your plan");
+  const events = await supabase
+    .from("agency_event_daily")
+    .select("type, source, count")
+    .eq("agency_id", agency.id)
+    .gte("day", daysAgo(e.analyticsDays));
+  if (events.error) throw new Error("Couldn't load analytics");
   const totals = { profile_view: 0, website_click: 0, inquiry: 0 };
   // Website clicks by where the link was (utm_content, lib/outbound.ts).
   const bySource = { profile: 0, directory: 0, home_hero: 0, guide: 0 };
@@ -42,8 +36,6 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
     if (r.type === "website_click" && r.source in bySource)
       bySource[r.source as keyof typeof bySource] += r.count;
   }
-  const approved = verifications.data.some((v) => v.status === "approved");
-  const requested = verifications.data.some((v) => v.status === "requested");
   const window = e.analyticsDays >= 365 ? "12 months" : "30 days";
 
   return (
@@ -105,28 +97,6 @@ export default async function PlanPage({ params }: PageProps<"/dashboard/[agency
             </Link>
             .
           </p>
-        )}
-      </section>
-
-      <section aria-labelledby="verification" className="flex flex-col gap-4">
-        <h2 id="verification" className="text-h2">
-          Verified badge
-        </h2>
-        {approved ? (
-          <p>Your agency is verified. The badge shows on your profile and in the directory.</p>
-        ) : requested ? (
-          <p className="max-w-reading">
-            Your request is in review. We check your channels, your website and your business, and
-            email you when it&apos;s decided.
-          </p>
-        ) : (
-          <>
-            <p className="max-w-reading text-text-2">
-              We check your YouTube channels, your website domain and that your business is real.
-              Any agency can ask, managed or not.
-            </p>
-            <RequestVerification agencyId={agency.id} />
-          </>
         )}
       </section>
     </div>

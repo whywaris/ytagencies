@@ -156,7 +156,7 @@ export default async function BillingPage({
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap gap-3">
                 {(["month", "year"] as const).map((i) => (
-                  <form key={i} action={startCheckout.bind(null, agency.id, i)}>
+                  <form key={i} action={startCheckout.bind(null, agency.id, i, "billing")}>
                     <Button type="submit" className={i === preferred ? undefined : outline}>
                       {i === "month"
                         ? `Get Pro, ${usd(monthly)} a month`
