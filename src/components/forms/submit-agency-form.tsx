@@ -32,6 +32,7 @@ import { PRICING_LABEL } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 import { submitAgencySchema, type SubmitAgencyInput } from "@/lib/validation/listing";
 import { EMPTY_DETAILS, EMPTY_SERVICE_DETAIL, focusTotal } from "@/lib/validation/profile-details";
+import { track } from "@/lib/track";
 
 type Option = { slug: string; name: string };
 type Country = Option & { cities: Option[] };
@@ -161,10 +162,12 @@ export function SubmitAgencyForm({
     const res = await submitAgency(values);
     if (res.ok) {
       setDone(res.data);
-      if (subscribe && live && res.data.agencyId)
+      if (subscribe && live && res.data.agencyId) {
+        track("checkout_start", { interval: period === "yearly" ? "year" : "month" });
         startRedirect(() =>
           startSubmissionCheckout(res.data.agencyId, period === "yearly" ? "year" : "month"),
         );
+      }
       return;
     }
     setTurnstileReset((n) => n + 1); // tokens are single-use

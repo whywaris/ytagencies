@@ -1,13 +1,14 @@
 import Link from "next/link";
 
+import { CookieSettingsButton } from "@/components/analytics";
 import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
 import { COMPANY } from "@/lib/company";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
 
 // Describes exactly what the code collects today. Keep it in sync with the code: forms
-// (lib/actions), the analytics beacon (api/events), sign-in (Supabase), emails (Resend) and
-// Turnstile. LAUNCH: have it reviewed for your jurisdiction before launch.
+// (lib/actions), the analytics beacon (api/events), Google Analytics (components/analytics.tsx,
+// after consent), sign-in (Supabase), emails (Resend) and Turnstile. LAUNCH: have it reviewed for your jurisdiction before launch.
 
 const UPDATED = "2026-10-13";
 const TITLE = "Privacy policy";
@@ -46,6 +47,15 @@ const sections: LegalSection[] = [
         <p>
           You can read the directory and guides without an account. Vercel Web Analytics counts page
           views without cookies and without identifying you.
+        </p>
+        <p>
+          Only if you accept analytics cookies, Google Analytics records how the public pages are
+          used: the pages you view, roughly where you are (country and city from your IP address,
+          which Google doesn&apos;t store), your device and browser, how you arrived, and a few
+          actions such as sending an inquiry form, with no names, emails, messages or search text.
+          It sets the cookies listed in our <Link href="/cookies">cookie policy</Link>. Until you
+          accept, and if you decline, it stores nothing in your browser. It never runs in the agency
+          dashboard, the claim pages, sign-in or admin.
         </p>
         <p>
           When you view an agency&apos;s profile, open its contact form or click its website link,
@@ -134,6 +144,10 @@ const sections: LegalSection[] = [
         <ul>
           <li>Supabase: database, sign-in and file storage</li>
           <li>Vercel: hosting and analytics</li>
+          <li>
+            Google Analytics: website statistics, only after you accept analytics cookies. Google
+            keeps this data for up to 14 months.
+          </li>
           <li>Resend: sending emails</li>
           <li>Cloudflare: bot protection (Turnstile) and image hosting</li>
           <li>
@@ -191,6 +205,12 @@ const sections: LegalSection[] = [
           use it. Write to <a href={`mailto:${email}`}>{email}</a> or use the{" "}
           <Link href="/contact?topic=privacy">privacy request form</Link>. We answer{" "}
           {COMPANY.responseTimes.privacy}.
+        </p>
+        <p>
+          You can withdraw your consent to analytics cookies at any time with{" "}
+          <CookieSettingsButton className="font-medium text-accent underline underline-offset-2" />{" "}
+          (also in the footer): choose Decline, and clear the <code>_ga</code> cookies in your
+          browser if you like.
         </p>
         <p>
           We may ask you to confirm the request from the email address it concerns. When we delete
@@ -259,7 +279,7 @@ export default function PrivacyPage() {
       summary={[
         "We collect what's needed to connect businesses with agencies: your details when you send an inquiry, write to us or manage a listing.",
         "Your inquiry goes to the agencies you contact or are matched with. We don't sell your data or show ads.",
-        "We use no advertising or tracking cookies, and analytics don't identify you.",
+        "No advertising cookies. Google Analytics cookies are set only if you accept them, and you can change your mind any time.",
         `You can ask for a copy of your data or have it deleted at any time: ${email}.`,
       ]}
       sections={sections}

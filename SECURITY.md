@@ -5,7 +5,8 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 ## Secrets & environment
 
 - Secrets live only in Vercel env vars and a local `.env.local` (git-ignored). Never commit them.
-- Only variables prefixed `NEXT_PUBLIC_` may reach the browser. Exactly three are allowed: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (public by design; the secret stays server-side).
+- Only variables prefixed `NEXT_PUBLIC_` may reach the browser. Exactly four are allowed: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (public by design; the secret stays server-side) and `NEXT_PUBLIC_GA_ID` (a Google Analytics measurement ID is public by design).
+- Google Analytics loads only when `NEXT_PUBLIC_GA_ID` is set and `ALLOW_INDEXING` is exactly `"true"` (production), only on public pages (never /admin, /dashboard, /login, /claim, /auth), with Consent Mode v2 defaults all denied until the visitor accepts. Events go through `lib/track.ts` and carry no personal data (no names, emails, messages or search text). The CSP allows only `www.googletagmanager.com` (scripts) and the Google Analytics hit hosts (connect, img).
 - `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `CLAIM_TOKEN_SECRET` and `YOUTUBE_API_KEY` (YouTube Data API v3, used only by admin verification) are server-only. Import them only in files with `import "server-only"` or route handlers, and never log them.
 - `CRON_SECRET` is server-only. Scheduled routes under `/api/cron/` refuse any request without `Authorization: Bearer <CRON_SECRET>` (Vercel Cron sends it), compared in constant time.
 - `PAYMENTS_ENABLED` is a server-side switch, not a secret. Anything that charges money stays off unless it is exactly `"true"`; while it's off the billing interface is a no-op.

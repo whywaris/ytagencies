@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { searchAgencies, type FoundAgency } from "@/lib/actions/listing";
+import { track } from "@/lib/track";
 
 const initials = (name: string) =>
   name
@@ -30,7 +31,11 @@ export function AgencySearch() {
     e.preventDefault();
     const q = query.trim();
     if (q.length < 2) return;
-    startTransition(async () => setResults({ query: q, agencies: await searchAgencies(q) }));
+    startTransition(async () => {
+      const agencies = await searchAgencies(q);
+      track("list_agency_search", { has_results: agencies.length > 0 });
+      setResults({ query: q, agencies });
+    });
   };
 
   return (
@@ -127,6 +132,7 @@ export function AgencySearch() {
                         )}
                         <Link
                           href={`/claim/${a.slug}`}
+                          onClick={() => track("claim_start", { agency_slug: a.slug })}
                           className={`${btnSm} bg-accent text-on-accent`}
                         >
                           Manage this listing<span className="sr-only">: {a.name}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { track } from "@/lib/track";
 
 // Profile analytics (ADMIN_V2_SPEC §7): a view on load, and clicks on elements marked
 // data-track="website_click" | "contact_open". Website clicks also send data-source (the link's
@@ -18,7 +19,7 @@ function send(agencyId: string, type: TrackedType, source?: string) {
   }
 }
 
-export function AgencyTracker({ agencyId }: { agencyId: string }) {
+export function AgencyTracker({ agencyId, agencySlug }: { agencyId: string; agencySlug: string }) {
   useEffect(() => {
     send(agencyId, "profile_view");
     const onClick = (e: MouseEvent) => {
@@ -26,9 +27,14 @@ export function AgencyTracker({ agencyId }: { agencyId: string }) {
       const type = el?.dataset.track;
       if (type === "website_click" || type === "contact_open")
         send(agencyId, type, el?.dataset.source);
+      if (type === "website_click")
+        track("website_click", {
+          agency_slug: agencySlug,
+          utm_content: el?.dataset.source ?? "profile",
+        });
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, [agencyId]);
+  }, [agencyId, agencySlug]);
   return null;
 }

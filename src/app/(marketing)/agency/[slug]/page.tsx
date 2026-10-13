@@ -250,7 +250,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
 
   return (
     <>
-      <AgencyTracker agencyId={agency.id} />
+      <AgencyTracker agencyId={agency.id} agencySlug={agency.slug} />
       <JsonLd data={breadcrumbJsonLd(breadcrumbs)} />
       <JsonLd
         data={professionalServiceJsonLd({

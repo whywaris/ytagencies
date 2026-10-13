@@ -17,7 +17,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       </main>
       <footer className="print:hidden">
         <div className="mx-auto max-w-content px-4 md:px-6">
-          <FooterBottom disclaimer={false} />
+          <FooterBottom disclaimer={false} cookieSettings={false} />
         </div>
       </footer>
     </div>

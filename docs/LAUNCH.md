@@ -108,13 +108,15 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 ## Vercel
 
 1. Domains: add `ytagencies.com` as the primary domain and `www.ytagencies.com` redirecting to it (the app also 308s www → apex).
-2. Environment variables. Set all of them on **Production** (pointing at the production Supabase project) and on **Preview** (pointing at the dev project); copy the same names into `.env.local` for local work (`.env.example` lists them). Only the three `NEXT_PUBLIC_` ones reach the browser (SECURITY.md).
+2. Environment variables. Set all of them on **Production** (pointing at the production Supabase project) and on **Preview** (pointing at the dev project); copy the same names into `.env.local` for local work (`.env.example` lists them). Only the four `NEXT_PUBLIC_` ones reach the browser (SECURITY.md).
 
    | Variable | Scope | Required | What it does / how to get it |
    |---|---|---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | public | yes | Supabase → Project Settings → API. |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | yes | Same page, `anon` key. |
    | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | public | yes | Cloudflare Turnstile widget for `ytagencies.com`. |
+   | `NEXT_PUBLIC_GA_ID` | public | no | Google Analytics 4 measurement ID (`G-FQQQRPFK9N`). Production only. |
+   | `ALLOW_INDEXING` | server | no | Exactly `true` on Production only. Today it only gates Google Analytics, so it never runs on localhost or previews. |
    | `SUPABASE_SERVICE_ROLE_KEY` | server | yes | Same Supabase page, `service_role` key. Admin, cron and public data functions use it. |
    | `TURNSTILE_SECRET_KEY` | server | yes | The widget's secret key. Every public form checks it. |
    | `RESEND_API_KEY` | server | yes | Resend API key (sending access, `send.ytagencies.com`). Without it no lead or rejection emails go out. |
@@ -178,4 +180,5 @@ Creem is the merchant of record: it charges, handles tax and sends receipts and 
 2. Check `https://www.ytagencies.com/x` returns 308 to `https://ytagencies.com/x`, and canonicals, sitemaps and JSON-LD use `https://ytagencies.com`.
 3. PageSpeed Insights on mobile: home, a directory page, a profile.
 4. Google Search Console and Bing Webmaster Tools: verify `ytagencies.com` (domain property) and submit the three `/sitemaps/*.xml` files.
-5. `pnpm audit`. Known at launch: one high advisory in `braces` (GHSA-vfj7-8cjw-p6xm), pulled in only by dev tooling (eslint, the shadcn CLI). It isn't in the deployed app and has no patched release yet; update when one ships.
+5. Google Analytics: set `NEXT_PUBLIC_GA_ID` (and `ALLOW_INDEXING=true`) in Vercel Production, redeploy, then link GA4 to Search Console in GA Admin → Product links. Check the cookie banner appears, and that after Accept the GA Realtime report shows your visit (after Decline it shouldn't).
+6. `pnpm audit`. Known at launch: one high advisory in `braces` (GHSA-vfj7-8cjw-p6xm), pulled in only by dev tooling (eslint, the shadcn CLI). It isn't in the deployed app and has no patched release yet; update when one ships.

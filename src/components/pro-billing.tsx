@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { RequestProForm } from "@/components/forms/request-pro-form";
+import { track } from "@/lib/track";
 import { cn } from "@/lib/utils";
 
 const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
@@ -35,6 +36,9 @@ export function ProBilling({
         // Sign in if needed, then the agency's Billing page starts the Creem checkout.
         <Link
           href={`/dashboard/billing?interval=${period === "yearly" ? "year" : "month"}`}
+          onClick={() =>
+            track("checkout_start", { interval: period === "yearly" ? "year" : "month" })
+          }
           className="inline-flex h-11 items-center self-start rounded-full bg-accent px-5 font-semibold text-on-accent"
         >
           Get Pro

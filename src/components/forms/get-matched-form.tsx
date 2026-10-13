@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { submitGetMatched } from "@/lib/actions/leads";
 import { BUDGET_RANGES, getMatchedSchema, type GetMatchedInput } from "@/lib/validation/lead";
+import { track } from "@/lib/track";
 
 type Option = { slug: string; name: string };
 type Success = { agencies: { name: string; slug: string }[]; need: string; email: string };
@@ -77,6 +78,7 @@ export function GetMatchedForm({
     setFormError(null);
     const result = await submitGetMatched(values);
     if (result.ok) {
+      track("get_matched_submit", { service: values.service, industry: values.industry });
       setSuccess({ ...result.data, email: values.email });
       return;
     }

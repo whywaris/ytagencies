@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { contactAgency } from "@/lib/actions/leads";
 import { BUDGET_RANGES, contactAgencySchema, type ContactAgencyInput } from "@/lib/validation/lead";
+import { track } from "@/lib/track";
 
 export function ContactAgencyForm({
   agencySlug,
@@ -58,6 +59,7 @@ export function ContactAgencyForm({
     setFormError(null);
     const result = await contactAgency(values);
     if (result.ok) {
+      track("contact_agency_submit", { agency_slug: agencySlug });
       setSentTo(values.email);
       return;
     }

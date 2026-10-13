@@ -16,13 +16,17 @@ const supabaseHost = supabaseUrl?.host ?? "*.supabase.co";
 // Vercel Analytics is same-origin (/_vercel/insights) in production; va.vercel-scripts.com is its dev-only debug script.
 // ponytail: static CSP with 'unsafe-inline' scripts, because a nonce CSP forces every page dynamic and breaks ISR.
 // Upgrade to hashes/SRI if Next supports them for static pages.
+// Google Analytics 4 (components/analytics.tsx): the gtag script, and where it sends hits.
+const GA_SCRIPT = "https://www.googletagmanager.com";
+const GA_HITS =
+  "https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com";
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com ${GA_SCRIPT}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${supabaseHost}${media.map((h) => ` https://${h}`).join("")}`,
+  `img-src 'self' data: blob: https://${supabaseHost}${media.map((h) => ` https://${h}`).join("")} ${GA_HITS}`,
   "font-src 'self'",
-  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost}${isDev ? " https://va.vercel-scripts.com" : ""}`,
+  `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} ${GA_HITS}${isDev ? " https://va.vercel-scripts.com" : ""}`,
   "frame-src https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",

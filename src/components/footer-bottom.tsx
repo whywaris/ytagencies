@@ -1,6 +1,8 @@
 import { Mail } from "lucide-react";
 import Link from "next/link";
 
+import { CookieSettingsButton } from "@/components/analytics";
+import { gaId } from "@/lib/analytics";
 import { copyrightName } from "@/lib/company";
 import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 
@@ -19,7 +21,14 @@ const link =
  * then the disclaimer. The site footer and the sign-in page (without the disclaimer) share it.
  * Sits inside the footer's max-width container.
  */
-export function FooterBottom({ disclaimer = true }: { disclaimer?: boolean }) {
+export function FooterBottom({
+  disclaimer = true,
+  cookieSettings = true,
+}: {
+  disclaimer?: boolean;
+  /** "Cookie settings" reopens the consent banner (components/analytics.tsx). */
+  cookieSettings?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-6 pb-8">
       <div className="flex flex-col items-start gap-2.5 text-[13.5px] text-text-2 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-5 sm:gap-y-2">
@@ -32,6 +41,8 @@ export function FooterBottom({ disclaimer = true }: { disclaimer?: boolean }) {
               {l.label}
             </Link>
           ))}
+          {/* Only where GA can run: public pages, not the sign-in page. */}
+          {cookieSettings && gaId() && <CookieSettingsButton className={link} />}
         </nav>
         <a
           href={`mailto:${CONTACT_EMAIL}`}
