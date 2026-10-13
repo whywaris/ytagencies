@@ -152,7 +152,14 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
     Promise.all([
       admin.from("services").select("id, slug").in("slug", input.services),
       admin.from("industries").select("id, slug").in("slug", input.industries),
-      admin.from("locations").select("id, slug").in("slug", input.locations),
+      admin
+        .from("locations")
+        .select("id, slug, type, parent_id")
+        .in("slug", [
+          ...input.locations,
+          input.hqCountry,
+          ...(input.hqCity && input.hqCity !== "other" ? [input.hqCity] : []),
+        ]),
     ]),
     admin
       .from("agencies")
@@ -167,10 +174,32 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
   if (
     services.data.length !== input.services.length ||
     industries.data.length !== input.industries.length ||
-    locations.data.length !== input.locations.length
+    input.locations.some((l) => !locations.data.some((d) => d.slug === l))
   ) {
     return { ok: false, error: "Some options no longer exist. Reload the page." };
   }
+  // HQ: the city if it's one of ours (and in the chosen country), else the country. A city we
+  // don't list goes in hq_other for an admin to map.
+  const country = locations.data.find((l) => l.slug === input.hqCountry && l.type === "country");
+  const city =
+    input.hqCity && input.hqCity !== "other"
+      ? locations.data.find((l) => l.slug === input.hqCity && l.parent_id === country?.id)
+      : null;
+  if (!country || (input.hqCity && input.hqCity !== "other" && !city)) {
+    return {
+      ok: false,
+      error: "Check the highlighted fields.",
+      fieldErrors: { hqCountry: "Choose your country, then a city in it." },
+    };
+  }
+  const hqId = (city ?? country).id;
+  // Listed in the HQ place and the other places they serve, once each.
+  const servedIds = [
+    ...new Set([
+      hqId,
+      ...locations.data.filter((l) => input.locations.includes(l.slug)).map((l) => l.id),
+    ]),
+  ];
   // ilike narrows it down; compare hosts exactly so notacme.com doesn't block acme.com.
   const sameSite = existing.data.filter((a) => a.website && hostFrom(a.website) === host);
   const match = sameSite.find((a) => a.status === "published");
@@ -202,6 +231,8 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
     ad_spend: input.adSpend || null,
     setup_fee_usd: input.setupFee === "" ? null : Number(input.setupFee),
     ...detailsColumns(input),
+    hq_location_id: hqId,
+    hq_other: input.hqCity === "other" ? input.hqCityOther : null,
     submitted_by: user.id,
   };
   let { error } = await supabase.from("agencies").insert({ ...row, slug: base });
@@ -239,11 +270,9 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
         ...industryColumns(input, i.slug),
       })),
     ),
-    locations.data.length
-      ? supabase
-          .from("agency_locations")
-          .insert(locations.data.map((l) => ({ agency_id: id, location_id: l.id })))
-      : { error: null },
+    supabase
+      .from("agency_locations")
+      .insert(servedIds.map((location_id) => ({ agency_id: id, location_id }))),
   ]);
   const { data: claim, error: claimError } = links.some((r) => r.error)
     ? { data: null, error: true }

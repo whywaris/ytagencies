@@ -38,6 +38,8 @@ export const dashboardContext = cache(async (agencyId: string) => {
     live: liveSubscription(subs.data),
     /** Had Pro before (now ended). */
     lapsed: !e.managed && subs.data.length > 0,
+    /** When the latest Pro ended (lapsed only; null if it ended without a date). */
+    endedAt: !e.managed ? (subs.data[0]?.ends_at ?? null) : null,
     pro: {
       ...prices,
       saving: yearlySaving(prices.monthly, prices.yearly),

@@ -34,6 +34,9 @@ import { submitAgencySchema, type SubmitAgencyInput } from "@/lib/validation/lis
 import { EMPTY_DETAILS, EMPTY_SERVICE_DETAIL, focusTotal } from "@/lib/validation/profile-details";
 
 type Option = { slug: string; name: string };
+type Country = Option & { cities: Option[] };
+/** Other places they serve, besides the HQ. */
+const MAX_OTHER_PLACES = 5;
 type Done = { kind: "verify" | "review"; workEmail: string; agencyName: string; agencyId: string };
 
 // /list-your-agency/new: four steps with a progress bar and a live preview (desktop). The same
@@ -42,7 +45,19 @@ type Done = { kind: "verify" | "review"; workEmail: string; agencyName: string; 
 // pays for Pro up front so management starts as soon as it's approved.
 
 const STEPS = [
-  { title: "Basics", fields: ["name", "siteUrl", "bestFor", "description"] },
+  {
+    title: "Basics",
+    fields: [
+      "name",
+      "siteUrl",
+      "hqCountry",
+      "hqCity",
+      "hqCityOther",
+      "locations",
+      "bestFor",
+      "description",
+    ],
+  },
   {
     title: "Services and industries",
     fields: ["services", "industries", "serviceDetails", "industryFocus"],
@@ -54,11 +69,14 @@ const STEPS = [
 export function SubmitAgencyForm({
   services,
   industries,
+  countries,
   live,
   prices,
 }: {
   services: Option[];
   industries: Option[];
+  /** Our locations: countries with their cities. */
+  countries: Country[];
   /** Checkout is available (payments on and Creem configured): offer "Subscribe now". */
   live: boolean;
   prices: { monthly: number; yearly: number; saving: number };
@@ -81,6 +99,9 @@ export function SubmitAgencyForm({
       services: [],
       industries: [],
       locations: [],
+      hqCountry: "",
+      hqCity: "",
+      hqCityOther: "",
       minBudget: "",
       pricingModel: "",
       minContract: "",
@@ -96,6 +117,10 @@ export function SubmitAgencyForm({
   const { register, setValue, setError, control, formState } = form;
   const v = useWatch({ control });
   const chosenServices = v.services ?? [];
+  const places = v.locations ?? [];
+  const hqCountry = countries.find((c) => c.slug === v.hqCountry);
+  const hqPlace =
+    v.hqCity === "other" ? v.hqCityOther : hqCountry?.cities.find((c) => c.slug === v.hqCity)?.name;
   const chosenIndustries = v.industries ?? [];
   const serviceTotal = focusTotal(chosenServices, (s) => v.serviceDetails?.[s]?.focus);
   const industryTotal = focusTotal(chosenIndustries, (i) => v.industryFocus?.[i]);
@@ -243,6 +268,88 @@ export function SubmitAgencyForm({
               />
             </Field>
           </div>
+          <fieldset className="flex flex-col gap-4">
+            <legend className="mb-2 font-medium">Where you&apos;re based</legend>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Field id="sa-hq-country" label="Country" error={err("hqCountry")}>
+                <select
+                  {...register("hqCountry", {
+                    // A city from another country no longer fits.
+                    onChange: () => setValue("hqCity", ""),
+                  })}
+                  {...a11yProps("sa-hq-country", err("hqCountry"))}
+                  className={selectClasses}
+                >
+                  <option value="" disabled>
+                    Choose one
+                  </option>
+                  {countries.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field id="sa-hq-city" label="City" optional error={err("hqCity")}>
+                <select
+                  {...register("hqCity")}
+                  {...a11yProps("sa-hq-city", err("hqCity"))}
+                  disabled={!hqCountry}
+                  className={selectClasses}
+                >
+                  <option value="">Not listed by city</option>
+                  {hqCountry?.cities.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.name}
+                    </option>
+                  ))}
+                  <option value="other">Other (type it)</option>
+                </select>
+              </Field>
+            </div>
+            {v.hqCity === "other" && (
+              <Field id="sa-hq-other" label="Your city" error={err("hqCityOther")}>
+                <Input
+                  maxLength={100}
+                  autoComplete="address-level2"
+                  {...register("hqCityOther")}
+                  {...a11yProps("sa-hq-other", err("hqCityOther"))}
+                />
+              </Field>
+            )}
+          </fieldset>
+
+          <CheckboxGroup
+            legend={`Other places you serve (optional, up to ${MAX_OTHER_PLACES})`}
+            error={err("locations")}
+          >
+            <p className="mb-2 text-small tabular-nums" aria-live="polite">
+              {places.length} of {MAX_OTHER_PLACES} chosen
+            </p>
+            <div className="grid max-h-64 gap-x-6 overflow-y-auto rounded-lg border border-line p-3 sm:grid-cols-2">
+              {countries.map((c) => (
+                <div key={c.slug} className="flex flex-col">
+                  {[c, ...c.cities].map((l, k) =>
+                    l.slug === v.hqCountry || l.slug === v.hqCity ? null : (
+                      <label
+                        key={l.slug}
+                        className={cn(checkboxRow, k === 0 ? "font-medium" : "pl-8")}
+                      >
+                        <input
+                          type="checkbox"
+                          value={l.slug}
+                          disabled={places.length >= MAX_OTHER_PLACES && !places.includes(l.slug)}
+                          {...register("locations")}
+                        />
+                        {l.name}
+                      </label>
+                    ),
+                  )}
+                </div>
+              ))}
+            </div>
+          </CheckboxGroup>
+
           <Field id="sa-best" label="Best for" optional error={err("bestFor")}>
             <Input
               maxLength={120}
@@ -431,6 +538,12 @@ export function SubmitAgencyForm({
             <span className="block truncate text-[13px] text-text-2">
               {v.siteUrl.replace(/^https?:\/\/(www\.)?/, "")}
             </span>
+          )}
+          {hqCountry && (
+            <p className="mt-1 text-[13px] text-text-2">
+              {[hqPlace, hqCountry.name].filter(Boolean).join(", ")}
+              {places.length > 0 && ` + ${places.length} more`}
+            </p>
           )}
           {v.bestFor && (
             <p className="mt-3 text-[14.5px] text-text-2">

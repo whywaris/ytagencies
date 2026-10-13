@@ -7,7 +7,8 @@ export const metadata = { title: "Inquiries" };
 
 export default async function LeadsPage({ params }: PageProps<"/dashboard/[agencyId]/leads">) {
   const ctx = await dashboardContext((await params).agencyId);
-  if (!ctx.e.managed)
+  // Never on Pro: the paywall. Lapsed: past inquiries, read-only (RLS refuses changes too).
+  if (!ctx.e.managed && !ctx.lapsed)
     return (
       <Paywall
         ctx={ctx}
@@ -34,8 +35,9 @@ export default async function LeadsPage({ params }: PageProps<"/dashboard/[agenc
   if (leads.length === 0) {
     return (
       <p className="max-w-reading text-text-2">
-        No leads yet. When a business contacts you from your profile, or we match them with you,
-        their request shows up here and in your email.
+        {ctx.e.managed
+          ? "No inquiries yet. When a business contacts you from your profile, or we match them with you, their request shows up here and in your email."
+          : "No inquiries arrived while you were on Pro."}
       </p>
     );
   }
@@ -83,7 +85,7 @@ export default async function LeadsPage({ params }: PageProps<"/dashboard/[agenc
               {l.contactedAt ? (
                 <p className="text-small">Contacted {day(l.contactedAt)}</p>
               ) : (
-                <MarkContacted agencyId={agency.id} leadId={l.id} />
+                ctx.e.managed && <MarkContacted agencyId={agency.id} leadId={l.id} />
               )}
             </div>
           </li>

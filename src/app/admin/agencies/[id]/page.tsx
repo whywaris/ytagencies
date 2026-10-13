@@ -54,7 +54,7 @@ export default async function AdminAgencyPage({
     db
       .from("agencies")
       .select(
-        "id, name, slug, tagline, website, logo_path, founded_year, team_size, languages, status, is_verified, is_claimed, owner_id, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, seo_title, seo_description, locations!agencies_hq_location_id_fkey(slug)",
+        "id, name, slug, tagline, website, logo_path, founded_year, team_size, languages, status, is_verified, is_claimed, owner_id, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, seo_title, seo_description, hq_other, locations!agencies_hq_location_id_fkey(slug)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -155,6 +155,7 @@ async function ProfileTab({
     setup_fee_usd: number | null;
     seo_title: string | null;
     seo_description: string | null;
+    hq_other: string | null;
     locations: { slug: string } | null;
   };
 }) {
@@ -180,6 +181,16 @@ async function ProfileTab({
         profile={form.defaults}
         className="max-w-reading rounded-lg border border-line bg-surface-2 px-4 py-3"
       />
+      {agency.hq_other && (
+        <p
+          role="note"
+          className="max-w-reading rounded-lg border border-line bg-surface-2 px-4 py-3"
+        >
+          Submitted HQ city we don&apos;t list: <strong>{agency.hq_other}</strong>. Add it in
+          Taxonomy → Locations if needed, choose it as the HQ below and save; this note then goes
+          away.
+        </p>
+      )}
       <section aria-labelledby="details" className="flex max-w-reading flex-col gap-6">
         <h2 id="details" className="text-admin-section">
           Details

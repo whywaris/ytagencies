@@ -53,6 +53,7 @@ export type Database = {
           description: string | null;
           founded_year: number | null;
           hq_location_id: number | null;
+          hq_other: string | null;
           id: string;
           is_claimed: boolean;
           is_verified: boolean;
@@ -87,6 +88,7 @@ export type Database = {
           description?: string | null;
           founded_year?: number | null;
           hq_location_id?: number | null;
+          hq_other?: string | null;
           id?: string;
           is_claimed?: boolean;
           is_verified?: boolean;
@@ -121,6 +123,7 @@ export type Database = {
           description?: string | null;
           founded_year?: number | null;
           hq_location_id?: number | null;
+          hq_other?: string | null;
           id?: string;
           is_claimed?: boolean;
           is_verified?: boolean;
@@ -1370,6 +1373,10 @@ export type Database = {
         Returns: boolean;
       };
       is_admin: { Args: never; Returns: boolean };
+      agency_managed: {
+        Args: { p_agency: string };
+        Returns: boolean;
+      };
       record_page_view: {
         Args: { p_path: string; p_visitor: string };
         Returns: boolean;

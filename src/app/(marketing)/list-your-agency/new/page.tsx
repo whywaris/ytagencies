@@ -5,7 +5,7 @@ import { getProPrices } from "@/components/plan-columns";
 import { yearlySaving } from "@/components/pro-billing";
 import { requireUser } from "@/lib/auth";
 import { checkoutAvailable } from "@/lib/billing";
-import { getIndustries, getServices } from "@/lib/data/taxonomy";
+import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { BRAND_NAME } from "@/lib/site";
 
 // Sign-in required, so dynamic and noindex. /list-your-agency is the indexable page.
@@ -16,12 +16,19 @@ export const metadata = {
 
 export default async function NewAgencyPage() {
   const user = await requireUser("/list-your-agency/new");
-  const [services, industries, prices] = await Promise.all([
+  const [services, industries, locations, prices] = await Promise.all([
     getServices(),
     getIndustries(),
+    getLocations(),
     getProPrices(),
   ]);
   const option = ({ slug, name }: { slug: string; name: string }) => ({ slug, name });
+  const countries = locations
+    .filter((l) => l.type === "country")
+    .map((c) => ({
+      ...option(c),
+      cities: locations.filter((l) => l.parentId === c.id).map(option),
+    }));
 
   return (
     <div className="mx-auto flex max-w-content flex-col gap-8 px-4 py-12 md:px-6 md:py-16">
@@ -39,6 +46,7 @@ export default async function NewAgencyPage() {
       <SubmitAgencyForm
         services={services.map(option)}
         industries={industries.map(option)}
+        countries={countries}
         live={checkoutAvailable()}
         prices={{ ...prices, saving: yearlySaving(prices.monthly, prices.yearly) }}
       />

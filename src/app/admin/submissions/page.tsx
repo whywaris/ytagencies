@@ -15,7 +15,7 @@ export default async function AdminSubmissionsPage() {
   const { data: agencies, error } = await db
     .from("agencies")
     .select(
-      "id, name, slug, website, description, min_budget_usd, owner_id, submitted_by, created_at, agency_services(services(name)), agency_industries(industries(name)), agency_locations(locations(name)), claims(user_id, work_email, status), agency_subscriptions(source, status, external_id)",
+      "id, name, slug, website, description, min_budget_usd, owner_id, submitted_by, created_at, agency_services(services(name)), agency_industries(industries(name)), agency_locations(locations(name)), hq_other, hq:locations!agencies_hq_location_id_fkey(name), claims(user_id, work_email, status), agency_subscriptions(source, status, external_id)",
     )
     .eq("status", "draft")
     .not("submitted_by", "is", null)
@@ -81,6 +81,12 @@ export default async function AdminSubmissionsPage() {
               ["Signed in as", accounts.get(a.submitted_by!) ?? "Unknown"],
               ["Services", a.agency_services.map((s) => s.services.name).join(", ")],
               ["Industries", a.agency_industries.map((i) => i.industries.name).join(", ")],
+              [
+                "HQ",
+                [a.hq?.name, a.hq_other && `${a.hq_other} (not in our list: map it when editing)`]
+                  .filter(Boolean)
+                  .join(", "),
+              ],
               ["Locations", a.agency_locations.map((l) => l.locations.name).join(", ")],
               [
                 "Minimum budget",

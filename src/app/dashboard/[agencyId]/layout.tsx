@@ -14,7 +14,7 @@ export default async function AgencyDashboardLayout({
   params,
 }: LayoutProps<"/dashboard/[agencyId]">) {
   const ctx = await dashboardContext((await params).agencyId);
-  const { agency, supabase, e, lapsed, pro } = ctx;
+  const { agency, supabase, e, lapsed, endedAt, pro } = ctx;
   const { count: waiting } = e.managed
     ? await supabase
         .from("lead_routes")
@@ -26,7 +26,12 @@ export default async function AgencyDashboardLayout({
   return (
     <div className="grid gap-6 min-[900px]:grid-cols-[200px_minmax(0,1fr)] min-[900px]:gap-10">
       <div className="min-[900px]:row-span-2">
-        <DashboardTabs agencyId={agency.id} managed={e.managed} waiting={waiting ?? 0} />
+        <DashboardTabs
+          agencyId={agency.id}
+          managed={e.managed}
+          lapsed={lapsed}
+          waiting={waiting ?? 0}
+        />
       </div>
       <div className="flex min-w-0 flex-col gap-[22px]">
         <header className="flex flex-wrap items-center justify-between gap-4">
@@ -80,10 +85,21 @@ export default async function AgencyDashboardLayout({
         </header>
         {lapsed && (
           <p role="status" className="rounded-2xl bg-(--amber-soft) px-[18px] py-4 text-[15px]">
-            <b className="block">Your Pro plan has ended</b>
+            <b className="block">
+              {endedAt
+                ? `Your Pro plan ended on ${new Date(endedAt).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}.`
+                : "Your Pro plan has ended."}{" "}
+              <Link
+                href={`/dashboard/${agency.id}/billing`}
+                className="text-accent hover:underline"
+              >
+                Resubscribe
+              </Link>{" "}
+              to receive new inquiries.
+            </b>
             <span className="text-text-2">
-              Your profile stays public with the details you added, but editing is locked and
-              businesses can&apos;t contact you. Renew Pro to manage it again.
+              Your profile stays public with the details you added. Past inquiries stay readable;
+              editing is locked until you&apos;re back on Pro.
             </span>
           </p>
         )}

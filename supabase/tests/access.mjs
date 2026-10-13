@@ -1440,5 +1440,60 @@ ok(
   )),
   "contact messages: access requests have their own topic",
 );
+console.log("— Lapsed owners and submitted HQ (migration 20261023000100) —");
+const L = "cccccccc-0000-4000-8000-000000000001";
+await db.exec(`reset role;
+  insert into leads (id, name, email) values ('${L}', 'Lapsed lead', 'l@x.example');
+  insert into lead_routes (lead_id, agency_id, sent_at) values ('${L}', '${MINE}', now() - interval '1 hour');
+  delete from agency_subscriptions where agency_id = '${MINE}';
+  insert into agency_subscriptions (agency_id, plan_id, source, status, starts_at, ends_at)
+    values ('${MINE}', 'pro', 'manual', 'active', now() - interval '2 days', now() + interval '30 days');`);
+const markLapsed = `update lead_routes set contacted_at = now() where lead_id = '${L}' returning 1`;
+ok(
+  (await rows(`select agency_managed('${MINE}') m`))[0].m === true,
+  "agency_managed: true with a live Pro subscription",
+);
+await db.exec(`update agency_subscriptions set status = 'expired', ends_at = now() - interval '1 hour'
+  where agency_id = '${MINE}'`);
+ok(
+  (await rows(`select agency_managed('${MINE}') m`))[0].m === false,
+  "agency_managed: false once Pro has ended",
+);
+await as("authenticated", OWNER, async () => {
+  ok(
+    (await rows(`select lead_id from lead_routes where lead_id = '${L}'`)).length === 1,
+    "lapsed owner: still reads inquiries from when they were on Pro",
+  );
+  ok(await denied(markLapsed), "lapsed owner: can't mark an inquiry as contacted");
+});
+await db.exec(`update agency_subscriptions set status = 'past_due', past_due_since = now() - interval '2 days',
+  ends_at = null where agency_id = '${MINE}'`);
+await as("authenticated", OWNER, async () =>
+  ok(!(await denied(markLapsed)), "past due within the grace: can still mark as contacted"),
+);
+await db.exec(`update agency_subscriptions set status = 'active', past_due_since = null,
+  ends_at = now() + interval '6 months' where agency_id = '${MINE}'`);
+await as("anon", null, async () =>
+  ok(await fails(`select agency_managed('${MINE}')`), "agency_managed: not callable by anon"),
+);
+const HQ_USER = "55555555-5555-4555-8555-555555555555";
+await db.exec(
+  `reset role; insert into auth.users (id, email) values ('${HQ_USER}', 'hq@newco.example')`,
+);
+await as("authenticated", HQ_USER, async () => {
+  const country = (await rows("select id from locations where type = 'country' limit 1"))[0].id;
+  ok(
+    !(await fails(
+      `insert into agencies (slug, name, submitted_by, hq_location_id, hq_other) values ('hq-test', 'HQ test', '${HQ_USER}', ${country}, 'Leeds')`,
+    )),
+    "submission: can set its HQ and an unlisted city",
+  );
+  ok(
+    await fails(
+      `insert into agencies (slug, name, submitted_by, hq_other) values ('hq-test-2', 'HQ test 2', '${HQ_USER}', repeat('a', 101))`,
+    ),
+    "submission: the unlisted city is length-limited",
+  );
+});
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

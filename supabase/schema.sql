@@ -72,6 +72,8 @@ create table agencies (
   setup_fee_usd int check (setup_fee_usd between 0 and 9999999),
   languages text[] default '{}',
   hq_location_id int references locations(id),
+  -- A submitted HQ city we don't list yet; an admin maps it to a location.
+  hq_other text check (char_length(hq_other) between 1 and 100),
   status text not null default 'draft' check (status in ('draft','published','archived')),
   is_claimed boolean not null default false,
   is_verified boolean not null default false,
@@ -445,7 +447,7 @@ create index if not exists agencies_submitted_by_idx on agencies (submitted_by) 
 -- Admin inserts use the service role.
 revoke insert on agencies from anon, authenticated;
 grant insert (id, slug, name, website, description, min_budget_usd, pricing_model, submitted_by,
-  min_contract, ad_spend, setup_fee_usd) on agencies to authenticated;
+  min_contract, ad_spend, setup_fee_usd, hq_location_id, hq_other) on agencies to authenticated;
 
 -- Belt and braces on top of the grants, plus a cap of 3 open submissions per account.
 create policy "submit draft" on agencies for insert to authenticated with check (
@@ -515,6 +517,33 @@ create unique index agency_subscriptions_one_active on agency_subscriptions (age
 create index agency_subscriptions_ends_at_idx on agency_subscriptions (ends_at) where status = 'active';
 create unique index agency_subscriptions_external_id on agency_subscriptions (external_id)
   where source = 'payment';
+
+-- Managed (lib/entitlements.ts) in SQL: live Pro, active in its dates or past due within 7 days.
+create or replace function agency_managed(p_agency uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from agency_subscriptions s
+    where s.agency_id = p_agency
+      and s.plan_id = 'pro'
+      and s.starts_at <= now()
+      and (
+        (s.status = 'active' and (s.ends_at is null or s.ends_at > now()))
+        or (s.status = 'past_due' and s.past_due_since > now() - interval '7 days')
+      )
+  )
+$$;
+revoke execute on function agency_managed(uuid) from public, anon;
+grant execute on function agency_managed(uuid) to authenticated;
+
+-- Marking inquiries as contacted only while managed: a lapsed owner still reads past inquiries
+-- (the read policy) but can't change them.
+drop policy "owner marks contacted" on lead_routes;
+create policy "owner marks contacted" on lead_routes for update to authenticated
+  using (agency_managed(agency_id)
+    and exists (select 1 from agencies a where a.id = agency_id and a.owner_id = auth.uid()))
+  with check (agency_managed(agency_id)
+    and exists (select 1 from agencies a where a.id = agency_id and a.owner_id = auth.uid()));
+
 
 -- Creem webhook events, by Creem event id: retries are skipped once processed.
 create table billing_events (

@@ -23,10 +23,13 @@ import { cn } from "@/lib/utils";
 export function DashboardTabs({
   agencyId,
   managed,
+  lapsed,
   waiting,
 }: {
   agencyId: string;
   managed: boolean;
+  /** Had Pro before: past inquiries stay readable. */
+  lapsed: boolean;
   /** Inquiries not marked as contacted yet. */
   waiting: number;
 }) {
@@ -63,7 +66,7 @@ export function DashboardTabs({
         >
           {group.map(({ href, label, icon: Icon, pro, count }) => {
             const current = pathname === href;
-            const locked = pro && !managed;
+            const locked = pro && !managed && !(lapsed && href === `${base}/leads`);
             return (
               <Link
                 key={href}

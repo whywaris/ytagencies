@@ -130,12 +130,22 @@ export async function adminUpdateProfile(agencyId: string, raw: unknown): Promis
   if (!parsed.success) return invalid(parsed.error);
   const { data: agency } = await db
     .from("agencies")
-    .select("slug")
+    .select("slug, hq_location_id, hq_other")
     .eq("id", agencyId)
     .maybeSingle();
   if (!agency) return { ok: false, error: "Unknown agency." };
   const error = await applyProfile(db, agencyId, parsed.data);
   if (error) return { ok: false, error };
+  // A submitted city we didn't list (hq_other) is mapped once the admin picks a new HQ.
+  if (agency.hq_other) {
+    const { data: after } = await db
+      .from("agencies")
+      .select("hq_location_id")
+      .eq("id", agencyId)
+      .single();
+    if (after && after.hq_location_id !== agency.hq_location_id)
+      await db.from("agencies").update({ hq_other: null }).eq("id", agencyId);
+  }
   await log("agency.profile_update", "agency", agencyId);
   revalidateAgency(agency.slug);
   return { ok: true, data: undefined };

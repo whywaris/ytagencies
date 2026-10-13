@@ -33,7 +33,12 @@ export const submitAgencySchema = z
     industries: slugs
       .min(1, "Choose at least one industry.")
       .max(12, "Choose up to 12 industries."),
-    locations: slugs.max(10, "Choose up to 10 locations."),
+    // HQ: a country (required), and a city from our list or "other" with its name.
+    hqCountry: z.string().regex(/^[a-z0-9-]{1,80}$/, "Choose the country you're based in."),
+    hqCity: z.union([z.literal(""), z.literal("other"), z.string().regex(/^[a-z0-9-]{1,80}$/)]),
+    hqCityOther: z.string().trim().max(100, "Use 100 characters or fewer."),
+    /** Other countries or cities they serve. */
+    locations: slugs.max(5, "Choose up to 5 other places."),
     minBudget: startingPrice,
     pricingModel: pricingUnit,
     minContract,
@@ -54,5 +59,9 @@ export const submitAgencySchema = z
     website: z.string().max(200).optional(), // honeypot
     ...profileDetailsFields,
   })
-  .superRefine(checkFocusTotals);
+  .superRefine(checkFocusTotals)
+  .superRefine((v, ctx) => {
+    if (v.hqCity === "other" && !v.hqCityOther)
+      ctx.addIssue({ code: "custom", path: ["hqCityOther"], message: "Enter your city." });
+  });
 export type SubmitAgencyInput = z.infer<typeof submitAgencySchema>;
