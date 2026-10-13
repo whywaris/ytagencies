@@ -80,35 +80,34 @@ function closeOnSelect(e: React.MouseEvent<HTMLElement>) {
     e.currentTarget.hidePopover?.();
 }
 
-/** Right side of the nav at desktop widths. Both states share one grid cell: no layout shift. */
+/**
+ * Right side of the nav at desktop widths. Signed out: theme toggle, Sign in, List your agency.
+ * Signed in: the theme toggle right next to the avatar menu (the signed-out links are removed, not
+ * just hidden, so they don't leave a gap). The server HTML is the signed-out state.
+ */
 export function NavAccount() {
   const state = useAccount();
-  const signedIn = state.status !== "out";
   const onLogin = usePathname() === "/login";
+  if (state.status !== "out")
+    return (
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <AccountSlot state={state} />
+      </div>
+    );
   return (
     <div className="flex items-center gap-6">
       <ThemeToggle />
-      <div className="grid items-center justify-items-end">
-        <div
-          className={cn("col-start-1 row-start-1 flex items-center gap-6", signedIn && "invisible")}
-        >
-          <Link
-            href="/login"
-            aria-current={onLogin ? "page" : undefined}
-            className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text aria-[current=page]:font-semibold aria-[current=page]:text-text"
-          >
-            Sign in
-          </Link>
-          <Button asChild>
-            <Link href="/list-your-agency">List your agency</Link>
-          </Button>
-        </div>
-        {signedIn && (
-          <div className="col-start-1 row-start-1">
-            <AccountSlot state={state} />
-          </div>
-        )}
-      </div>
+      <Link
+        href="/login"
+        aria-current={onLogin ? "page" : undefined}
+        className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text aria-[current=page]:font-semibold aria-[current=page]:text-text"
+      >
+        Sign in
+      </Link>
+      <Button asChild>
+        <Link href="/list-your-agency">List your agency</Link>
+      </Button>
     </div>
   );
 }
