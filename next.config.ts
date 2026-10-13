@@ -3,6 +3,7 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 import { companyTodos } from "./src/lib/company";
 import { indexingAllowed, noindexHeaders } from "./src/lib/indexing";
+import { turnstileKeyProblems } from "./src/lib/turnstile-keys";
 import { mediaHosts } from "./src/lib/media";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -117,6 +118,16 @@ const nextConfig: NextConfig = {
 
 // Launch checklist: list company facts nobody has filled in yet (src/lib/company.ts).
 export default function config(phase: string): NextConfig {
+  // Production builds refuse missing or Cloudflare test Turnstile keys (lib/turnstile-keys.ts).
+  if (phase === PHASE_PRODUCTION_BUILD) {
+    const turnstile = turnstileKeyProblems();
+    if (turnstile.length) {
+      console.error(
+        `✖ Turnstile: ${turnstile.join("; ")}. Set the real keys in Vercel Production.`,
+      );
+      throw new Error("Turnstile keys aren't valid for production");
+    }
+  }
   // Next loads this file in several build workers; they inherit the env, so this prints once.
   const todos =
     phase === PHASE_PRODUCTION_BUILD && !process.env.COMPANY_TODOS_SHOWN ? companyTodos() : [];

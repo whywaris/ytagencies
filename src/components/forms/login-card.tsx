@@ -118,7 +118,7 @@ export function LoginCard({
       className="rise-sm mx-auto w-full max-w-[440px] rounded-[24px] border border-line bg-raised px-5 py-6 shadow-[0_1px_2px_rgba(20,25,40,.05),0_12px_32px_-12px_rgba(20,25,40,.14),0_40px_80px_-32px_rgba(20,25,40,.2)] sm:p-8"
     >
       {/* Mounted in both views, so "Resend link" has a token ready too. */}
-      <Turnstile invisible resetKey={resetKey} onToken={(t) => (token.current = t)} />
+      <Turnstile resetKey={resetKey} onToken={(t) => (token.current = t)} />
 
       {view === "form" ? (
         <div className="flex flex-col gap-6">

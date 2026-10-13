@@ -17,24 +17,25 @@ declare global {
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 /**
- * Cloudflare Turnstile, explicit render. Tokens are single-use: bump `resetKey` after every
- * server response so the visitor gets a fresh one. The token is verified server-side only.
- * `invisible`: no box unless Cloudflare needs the visitor to interact (appearance
- * "interaction-only"), so it takes no space on the page until then.
+ * Cloudflare Turnstile, explicit render, invisible on every form: appearance "interaction-only",
+ * so visitors never see a box unless Cloudflare needs a click. Until then the container is out of
+ * the layout (no reserved space); Cloudflare's before/after-interactive callbacks bring it in and
+ * out. Tokens are single-use: bump `resetKey` after every server response so the visitor gets a
+ * fresh one. Every submit is verified server-side (lib/forms/guard.ts), failing closed.
  */
 export function Turnstile({
   onToken,
   resetKey,
-  invisible = false,
 }: {
   onToken: (token: string) => void;
   resetKey: number;
-  invisible?: boolean;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const callback = useRef(onToken);
   const [ready, setReady] = useState(false);
+  /** Cloudflare wants the visitor to interact: show the box in the page. */
+  const [interactive, setInteractive] = useState(false);
 
   useEffect(() => {
     callback.current = onToken;
@@ -45,7 +46,10 @@ export function Turnstile({
     const id = window.turnstile.render(container.current, {
       sitekey: SITE_KEY,
       theme: document.documentElement.dataset.siteTheme === "dark" ? "dark" : "light",
-      ...(invisible && { appearance: "interaction-only", size: "flexible" }),
+      appearance: "interaction-only",
+      size: "flexible",
+      "before-interactive-callback": () => setInteractive(true),
+      "after-interactive-callback": () => setInteractive(false),
       callback: (token: string) => callback.current(token),
       "expired-callback": () => callback.current(""),
       "error-callback": () => callback.current(""),
@@ -55,7 +59,7 @@ export function Turnstile({
       window.turnstile?.remove(id);
       widgetId.current = null;
     };
-  }, [ready, invisible]);
+  }, [ready]);
 
   useEffect(() => {
     if (resetKey > 0 && widgetId.current) {
@@ -74,7 +78,7 @@ export function Turnstile({
         strategy="afterInteractive"
         onReady={() => setReady(true)}
       />
-      <div ref={container} className={invisible ? undefined : "min-h-[65px]"} />
+      <div ref={container} className={interactive ? "w-full" : "absolute size-0 overflow-hidden"} />
     </>
   );
 }

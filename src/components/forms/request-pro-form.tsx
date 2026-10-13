@@ -114,7 +114,7 @@ export function RequestProForm({
             </div>
           </fieldset>
           <Honeypot {...register("website")} />
-          <div className="flex flex-col gap-2">
+          <div className="contents">
             <Turnstile
               resetKey={turnstileReset}
               onToken={(token) =>

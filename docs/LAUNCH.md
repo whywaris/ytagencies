@@ -114,11 +114,11 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    |---|---|---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | public | yes | Supabase → Project Settings → API. |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | yes | Same page, `anon` key. |
-   | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | public | yes | Cloudflare Turnstile widget for `ytagencies.com`. |
+   | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | public | yes | Cloudflare Turnstile widget for `ytagencies.com`. Production must use the real key: the build fails on a missing key or a Cloudflare test key (`1x0000…`, `2x0000…`, `3x0000…`). Preview and local may use test keys. |
    | `NEXT_PUBLIC_GA_ID` | public | no | Google Analytics 4 measurement ID (`G-E6X061VCPX`). Safe to set now: GA runs only on Vercel Production (`VERCEL_ENV`), never locally or on previews, and never for signed-in users. |
    | `ALLOW_INDEXING` | server | at launch | "Let Google index the site." Set to exactly `true` only at launch, on Production only. Until then every response sends `X-Robots-Tag: noindex, nofollow` and robots.txt blocks everything (no sitemap line). Never set it on Preview. |
    | `SUPABASE_SERVICE_ROLE_KEY` | server | yes | Same Supabase page, `service_role` key. Admin, cron and public data functions use it. |
-   | `TURNSTILE_SECRET_KEY` | server | yes | The widget's secret key. Every public form checks it. |
+   | `TURNSTILE_SECRET_KEY` | server | yes | The widget's secret key. Every public form checks it on the server (failing closed). Same rule: real key on Production, or the build fails and the server refuses submissions. |
    | `RESEND_API_KEY` | server | yes | Resend API key (sending access, `send.ytagencies.com`). Without it no lead or rejection emails go out. |
    | `CLAIM_TOKEN_SECRET` | server | yes | `openssl rand -base64 48`. Signs claim links and keys the daily visitor hash of the analytics beacon. Changing it voids pending claim links. Unset: claims fail and the beacon records nothing. |
    | `CRON_SECRET` | server | yes | `openssl rand -base64 32`. Vercel sends it to `/api/cron/*`; without it those routes answer 401 and nothing scheduled runs. |
@@ -162,7 +162,7 @@ Creem is the merchant of record: it charges, handles tax and sends receipts and 
 ## Cloudflare DNS (DNS-only, grey cloud)
 
 1. Apex and `www` records pointing at Vercel, as Vercel's domain screen shows.
-2. Turnstile widget for `ytagencies.com`.
+2. Turnstile widget for `ytagencies.com` (Widget mode: Managed; the site renders it invisible, so a box only appears when Cloudflare needs a click). Put its real site key and secret in Vercel **Production**; Cloudflare's test keys are for Preview and local only.
 3. Resend: add the domain `send.ytagencies.com` and create its SPF, DKIM and DMARC records in Cloudflare (DNS-only). The app sends from `help@send.ytagencies.com`.
 4. Cloudflare Email Routing (Email → Email Routing on `ytagencies.com`): enable it (it adds its MX and SPF records on the apex) and create the custom address `help@ytagencies.com` forwarding to your own inbox; verify that destination address. `help@ytagencies.com` is the only public address: the contact form (every topic), the legal pages, the footer, JSON-LD and the Reply-To on every email. Sending uses the `send.` subdomain, so routing on the apex doesn't conflict.
 

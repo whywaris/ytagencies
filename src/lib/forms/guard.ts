@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { turnstileKeyProblems } from "@/lib/turnstile-keys";
 
 // SECURITY.md public-form checks that need the server: Turnstile and rate limiting.
 
@@ -20,6 +21,12 @@ export async function verifyTurnstile(token: string, ip: string) {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
     console.error("TURNSTILE_SECRET_KEY is not set");
+    return false;
+  }
+  // Production with a missing or test key: refuse rather than let a test key pass everyone.
+  const problems = turnstileKeyProblems();
+  if (problems.length) {
+    console.error(`Turnstile misconfigured in production: ${problems.join("; ")}`);
     return false;
   }
   try {

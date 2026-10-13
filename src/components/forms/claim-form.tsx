@@ -58,7 +58,7 @@ function useClaimForm<T extends FieldValues>(
   const bot = (
     <>
       <Honeypot {...form.register("website" as Path<T>)} />
-      <div className="mt-4 flex flex-col gap-2">
+      <div className="contents">
         <Turnstile
           resetKey={turnstileReset}
           onToken={(t) =>

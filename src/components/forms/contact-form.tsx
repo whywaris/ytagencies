@@ -152,7 +152,7 @@ export function ContactForm({
 
       <Honeypot {...register("website")} />
 
-      <div className="flex flex-col gap-2">
+      <div className="contents">
         <Turnstile
           resetKey={turnstileReset}
           onToken={(token) => setValue("turnstileToken", token, { shouldValidate: isSubmitted })}
