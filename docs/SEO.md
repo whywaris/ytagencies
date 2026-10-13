@@ -50,7 +50,7 @@
 
 - All pages: `BreadcrumbList`; home: `WebSite` + `Organization`. Policy pages: `WebPage` with `dateModified`; `/about`: `AboutPage` + `Organization` (founder as `Person` once filled in); `/contact`: `ContactPage`.
 - Directory pages: `ItemList` of agencies (url + position).
-- Profile: `ProfessionalService` with name, url, logo, areaServed, address (if public). Add `aggregateRating` only from genuine, moderated third-party reviews.
+- Profile: `ProfessionalService` (see "Agency profiles" below), `FAQPage` from the profile's generated FAQ, `BreadcrumbList`.
 - Guides: `Article` with dates and `author` as a `Person` linking to their author page. `/guides`: `CollectionPage` with an `ItemList` of the guides shown. Author pages: `Person` (name, job title, bio, photo, `sameAs` profiles).
 - FAQ blocks may use `FAQPage` markup, but don't expect rich results from it.
 
@@ -64,11 +64,23 @@
 - 404 for unknown slugs (never a soft 200).
 - Pagination on large lists: `?page=2` is self-canonical and linked with normal `<a>` links.
 
-## On-page checklist (profiles)
+## Agency profiles (`/agency/<slug>`)
+
+Builders: `src/lib/profile-seo.ts` (title, description, thin rule; unit-tested), `professionalServiceJsonLd` in `src/lib/seo/json-ld.ts`, `agencyOgImage` in `src/lib/seo/og.tsx`.
+
+- **Title** (≤ 60), unless the admin set `seo_title`: `<Name>: <Main service> Agency for <Industry> | YT Agencies` when one industry has `focus_pct` ≥ 40, otherwise `… Agency in <City> | YT Agencies` (HQ city, or country). Too long: drop ` | YT Agencies` first, then the for/in part. The name and service are never cut.
+- **Description** (140–160), unless the admin set `seo_description`: `<Name> is a <City>-based YouTube <service> agency for <industry 1> and <industry 2> brands. From $<price>/<unit>, <contract>. See channels, pricing and reviews.` Missing parts are skipped. Over 160: drop the second industry, then shorten the last sentence to "See pricing and reviews.", then drop it.
+- **JSON-LD `ProfessionalService`:** name, url, logo, description (the "At a glance" paragraph shown on the page), address (city, country), areaServed (locations), foundingDate, numberOfEmployees (range), priceRange (`$3,000+/month`), knowsAbout (services), sameAs (website only for Pro/Founding, plus LinkedIn and the agency's YouTube channel). `aggregateRating` and `review` only from published (moderated) reviews.
+- **`FAQPage`** with exactly the questions and answers shown on the page. **`BreadcrumbList`**: Home / <primary service> agencies / <name>.
+- **OG image** (`/og/agency/<slug>`, 1200×630, light): logo (PNG/JPEG; otherwise initials), name, Verified badge if verified, main service · city, "From $X/<unit>", small brand.
+- **Thin profiles** are `noindex,follow` and left out of `/sitemaps/agencies.xml` when they have no description and no "best for" line, OR fewer than 2 industries, OR no starting price. The agency's dashboard and Admin → Agencies → the agency say "Hidden from Google until you add: …". Every profile save revalidates the page, its OG image and the sitemap, so a fixed profile is indexable again straight away.
+- Canonical is always `/agency/<slug>`; one H1 (the agency name); sitemap `lastModified` is the agency's `updated_at`.
+
+### On-page checklist
 
 - Unique description (min 150 words, prompt agencies on claim).
 - Services and industries link to their directory pages (internal link mesh).
-- "Similar agencies" block (4 links).
+- Related directory pages always; "Similar agencies" on Free profiles.
 - Case studies with real numbers and channel links.
 
 ## Internal linking

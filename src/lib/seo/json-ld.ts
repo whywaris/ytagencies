@@ -112,29 +112,52 @@ export function faqJsonLd(faqs: { question: string; answer: string }[]) {
 export function professionalServiceJsonLd(agency: {
   slug: string;
   name: string;
+  /** The profile's "At a glance" paragraph. */
   description: string | null;
-  website: string | null;
   logoUrl: string | null;
   areaServed: string[];
-  hq: { city: string; country: string | null } | null;
+  hq: { city: string | null; country: string | null } | null;
+  foundingYear: number | null;
+  /** "11-50", "200+" */
+  teamSize: string | null;
+  /** "$3,000+/month" */
+  priceRange: string | null;
+  knowsAbout: string[];
+  /** Website (paid plans only), LinkedIn, YouTube channel. */
+  sameAs: string[];
   rating: { average: number; count: number } | null;
+  /** Published, moderated reviews only. */
+  reviews: { author: string; rating: number; body: string; date: string }[];
 }) {
+  const [min, max] = agency.teamSize?.split("-").map(Number) ?? [];
   return {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
     name: agency.name,
     url: absolute(`/agency/${agency.slug}`),
-    ...(agency.website && { sameAs: [agency.website] }),
     ...(agency.description && { description: agency.description }),
     ...(agency.logoUrl && { logo: agency.logoUrl, image: agency.logoUrl }),
     ...(agency.areaServed.length > 0 && { areaServed: agency.areaServed }),
-    ...(agency.hq && {
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: agency.hq.city,
-        ...(agency.hq.country && { addressCountry: agency.hq.country }),
+    ...(agency.hq &&
+      (agency.hq.city || agency.hq.country) && {
+        address: {
+          "@type": "PostalAddress",
+          ...(agency.hq.city && { addressLocality: agency.hq.city }),
+          ...(agency.hq.country && { addressCountry: agency.hq.country }),
+        },
+      }),
+    ...(agency.foundingYear && { foundingDate: String(agency.foundingYear) }),
+    ...(agency.teamSize && {
+      numberOfEmployees: {
+        "@type": "QuantitativeValue",
+        ...(agency.teamSize.endsWith("+")
+          ? { minValue: Number.parseInt(agency.teamSize, 10) }
+          : { minValue: min, maxValue: max }),
       },
     }),
+    ...(agency.priceRange && { priceRange: agency.priceRange }),
+    ...(agency.knowsAbout.length > 0 && { knowsAbout: agency.knowsAbout }),
+    ...(agency.sameAs.length > 0 && { sameAs: agency.sameAs }),
     ...(agency.rating && {
       aggregateRating: {
         "@type": "AggregateRating",
@@ -143,6 +166,20 @@ export function professionalServiceJsonLd(agency: {
         bestRating: 5,
         worstRating: 1,
       },
+    }),
+    ...(agency.reviews.length > 0 && {
+      review: agency.reviews.map((r) => ({
+        "@type": "Review",
+        author: { "@type": "Person", name: r.author },
+        datePublished: r.date.slice(0, 10),
+        reviewBody: r.body,
+        reviewRating: {
+          "@type": "Rating",
+          ratingValue: r.rating,
+          bestRating: 5,
+          worstRating: 1,
+        },
+      })),
     }),
   };
 }

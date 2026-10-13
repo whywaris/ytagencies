@@ -9,6 +9,7 @@ import { ChannelTable } from "@/components/admin/channel-table";
 import { AgencyLogo } from "@/components/agency-logo";
 import { CaseStudies } from "@/components/dashboard/case-studies";
 import { ProfileForm } from "@/components/dashboard/profile-form";
+import { SeoHiddenNotice } from "@/components/seo-hidden-notice";
 import { adminUpdateProfile } from "@/lib/actions/admin";
 import { adminDeleteCaseStudy, adminSaveCaseStudy } from "@/lib/actions/admin-directory";
 import { hqLocationOptions } from "@/lib/admin-locations";
@@ -174,6 +175,10 @@ async function ProfileTab({
   };
   return (
     <div className="flex flex-col gap-12">
+      <SeoHiddenNotice
+        profile={form.defaults}
+        className="max-w-reading rounded-lg border border-line bg-surface-2 px-4 py-3"
+      />
       <section aria-labelledby="details" className="flex max-w-reading flex-col gap-6">
         <h2 id="details" className="text-admin-section">
           Details

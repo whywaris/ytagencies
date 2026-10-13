@@ -147,3 +147,107 @@ export function ogImage({
     OG_SIZE,
   );
 }
+
+/**
+ * Agency profile social image (light, public tokens): logo or initials, name, Verified, main
+ * service and city, the starting price, and the brand small. `logo` must be a PNG or JPEG URL
+ * (the renderer can't draw WebP or SVG); otherwise the initials tile is used.
+ */
+export function agencyOgImage(a: {
+  name: string;
+  logo: string | null;
+  verified: boolean;
+  /** "Influencer Marketing · London" */
+  line: string | null;
+  /** "From $3,000/month" */
+  price: string | null;
+}) {
+  const initials = a.name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+  const nameSize = a.name.length > 28 ? 60 : a.name.length > 18 ? 72 : 84;
+  return new ImageResponse(
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: 80,
+        background: "#fbfbfd",
+        color: "#16171a",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
+        {a.logo ? (
+          // eslint-disable-next-line @next/next/no-img-element -- next/og renders plain <img>
+          <img
+            src={a.logo}
+            width={132}
+            height={132}
+            alt=""
+            style={{ borderRadius: 30, objectFit: "contain", background: "#ffffff" }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 132,
+              height: 132,
+              borderRadius: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#eaf0ff",
+              color: "#1c5af5",
+              fontSize: 52,
+              fontWeight: 700,
+            }}
+          >
+            {initials}
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 820 }}>
+          <div
+            style={{
+              fontSize: nameSize,
+              fontWeight: 650,
+              letterSpacing: "-0.035em",
+              lineHeight: 1.05,
+            }}
+          >
+            {a.name}
+          </div>
+          {a.verified && (
+            <div style={{ display: "flex" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "6px 20px",
+                  borderRadius: 999,
+                  background: "#e5f7f0",
+                  color: "#0b7a5a",
+                  fontSize: 26,
+                  fontWeight: 600,
+                }}
+              >
+                Verified
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {a.line && <div style={{ fontSize: 38, color: "#5e626b" }}>{a.line}</div>}
+        {a.price && (
+          <div style={{ fontSize: 46, fontWeight: 650, letterSpacing: "-0.02em" }}>{a.price}</div>
+        )}
+      </div>
+      <OgBrand size={28} />
+    </div>,
+    OG_SIZE,
+  );
+}

@@ -18,10 +18,10 @@ export function generateStaticParams() {
 
 async function entries(file: (typeof FILES)[number]): Promise<Entry[]> {
   if (file === "agencies.xml") {
-    return (await getAgencySlugs()).map((a) => ({
-      path: `/agency/${a.slug}`,
-      lastModified: a.updatedAt,
-    }));
+    // Thin profiles are noindex until fixed (docs/SEO.md), so they're left out here too.
+    return (await getAgencySlugs())
+      .filter((a) => a.indexable)
+      .map((a) => ({ path: `/agency/${a.slug}`, lastModified: a.updatedAt }));
   }
   if (file === "categories.xml") {
     const [{ combos, hubs, siteLastModified }, services] = await Promise.all([

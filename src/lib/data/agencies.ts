@@ -4,6 +4,7 @@ import { cache } from "react";
 import { getPlacement } from "@/lib/data/placement";
 import { getIndustries, getLocations, getServices, type Segment } from "@/lib/data/taxonomy";
 import type { Entitlements } from "@/lib/entitlements";
+import { thinProfileMissing } from "@/lib/profile-seo";
 import { qualityScore, rankAgencies } from "@/lib/ranking";
 import { MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -59,6 +60,13 @@ export type AgencyProfile = AgencyListItem & {
   locations: (Tag & { type: string })[];
   bestFor: string | null;
   timezone: string | null;
+  linkedinUrl: string | null;
+  youtubeChannelUrl: string | null;
+  /** HQ as city + country names; a country-level HQ has city null. */
+  hqCity: string | null;
+  hqCountry: string | null;
+  /** Thin-profile rule (lib/profile-seo.ts): empty means indexable. */
+  seoMissing: string[];
   reportingFrequency: string | null;
   /** 0–5 steps, as the agency described its process. */
   process: { title: string; description: string }[];
@@ -295,7 +303,7 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .select(
       `${LIST_SELECT},
       website, founded_year, is_claimed, updated_at, seo_title, seo_description,
-      best_for, timezone, reporting_frequency, process,
+      best_for, timezone, reporting_frequency, process, linkedin_url, youtube_channel_url,
       service_details:agency_services(is_primary, focus_pct, included, starting_price, price_unit, services(slug, name)),
       industry_details:agency_industries(is_primary, focus_pct, industries(slug, name)),
       agency_channels(id, channel_url, title, subscriber_count, status, created_at, industries(name)),
@@ -312,11 +320,14 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const [placement, responses, verificationRecord] = await Promise.all([
+  const [placement, responses, verificationRecord, locations] = await Promise.all([
     getPlacement(),
     getResponseTimes(),
     getVerificationRecord(data.id),
+    getLocations(),
   ]);
+  const hq = data.hq && locations.find((l) => l.slug === data.hq!.slug);
+  const hqParent = hq?.parentId ? locations.find((l) => l.id === hq.parentId) : null;
   const steps = Array.isArray(data.process) ? data.process : [];
 
   return {
@@ -331,6 +342,16 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     seoDescription: data.seo_description,
     bestFor: data.best_for,
     timezone: data.timezone,
+    linkedinUrl: data.linkedin_url,
+    youtubeChannelUrl: data.youtube_channel_url,
+    hqCity: hqParent ? (hq?.name ?? null) : null,
+    hqCountry: hqParent ? hqParent.name : (hq?.name ?? null),
+    seoMissing: thinProfileMissing({
+      hasDescription: !!data.description?.trim(),
+      hasBestFor: !!data.best_for?.trim(),
+      industries: data.agency_industries.length,
+      hasPrice: data.min_budget_usd !== null,
+    }),
     reportingFrequency: data.reporting_frequency,
     process: steps.flatMap((s) =>
       s && typeof s === "object" && !Array.isArray(s) && typeof s.title === "string"
@@ -440,14 +461,27 @@ async function getVerificationRecord(agencyId: string) {
   };
 }
 
-/** Every published agency slug + last update, for generateStaticParams and the sitemap. */
+/**
+ * Every published agency slug + last update, for generateStaticParams and the sitemap, with
+ * whether the profile is indexable (thin profiles are noindex and left out of the sitemap).
+ */
 export const getAgencySlugs = cache(async () => {
   const { data, error } = await createStaticClient()
     .from("agencies")
-    .select("slug, updated_at")
+    .select("slug, updated_at, description, best_for, min_budget_usd, agency_industries(count)")
     .eq("status", "published");
   if (error) throw error;
-  return data.map((a) => ({ slug: a.slug, updatedAt: a.updated_at }));
+  return data.map((a) => ({
+    slug: a.slug,
+    updatedAt: a.updated_at,
+    indexable:
+      thinProfileMissing({
+        hasDescription: !!a.description?.trim(),
+        hasBestFor: !!a.best_for?.trim(),
+        industries: a.agency_industries[0]?.count ?? 0,
+        hasPrice: a.min_budget_usd !== null,
+      }).length === 0,
+  }));
 });
 
 /**

@@ -4,6 +4,7 @@ import { CaseStudies } from "@/components/dashboard/case-studies";
 import { ChannelsEditor } from "@/components/dashboard/channels-editor";
 import { LogoForm } from "@/components/dashboard/logo-form";
 import { ProfileForm } from "@/components/dashboard/profile-form";
+import { SeoHiddenNotice } from "@/components/seo-hidden-notice";
 import { deleteCaseStudy, saveCaseStudy, updateProfile } from "@/lib/actions/dashboard";
 import { getOwnedAgency } from "@/lib/auth";
 import { profileFormProps } from "@/lib/agency-profile";
@@ -38,6 +39,10 @@ export default async function EditAgencyPage({ params }: PageProps<"/dashboard/[
 
   return (
     <div className="flex flex-col gap-16">
+      <SeoHiddenNotice
+        profile={form.defaults}
+        className="-mb-8 rounded-lg border border-line bg-(--amber-soft) px-4 py-3 text-[15px] text-text"
+      />
       <section aria-labelledby="logo" className="flex flex-col gap-6">
         <h2 id="logo" className="text-h2">
           Logo

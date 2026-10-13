@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 /** The profile page and every directory page it can appear on (ISR, docs/SEO.md). */
 export function revalidateAgency(slug: string) {
   revalidatePath(`/agency/${slug}`);
+  revalidatePath(`/og/agency/${slug}`);
+  // A thin profile that was fixed (or emptied) joins or leaves the sitemap.
+  revalidatePath("/sitemaps/agencies.xml");
   revalidatePath("/(marketing)/[service]", "page");
   revalidatePath("/(marketing)/[service]/[segment]", "page");
   revalidatePath("/");

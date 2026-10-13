@@ -24,12 +24,12 @@ import {
   getSimilarAgencies,
   type AgencyProfile,
 } from "@/lib/data/agencies";
-import { getLocations } from "@/lib/data/taxonomy";
 import { agencyWebsiteLink } from "@/lib/outbound";
 import { contractLabel, responseLabel } from "@/lib/pricing";
-import { formatMetrics, profileDescription, profileTitle, safeExternalUrl } from "@/lib/profile";
+import { formatMetrics, safeExternalUrl } from "@/lib/profile";
 import { faq, glance, unitSuffix } from "@/lib/profile-copy";
-import { breadcrumbJsonLd, professionalServiceJsonLd } from "@/lib/seo/json-ld";
+import { agencyDescription, agencyTitle } from "@/lib/profile-seo";
+import { breadcrumbJsonLd, faqJsonLd, professionalServiceJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -54,11 +54,35 @@ async function load(params: PageProps<"/agency/[slug]">["params"]) {
 
 export async function generateMetadata({ params }: PageProps<"/agency/[slug]">) {
   const agency = await load(params);
+  // The industry that takes 40%+ of their work, for "… Agency for <Industry>".
+  const focus = [...agency.industryDetails]
+    .filter((i) => (i.focusPct ?? 0) >= 40)
+    .sort((a, b) => b.focusPct! - a.focusPct!)[0];
   return buildMetadata({
     image: `/og/agency/${agency.slug}`,
-    title: agency.seoTitle ?? profileTitle(agency),
-    description: agency.seoDescription ?? profileDescription(agency),
+    title:
+      agency.seoTitle ??
+      agencyTitle({
+        name: agency.name,
+        service: agency.services[0]?.name ?? null,
+        focusIndustry: focus?.name ?? null,
+        city: agency.hqCity ?? agency.hqCountry,
+        brand: BRAND_NAME,
+      }),
+    description:
+      agency.seoDescription ??
+      agencyDescription({
+        name: agency.name,
+        city: agency.hqCity ?? agency.hqCountry,
+        service: agency.services[0]?.name ?? null,
+        industries: agency.industries.map((i) => i.name),
+        price: agency.minBudgetUsd,
+        pricingModel: agency.pricingModel,
+        minContract: agency.minContract,
+      }),
     path: `/agency/${agency.slug}`,
+    // Thin profiles stay out of Google until they're filled in (docs/SEO.md).
+    noindex: agency.seoMissing.length > 0,
   });
 }
 
@@ -90,6 +114,12 @@ const SOFT = [
   "bg-(--pink-soft)",
 ];
 
+const PRICE_RANGE_UNIT: Record<string, string> = {
+  retainer: "month",
+  performance: "month",
+  per_video: "video",
+  project: "project",
+};
 const UNIT_TEXT: Record<string, string> = {
   retainer: "per month, retainer",
   per_video: "per video",
@@ -114,8 +144,7 @@ const btnLight = `${btn} border border-line bg-raised text-text hover:border-tex
 export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">) {
   const agency = await load(params);
   const e = agency.entitlements;
-  const [locations, similar, combos] = await Promise.all([
-    getLocations(),
+  const [similar, combos] = await Promise.all([
     // §6: "Similar agencies" shows on Free profiles only.
     e.showSimilarAgencies ? getSimilarAgencies(agency, 3) : [],
     getIndexableCombos(),
@@ -127,11 +156,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   const websiteLink = agencyWebsiteLink(agency.website, e.plan, "profile");
 
   // Location facts: HQ (city, country) plus up to two other places they work.
-  const hqLocation = agency.hq && locations.find((l) => l.slug === agency.hq!.slug);
-  const hqCountry = hqLocation?.parentId
-    ? (locations.find((l) => l.id === hqLocation.parentId)?.name ?? null)
-    : null;
-  const hqCity = hqLocation?.parentId ? hqLocation.name : null;
+  const { hqCity, hqCountry } = agency;
   const otherPlaces = agency.locations
     .map((l) => l.name)
     .filter((n) => n !== agency.hq?.name && n !== hqCountry);
@@ -158,8 +183,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   const copyInput = {
     name: agency.name,
     city: hqCity,
-    // HQ set to a country (no city): that country.
-    country: hqCountry ?? (hqLocation && !hqLocation.parentId ? hqLocation.name : null),
+    country: hqCountry,
     foundedYear: agency.foundedYear,
     teamSize: agency.teamSize,
     services: agency.services.map((s) => s.name),
@@ -222,14 +246,33 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
         data={professionalServiceJsonLd({
           slug: agency.slug,
           name: agency.name,
-          description: agency.description,
-          website: website?.href ?? null,
+          description: atAGlance,
           logoUrl: agency.logoPath ? logoUrl(agency.logoPath) : null,
           areaServed: agency.locations.map((l) => l.name),
-          hq: agency.hq ? { city: agency.hq.name, country: hqCountry } : null,
+          hq: agency.hq ? { city: hqCity, country: hqCountry } : null,
+          foundingYear: agency.foundedYear,
+          teamSize: agency.teamSize,
+          priceRange:
+            price !== null
+              ? `${usd(price)}+${agency.pricingModel ? `/${PRICE_RANGE_UNIT[agency.pricingModel]}` : ""}`
+              : null,
+          knowsAbout: agency.services.map((s) => s.name),
+          sameAs: [
+            // The website only where we link to it (Pro / Founding).
+            websiteLink ? website?.href : null,
+            agency.linkedinUrl,
+            agency.youtubeChannelUrl,
+          ].filter((u): u is string => !!u),
           rating,
+          reviews: agency.reviews.map((r) => ({
+            author: r.authorName,
+            rating: r.rating,
+            body: r.body,
+            date: r.createdAt,
+          })),
         })}
       />
+      {questions.length > 0 && <JsonLd data={faqJsonLd(questions)} />}
 
       <div className="mx-auto max-w-content px-4 md:px-6">
         <div className="pt-7">
@@ -271,9 +314,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 {agency.hq && (
                   <Fact icon={MapPin}>
                     <b className="font-semibold text-text">
-                      {[hqCity ?? agency.hq.name, hqCity ? hqCountry : null]
-                        .filter(Boolean)
-                        .join(", ")}
+                      {[hqCity, hqCountry].filter(Boolean).join(", ")}
                     </b>
                     {otherPlaces.length > 0 &&
                       ` + ${otherPlaces.slice(0, 2).join(", ")}${otherPlaces.length > 2 ? ` and ${otherPlaces.length - 2} more` : ""}`}
