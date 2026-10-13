@@ -10,17 +10,30 @@ export const indexingAllowed = (env: Record<string, string | undefined> = proces
 export const noindexHeaders = (allowed: boolean) =>
   allowed ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
 
+/** AI crawlers, named so it's explicit they're welcome on public pages (same rules as everyone). */
+export const AI_CRAWLERS = [
+  "GPTBot",
+  "OAI-SearchBot",
+  "ClaudeBot",
+  "PerplexityBot",
+  "Google-Extended",
+  "Applebot-Extended",
+];
+
 /** robots.txt: everything blocked and no sitemap until launch; otherwise the normal rules. */
-export function robotsRules(allowed: boolean, sitemaps: string[]) {
+export function robotsRules(allowed: boolean, sitemap: string) {
   if (!allowed) return { rules: { userAgent: "*", disallow: "/" } };
+  // "/*?" also matches optimized images (/_next/image?url=…); the longer allow rule wins, so
+  // logos stay fetchable. Social images live at query-free /og/… paths.
+  const rule = {
+    allow: ["/", "/_next/image"],
+    disallow: ["/dashboard", "/admin", "/api", "/auth", "/login", "/claim", "/*?"],
+  };
   return {
-    rules: {
-      userAgent: "*",
-      // "/*?" also matches optimized images (/_next/image?url=…); the longer allow rule wins,
-      // so logos stay fetchable. Social images live at query-free /og/… paths.
-      allow: ["/", "/_next/image"],
-      disallow: ["/dashboard", "/admin", "/api", "/auth", "/*?"],
-    },
-    sitemap: sitemaps,
+    rules: [
+      { userAgent: "*", ...rule },
+      { userAgent: AI_CRAWLERS, ...rule },
+    ],
+    sitemap,
   };
 }

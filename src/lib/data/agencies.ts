@@ -469,17 +469,16 @@ export const getAgencySlugs = cache(async () => {
     .select("slug, updated_at, description, best_for, min_budget_usd, agency_industries(count)")
     .eq("status", "published");
   if (error) throw error;
-  return data.map((a) => ({
-    slug: a.slug,
-    updatedAt: a.updated_at,
-    indexable:
-      thinProfileMissing({
-        hasDescription: !!a.description?.trim(),
-        hasBestFor: !!a.best_for?.trim(),
-        industries: a.agency_industries[0]?.count ?? 0,
-        hasPrice: a.min_budget_usd !== null,
-      }).length === 0,
-  }));
+  return data.map((a) => {
+    // The same rule the profile uses for its noindex (getAgencyBySlug → seoMissing).
+    const missing = thinProfileMissing({
+      hasDescription: !!a.description?.trim(),
+      hasBestFor: !!a.best_for?.trim(),
+      industries: a.agency_industries[0]?.count ?? 0,
+      hasPrice: a.min_budget_usd !== null,
+    });
+    return { slug: a.slug, updatedAt: a.updated_at, missing, indexable: missing.length === 0 };
+  });
 });
 
 /**

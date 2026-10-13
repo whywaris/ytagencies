@@ -5,11 +5,12 @@ import { checkoutAvailable } from "@/lib/billing";
 import { COMPANY } from "@/lib/company";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
+import { PAGE_UPDATED } from "@/lib/page-dates";
 
 // Refund rules for paid plans and sponsored places. Rules come from lib/company.ts.
 export const revalidate = 3600;
 
-const UPDATED = "2026-10-13";
+const UPDATED = PAGE_UPDATED["/refunds"];
 const TITLE = "Refund policy";
 const DESCRIPTION =
   "How cancellations and refunds work for YT Agencies paid plans and sponsored places: monthly and yearly plans, sponsored page slots, and how to request a refund.";

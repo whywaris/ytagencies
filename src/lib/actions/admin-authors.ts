@@ -7,6 +7,7 @@ import { z } from "zod";
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { imageInfo } from "@/lib/image-info";
 import type { FormResult } from "@/lib/validation/lead";
+import { revalidateSitemaps } from "@/lib/revalidate";
 
 // Guide authors (admin only, service role, audit-logged). Photos follow the same upload rules
 // as guide images: PNG/JPG/WebP checked from the bytes, max 2 MB, public bucket.
@@ -43,7 +44,7 @@ function revalidateAuthor(...slugs: string[]) {
   for (const slug of slugs) revalidatePath(`/authors/${slug}`);
   revalidatePath("/guides/[slug]", "page");
   revalidatePath("/guides");
-  revalidatePath("/sitemaps/guides.xml");
+  revalidateSitemaps();
   revalidatePath("/admin/authors");
 }
 

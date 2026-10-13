@@ -4,11 +4,12 @@ import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
 import { COMPANY } from "@/lib/company";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
+import { PAGE_UPDATED } from "@/lib/page-dates";
 
 // LAUNCH: plain-language terms. Fill in the legal name and jurisdiction in lib/company.ts and
 // have them reviewed before launch.
 
-const UPDATED = "2026-10-13";
+const UPDATED = PAGE_UPDATED["/terms"];
 const TITLE = "Terms of use";
 const DESCRIPTION =
   "Terms for using YT Agencies: how the directory works, what agencies agree to when they list, how reviews, Pro and sponsored places work, and our limits.";

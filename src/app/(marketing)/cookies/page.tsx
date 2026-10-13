@@ -7,13 +7,14 @@ import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
 import { COMPANY } from "@/lib/company";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
+import { PAGE_UPDATED } from "@/lib/page-dates";
 
 // The cookie list comes from the code that sets them: Supabase sign-in (@supabase/ssr defaults,
 // cookie name from the project URL), the admin preferences (components/admin/shell-prefs.ts) and,
 // after consent, Google Analytics (components/analytics.tsx).
 // Add a row here whenever the code starts setting a new cookie.
 
-const UPDATED = "2026-10-13";
+const UPDATED = PAGE_UPDATED["/cookies"];
 const TITLE = "Cookie policy";
 const DESCRIPTION =
   "The essential cookies YT Agencies sets for signing in and admin settings, the Google Analytics cookies set only if you accept them, and how long each lasts.";

@@ -9,6 +9,7 @@ import { imageInfo } from "@/lib/image-info";
 import { imageLinkError } from "@/lib/media";
 import type { Json } from "@/lib/supabase/types";
 import type { FormResult } from "@/lib/validation/lead";
+import { revalidateSitemaps } from "@/lib/revalidate";
 
 // Guides CMS mutations (ADMIN_V2_SPEC §8). Admin only, service role, audit-logged.
 // Slugs: auto from the title, editable until the guide has been live; after that only
@@ -73,7 +74,7 @@ function revalidateGuide(slug: string) {
   revalidatePath(`/og/guide/${slug}`);
   revalidatePath(`/og/guide/${slug}/cover`);
   revalidatePath(`/og/guide/${slug}/cover/dark`);
-  revalidatePath("/sitemaps/guides.xml");
+  revalidateSitemaps();
   revalidatePath("/admin/guides");
 }
 

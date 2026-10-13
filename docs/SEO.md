@@ -56,7 +56,8 @@
 
 ## Technical
 
-- `app/sitemap.ts` generates segmented sitemaps (`/sitemaps/agencies.xml`, `/sitemaps/categories.xml`, `/sitemaps/guides.xml`) with real `lastModified`.
+- `/sitemap.xml` is a sitemap index of `/sitemaps/{pages,services,combos,locations,agencies,guides,authors}.xml` (lib/sitemap.ts), with real `lastmod` (the row's `updated_at`; static pages from `lib/page-dates.ts`, none when there's no real date) and no priority/changefreq. Indexable pages only, by the same rules as the pages' robots meta (thin profiles, the 3-agency rule); never private areas or URLs with a query string. ISR hourly plus on-demand revalidation. robots.txt lists it only when `ALLOW_INDEXING` is `"true"`; then AI crawlers (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, Applebot-Extended) are allowed like everyone else, with private paths disallowed.
+- `/llms.txt` (llmstxt.org): summary, how the directory works, and links to service pages, industries (each to its busiest indexable page), up to 30 indexable comparisons, guides and the about pages. No agency profiles. Served everywhere, linked from nowhere.
 - `app/robots.ts` disallows `/dashboard`, `/admin`, `/api`, and parameterized URLs.
 - One H1 per page; logical H2/H3 order.
 - Core Web Vitals: LCP < 2.5s, CLS < 0.1, INP < 200ms. Use no layout shift from fonts (system stack) or images (fixed dimensions).

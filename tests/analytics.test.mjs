@@ -71,12 +71,28 @@ test("indexing off: every response says noindex; on: no extra header", () => {
 });
 
 test("robots.txt: blocks everything with no sitemap until launch, normal rules after", () => {
-  const sitemaps = ["https://ytagencies.com/sitemaps/agencies.xml"];
-  const off = robotsRules(false, sitemaps);
+  const sitemap = "https://ytagencies.com/sitemap.xml";
+  const off = robotsRules(false, sitemap);
   assert.deepEqual(off, { rules: { userAgent: "*", disallow: "/" } });
   assert.equal("sitemap" in off, false);
-  const on = robotsRules(true, sitemaps);
-  assert.deepEqual(on.sitemap, sitemaps);
-  assert.ok(on.rules.disallow.includes("/dashboard"));
-  assert.ok(on.rules.allow.includes("/"));
+
+  const on = robotsRules(true, sitemap);
+  assert.equal(on.sitemap, sitemap);
+  const [everyone, ai] = on.rules;
+  assert.equal(everyone.userAgent, "*");
+  assert.ok(everyone.allow.includes("/"));
+  for (const path of ["/dashboard", "/admin", "/api", "/auth", "/login", "/claim", "/*?"])
+    assert.ok(everyone.disallow.includes(path), path);
+  // AI crawlers named and allowed, with the same private paths kept out.
+  for (const bot of [
+    "GPTBot",
+    "OAI-SearchBot",
+    "ClaudeBot",
+    "PerplexityBot",
+    "Google-Extended",
+    "Applebot-Extended",
+  ])
+    assert.ok(ai.userAgent.includes(bot), bot);
+  assert.deepEqual(ai.disallow, everyone.disallow);
+  assert.deepEqual(ai.allow, everyone.allow);
 });

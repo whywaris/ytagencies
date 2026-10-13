@@ -4,11 +4,12 @@ import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
 import { COMPANY } from "@/lib/company";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
+import { PAGE_UPDATED } from "@/lib/page-dates";
 
 // How we make money and how paid placement is labeled. Must match lib/ranking.ts and the
 // public labels ("Sponsored", rel="sponsored") in the directory.
 
-const UPDATED = "2026-10-13";
+const UPDATED = PAGE_UPDATED["/disclosure"];
 const TITLE = "Disclosure";
 const DESCRIPTION =
   "How YT Agencies stays independent of YouTube and Google, how it makes money, how Pro and sponsored places are labeled, and what money can't buy.";

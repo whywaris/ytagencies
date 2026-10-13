@@ -81,6 +81,8 @@ const nextConfig: NextConfig = {
       { source: "/for-agencies", destination: "/for-agencies/pricing", permanent: false },
       // Short link for reports; agency profiles link to /contact?topic=report&agency=<slug>.
       { source: "/report-listing", destination: "/contact?topic=report", permanent: true },
+      // Old child sitemap, split into services/combos/locations/pages under /sitemap.xml.
+      { source: "/sitemaps/categories.xml", destination: "/sitemap.xml", permanent: true },
       // Managing a listing moved from /agency/<slug>/claim to /claim/<slug>.
       { source: "/agency/:slug/claim", destination: "/claim/:slug", permanent: true },
       ...AGENCY_SLUG_REDIRECTS.flatMap(({ from, to }) => [

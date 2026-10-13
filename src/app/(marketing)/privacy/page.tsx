@@ -5,12 +5,13 @@ import { LegalPage, type LegalSection } from "@/components/legal/legal-page";
 import { COMPANY } from "@/lib/company";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
+import { PAGE_UPDATED } from "@/lib/page-dates";
 
 // Describes exactly what the code collects today. Keep it in sync with the code: forms
 // (lib/actions), the analytics beacon (api/events), Google Analytics (components/analytics.tsx,
 // after consent), sign-in (Supabase), emails (Resend) and Turnstile. LAUNCH: have it reviewed for your jurisdiction before launch.
 
-const UPDATED = "2026-10-13";
+const UPDATED = PAGE_UPDATED["/privacy"];
 const TITLE = "Privacy policy";
 const DESCRIPTION =
   "What YT Agencies collects when you browse, send an inquiry or manage a listing, who receives it, how long we keep it, and how to get a copy or have it deleted.";

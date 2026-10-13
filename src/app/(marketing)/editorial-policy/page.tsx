@@ -5,12 +5,13 @@ import { COMPANY } from "@/lib/company";
 import { getLiveAuthors } from "@/lib/data/guides";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
+import { PAGE_UPDATED } from "@/lib/page-dates";
 
 // How guides are written, checked and corrected, and where agency data comes from. The author
 // list is live (authors with a published guide).
 export const revalidate = 3600;
 
-const UPDATED = "2026-10-07";
+const UPDATED = PAGE_UPDATED["/editorial-policy"];
 const TITLE = "Editorial policy";
 const DESCRIPTION =
   "Who writes the YT Agencies guides, how facts are checked and corrected, where our agency data comes from, and why sponsors have no say in what we publish.";
