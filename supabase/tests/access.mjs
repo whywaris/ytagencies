@@ -1546,12 +1546,28 @@ await as("anon", null, async () => {
     (await rows("select body_json from guides where slug = 'draft-test'")).length === 1,
     "guides: anon reads a live guide's published content",
   );
-  ok(await fails("select draft_json from guides where slug = 'draft-test'"), "guides: anon can't read draft_json");
-  ok(await fails("select draft_html from guides where slug = 'draft-test'"), "guides: anon can't read draft_html");
-  ok(await fails("select * from guides where slug = 'draft-test'"), "guides: select * fails for anon (drafts hidden)");
+  ok(
+    await fails("select draft_json from guides where slug = 'draft-test'"),
+    "guides: anon can't read draft_json",
+  );
+  ok(
+    await fails("select draft_html from guides where slug = 'draft-test'"),
+    "guides: anon can't read draft_html",
+  );
+  ok(
+    await fails("select draft_meta from guides where slug = 'draft-test'"),
+    "guides: anon can't read draft_meta",
+  );
+  ok(
+    await fails("select * from guides where slug = 'draft-test'"),
+    "guides: select * fails for anon (drafts hidden)",
+  );
 });
 await as("authenticated", OTHER, async () =>
-  ok(await fails("select draft_html from guides"), "guides: signed-in non-admins can't read drafts either"),
+  ok(
+    await fails("select draft_html from guides"),
+    "guides: signed-in non-admins can't read drafts either",
+  ),
 );
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

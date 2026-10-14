@@ -75,11 +75,17 @@ const guideSchema = z.object({
 });
 export type GuideInput = z.infer<typeof guideSchema>;
 
-type Saved = { id: string; slug: string; updatedAt: string };
+/** draft: the guide is live and this save went to its unpublished changes. */
+type Saved = { id: string; slug: string; updatedAt: string; draft: boolean };
 
 /** Live at some point: published (or scheduled) with a publish time that has passed. */
 const hasBeenLive = (g: { published_at: string | null }) =>
   !!g.published_at && new Date(g.published_at) <= new Date();
+/** On the site right now. */
+const isLive = (g: { status: string; published_at: string | null }) =>
+  g.status !== "draft" && hasBeenLive(g);
+
+const NO_DRAFT = { draft_json: null, draft_html: null, draft_meta: null, draft_updated_at: null };
 
 function revalidateGuide(slug: string) {
   revalidatePath(`/guides/${slug}`);
@@ -138,7 +144,10 @@ export async function saveGuide(id: string | null, raw: unknown): Promise<FormRe
     if (error || !data) return { ok: false, error: SAVE_FAILED };
     await ctx.log("guide.create", "guide", data.id, { slug: data.slug });
     revalidatePath("/admin/guides");
-    return { ok: true, data: { id: data.id, slug: data.slug, updatedAt: data.updated_at } };
+    return {
+      ok: true,
+      data: { id: data.id, slug: data.slug, updatedAt: data.updated_at, draft: false },
+    };
   }
 
   const { data: current } = await ctx.db
@@ -151,20 +160,49 @@ export async function saveGuide(id: string | null, raw: unknown): Promise<FormRe
   if (slugChange && hasBeenLive(current)) {
     return { ok: false, error: "This guide has been live, so use Change URL to move it." };
   }
+
+  // Live guide: edits are unpublished changes (admin-only columns); the page changes on "Update".
+  if (isLive(current)) {
+    const { body_json, body_html, ...meta } = content;
+    const { data, error } = await ctx.db
+      .from("guides")
+      .update({
+        draft_json: body_json,
+        draft_html: body_html,
+        draft_meta: meta as Json,
+        draft_updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("slug, updated_at")
+      .single();
+    if (error || !data) return { ok: false, error: SAVE_FAILED };
+    return { ok: true, data: { id, slug: data.slug, updatedAt: data.updated_at, draft: true } };
+  }
+
+  // Not live: save straight to the guide (a draft left from when it was live is folded in).
   const { data, error } = await ctx.db
     .from("guides")
-    .update({ ...content, ...(slugChange ? { slug: v.slug } : {}) })
+    .update({ ...content, ...NO_DRAFT, ...(slugChange ? { slug: v.slug } : {}) })
     .eq("id", id)
     .select("slug, updated_at")
     .single();
   if (error?.code === "23505") return { ok: false, error: "Another guide already uses that URL." };
   if (error || !data) return { ok: false, error: SAVE_FAILED };
-  // Autosave runs every few seconds: log edits to live guides only, where they're visible.
-  if (current.status !== "draft" && current.status !== "in_review") {
-    await ctx.log("guide.update", "guide", id);
-    revalidateGuide(data.slug);
-  }
-  return { ok: true, data: { id, slug: data.slug, updatedAt: data.updated_at } };
+  // A scheduled guide's page (once its time comes) is cached: refresh it.
+  if (current.status === "scheduled") revalidateGuide(data.slug);
+  return { ok: true, data: { id, slug: data.slug, updatedAt: data.updated_at, draft: false } };
+}
+
+/** Throws away a live guide's unpublished changes. */
+export async function discardGuideDraft(id: string): Promise<FormResult<null>> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  if (!uuid.safeParse(id).success) return { ok: false, error: "Unknown guide." };
+  const { error } = await ctx.db.from("guides").update(NO_DRAFT).eq("id", id);
+  if (error) return { ok: false, error: SAVE_FAILED };
+  await ctx.log("guide.discard_draft", "guide", id);
+  revalidatePath("/admin/guides");
+  return { ok: true, data: null };
 }
 
 const statusSchema = z.discriminatedUnion("action", [
@@ -190,12 +228,14 @@ export async function setGuideStatus(
 
   const { data: g } = await ctx.db
     .from("guides")
-    .select("slug, title, body_md, body_json, published_at")
+    .select("slug, title, body_md, body_json, published_at, draft_json, draft_html, draft_meta")
     .eq("id", id)
     .maybeSingle();
   if (!g) return { ok: false, error: "This guide was deleted." };
+  const hasDraft = !!g.draft_json;
   if (v.action !== "unpublish") {
-    const doc = guideDoc(g.body_json, g.body_md);
+    // What goes live: the unpublished changes if there are any.
+    const doc = guideDoc(g.draft_json ?? g.body_json, g.body_md);
     if (!docText(doc)) return { ok: false, error: "Write the guide before publishing it." };
     const noAlt = imagesWithoutAlt(doc);
     if (noAlt)
@@ -208,13 +248,24 @@ export async function setGuideStatus(
   const now = new Date();
   let update: { status: string; published_at: string | null };
   let contentUpdated: string | null = null;
+  // Publishing or scheduling applies the unpublished changes; unpublishing keeps them.
+  const apply =
+    v.action !== "unpublish" && hasDraft
+      ? {
+          ...(g.draft_meta as Record<string, unknown>),
+          body_json: g.draft_json,
+          body_html: g.draft_html,
+          ...NO_DRAFT,
+        }
+      : {};
   if (v.action === "publish") {
     // Keep the original date when republishing; first publish is now.
     update = {
       status: "published",
       published_at: hasBeenLive(g) ? g.published_at : now.toISOString(),
     };
-    contentUpdated = now.toISOString();
+    // "Updated" on the page: the first publish, then each update that changed something.
+    if (!hasBeenLive(g) || hasDraft) contentUpdated = now.toISOString();
   } else if (v.action === "schedule") {
     if (new Date(v.at) <= now) return { ok: false, error: "Pick a time in the future." };
     update = { status: "scheduled", published_at: new Date(v.at).toISOString() };
@@ -223,7 +274,11 @@ export async function setGuideStatus(
   }
   const { error } = await ctx.db
     .from("guides")
-    .update({ ...update, ...(contentUpdated ? { content_updated_at: contentUpdated } : {}) })
+    .update({
+      ...apply,
+      ...update,
+      ...(contentUpdated ? { content_updated_at: contentUpdated } : {}),
+    })
     .eq("id", id);
   if (error) return { ok: false, error: SAVE_FAILED };
   await ctx.log(

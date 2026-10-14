@@ -769,6 +769,7 @@ export type Database = {
           body_html: string | null;
           draft_json: Json | null;
           draft_html: string | null;
+          draft_meta: Json | null;
           draft_updated_at: string | null;
           content_updated_at: string | null;
           cover_path: string | null;
@@ -793,6 +794,7 @@ export type Database = {
           body_html?: string | null;
           draft_json?: Json | null;
           draft_html?: string | null;
+          draft_meta?: Json | null;
           draft_updated_at?: string | null;
           content_updated_at?: string | null;
           cover_path?: string | null;
@@ -817,6 +819,7 @@ export type Database = {
           body_html?: string | null;
           draft_json?: Json | null;
           draft_html?: string | null;
+          draft_meta?: Json | null;
           draft_updated_at?: string | null;
           content_updated_at?: string | null;
           cover_path?: string | null;

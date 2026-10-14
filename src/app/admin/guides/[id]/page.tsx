@@ -8,7 +8,6 @@ import {
   serviceOptions,
   toEditorGuide,
 } from "@/lib/data/admin-guides";
-import { mediaHosts } from "@/lib/media";
 import { SITE_DOMAIN } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -28,13 +27,13 @@ export default async function EditGuidePage({ params }: PageProps<"/admin/guides
   ]);
   if (!guide) notFound();
   return (
-    // Keyed so a different guide (or a refresh after publishing) starts from the saved state.
+    // Keyed so a different guide (or a refresh after publishing, updating or discarding) starts
+    // from the saved state.
     <GuideEditor
-      key={`${guide.id}:${guide.status}:${guide.slug}`}
+      key={`${guide.id}:${guide.status}:${guide.slug}:${guide.updated_at}`}
       guide={toEditorGuide(guide)}
       comboOptions={options}
       authors={authors}
-      mediaHosts={mediaHosts()}
       siteHost={SITE_DOMAIN}
       services={services}
     />

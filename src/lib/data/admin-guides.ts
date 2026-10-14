@@ -53,6 +53,8 @@ type Row = {
   body_md: string;
   body_json: unknown;
   draft_json: unknown;
+  draft_meta: unknown;
+  draft_updated_at: string | null;
   cover_path: string | null;
   seo_title: string | null;
   seo_description: string | null;
@@ -64,7 +66,9 @@ type Row = {
   published_at: string | null;
 };
 
-export function toEditorGuide(g: Row): EditorGuide {
+export function toEditorGuide(row: Row): EditorGuide {
+  // Unpublished changes of a live guide sit on top of the live fields.
+  const g: Row = { ...row, ...(row.draft_meta as Partial<Row> | null) };
   return {
     id: g.id,
     title: g.title,
@@ -84,6 +88,7 @@ export function toEditorGuide(g: Row): EditorGuide {
       : "draft") as EditorGuide["status"],
     publishedAt: g.published_at,
     slugLocked: !!g.published_at && new Date(g.published_at) <= new Date(),
+    hasDraft: !!g.draft_updated_at,
   };
 }
 
@@ -103,4 +108,5 @@ export const NEW_GUIDE: EditorGuide = {
   status: "draft",
   publishedAt: null,
   slugLocked: false,
+  hasDraft: false,
 };

@@ -5,11 +5,12 @@
 --    Existing guides are converted from Markdown by the app (lib/guide-content.ts markdownToDoc):
 --    automatically when a guide without body_json is shown or opened in the editor, and all at
 --    once with `pnpm guides:convert` (SQL can't parse Markdown).
--- 2. Drafts: editing a published guide saves to draft_json/draft_html; the live page changes only
---    on "Update", which copies the draft into body_json/body_html and stamps content_updated_at
---    (shown as "Updated" and used as the Article's dateModified).
--- 3. The public (anon) and signed-in users can't read drafts or the Markdown backup: column grants.
---    Admin pages read guides with the service role.
+-- 2. Drafts: editing a published guide saves to draft_json/draft_html (and the other fields to
+--    draft_meta); the live page changes only on "Update", which applies them and stamps
+--    content_updated_at (shown as "Updated" and used as the Article's dateModified).
+-- 3. The public (anon) and signed-in users can't read drafts: column grants. body_md stays
+--    readable, since the public page falls back to it until a guide is converted. Admin pages
+--    read guides with the service role.
 -- 4. Storage bucket guide-media: public read, admin-only write, jpg/png/webp/gif up to 5 MB.
 
 begin;
@@ -20,13 +21,14 @@ alter table guides
   add column body_html text check (char_length(body_html) <= 400000),
   add column draft_json jsonb,
   add column draft_html text check (char_length(draft_html) <= 400000),
+  add column draft_meta jsonb,
   add column draft_updated_at timestamptz,
   add column content_updated_at timestamptz;
 comment on column guides.body_md is 'Backup of the Markdown body from before the Tiptap editor. Read-only.';
 -- Live guides were last updated when they were last saved.
 update guides set content_updated_at = updated_at where status in ('published', 'scheduled');
 
--- 3. Column grants: everything public except drafts and the Markdown backup.
+-- 3. Column grants: every column except the draft ones.
 revoke select on guides from anon, authenticated;
 grant select (id, slug, title, excerpt, cover_path, seo_title, seo_description, author_id, status,
   published_at, related_combos, key_takeaways, numbered_sections, created_at, updated_at,

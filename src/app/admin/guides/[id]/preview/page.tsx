@@ -20,20 +20,23 @@ export default async function GuidePreviewPage({
   const { id } = await params;
   await requireAdmin(`/admin/guides/${id}/preview`);
   if (!UUID.test(id)) notFound();
-  const { data: g } = await createAdminClient()
+  const { data: row } = await createAdminClient()
     .from("guides")
     .select(`*, author:authors(${AUTHOR_COLUMNS})`)
     .eq("id", id)
     .maybeSingle();
-  if (!g) notFound();
+  if (!row) notFound();
+  // Unpublished changes if there are any, else the live guide.
+  // ponytail: the author box shows the live author until "Update" if only the author changed.
+  const g = { ...row, ...(row.draft_meta as Partial<typeof row> | null) };
   const related = await resolveCombos(g.related_combos);
-  // Unpublished changes if there are any, else the live content.
   const previewDoc = guideDoc(g.draft_json ?? g.body_json, g.body_md);
 
   return (
     <div className="flex flex-col gap-2">
       <p className="rounded-lg border border-line px-4 py-3 text-text-2">
-        Preview of the saved version{g.draft_json ? ", with unpublished changes" : ""}. {g.status === "published" ? null : "Not live yet. "}
+        Preview of the saved version{g.draft_json ? ", with unpublished changes" : ""}.{" "}
+        {g.status === "published" ? null : "Not live yet. "}
         <Link href={`/admin/guides/${g.id}`} className="text-accent hover:underline">
           Back to the editor
         </Link>

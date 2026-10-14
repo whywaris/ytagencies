@@ -19,6 +19,7 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Suggestion } from "@tiptap/suggestion";
 import {
   Bold,
+  ChevronRight,
   Heading2,
   Heading3,
   Heading4,
@@ -47,6 +48,7 @@ import { usePortalContainer } from "@/components/admin/portal";
 import { importRemoteImage, uploadGuideImage } from "@/lib/actions/admin-guides";
 import {
   cleanPastedHtml,
+  docOutline,
   docReadMinutes,
   looksLikeMarkdown,
   markdownToDoc,
@@ -553,77 +555,123 @@ export function RichEditor({
   }
 
   const words = useMemo(() => wordCount(doc), [doc]);
+  const outline = useMemo(() => docOutline(doc), [doc]);
 
   if (!editor) return <div className="min-h-[60vh] rounded-xl border border-line" aria-busy />;
 
+  const jump = (index: number) => {
+    let pos = -1;
+    editor.state.doc.forEach((_n, offset, i) => {
+      if (i === index) pos = offset;
+    });
+    if (pos < 0) return;
+    editor
+      .chain()
+      .focus()
+      .setTextSelection(pos + 1)
+      .run();
+    (editor.view.nodeDOM(pos) as HTMLElement | null)?.scrollIntoView({ block: "center" });
+  };
+
   return (
-    <div className="flex flex-col rounded-xl border border-line">
-      <input
-        ref={fileInput}
-        type="file"
-        accept={IMAGE_TYPES.join(",")}
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          void insertFiles(imageFiles(e.target.files), null);
-          e.target.value = "";
-        }}
-      />
-      <Toolbar
-        editor={editor}
-        linkOpen={linkOpen}
-        setLinkOpen={setLinkOpen}
-        pickImage={() => fileInput.current?.click()}
-      />
-
-      <EditorContent editor={editor} />
-
-      {slash && (
-        <ul
-          role="listbox"
-          aria-label="Insert a block"
-          style={
-            // Below the cursor, or above it when there isn't room (max-h-80 is 320px).
-            (slash.rect?.bottom ?? 0) + 330 > window.innerHeight
-              ? {
-                  position: "fixed",
-                  bottom: window.innerHeight - (slash.rect?.top ?? 0) + 6,
-                  left: slash.rect?.left ?? 0,
-                }
-              : {
-                  position: "fixed",
-                  top: (slash.rect?.bottom ?? 0) + 6,
-                  left: slash.rect?.left ?? 0,
-                }
-          }
-          className={cn(menu, "max-h-80 overflow-y-auto")}
-        >
-          {slash.items.map((item, i) => (
-            <li
-              key={item.label}
-              role="option"
-              aria-selected={i === slash.index}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                slash.pick(item);
-              }}
-              className={cn(menuItem, i === slash.index && "bg-surface-2")}
-            >
-              <item.icon className={cn(icon, "text-text-2")} aria-hidden />
-              {item.label}
-            </li>
-          ))}
-        </ul>
+    <div className="flex flex-col gap-3">
+      {outline.length > 0 && (
+        <details className="group rounded-xl border border-line">
+          <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl px-4 font-medium select-none [&::-webkit-details-marker]:hidden">
+            <ChevronRight
+              className="size-4 [stroke-width:1.5] text-text-2 transition-transform duration-150 group-open:rotate-90"
+              aria-hidden
+            />
+            Outline
+            <span className="text-admin-meta num">{outline.length}</span>
+          </summary>
+          <ol className="flex flex-col px-2 pb-2">
+            {outline.map((h) => (
+              <li key={h.index}>
+                <button
+                  type="button"
+                  onClick={() => jump(h.index)}
+                  style={{ paddingLeft: `${(h.level - 2) * 16 + 8}px` }}
+                  className={cn(
+                    "flex min-h-8 w-full items-center rounded-md pr-2 text-left hover:bg-surface-2",
+                    h.level > 2 && "text-text-2",
+                  )}
+                >
+                  {h.text || "Untitled heading"}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </details>
       )}
+      <div className="flex flex-col rounded-xl border border-line">
+        <input
+          ref={fileInput}
+          type="file"
+          accept={IMAGE_TYPES.join(",")}
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            void insertFiles(imageFiles(e.target.files), null);
+            e.target.value = "";
+          }}
+        />
+        <Toolbar
+          editor={editor}
+          linkOpen={linkOpen}
+          setLinkOpen={setLinkOpen}
+          pickImage={() => fileInput.current?.click()}
+        />
 
-      <div className="flex flex-wrap items-center gap-x-2 border-t border-line px-4 py-2 text-admin-meta">
-        <span className="num">
-          {words.toLocaleString("en-US")} {words === 1 ? "word" : "words"}
-        </span>
-        <span aria-hidden>·</span>
-        <span className="num">{docReadMinutes(doc)} min read</span>
-        <span aria-hidden>·</span>
-        {status}
+        <EditorContent editor={editor} />
+
+        {slash && (
+          <ul
+            role="listbox"
+            aria-label="Insert a block"
+            style={
+              // Below the cursor, or above it when there isn't room (max-h-80 is 320px).
+              (slash.rect?.bottom ?? 0) + 330 > window.innerHeight
+                ? {
+                    position: "fixed",
+                    bottom: window.innerHeight - (slash.rect?.top ?? 0) + 6,
+                    left: slash.rect?.left ?? 0,
+                  }
+                : {
+                    position: "fixed",
+                    top: (slash.rect?.bottom ?? 0) + 6,
+                    left: slash.rect?.left ?? 0,
+                  }
+            }
+            className={cn(menu, "max-h-80 overflow-y-auto")}
+          >
+            {slash.items.map((item, i) => (
+              <li
+                key={item.label}
+                role="option"
+                aria-selected={i === slash.index}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  slash.pick(item);
+                }}
+                className={cn(menuItem, i === slash.index && "bg-surface-2")}
+              >
+                <item.icon className={cn(icon, "text-text-2")} aria-hidden />
+                {item.label}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="flex flex-wrap items-center gap-x-2 border-t border-line px-4 py-2 text-admin-meta">
+          <span className="num">
+            {words.toLocaleString("en-US")} {words === 1 ? "word" : "words"}
+          </span>
+          <span aria-hidden>·</span>
+          <span className="num">{docReadMinutes(doc)} min read</span>
+          <span aria-hidden>·</span>
+          {status}
+        </div>
       </div>
     </div>
   );

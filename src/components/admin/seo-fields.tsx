@@ -19,6 +19,8 @@ export function SeoFields({
   descriptionHint,
   titleError,
   descriptionError,
+  titlePlaceholder,
+  descriptionPlaceholder,
 }: {
   title: string;
   description: string;
@@ -33,6 +35,9 @@ export function SeoFields({
   descriptionHint: string;
   titleError?: string;
   descriptionError?: string;
+  /** The fallback used when the field is empty. */
+  titlePlaceholder?: string;
+  descriptionPlaceholder?: string;
 }) {
   return (
     <>
@@ -47,6 +52,7 @@ export function SeoFields({
         <input
           value={title}
           onChange={(e) => onTitle(e.target.value)}
+          placeholder={titlePlaceholder}
           maxLength={70}
           className={input}
         />
@@ -60,11 +66,16 @@ export function SeoFields({
         error={descriptionError}
       >
         <textarea
+          ref={autoGrow}
           value={description}
-          onChange={(e) => onDescription(e.target.value)}
+          onChange={(e) => {
+            onDescription(e.target.value);
+            autoGrow(e.target);
+          }}
+          placeholder={descriptionPlaceholder}
           maxLength={200}
           rows={3}
-          className="w-full rounded-lg border border-line bg-bg px-3 py-2"
+          className="w-full resize-none overflow-hidden rounded-lg border border-line bg-bg px-3 py-2"
         />
       </Counted>
       <div
@@ -79,6 +90,13 @@ export function SeoFields({
       </div>
     </>
   );
+}
+
+/** Grows the textarea to fit its text: no inner scrollbar. */
+function autoGrow(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight + 2}px`; // + the 1px top and bottom border
 }
 
 function Counted({

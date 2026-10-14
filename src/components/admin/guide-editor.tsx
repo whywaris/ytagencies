@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ImagePlus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
@@ -14,13 +14,14 @@ import { RichEditor, type ServiceOption } from "@/components/admin/rich-editor";
 import {
   changeGuideSlug,
   deleteGuide,
+  discardGuideDraft,
   saveGuide,
   setGuideStatus,
+  uploadGuideImage,
   type GuideInput,
 } from "@/lib/actions/admin-guides";
 import { formatDateTime } from "@/lib/format";
 import type { Doc } from "@/lib/guide-content";
-import { imageLinkError } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
 // Two-column guide editor (ADMIN_V2_SPEC §8). Drafts autosave a few seconds after typing stops;
@@ -47,6 +48,8 @@ export type EditorGuide = {
   publishedAt: string | null;
   /** Has been live: the URL only changes through "Change URL". */
   slugLocked: boolean;
+  /** Live, with unpublished changes. */
+  hasDraft: boolean;
 };
 
 type Values = Omit<GuideInput, "body"> & { body: Doc };
@@ -64,7 +67,8 @@ const slugPreview = (s: string) =>
 
 const input = "h-9 w-full rounded-lg border border-line bg-bg px-3";
 const label = "flex flex-col gap-1.5";
-const panel = "flex flex-col gap-3 border-b border-line pb-5 last:border-0";
+const primary =
+  "h-9 rounded-lg bg-accent px-3 font-medium text-on-accent hover:opacity-90 disabled:opacity-50";
 const secondary =
   "h-9 rounded-lg border border-line px-3 font-medium transition-colors duration-150 hover:bg-surface-2 disabled:opacity-50";
 
@@ -72,15 +76,12 @@ export function GuideEditor({
   guide,
   comboOptions,
   authors,
-  mediaHosts,
   siteHost,
   services,
 }: {
   guide: EditorGuide;
   comboOptions: ComboOption[];
   authors: AuthorOption[];
-  /** Image hosts allowed for the cover link (MEDIA_HOSTS). */
-  mediaHosts: string[];
   siteHost: string;
   /** For the budget range block. */
   services: ServiceOption[];
@@ -105,6 +106,7 @@ export function GuideEditor({
   });
   const [saveState, setSaveState] = useState<SaveState>(guide.id ? "saved" : "new");
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [hasDraft, setHasDraft] = useState(guide.hasDraft);
   const [pending, startTransition] = useTransition();
   const latest = useRef(values);
   const saving = useRef<Promise<string | null> | null>(null);
@@ -141,6 +143,7 @@ export function GuideEditor({
         window.history.replaceState(null, "", `/admin/guides/${res.data.id}`);
       }
       setSlug(res.data.slug);
+      setHasDraft(res.data.draft);
       setSaveState(latest.current === snapshot ? "saved" : "dirty");
       return res.data.id;
     })();
@@ -165,8 +168,9 @@ export function GuideEditor({
     return () => window.removeEventListener("beforeunload", warn);
   }, [saveState]);
 
-  // ───────── Status ─────────
+  // ───────── Publish ─────────
   const [scheduleAt, setScheduleAt] = useState("");
+  const live = status !== "draft" && !!publishedAt && new Date(publishedAt) <= new Date();
   const changeStatus = (
     raw: { action: "publish" | "unpublish" } | { action: "schedule"; at: string },
   ) =>
@@ -176,11 +180,14 @@ export function GuideEditor({
       const res = await setGuideStatus(guideId, raw);
       if (!res.ok) return void toast.error(res.error);
       setStatus(res.data.status as EditorGuide["status"]);
+      if (raw.action !== "unpublish") setHasDraft(false);
       if (raw.action === "schedule") setPublishedAt(raw.at);
       if (raw.action === "publish" && !publishedAt) setPublishedAt(new Date().toISOString());
       toast.success(
         raw.action === "publish"
-          ? "Published"
+          ? live
+            ? "Updated"
+            : "Published"
           : raw.action === "schedule"
             ? "Scheduled"
             : "Moved back to draft",
@@ -188,11 +195,12 @@ export function GuideEditor({
       router.refresh();
     });
 
-  const live = status !== "draft" && !!publishedAt && new Date(publishedAt) <= new Date();
   const locked = guide.slugLocked || live;
   const shownSlug = slug || slugPreview(values.title) || "your-guide";
-  const seoTitle = values.seoTitle || `${values.title || "Guide title"} | YT Agencies`;
+  const titleFallback = `${values.title || "Guide title"} | YT Agencies`;
+  const seoTitle = values.seoTitle || titleFallback;
   const seoDescription = values.seoDescription || values.excerpt;
+  const changed = hasDraft || saveState === "dirty" || saveState === "saving";
 
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -243,15 +251,11 @@ export function GuideEditor({
       </div>
 
       {/* ───────── Right: settings ───────── */}
-      <aside className="flex flex-col gap-5 xl:sticky xl:top-20 xl:self-start">
-        <section aria-label="Status" className={panel}>
+      <aside className="flex min-w-0 flex-col gap-3">
+        <Group title="Publish" className="z-20 xl:sticky xl:top-[72px]">
           <div className="flex items-center justify-between gap-3">
             <p className="font-medium">
-              {status === "draft"
-                ? "Draft"
-                : status === "scheduled" && !live
-                  ? "Scheduled"
-                  : "Published"}
+              {status === "draft" ? "Draft" : live ? "Published" : "Scheduled"}
             </p>
             <SaveIndicator state={saveState} error={saveError} />
           </div>
@@ -261,15 +265,47 @@ export function GuideEditor({
           {live && publishedAt && (
             <p className="text-admin-meta num">Live since {formatDateTime(publishedAt)}</p>
           )}
+          {live && changed && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2">
+              <span className="text-warning">Unpublished changes</span>
+              {hasDraft && id && (
+                <ConfirmDialog
+                  trigger={
+                    <button
+                      type="button"
+                      disabled={pending}
+                      className="text-accent hover:underline"
+                    >
+                      Discard changes
+                    </button>
+                  }
+                  title="Discard the unpublished changes?"
+                  description="The editor goes back to what's live now. This can't be undone."
+                  confirmLabel="Discard changes"
+                  onConfirm={async () => {
+                    if (saving.current) await saving.current;
+                    const res = await discardGuideDraft(id);
+                    if (!res.ok) return res.error;
+                    setHasDraft(false);
+                    setSaveState("saved");
+                    toast.success("Changes discarded");
+                    router.refresh();
+                    return null;
+                  }}
+                />
+              )}
+            </div>
+          )}
+
           {status === "draft" ? (
-            <div className="flex flex-col gap-3">
+            <>
               <button
                 type="button"
                 disabled={pending}
                 onClick={() => changeStatus({ action: "publish" })}
-                className="h-9 rounded-lg bg-accent px-3 font-medium text-on-accent hover:opacity-90 disabled:opacity-50"
+                className={primary}
               >
-                Publish guide
+                Publish
               </button>
               <div className="flex gap-2">
                 <input
@@ -290,36 +326,92 @@ export function GuideEditor({
                   Schedule
                 </button>
               </div>
-            </div>
+            </>
           ) : (
-            <ConfirmDialog
-              trigger={
-                <button type="button" disabled={pending} className={cn(secondary, "self-start")}>
-                  {live ? "Unpublish…" : "Cancel schedule…"}
-                </button>
-              }
-              title={live ? "Unpublish this guide?" : "Cancel the schedule?"}
-              description={
-                live
-                  ? "It goes back to draft and its page stops working until you publish it again. The URL is kept."
-                  : "It goes back to draft and won't go live."
-              }
-              confirmLabel={live ? "Unpublish" : "Cancel schedule"}
-              onConfirm={async () => {
-                changeStatus({ action: "unpublish" });
-                return null;
-              }}
-            />
+            <button
+              type="button"
+              disabled={pending || (live && !changed)}
+              onClick={() => changeStatus({ action: "publish" })}
+              className={primary}
+            >
+              {live ? "Update" : "Publish now"}
+            </button>
           )}
-        </section>
 
-        <CoverField
-          value={values.coverPath}
-          hosts={mediaHosts}
-          onChange={(v) => set("coverPath", v)}
-        />
+          {(id || live) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {id && (
+                <a
+                  href={`/admin/guides/${id}/preview`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1 text-accent hover:underline"
+                >
+                  Preview
+                  <ArrowUpRight className="size-4 [stroke-width:1.5]" aria-hidden />
+                </a>
+              )}
+              {live && (
+                <a
+                  href={`/guides/${slug}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1 hover:underline"
+                >
+                  View live
+                  <ArrowUpRight className="size-4 [stroke-width:1.5] text-text-2" aria-hidden />
+                </a>
+              )}
+              {status !== "draft" && (
+                <ConfirmDialog
+                  trigger={
+                    <button
+                      type="button"
+                      disabled={pending}
+                      className="ml-auto text-text-2 hover:text-text hover:underline"
+                    >
+                      {live ? "Unpublish…" : "Cancel schedule…"}
+                    </button>
+                  }
+                  title={live ? "Unpublish this guide?" : "Cancel the schedule?"}
+                  description={
+                    live
+                      ? "It goes back to draft and its page stops working until you publish it again. The URL is kept."
+                      : "It goes back to draft and won't go live."
+                  }
+                  confirmLabel={live ? "Unpublish" : "Cancel schedule"}
+                  onConfirm={async () => {
+                    changeStatus({ action: "unpublish" });
+                    return null;
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </Group>
 
-        <section aria-label="Summary and search" className={panel}>
+        <Group title="SEO">
+          <SeoFields
+            title={values.seoTitle}
+            description={values.seoDescription}
+            onTitle={(v) => set("seoTitle", v)}
+            onDescription={(v) => set("seoDescription", v)}
+            shownTitle={seoTitle}
+            shownDescription={seoDescription}
+            breadcrumb={`${siteHost} › guides › ${shownSlug}`}
+            titleHint="Empty uses the title."
+            descriptionHint="Empty uses the excerpt."
+            titlePlaceholder={titleFallback}
+            descriptionPlaceholder={values.excerpt}
+          />
+        </Group>
+
+        <Group title="Cover & excerpt">
+          <CoverField
+            value={values.coverPath}
+            onChange={(v) => set("coverPath", v)}
+            ensureGuideId={async () => id ?? (await save())}
+          />
           <Counted
             label="Excerpt"
             value={values.excerpt}
@@ -334,22 +426,11 @@ export function GuideEditor({
               className="w-full rounded-lg border border-line bg-bg px-3 py-2"
             />
           </Counted>
-          <SeoFields
-            title={values.seoTitle}
-            description={values.seoDescription}
-            onTitle={(v) => set("seoTitle", v)}
-            onDescription={(v) => set("seoDescription", v)}
-            shownTitle={seoTitle}
-            shownDescription={seoDescription}
-            breadcrumb={`${siteHost} › guides › ${shownSlug}`}
-            titleHint="Empty uses the title."
-            descriptionHint="Empty uses the excerpt."
-          />
-        </section>
+        </Group>
 
-        <section aria-label="Author" className={panel}>
+        <Group title="Author">
           <label className={label}>
-            <span className="font-medium">Author</span>
+            <span className="sr-only">Author</span>
             <select
               value={values.authorId ?? ""}
               onChange={(e) => set("authorId", e.target.value || null)}
@@ -375,9 +456,9 @@ export function GuideEditor({
               </Link>
             </span>
           </label>
-        </section>
+        </Group>
 
-        <section aria-label="Article options" className={panel}>
+        <Group title="Key takeaways & sections">
           <label className={label}>
             <span className="flex items-baseline justify-between gap-2">
               <span className="font-medium">Key takeaways</span>
@@ -412,67 +493,69 @@ export function GuideEditor({
               </span>
             </span>
           </label>
-        </section>
+        </Group>
 
-        <RelatedPicker
-          options={comboOptions}
-          value={values.related}
-          onChange={(related) => set("related", related)}
-        />
+        <Group title="Related directory pages">
+          <RelatedPicker
+            options={comboOptions}
+            value={values.related}
+            onChange={(related) => set("related", related)}
+          />
+        </Group>
 
-        <section aria-label="Links" className="flex flex-col gap-2">
-          {id && (
-            <a
-              href={`/admin/guides/${id}/preview`}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-1 self-start text-accent hover:underline"
-            >
-              Preview as page
-              <ArrowUpRight className="size-4 [stroke-width:1.5]" aria-hidden />
-            </a>
-          )}
-          {live && (
-            <a
-              href={`/guides/${slug}`}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center gap-1 self-start hover:underline"
-            >
-              View live
-              <ArrowUpRight className="size-4 [stroke-width:1.5] text-text-2" aria-hidden />
-            </a>
-          )}
-          {id && (
-            <ConfirmDialog
-              trigger={
-                <button
-                  type="button"
-                  className="self-start text-text-2 hover:text-destructive hover:underline"
-                >
-                  Delete guide…
-                </button>
-              }
-              title={`Delete "${values.title || "this guide"}"?`}
-              description={
-                live
-                  ? "The guide and its page are removed for good, and its URL starts returning 404."
-                  : "The guide is removed for good."
-              }
-              confirmLabel="Delete guide"
-              onConfirm={async () => {
-                const res = await deleteGuide(id);
-                if (!res.ok) return res.error;
-                setSaveState("saved");
-                toast.success("Guide deleted");
-                router.push("/admin/guides");
-                return null;
-              }}
-            />
-          )}
-        </section>
+        {id && (
+          <ConfirmDialog
+            trigger={
+              <button
+                type="button"
+                className="mt-2 self-start px-1 text-destructive hover:underline"
+              >
+                Delete guide…
+              </button>
+            }
+            title={`Delete "${values.title || "this guide"}"?`}
+            description={
+              live
+                ? "The guide and its page are removed for good, and its URL starts returning 404."
+                : "The guide is removed for good."
+            }
+            confirmLabel="Delete guide"
+            onConfirm={async () => {
+              const res = await deleteGuide(id);
+              if (!res.ok) return res.error;
+              setSaveState("saved");
+              toast.success("Guide deleted");
+              router.push("/admin/guides");
+              return null;
+            }}
+          />
+        )}
       </aside>
     </div>
+  );
+}
+
+/** A collapsible sidebar group, open by default. */
+function Group({
+  title,
+  className,
+  children,
+}: {
+  title: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details open className={cn("group rounded-xl border border-line bg-bg", className)}>
+      <summary className="flex h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-4 font-medium select-none [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown
+          className="size-4 [stroke-width:1.5] text-text-2 transition-transform duration-150 group-open:rotate-180"
+          aria-hidden
+        />
+      </summary>
+      <div className="flex flex-col gap-3 px-4 pb-4">{children}</div>
+    </details>
   );
 }
 
@@ -547,8 +630,7 @@ function RelatedPicker({
         .slice(0, 8)
     : [];
   return (
-    <section aria-label="Related directory pages" className={panel}>
-      <p className="font-medium">Related directory pages</p>
+    <>
       {value.length > 0 && (
         <ul className="flex flex-col gap-1">
           {value.map((c) => (
@@ -596,7 +678,7 @@ function RelatedPicker({
         </ul>
       )}
       <p className="text-admin-meta">Linked at the end of the guide. Pick 2 or 3.</p>
-    </section>
+    </>
   );
 }
 
@@ -663,7 +745,7 @@ function ChangeUrl({
                   onChanged(res.data.slug);
                 })
               }
-              className="h-9 rounded-lg bg-accent px-3 font-medium text-on-accent hover:opacity-90 disabled:opacity-50"
+              className={primary}
             >
               Change URL
             </button>
@@ -675,84 +757,102 @@ function ChangeUrl({
 }
 
 /**
- * Cover image as a link to an image hosted on Cloudflare (MEDIA_HOSTS). Applied when the field
- * loses focus or on Enter, so autosave never sends a half-typed link. Older covers uploaded to
- * storage still show and can be replaced.
+ * Cover image: upload or drop an image (stored in guide-media). Older covers (an upload in
+ * agency-media or a Cloudflare link) still show and can be replaced.
  */
 function CoverField({
   value,
-  hosts,
   onChange,
+  ensureGuideId,
 }: {
   value: string | null;
-  hosts: string[];
   onChange: (v: string | null) => void;
+  ensureGuideId: () => Promise<string | null>;
 }) {
-  const [draft, setDraft] = useState(value ?? "");
-  const [error, setError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [over, setOver] = useState(false);
+  const [pending, startTransition] = useTransition();
   const src = value ? (value.startsWith("https://") ? value : STORAGE + value) : null;
 
-  const apply = () => {
-    const link = draft.trim();
-    if (link === (value ?? "")) return setError(null);
-    if (!link) {
-      setError(null);
-      return onChange(null);
-    }
-    const problem = imageLinkError(link, hosts);
-    setError(problem);
-    if (!problem) onChange(link);
+  const upload = (file: File | undefined) => {
+    if (!file) return;
+    startTransition(async () => {
+      const guideId = await ensureGuideId();
+      if (!guideId) return void toast.error("Give the guide a title first, so it can be saved.");
+      const fd = new FormData();
+      fd.set("image", file);
+      const res = await uploadGuideImage(guideId, fd);
+      if (!res.ok) return void toast.error(res.error);
+      onChange(res.data.url);
+    });
   };
 
   return (
-    <section aria-label="Cover image" className={panel}>
-      <label className={label}>
-        <span className="font-medium">Cover image</span>
-        <input
-          type="url"
-          inputMode="url"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={apply}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              apply();
-            }
-          }}
-          placeholder={hosts[0] ? `https://${hosts[0]}/…` : "https://…"}
-          aria-invalid={!!error}
-          aria-describedby="cover-help"
-          className={input}
-        />
-      </label>
-      {src && (
-        // eslint-disable-next-line @next/next/no-img-element -- admin preview of the linked image
-        <img
-          src={src}
-          alt=""
-          className="aspect-video w-full rounded-lg border border-line object-cover"
-        />
-      )}
+    <div className="flex flex-col gap-1.5">
+      <span className="font-medium">Cover image</span>
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          upload(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => fileInput.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setOver(false);
+          upload(e.dataTransfer.files[0]);
+        }}
+        aria-label={src ? "Replace cover image" : "Upload cover image"}
+        className={cn(
+          "relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-line text-text-2 transition-colors duration-150 hover:border-text-2 disabled:opacity-60",
+          over && "border-accent bg-surface",
+        )}
+      >
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element -- admin preview of the upload
+          <img src={src} alt="" className="absolute inset-0 size-full object-cover" />
+        ) : (
+          <span className="flex flex-col items-center gap-1 px-4 text-center">
+            <ImagePlus className="size-5 [stroke-width:1.5]" aria-hidden />
+            {pending ? "Uploading…" : "Upload or drop an image"}
+          </span>
+        )}
+      </button>
       {value && (
-        <button
-          type="button"
-          onClick={() => {
-            setDraft("");
-            setError(null);
-            onChange(null);
-          }}
-          className={cn(secondary, "self-start")}
-        >
-          Remove cover
-        </button>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => fileInput.current?.click()}
+            className="text-accent hover:underline"
+          >
+            {pending ? "Uploading…" : "Replace"}
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="text-text-2 hover:text-text hover:underline"
+          >
+            Remove
+          </button>
+        </div>
       )}
-      <p id="cover-help" className={cn("text-admin-meta", error && "text-destructive")}>
-        {error ??
-          (hosts.length
-            ? `Paste a link to an image on ${hosts.join(" or ")}. 1600 × 900 (16:9) works best; it's the social image too. Without one, a cover is made from the title.`
-            : "Image links aren't set up yet: add your Cloudflare image host to MEDIA_HOSTS. Without a cover, one is made from the title.")}
+      <p className="text-admin-meta">
+        1600 × 900 (16:9) works best; it&apos;s the social image too. JPG, PNG, WebP or GIF, up to 5
+        MB. Without one, a cover is made from the title.
       </p>
-    </section>
+    </div>
   );
 }

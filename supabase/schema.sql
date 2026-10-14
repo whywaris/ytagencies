@@ -789,6 +789,8 @@ create table guides (
   -- Unpublished edits of a live guide; admin-only (column grants below).
   draft_json jsonb,
   draft_html text check (char_length(draft_html) <= 400000),
+  -- The other fields of the unpublished changes (title, SEO, cover…), as guide columns.
+  draft_meta jsonb,
   draft_updated_at timestamptz,
   -- When the live content last changed ("Updated" on the page, Article dateModified).
   content_updated_at timestamptz,
