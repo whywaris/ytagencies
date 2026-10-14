@@ -46,6 +46,8 @@ create table locations (
 create table service_industry_content (
   service_id int references services(id) on delete cascade,
   industry_id int references industries(id) on delete cascade,
+  -- One line under the H1 (≤ ~160 chars shown); empty uses the intro's first sentence.
+  summary text check (char_length(summary) <= 200),
   intro text,
   how_to_choose text,
   faqs jsonb default '[]',

@@ -1187,6 +1187,7 @@ export type Database = {
           how_to_choose: string | null;
           industry_id: number;
           intro: string | null;
+          summary: string | null;
           service_id: number;
         };
         Insert: {
@@ -1195,6 +1196,7 @@ export type Database = {
           how_to_choose?: string | null;
           industry_id: number;
           intro?: string | null;
+          summary?: string | null;
           service_id: number;
         };
         Update: {
@@ -1203,6 +1205,7 @@ export type Database = {
           how_to_choose?: string | null;
           industry_id?: number;
           intro?: string | null;
+          summary?: string | null;
           service_id?: number;
         };
         Relationships: [

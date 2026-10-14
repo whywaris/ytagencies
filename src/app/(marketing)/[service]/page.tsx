@@ -10,8 +10,12 @@ import {
   directoryDescription,
   directoryHeading,
   directoryTitle,
+  monthYear,
+  oneLineSummary,
+  shortParagraphs,
 } from "@/lib/directory";
 import { buildMetadata } from "@/lib/seo/metadata";
+import { BRAND_NAME } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -30,7 +34,7 @@ export async function generateMetadata({ params }: PageProps<"/[service]">) {
   const { service, agencies } = await load((await params).service);
   return buildMetadata({
     image: `/og/service/${service.slug}`,
-    title: directoryTitle(service),
+    title: directoryTitle(BRAND_NAME, service),
     description: directoryDescription(service, agencies.length),
     path: `/${service.slug}`,
   });
@@ -55,16 +59,19 @@ export default async function ServiceHubPage({ params }: PageProps<"/[service]">
       return label ? [{ href: `/${service.slug}/${c.segment}`, label }] : [];
     });
 
+  const intro =
+    service.intro ??
+    `Compare agencies that offer ${service.name}. Each card shows minimum budget, specialties and location, so you can shortlist quickly. Filter by budget, team size and language, or pick your industry below.`;
+
   return (
     <DirectoryPage
       heading={directoryHeading(service)}
-      intro={
-        service.intro
-          ? service.intro.split(/\n\s*\n/)
-          : [
-              `Compare agencies that offer ${service.name.toLowerCase()}. Each row shows minimum budget, specialties, rating and location, so you can shortlist quickly. Filter by budget, team size and language, or pick your industry below.`,
-            ]
-      }
+      summary={oneLineSummary(null, intro)}
+      updated={monthYear(agencies.map((a) => a.updatedAt))}
+      highlight={service.slug}
+      matchHref={`/get-matched?service=${service.slug}&ref=directory:${service.slug}`}
+      aboutHeading={`About ${service.name} agencies`}
+      about={shortParagraphs(intro)}
       breadcrumbs={[
         { name: "Home", path: "/" },
         { name: `${service.name} agencies`, path: `/${service.slug}` },

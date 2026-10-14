@@ -24,7 +24,7 @@ export default async function ComboCopyPage({ searchParams }: PageProps<"/admin/
 
   const { data: content } = await db
     .from("service_industry_content")
-    .select("intro, how_to_choose, faqs")
+    .select("summary, intro, how_to_choose, faqs")
     .eq("service_id", service.id)
     .eq("industry_id", industry.id)
     .maybeSingle();
@@ -41,6 +41,7 @@ export default async function ComboCopyPage({ searchParams }: PageProps<"/admin/
       )
     : [];
   const defaults: ComboContentInput = {
+    summary: content?.summary ?? "",
     intro: content?.intro ?? "",
     howToChoose: content?.how_to_choose ?? "",
     faqs,

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { DirectoryPage } from "@/components/directory/directory-page";
 import { getAgenciesForCombo, getIndexableCombos } from "@/lib/data/agencies";
+import { getLiveGuides } from "@/lib/data/guides";
 import {
   getComboContent,
   getIndustries,
@@ -17,11 +18,14 @@ import {
   directoryDescription,
   directoryHeading,
   directoryTitle,
+  monthYear,
+  oneLineSummary,
   segmentName,
   segmentPhrase,
+  shortParagraphs,
 } from "@/lib/directory";
 import { buildMetadata } from "@/lib/seo/metadata";
-import { MIN_AGENCIES_TO_INDEX } from "@/lib/site";
+import { BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -48,7 +52,7 @@ export async function generateMetadata({ params }: PageProps<"/[service]/[segmen
   const { service, segment, segmentSlug, agencies } = await load(params);
   return buildMetadata({
     image: `/og/service/${service.slug}/${segmentSlug}`,
-    title: directoryTitle(service, segment),
+    title: directoryTitle(BRAND_NAME, service, segment),
     description: directoryDescription(service, agencies.length, segment),
     path: `/${service.slug}/${segmentSlug}`,
     // docs/SEO.md thin-page rule: noindex,follow until the combo has enough published agencies.
@@ -58,11 +62,12 @@ export async function generateMetadata({ params }: PageProps<"/[service]/[segmen
 
 export default async function ComboPage({ params }: PageProps<"/[service]/[segment]">) {
   const { service, segment, segmentSlug, agencies, content } = await load(params);
-  const [combos, services, industries, locations] = await Promise.all([
+  const [combos, services, industries, locations, guides] = await Promise.all([
     getIndexableCombos(),
     getServices(),
     getIndustries(),
     getLocations(),
+    getLiveGuides(),
   ]);
 
   const serviceName = new Map(services.map((s) => [s.slug, s.name]));
@@ -93,14 +98,37 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
     segment.kind === "industry"
       ? segment.industry.intro
       : `These ${service.name} agencies are based ${segmentPhrase(segment)} or work with businesses there. Compare minimum budgets, team sizes, languages and reviews, then contact the ones that fit.`;
-  const paragraphs = (text: string | null | undefined) =>
-    (text ?? "").split(/\n\s*\n/).filter(Boolean);
-  const howToChoose = paragraphs(content?.howToChoose);
+  const intro = content?.intro ?? fallbackIntro;
+  const howToChoose = (content?.howToChoose ?? "").split(/\n\s*\n/).filter(Boolean);
+
+  // Live guides that list this page among their related directory pages.
+  const guide = guides.find((g) =>
+    g.combos.some(
+      (c) =>
+        c.service_id === service.id &&
+        (segment.kind === "industry"
+          ? c.industry_id === segment.industry.id
+          : c.location_id === segment.location.id),
+    ),
+  );
+
+  const match = new URLSearchParams({ service: service.slug });
+  if (segment.kind === "industry") match.set("industry", segment.industry.slug);
+  match.set("ref", `directory:${service.slug}`);
 
   return (
     <DirectoryPage
       heading={directoryHeading(service, segment)}
-      intro={paragraphs(content?.intro ?? fallbackIntro)}
+      summary={oneLineSummary(content?.summary, intro)}
+      updated={monthYear([content?.updatedAt, ...agencies.map((a) => a.updatedAt)])}
+      highlight={service.slug}
+      matchHref={`/get-matched?${match}`}
+      aboutHeading={
+        segment.kind === "industry"
+          ? `${service.name} for ${segment.industry.name} brands`
+          : `${service.name} agencies ${segmentPhrase(segment)}`
+      }
+      about={shortParagraphs(intro)}
       breadcrumbs={[
         { name: "Home", path: "/" },
         { name: `${service.name} agencies`, path: `/${service.slug}` },
@@ -126,11 +154,15 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
         {
           title:
             segment.kind === "industry"
-              ? `${service.name} agencies for other industries`
+              ? `${service.name} for other industries`
               : `${service.name} agencies in other locations`,
           links: sameService,
         },
         { title: `Other services ${segmentPhrase(segment)}`, links: sameSegment },
+        {
+          title: "Related guide",
+          links: guide ? [{ href: `/guides/${guide.slug}`, label: guide.title }] : [],
+        },
       ]}
     />
   );

@@ -1,8 +1,8 @@
 import type { AgencyListItem } from "@/lib/data/agencies";
 import type { Faq, Segment, Service } from "@/lib/data/taxonomy";
-import { BRAND_NAME } from "@/lib/site";
 
-// Copy and SEO text for directory pages (docs/SEO.md patterns). Pure functions, no data access.
+// Copy and SEO text for directory pages (docs/SEO.md patterns). Pure functions, no data access,
+// type-only imports: tested (tests/directory.test.mjs).
 
 /** "United States" → "the United States", for "in the United States". */
 function withArticle(name: string) {
@@ -33,13 +33,13 @@ export function firstThatFits(candidates: string[], max: number) {
 }
 
 /** Title ≤ 60 chars: "Best YouTube Ads Agencies for Doctors (2026) | Brand", dropping parts when long. */
-export function directoryTitle(service: Service, segment?: Segment) {
+export function directoryTitle(brand: string, service: Service, segment?: Segment) {
   const h1 = directoryHeading(service, segment);
   const year = new Date().getFullYear();
   const bare = segment
     ? `${service.name} Agencies ${segmentPhrase(segment)}`
     : `${service.name} Agencies`;
-  return firstThatFits([`${h1} (${year}) | ${BRAND_NAME}`, `${h1} (${year})`, h1, bare], 60);
+  return firstThatFits([`${h1} (${year}) | ${brand}`, `${h1} (${year})`, h1, bare], 60);
 }
 
 /** Description of 140–160 chars with the agency count, or the closest candidate. */
@@ -98,7 +98,11 @@ export function defaultHowToChoose(service: Service, segment?: Segment) {
   ];
 }
 
-/** FAQs built from the agencies on the page, used when no hand-written FAQs exist. */
+/** "one agency", "2 agencies" */
+export const agencyCount = (n: number) => (n === 1 ? "one agency" : `${n} agencies`);
+
+/** FAQs built from the agencies on the page, used when no hand-written FAQs exist. A sentence
+ * only appears when its data exists: no zero counts. */
 export function defaultFaqs(
   service: Service,
   agencies: AgencyListItem[],
@@ -112,21 +116,30 @@ export function defaultFaqs(
     const min = Math.min(...budgets);
     const max = Math.max(...budgets);
     const retainers = agencies.filter((a) => a.pricingModel === "retainer").length;
-    faqs.push({
-      question: `How much do ${what} cost?`,
-      answer:
-        `Minimum budgets for the ${agencies.length} agencies listed here range from ${formatUsd(min)} to ${formatUsd(max)}. ` +
-        `${retainers} of them work on a monthly retainer; the rest charge per video, per project or based on performance.`,
-    });
+    const range =
+      min === max
+        ? `Minimum projects here start at ${formatUsd(min)}.`
+        : `Minimum projects here range from ${formatUsd(min)} to ${formatUsd(max)}.`;
+    const retainer =
+      retainers === 0
+        ? ""
+        : retainers === agencies.length
+          ? agencies.length === 1
+            ? " It works on a monthly retainer."
+            : " All of them work on a monthly retainer."
+          : ` ${retainers === 1 ? "One works" : `${retainers} work`} on a monthly retainer; the others charge per video, per project or based on performance.`;
+    faqs.push({ question: `How much do ${what} cost?`, answer: range + retainer });
   }
 
   const verified = agencies.filter((a) => a.isVerified).length;
   faqs.push({
-    question: `How many ${what} are listed?`,
+    question: "How are these agencies ranked?",
     answer:
-      agencies.length === 0
-        ? `None yet. We're adding agencies to this list now. You can tell us what you need and we'll match you with agencies that fit.`
-        : `${agencies.length} ${agencies.length === 1 ? "agency is" : "agencies are"} listed, and ${verified} ${verified === 1 ? "has" : "have"} a Verified badge. Featured agencies pay for placement and are labeled.`,
+      "Sponsored agencies come first and are always labeled. Next are agencies that manage their listing and answer inquiries, then everyone else, each group sorted by profile quality. " +
+      "The Verified badge can't be bought" +
+      (verified > 0
+        ? `: ${verified === agencies.length && verified > 1 ? "all of them have it" : `${agencyCount(verified)} here ${verified === 1 ? "has" : "have"} it`}.`
+        : "."),
   });
 
   const languages = [...new Set(agencies.flatMap((a) => a.languages))].sort();
@@ -144,3 +157,106 @@ export function defaultFaqs(
 
   return faqs;
 }
+
+/** First sentence of a text (up to the first ". ", "! " or "? "), for one-line summaries. */
+export function firstSentence(text: string | null | undefined) {
+  const t = (text ?? "").trim().replace(/\s+/g, " ");
+  const m = t.match(/^.+?[.!?](?=\s|$)/);
+  return m ? m[0] : t;
+}
+
+/** One line under the H1: the admin summary, else the intro's first sentence; ≤ 160 chars. */
+export function oneLineSummary(
+  summary: string | null | undefined,
+  intro: string | null | undefined,
+) {
+  const line = summary?.trim() || firstSentence(intro);
+  if (line.length <= 160) return line;
+  return `${line.slice(0, 159).replace(/\s+\S*$/, "")}…`;
+}
+
+/** Long copy as short paragraphs (2 sentences each), keeping every word. */
+export function shortParagraphs(text: string | null | undefined, perParagraph = 2) {
+  return (text ?? "")
+    .split(/\n\s*\n/)
+    .map((p) => p.trim().replace(/\s+/g, " "))
+    .filter(Boolean)
+    .flatMap((p) => {
+      const sentences = p.match(/[^.!?]+[.!?]+(?:["”')\]]+)?(?:\s+|$)|[^.!?]+$/g) ?? [p];
+      const out: string[] = [];
+      for (let i = 0; i < sentences.length; i += perParagraph)
+        out.push(
+          sentences
+            .slice(i, i + perParagraph)
+            .join("")
+            .trim(),
+        );
+      return out;
+    });
+}
+
+/** "October 2026" from the newest of the dates; null without any. */
+export function monthYear(dates: (string | null | undefined)[]) {
+  const times = dates.flatMap((d) => (d ? [Date.parse(d)] : [])).filter((t) => !Number.isNaN(t));
+  if (!times.length) return null;
+  return new Date(Math.max(...times)).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export type Sort = "recommended" | "budget";
+
+/** Recommended keeps the ranking (sponsored → managed → unmanaged); budget: lowest minimum first,
+ * agencies without one last. */
+export function sortAgencies<T extends Pick<AgencyListItem, "minBudgetUsd">>(
+  list: T[],
+  sort: Sort,
+) {
+  if (sort !== "budget") return list;
+  return [...list].sort((a, b) => (a.minBudgetUsd ?? Infinity) - (b.minBudgetUsd ?? Infinity));
+}
+
+/** Card buttons: Contact only for managed (Pro) agencies, which answer inquiries. */
+export function cardActions(a: Pick<AgencyListItem, "slug" | "managed">) {
+  const profile = `/agency/${a.slug}`;
+  return [
+    ...(a.managed ? [{ label: "Contact agency", href: `${profile}#contact`, primary: true }] : []),
+    { label: "View profile", href: profile, primary: false },
+  ];
+}
+
+const PRICING_NAME: Record<string, string> = {
+  retainer: "Monthly retainer",
+  per_video: "Per video",
+  project: "Per project",
+  performance: "Performance-based",
+};
+
+/** "At a glance" rows; rows with no data are left out. */
+export function atAGlance(agencies: AgencyListItem[]) {
+  const rows: { label: string; value: string }[] = [];
+  if (!agencies.length) return rows;
+  rows.push({ label: "Agencies listed", value: String(agencies.length) });
+  const budgets = agencies.flatMap((a) => (a.minBudgetUsd === null ? [] : [a.minBudgetUsd]));
+  if (budgets.length) {
+    const min = Math.min(...budgets);
+    const max = Math.max(...budgets);
+    rows.push({
+      label: "Min. project",
+      value: min === max ? formatUsd(min) : `${formatUsd(min)}–${formatUsd(max)}`,
+    });
+  }
+  const counts = new Map<string, number>();
+  for (const a of agencies)
+    if (a.pricingModel && PRICING_NAME[a.pricingModel])
+      counts.set(a.pricingModel, (counts.get(a.pricingModel) ?? 0) + 1);
+  const top = [...counts].sort((a, b) => b[1] - a[1])[0];
+  if (top) rows.push({ label: "Most common pricing", value: PRICING_NAME[top[0]] });
+  const verified = agencies.filter((a) => a.isVerified).length;
+  if (verified) rows.push({ label: "Verified", value: `${verified} of ${agencies.length}` });
+  return rows;
+}
+
+export const pricingName = (model: string | null) => PRICING_NAME[model ?? ""] ?? null;

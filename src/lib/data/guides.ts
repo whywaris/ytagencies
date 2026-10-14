@@ -75,6 +75,8 @@ export type GuideSummary = {
   author: Author | null;
   /** Services of its related directory pages: for filters and related guides. */
   serviceIds: number[];
+  /** Its related directory pages: directory pages link back to it. */
+  combos: RelatedCombo[];
 };
 
 type SummaryRow = {
@@ -105,6 +107,7 @@ function summary(g: SummaryRow): GuideSummary {
     readMinutes: docReadMinutes(guideDoc(g.body_json, g.body_md)),
     author: toAuthor(g.author),
     serviceIds: [...new Set(combosOf(g.related_combos).map((c) => c.service_id))],
+    combos: combosOf(g.related_combos),
   };
 }
 

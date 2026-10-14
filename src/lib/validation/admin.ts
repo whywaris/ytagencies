@@ -43,6 +43,7 @@ export const introSchema = z.object({
 export type IntroInput = z.infer<typeof introSchema>;
 
 export const comboContentSchema = z.object({
+  summary: z.string().trim().max(160, "Keep the summary to one line (160 characters)."),
   intro: z.string().trim().max(3000, "Use 3,000 characters or fewer."),
   howToChoose: z.string().trim().max(5000, "Use 5,000 characters or fewer."),
   faqs: z

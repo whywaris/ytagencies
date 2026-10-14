@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { AgencyRow } from "@/components/directory/agency-row";
+import { AgencyCard } from "@/components/directory/agency-card";
 import { fieldClasses } from "@/components/ui/input";
 import type { AgencyListItem } from "@/lib/data/agencies";
-import { formatUsd } from "@/lib/directory";
+import { formatUsd, sortAgencies, type Sort } from "@/lib/directory";
 import { CONTRACT_FILTERS } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,18 @@ const TEAM_SIZES = ["1-10", "11-50", "51-200", "200+"];
 type ContractFilter = keyof typeof CONTRACT_FILTERS;
 const CONTRACTS = Object.keys(CONTRACT_FILTERS) as ContractFilter[];
 
-type Filters = { budget?: number; size?: string; lang?: string; contract?: ContractFilter };
+type Filters = {
+  budget?: number;
+  size?: string;
+  lang?: string;
+  contract?: ContractFilter;
+  sort?: Sort;
+};
+
+const SORTS: { value: Sort; label: string }[] = [
+  { value: "recommended", label: "Recommended" },
+  { value: "budget", label: "Lowest minimum budget" },
+];
 
 function parseFilters(params: URLSearchParams, languages: string[]): Filters {
   const budget = Number(params.get("budget"));
@@ -24,6 +35,7 @@ function parseFilters(params: URLSearchParams, languages: string[]): Filters {
   const lang = params.get("lang") ?? undefined;
   const contract = params.get("contract") as ContractFilter | null;
   return {
+    sort: params.get("sort") === "budget" ? "budget" : undefined,
     contract: contract && CONTRACTS.includes(contract) ? contract : undefined,
     budget: BUDGETS.includes(budget) ? budget : undefined,
     size: size && TEAM_SIZES.includes(size) ? size : undefined,
@@ -40,7 +52,12 @@ function matches(a: AgencyListItem, f: Filters) {
   return true;
 }
 
-type ResultsProps = { agencies: AgencyListItem[]; emptyHint: React.ReactNode };
+type ResultsProps = {
+  agencies: AgencyListItem[];
+  emptyHint: React.ReactNode;
+  /** This page's service slug: highlighted on each card. */
+  highlight?: string;
+};
 
 /**
  * Reads filters from the URL. Static pages can't read searchParams on the server without going dynamic,
@@ -60,13 +77,17 @@ function languagesOf(agencies: AgencyListItem[]) {
 export function ResultsView({
   agencies,
   emptyHint,
+  highlight,
   filters = {},
 }: ResultsProps & { filters?: Filters }) {
   const router = useRouter();
   const pathname = usePathname();
   const languages = languagesOf(agencies);
-  const shown = agencies.filter((a) => matches(a, filters));
-  const active = Object.values(filters).some(Boolean);
+  const shown = sortAgencies(
+    agencies.filter((a) => matches(a, filters)),
+    filters.sort ?? "recommended",
+  );
+  const active = !!(filters.budget || filters.size || filters.lang || filters.contract);
 
   function setFilter(key: keyof Filters, value: string) {
     const next = new URLSearchParams();
@@ -81,13 +102,13 @@ export function ResultsView({
     return <div className="rounded-lg bg-surface p-6">{emptyHint}</div>;
   }
 
-  const selectClass = cn(fieldClasses, "w-full sm:w-48");
+  const selectClass = cn(fieldClasses, "w-full");
 
   return (
     <div className="flex flex-col gap-6">
       <form
         aria-label="Filter agencies"
-        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+        className="flex flex-wrap items-end gap-3 lg:flex-nowrap"
         onSubmit={(e) => e.preventDefault()}
       >
         <FilterSelect
@@ -124,6 +145,20 @@ export function ResultsView({
             anyLabel="Any language"
           />
         )}
+        <label className="flex w-full shrink-0 flex-col gap-1 text-[14px] font-medium sm:ml-auto sm:w-auto">
+          Sort
+          <select
+            value={filters.sort ?? "recommended"}
+            onChange={(e) => setFilter("sort", e.target.value === "budget" ? "budget" : "")}
+            className={cn(fieldClasses, "w-full sm:w-52")}
+          >
+            {SORTS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </form>
 
       <p className="text-small" aria-live="polite">
@@ -136,7 +171,7 @@ export function ResultsView({
         <ol className="flex flex-col gap-3">
           {shown.map((agency) => (
             <li key={agency.id}>
-              <AgencyRow agency={agency} />
+              <AgencyCard agency={agency} highlight={highlight} />
             </li>
           ))}
         </ol>
@@ -173,7 +208,7 @@ function FilterSelect({
   className: string;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-[14px] font-medium">
+    <label className="flex w-full min-w-0 flex-col gap-1 text-[14px] font-medium sm:w-40 lg:w-auto lg:flex-1">
       {label}
       <select value={value} onChange={(e) => onChange(e.target.value)} className={className}>
         <option value="">{anyLabel}</option>

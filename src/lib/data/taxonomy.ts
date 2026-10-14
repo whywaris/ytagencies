@@ -97,13 +97,19 @@ export const resolveSegment = cache(async (segment: string): Promise<Segment | n
 export const getComboContent = cache(async (serviceId: number, industryId: number) => {
   const { data, error } = await createStaticClient()
     .from("service_industry_content")
-    .select("intro, how_to_choose, faqs")
+    .select("summary, intro, how_to_choose, faqs, updated_at")
     .eq("service_id", serviceId)
     .eq("industry_id", industryId)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  return { intro: data.intro, howToChoose: data.how_to_choose, faqs: toFaqs(data.faqs) };
+  return {
+    summary: data.summary,
+    intro: data.intro,
+    howToChoose: data.how_to_choose,
+    faqs: toFaqs(data.faqs),
+    updatedAt: data.updated_at,
+  };
 });
 
 function toFaqs(json: Json | null): Faq[] {

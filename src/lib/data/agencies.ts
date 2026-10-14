@@ -43,6 +43,8 @@ export type AgencyListItem = {
   services: Tag[]; // primary first
   industries: Tag[]; // primary first
   rating: { average: number; count: number } | null;
+  /** Last profile change: "Updated {Month YYYY}" on directory pages. */
+  updatedAt: string;
 };
 
 export type AgencyProfile = AgencyListItem & {
@@ -126,7 +128,7 @@ export type AgencyProfile = AgencyListItem & {
 
 const LIST_SELECT = `
   id, slug, name, tagline, description, logo_path, min_budget_usd, team_size, pricing_model, languages, is_verified,
-  min_contract, ad_spend, setup_fee_usd,
+  min_contract, ad_spend, setup_fee_usd, updated_at,
   hq:locations!agencies_hq_location_id_fkey(slug, name),
   case_study_count:case_studies(count),
   location_count:agency_locations(count),
@@ -196,6 +198,7 @@ function toListItem(row: ListRow, placement: Placement, responses: ResponseTimes
     minContract: row.min_contract,
     adSpend: row.ad_spend,
     setupFeeUsd: row.setup_fee_usd,
+    updatedAt: row.updated_at,
     response,
     languages: row.languages ?? [],
     isVerified: row.is_verified,

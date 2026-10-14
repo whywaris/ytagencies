@@ -44,6 +44,19 @@ export function ComboContentForm({
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-8">
       <Field
+        id="c-summary"
+        label="Summary (one line under the heading, up to 160 characters)"
+        optional
+        error={errors.summary?.message}
+      >
+        <Input
+          maxLength={160}
+          {...register("summary")}
+          {...a11yProps("c-summary", errors.summary?.message)}
+        />
+      </Field>
+      <p className="-mt-6 text-small">Empty uses the first sentence of the intro.</p>
+      <Field
         id="c-intro"
         label="Intro (120–200 words, unique to this page)"
         optional

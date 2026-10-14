@@ -194,6 +194,7 @@ export async function saveComboContent(
     {
       service_id: serviceId,
       industry_id: industryId,
+      summary: parsed.data.summary || null,
       intro: parsed.data.intro || null,
       how_to_choose: parsed.data.howToChoose || null,
       faqs: parsed.data.faqs,
