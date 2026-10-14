@@ -12,7 +12,8 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { AgencyLogo, logoUrl } from "@/components/agency-logo";
+import { AgencyLogo } from "@/components/agency-logo";
+import { logoSrc } from "@/lib/logo";
 import { AgencyTracker } from "@/components/agency-tracker";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LazyContactForm } from "@/components/forms/lazy-contact-form";
@@ -256,7 +257,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
           slug: agency.slug,
           name: agency.name,
           description: atAGlance,
-          logoUrl: agency.logoPath ? logoUrl(agency.logoPath) : null,
+          logoUrl: logoSrc(agency.logoPath),
           areaServed: agency.locations.map((l) => l.name),
           hq: agency.hq ? { city: hqCity, country: hqCountry } : null,
           foundingYear: agency.foundedYear,

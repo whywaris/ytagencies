@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { applyProfile } from "@/lib/agency-profile";
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
+import { logoSrc } from "@/lib/logo";
+import { checkLinkedImage } from "@/lib/media";
 import { revalidateAgency, revalidateDirectory } from "@/lib/revalidate";
 import { agencySchema, comboContentSchema, introSchema } from "@/lib/validation/admin";
 import { profileSchema } from "@/lib/validation/dashboard";
@@ -75,10 +77,26 @@ export async function saveAgency(
   if (id) {
     const { data: current } = await db
       .from("agencies")
-      .select("slug, status")
+      .select("slug, status, logo_path")
       .eq("id", id)
       .maybeSingle();
     if (!current) return { ok: false, error: "Unknown agency." };
+    // Logo: unchanged (an owner's upload shows as its full link) stays; "" removes it; a new link
+    // must pass the checks.
+    let logoPath = current.logo_path;
+    if (input.logo !== (logoSrc(current.logo_path) ?? "")) {
+      if (!input.logo) logoPath = null;
+      else {
+        const problem = await checkLinkedImage(input.logo);
+        if (problem)
+          return {
+            ok: false,
+            error: "Check the highlighted fields.",
+            fieldErrors: { logo: problem },
+          };
+        logoPath = input.logo;
+      }
+    }
     if (current.status === "published" && current.slug !== input.slug) {
       return {
         ok: false,
@@ -88,7 +106,10 @@ export async function saveAgency(
         },
       };
     }
-    const { error } = await db.from("agencies").update(row).eq("id", id);
+    const { error } = await db
+      .from("agencies")
+      .update({ ...row, logo_path: logoPath })
+      .eq("id", id);
     if (error) return slugTaken(error) ?? { ok: false, error: SAVE_FAILED };
     await log("agency.update", "agency", id, {
       fields: Object.keys(row),
@@ -100,9 +121,14 @@ export async function saveAgency(
     return { ok: true, data: { id } };
   }
 
+  if (input.logo) {
+    const problem = await checkLinkedImage(input.logo);
+    if (problem)
+      return { ok: false, error: "Check the highlighted fields.", fieldErrors: { logo: problem } };
+  }
   const { data, error } = await db
     .from("agencies")
-    .insert({ ...row, status: "draft" })
+    .insert({ ...row, logo_path: input.logo || null, status: "draft" })
     .select("id")
     .single();
   if (error || !data) return slugTaken(error) ?? { ok: false, error: SAVE_FAILED };

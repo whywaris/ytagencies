@@ -17,7 +17,7 @@ import {
 import { GUIDE_MEDIA_BUCKET, guideImageAllowed, guideMediaUrl } from "@/lib/guide-media";
 import { imageInfo } from "@/lib/image-info";
 import { isPublicIp } from "@/lib/net-guard";
-import { imageLinkError } from "@/lib/media";
+import { checkLinkedImage, imageLinkError } from "@/lib/media";
 import type { Json } from "@/lib/supabase/types";
 import type { FormResult } from "@/lib/validation/lead";
 import { revalidateSitemaps } from "@/lib/revalidate";
@@ -454,3 +454,12 @@ export async function importRemoteImage(
 
 /** The document type the editor sends, for client imports. */
 export type GuideDoc = Doc;
+
+/** A cover link pasted in the editor: the full check (host, file type, HEAD: image, ≤ 1 MB). */
+export async function checkCoverLink(url: string): Promise<FormResult<{ url: string }>> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  const link = typeof url === "string" ? url.trim() : "";
+  const problem = await checkLinkedImage(link);
+  return problem ? { ok: false, error: problem } : { ok: true, data: { url: link } };
+}

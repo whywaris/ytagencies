@@ -1,13 +1,14 @@
-import Image from "next/image";
+"use client";
 
+import Image from "next/image";
+import { useState } from "react";
+
+import { initials, logoSrc } from "@/lib/logo";
 import { cn } from "@/lib/utils";
 
-// Public bucket for agency logos; owners upload to agencies/<agency_id>/ (SECURITY.md).
-const LOGO_BUCKET = "agency-media";
-
-export function logoUrl(logoPath: string) {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${logoPath}`;
-}
+// Agency logo: an R2 link (MEDIA_HOSTS, set in admin) or a dashboard upload in agency-media
+// (lib/logo.ts). The initials tile shows when there's no logo or the image fails to load, so a
+// broken link never leaves an empty box. Client component only for that fallback.
 
 const SIZES = {
   xs: { px: 32, className: "size-8 text-[13px]" },
@@ -26,23 +27,21 @@ export function AgencyLogo({
   size?: keyof typeof SIZES;
 }) {
   const { px, className } = SIZES[size];
-  if (logoPath) {
+  const src = logoSrc(logoPath);
+  const [failed, setFailed] = useState<string | null>(null);
+  if (src && failed !== src) {
     return (
       <Image
-        src={logoUrl(logoPath)}
+        src={src}
         alt={`${name} logo`}
         width={px}
         height={px}
+        onError={() => setFailed(src)}
         className={cn("shrink-0 rounded-sm border border-line object-cover", className)}
       />
     );
   }
-  // No logo yet: initials tile, decorative because the name sits right next to it.
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("");
+  // No logo (or it didn't load): initials tile, decorative because the name sits right next to it.
   return (
     <span
       aria-hidden
@@ -51,7 +50,7 @@ export function AgencyLogo({
         className,
       )}
     >
-      {initials}
+      {initials(name)}
     </span>
   );
 }

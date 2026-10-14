@@ -34,6 +34,9 @@ export const agencySchema = z.object({
   seoTitle: z.string().trim().max(70, "Use 70 characters or fewer."),
   seoDescription: z.string().trim().max(200, "Use 200 characters or fewer."),
   hqLocation: z.string().regex(/^[a-z0-9-]{0,80}$/),
+  // Logo link (R2, MEDIA_HOSTS); the current value is kept as is, "" removes it. Checked on the
+  // server (lib/media.ts checkLinkedImage) when it changes.
+  logo: z.string().trim().max(500),
 });
 export type AgencyInput = z.infer<typeof agencySchema>;
 

@@ -13,6 +13,7 @@ import { usePortalContainer } from "@/components/admin/portal";
 import { reach, RichEditor, type ServiceOption } from "@/components/admin/rich-editor";
 import {
   changeGuideSlug,
+  checkCoverLink,
   deleteGuide,
   discardGuideDraft,
   saveGuide,
@@ -778,6 +779,8 @@ function CoverField({
   const fileInput = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [link, setLink] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
   const src = value ? (value.startsWith("https://") ? value : STORAGE + value) : null;
 
   const upload = (file: File | undefined) => {
@@ -792,6 +795,17 @@ function CoverField({
       onChange(res.data.url);
     });
   };
+
+  // Or a link to an image on the media host (R2), checked on the server before it's used.
+  const applyLink = () =>
+    startTransition(async () => {
+      if (!link.trim()) return;
+      const res = await reach(checkCoverLink(link));
+      if (!res.ok) return setLinkError(res.error);
+      setLinkError(null);
+      setLink("");
+      onChange(res.data.url);
+    });
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -855,9 +869,47 @@ function CoverField({
           </button>
         </div>
       )}
+      <div className="mt-2 flex flex-col gap-1.5">
+        <label htmlFor="cover-link" className="text-admin-meta">
+          Or use a link from the media host
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="cover-link"
+            type="url"
+            inputMode="url"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                applyLink();
+              }
+            }}
+            placeholder="https://media.ytagencies.com/covers/…"
+            aria-invalid={!!linkError}
+            aria-describedby={linkError ? "cover-link-error" : undefined}
+            className="h-9 min-w-0 flex-1 rounded-lg border border-line bg-bg px-3"
+          />
+          <button
+            type="button"
+            disabled={pending || !link.trim()}
+            onClick={applyLink}
+            className="h-9 rounded-lg border border-line px-3 font-medium hover:bg-surface-2 disabled:opacity-50"
+          >
+            Use link
+          </button>
+        </div>
+        {linkError && (
+          <p id="cover-link-error" role="alert" className="text-admin-meta text-destructive">
+            {linkError}
+          </p>
+        )}
+      </div>
       <p className="text-admin-meta">
-        1600 × 900 (16:9) works best; it&apos;s the social image too. JPG, PNG, WebP or GIF, up to 5
-        MB. Without one, a cover is made from the title.
+        1600 × 900 (16:9) works best; it&apos;s the social image too. Uploads: JPG, PNG, WebP or
+        GIF, up to 5 MB. Links: PNG, WebP or JPG, up to 1 MB. Without one, a cover is made from the
+        title.
       </p>
     </div>
   );

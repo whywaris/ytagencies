@@ -7,6 +7,7 @@ import { AgencyHeaderActions } from "@/components/admin/agency-header-actions";
 import { Empty, PLAN_LABEL, PlanBadge, StatusBadge, Table } from "@/components/admin/ui";
 import { ChannelTable } from "@/components/admin/channel-table";
 import { AgencyLogo } from "@/components/agency-logo";
+import { logoSrc } from "@/lib/logo";
 import { CaseStudies } from "@/components/dashboard/case-studies";
 import { ProfileForm } from "@/components/dashboard/profile-form";
 import { SeoHiddenNotice } from "@/components/seo-hidden-notice";
@@ -143,6 +144,7 @@ async function ProfileTab({
     slug: string;
     tagline: string | null;
     website: string | null;
+    logo_path: string | null;
     founded_year: number | null;
     team_size: string | null;
     languages: string[] | null;
@@ -174,6 +176,7 @@ async function ProfileTab({
     seoTitle: agency.seo_title ?? "",
     seoDescription: agency.seo_description ?? "",
     hqLocation: agency.locations?.slug ?? "",
+    logo: logoSrc(agency.logo_path) ?? "",
   };
   return (
     <div className="flex flex-col gap-12">

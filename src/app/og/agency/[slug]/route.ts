@@ -1,4 +1,4 @@
-import { logoUrl } from "@/components/agency-logo";
+import { logoSrc } from "@/lib/logo";
 import { getAgencyBySlug } from "@/lib/data/agencies";
 import { agencyOgImage } from "@/lib/seo/og";
 
@@ -20,7 +20,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/og/agenc
     name: agency.name,
     // The renderer draws PNG and JPEG only; other logos fall back to initials.
     logo:
-      agency.logoPath && /\.(png|jpe?g)$/i.test(agency.logoPath) ? logoUrl(agency.logoPath) : null,
+      agency.logoPath && /\.(png|jpe?g)$/i.test(agency.logoPath) ? logoSrc(agency.logoPath) : null,
     verified: agency.isVerified,
     line: [agency.services[0]?.name, city].filter(Boolean).join(" · ") || null,
     price:

@@ -28,6 +28,7 @@ export default async function NewAgencyPage() {
           seoTitle: "",
           seoDescription: "",
           hqLocation: "",
+          logo: "",
         }}
       />
     </div>

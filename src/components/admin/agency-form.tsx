@@ -44,9 +44,9 @@ export function AgencyForm({
     control,
     formState: { errors, isSubmitting, dirtyFields },
   } = useForm<AgencyInput>({ resolver: zodResolver(agencySchema), defaultValues: defaults });
-  const [seoTitle, seoDescription, name, tagline, slug] = useWatch({
+  const [seoTitle, seoDescription, name, tagline, slug, logo] = useWatch({
     control,
-    name: ["seoTitle", "seoDescription", "name", "tagline", "slug"],
+    name: ["seoTitle", "seoDescription", "name", "tagline", "slug", "logo"],
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -93,6 +93,20 @@ export function AgencyForm({
       <Field id="a-tagline" label="Tagline" optional error={errors.tagline?.message}>
         <Input {...register("tagline")} {...a11yProps("a-tagline", errors.tagline?.message)} />
       </Field>
+      <Field id="a-logo" label="Logo" optional error={errors.logo?.message}>
+        <Input
+          type="url"
+          inputMode="url"
+          placeholder="https://media.ytagencies.com/logos/agency.png"
+          {...register("logo")}
+          {...a11yProps("a-logo", errors.logo?.message)}
+        />
+      </Field>
+      <LogoPreview
+        src={logo}
+        name={name}
+        onRemove={() => setValue("logo", "", { shouldDirty: true })}
+      />
       <div className="grid gap-6 sm:grid-cols-2">
         <Field id="a-website" label="Website" optional error={errors.website?.message}>
           <Input
@@ -180,5 +194,52 @@ export function AgencyForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * The logo link on a light and a dark tile, as it'll look on the site (square, rounded). A plain
+ * <img>: the link may not be saved (or allowed) yet, so next/image can't load it.
+ */
+function LogoPreview({ src, name, onRemove }: { src: string; name: string; onRemove: () => void }) {
+  const [broken, setBroken] = useState<string | null>(null);
+  const link = src.trim();
+  if (!link) {
+    return (
+      <p className="-mt-4 text-small">
+        A PNG, WebP or JPG on the media host, square, up to 1 MB. Without one, the initials show.
+      </p>
+    );
+  }
+  return (
+    <div className="-mt-2 flex flex-wrap items-center gap-4">
+      {[
+        { bg: "bg-white border-[#d2d2d7]", label: "On light" },
+        { bg: "bg-[#0b0c10] border-[#38383a]", label: "On dark" },
+      ].map((t) => (
+        <span key={t.label} className={`grid size-20 place-items-center rounded-lg border ${t.bg}`}>
+          {broken === link ? (
+            <span className="px-1 text-center text-[11px] text-[#888]">Can&apos;t load</span>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element -- admin preview of an unsaved link
+            <img
+              src={link}
+              alt={`${name || "Agency"} logo preview, ${t.label.toLowerCase()}`}
+              width={56}
+              height={56}
+              onError={() => setBroken(link)}
+              className="size-14 rounded-sm object-cover"
+            />
+          )}
+        </span>
+      ))}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="min-h-11 text-destructive hover:underline"
+      >
+        Remove logo
+      </button>
+    </div>
   );
 }
