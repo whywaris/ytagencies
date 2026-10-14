@@ -1,10 +1,11 @@
-// Whether search engines may index the site: only when ALLOW_INDEXING is exactly "true" (set at
-// launch, on Production only). Otherwise every response says noindex and robots.txt blocks all,
-// so previews and a pre-launch production never end up in Google. No imports: next.config.ts
-// and the tests load it directly.
+// Whether search engines may index the site: on Vercel Production (the site is live), unless
+// ALLOW_INDEXING is "false" (an off switch). Previews and local dev stay blocked unless
+// ALLOW_INDEXING is exactly "true". When blocked, every response says noindex and robots.txt
+// blocks all. No imports: next.config.ts and the tests load it directly.
 
 export const indexingAllowed = (env: Record<string, string | undefined> = process.env) =>
-  env.ALLOW_INDEXING === "true";
+  env.ALLOW_INDEXING === "true" ||
+  (env.VERCEL_ENV === "production" && env.ALLOW_INDEXING !== "false");
 
 /** Headers added to every response while indexing is off. */
 export const noindexHeaders = (allowed: boolean) =>

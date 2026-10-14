@@ -59,10 +59,14 @@ test("GA: never on private routes, signed in or not", () => {
   assert.equal(shouldLoadGa({ pathname: "/claims-guide", cookie: "" }), true);
 });
 
-test("indexing: off unless ALLOW_INDEXING is exactly true", () => {
-  assert.equal(indexingAllowed({ ALLOW_INDEXING: "true" }), true);
-  for (const v of [undefined, "", "1", "TRUE", "false"])
-    assert.equal(indexingAllowed({ ALLOW_INDEXING: v }), false, String(v));
+test("indexing: on in Production (ALLOW_INDEXING=false turns it off); previews and dev blocked", () => {
+  assert.equal(indexingAllowed({ VERCEL_ENV: "production" }), true);
+  assert.equal(indexingAllowed({ VERCEL_ENV: "production", ALLOW_INDEXING: "false" }), false);
+  for (const env of [undefined, "preview", "development"])
+    assert.equal(indexingAllowed({ VERCEL_ENV: env }), false, String(env));
+  assert.equal(indexingAllowed({ VERCEL_ENV: "preview", ALLOW_INDEXING: "true" }), true);
+  for (const v of ["", "1", "TRUE"])
+    assert.equal(indexingAllowed({ VERCEL_ENV: "preview", ALLOW_INDEXING: v }), false, String(v));
 });
 
 test("indexing off: every response says noindex; on: no extra header", () => {
