@@ -82,6 +82,8 @@ function intervalOf(product: unknown, metadata: unknown, products: Products): In
   if (id && id === products.yearly) return "year";
   if (isObj(metadata) && (metadata.interval === "month" || metadata.interval === "year"))
     return metadata.interval;
+  if (isObj(metadata) && metadata.period === "monthly") return "month";
+  if (isObj(metadata) && metadata.period === "yearly") return "year";
   return null;
 }
 
@@ -145,19 +147,10 @@ export function changeFor(event: CreemEvent, products: Products): Change | null 
       const endStatus = event.eventType === "subscription.expired" ? "expired" : "cancelled";
       return base && { ...base, kind: "end", endStatus };
     }
-    case "refund.created": {
-      // Only a full refund ends Pro: refund_amount covers what was paid for the transaction.
-      // Both are in minor units in the docs' example (refund_amount 1210 = amount_paid 1210).
-      const tx = isObj(o.transaction) ? o.transaction : null;
-      const refunded = Number(o.refund_amount);
-      const paid = tx ? Number(tx.amount_paid ?? tx.amount) : NaN;
-      if (!Number.isFinite(refunded) || !Number.isFinite(paid) || refunded < paid) return null;
-      const sub = isObj(o.subscription)
-        ? o.subscription
-        : { id: o.subscription ?? tx?.subscription };
-      const base = fromSubscription(sub, products, { customer: o.customer });
-      return base && { ...base, kind: "end", endStatus: "cancelled" };
-    }
+    case "refund.created":
+      // Logged and emailed to the admin by the webhook handler; Pro isn't ended automatically
+      // (end it in Admin → Agencies → Change plan, or cancel it in Creem).
+      return null;
     default:
       return null; // trialing, paused, disputes, credits: nothing to do for Pro
   }
@@ -286,4 +279,50 @@ export function nextRow(
         created: false,
       };
   }
+}
+
+/**
+ * What's missing for checkout, by variable name (never values). Empty when Get Pro can start a
+ * Creem checkout. PAYMENTS_ENABLED stays the on/off switch (SECURITY.md).
+ */
+export function creemEnvProblems(env: Record<string, string | undefined>) {
+  const missing: string[] = [];
+  if (env.PAYMENTS_ENABLED !== "true") missing.push("PAYMENTS_ENABLED (must be exactly true)");
+  for (const name of ["CREEM_API_KEY", "CREEM_PRODUCT_PRO_MONTHLY", "CREEM_PRODUCT_PRO_YEARLY"])
+    if (!env[name]?.trim()) missing.push(name);
+  if (env.CREEM_PRODUCT_PRO_MONTHLY && !/^prod_/.test(env.CREEM_PRODUCT_PRO_MONTHLY))
+    missing.push("CREEM_PRODUCT_PRO_MONTHLY (should start with prod_)");
+  if (env.CREEM_PRODUCT_PRO_YEARLY && !/^prod_/.test(env.CREEM_PRODUCT_PRO_YEARLY))
+    missing.push("CREEM_PRODUCT_PRO_YEARLY (should start with prod_)");
+  // A test key against the live API (or the reverse) fails every call.
+  const key = env.CREEM_API_KEY ?? "";
+  if (key && key.startsWith("creem_test_") !== (env.CREEM_TEST_MODE === "true"))
+    missing.push("CREEM_TEST_MODE (true for a creem_test_ key, unset for a live key)");
+  return missing;
+}
+
+/** The checkout request body (POST /v1/checkouts, docs.creem.io/api-reference). */
+export function checkoutBody(
+  input: {
+    agencyId: string;
+    userId: string;
+    email: string | null;
+    interval: Interval;
+    successUrl: string;
+    requestId: string;
+  },
+  products: Products,
+) {
+  return {
+    product_id: input.interval === "year" ? products.yearly : products.monthly,
+    request_id: input.requestId,
+    success_url: input.successUrl,
+    ...(input.email ? { customer: { email: input.email } } : {}),
+    metadata: {
+      agency_id: input.agencyId,
+      user_id: input.userId,
+      period: input.interval === "year" ? "yearly" : "monthly",
+      interval: input.interval,
+    },
+  };
 }

@@ -13,7 +13,6 @@ import {
 
 import { a11yProps, Field, Honeypot, textareaClasses } from "@/components/forms/field";
 import { btnLight, btnPrimary } from "@/components/forms/claim-ui";
-import { RequestProForm } from "@/components/forms/request-pro-form";
 import { Turnstile } from "@/components/forms/turnstile";
 import { BillingToggle } from "@/components/pro-billing";
 import { Input } from "@/components/ui/input";
@@ -294,19 +293,15 @@ function ProofForm({
 /** Step 3: monthly or yearly, then Creem checkout (or Request Pro while payments are off). */
 export function ChoosePro({
   agencyId,
-  agencyUrl,
   monthly,
   yearly,
   saving,
-  live,
   from = "claim",
 }: {
   agencyId: string;
-  agencyUrl: string;
   monthly: number;
   yearly: number;
   saving: number;
-  live: boolean;
   /** Where Creem sends the buyer back (lib/actions/billing.ts). */
   from?: "claim" | "billing";
 }) {
@@ -320,18 +315,15 @@ export function ChoosePro({
           {period === "monthly" ? " a month" : " a year"}
         </small>
       </p>
-      {live ? (
-        <form
-          action={startCheckout.bind(null, agencyId, period === "yearly" ? "year" : "month", from)}
-        >
-          <button type="submit" className={btnPrimary}>
-            Get Pro
-          </button>
-          <p className="mt-2 text-[13px] text-text-2">Secure checkout by Creem. Cancel any time.</p>
-        </form>
-      ) : (
-        <RequestProForm agency={agencyUrl} period={period} label="Get Pro" />
-      )}
+      {/* Always a Creem checkout; if Creem isn't set up, "temporarily unavailable" (never a form). */}
+      <form
+        action={startCheckout.bind(null, agencyId, period === "yearly" ? "year" : "month", from)}
+      >
+        <button type="submit" className={btnPrimary}>
+          Get Pro
+        </button>
+        <p className="mt-2 text-[13px] text-text-2">Secure checkout by Creem. Cancel any time.</p>
+      </form>
     </div>
   );
 }

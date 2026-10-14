@@ -4,7 +4,6 @@ import { Check, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-import { RequestProForm } from "@/components/forms/request-pro-form";
 import { checkoutHref, perMonth, yearlySaving, type Period } from "@/lib/pricing";
 import { track } from "@/lib/track";
 import { cn } from "@/lib/utils";
@@ -34,17 +33,16 @@ function Feature({ on = true, children }: { on?: boolean; children: React.ReactN
 
 /**
  * Listing / Pro / Sponsored with the Monthly/Yearly toggle, which sets Pro's price and the
- * period "Get Pro" checks out with. Get Pro opens the Request Pro form while payments are off.
+ * period "Get Pro" checks out with: always a Creem checkout created on the server
+ * (app/dashboard/billing/checkout), or "temporarily unavailable" if Creem isn't set up.
  */
 export function PlanCards({
   monthly,
   yearly,
-  live,
   proFeatures,
 }: {
   monthly: number;
   yearly: number;
-  live: boolean;
   /** lib/entitlements.ts proFeatures(): the same list the billing page shows. */
   proFeatures: string[];
 }) {
@@ -115,22 +113,19 @@ export function PlanCards({
             ))}
           </ul>
           <div className="mt-auto">
-            {live ? (
-              <Link
-                href={checkoutHref(period)}
-                onClick={() =>
-                  track("checkout_start", { interval: period === "yearly" ? "year" : "month" })
-                }
-                className={cn(
-                  btn,
-                  "bg-accent text-on-accent hover:bg-(--accent-hover) focus-visible:outline-accent",
-                )}
-              >
-                Get Pro
-              </Link>
-            ) : (
-              <RequestProForm period={period} />
-            )}
+            {/* A plain <a>: the checkout route creates a Creem session, so it's never prefetched. */}
+            <a
+              href={checkoutHref(period)}
+              onClick={() =>
+                track("checkout_start", { interval: period === "yearly" ? "year" : "month" })
+              }
+              className={cn(
+                btn,
+                "bg-accent text-on-accent hover:bg-(--accent-hover) focus-visible:outline-accent",
+              )}
+            >
+              Get Pro
+            </a>
           </div>
         </section>
 

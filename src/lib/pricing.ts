@@ -67,10 +67,9 @@ export const yearlySaving = (monthly: number, yearly: number) =>
 
 export type Period = "monthly" | "yearly";
 
-/** Where "Get Pro" goes for the selected period: sign-in if needed, then the agency's checkout
- * (app/dashboard/billing), or List your agency when the account has no agency yet. */
-export const checkoutHref = (period: Period) =>
-  `/dashboard/billing?interval=${period === "yearly" ? "year" : "month"}`;
+/** Where "Get Pro" goes for the selected period: sign-in if needed, then a Creem checkout created
+ * server-side (app/dashboard/billing/checkout), or List your agency when there's no agency yet. */
+export const checkoutHref = (period: Period) => `/dashboard/billing/checkout?period=${period}`;
 
 /** "$23.25": a yearly price as a monthly amount. */
 export const perMonth = (yearly: number) => {

@@ -4,10 +4,8 @@ import { cache } from "react";
 
 import { getProPrices } from "@/components/plan-columns";
 import { getOwnedAgencyBySlug } from "@/lib/auth";
-import { checkoutAvailable } from "@/lib/billing";
 import { getEntitlements } from "@/lib/data/entitlements";
 import { liveSubscription } from "@/lib/entitlements";
-import { absoluteUrl } from "@/lib/site";
 import { yearlySaving } from "@/lib/pricing";
 
 /**
@@ -43,8 +41,6 @@ export const dashboardContext = cache(async (slug: string) => {
     pro: {
       ...prices,
       saving: yearlySaving(prices.monthly, prices.yearly),
-      checkout: checkoutAvailable(),
-      agencyUrl: absoluteUrl(`/agency/${agency.slug}`),
     },
   };
 });

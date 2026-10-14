@@ -127,12 +127,12 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    | `ADMIN_EMAIL` | server | recommended | Gets a note for every new lead, agency submission and claim that needs review. Unset: those notes are skipped (the admin queues still show everything). |
    | `EMAIL_FROM` | server | no | Defaults to `YT Agencies <help@send.ytagencies.com>` (the Resend-verified subdomain). Every email the app sends sets Reply-To `help@ytagencies.com`, except lead emails to agencies, which reply to the business. |
    | `MEDIA_HOSTS` | server | yes | Host name(s) of your Cloudflare image hosting, comma-separated, e.g. `media.ytagencies.com` (the R2 bucket on a custom domain). Agency logos (Admin → Agencies → Edit → Logo) and guide cover links must be on one of these: https, a .png/.webp/.jpg/.jpeg file (no SVG), up to 1 MB, checked with a HEAD request when saved. It also opens the CSP `img-src` and `next/image` to them. Without it, admins can't set logos by link. Changing it needs a redeploy. |
-   | `PAYMENTS_ENABLED` | server | no | Only exactly `true` turns checkout on (with the Creem variables below). While off nothing is charged and "Get Pro" opens the Request Pro form (Admin → Inbox); grant Pro in Agencies → Change plan. |
-   | `CREEM_API_KEY` | server, secret | for payments | Creem API key. Test key on Preview/local, live key on Production ("Creem" below). |
-   | `CREEM_WEBHOOK_SECRET` | server, secret | for payments | The webhook's signing secret from Creem. Without it, payments don't update plans. |
-   | `CREEM_PRODUCT_PRO_MONTHLY` | server | for payments | Product id of "YT Agencies Pro" monthly (`prod_…`). |
-   | `CREEM_PRODUCT_PRO_YEARLY` | server | for payments | Product id of "YT Agencies Pro" yearly (`prod_…`). |
-   | `CREEM_TEST_MODE` | server | no | `true` uses Creem's test API (`test-api.creem.io`). Set on Preview and local; leave unset on Production. |
+   | `PAYMENTS_ENABLED` | server | for payments | Only exactly `true` turns checkout on (with the Creem variables below). While off (or any Creem variable is missing), "Get Pro" shows "Checkout is temporarily unavailable. Email help@ytagencies.com", logs which variable is missing and emails `ADMIN_EMAIL` (at most hourly). There's no fallback form; grant Pro by hand in Agencies → Change plan if needed. The production build log also warns when any is missing. |
+   | `CREEM_API_KEY` | server, secret | for payments | Creem dashboard → **Developers → API keys**. Test key (`creem_test_…`) on Preview/local with `CREEM_TEST_MODE=true`, live key on Production without it. |
+   | `CREEM_WEBHOOK_SECRET` | server, secret | for payments | Creem dashboard → **Developers → Webhooks** → add the endpoint `https://ytagencies.com/api/billing/webhook` → copy its signing secret. Without it, payments don't update plans. |
+   | `CREEM_PRODUCT_PRO_MONTHLY` | server | for payments | Creem dashboard → **Products** → "YT Agencies Pro" monthly → product id (`prod_…`). |
+   | `CREEM_PRODUCT_PRO_YEARLY` | server | for payments | Creem dashboard → **Products** → "YT Agencies Pro" yearly → product id (`prod_…`). |
+   | `CREEM_TEST_MODE` | server | for test payments | `true` sends API calls to `https://test-api.creem.io` (test keys); unset uses `https://api.creem.io` (live keys). Must match the key, or every call fails. |
 
 3. Enable Web Analytics.
 4. Cron jobs come from `vercel.json` and run on Production only:
@@ -155,7 +155,7 @@ Creem is the merchant of record: it charges, handles tax and sends receipts and 
    - Billing → Manage billing opens the Creem portal; cancel there: the plan ends (the portal cancels immediately) and "Your Pro plan has ended" arrives.
    - A declined card (`4507 9900 0000 0028`) at checkout shows Creem's error and changes nothing.
    - Creem dashboard → Developers → Webhooks: every delivery answered 200. Resending one is ignored (already processed).
-7. **Go live.** Turn Test Mode off and repeat steps 2–4 in live mode: create the two products again (new ids), add the webhook `https://ytagencies.com/api/billing/webhook` (new secret), copy the live API key. On Vercel **Production** set the live values, leave `CREEM_TEST_MODE` unset, and set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $29 purchase on your own agency, then refund it in Creem (a full refund ends Pro straight away).
+7. **Go live.** Turn Test Mode off and repeat steps 2–4 in live mode: create the two products again (new ids), add the webhook `https://ytagencies.com/api/billing/webhook` (new secret), copy the live API key. On Vercel **Production** set the live values, leave `CREEM_TEST_MODE` unset, and set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $29 purchase on your own agency, then refund it in Creem (you get an admin email; end Pro in Admin → Agencies → Change plan, or cancel the subscription in Creem).
 8. **Ongoing.** Refunds and cancellations happen in the Creem dashboard; the webhook updates the plan. Ending a paid plan from Admin → Change plan only changes our side, so cancel it in Creem too.
 9. **Rejecting a paid submission.** "Add your agency" lets the submitter subscribe before review. Admin → Submissions marks those ("Paid for Pro when submitting", with the `sub_…` id). Rejecting deletes the draft but not the charge: in the Creem dashboard, refund the payment in full and cancel the subscription (the full refund also arrives as a webhook, which is ignored because the agency no longer exists).
 

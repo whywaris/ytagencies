@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 import { gaId } from "./src/lib/analytics";
+import { creemEnvProblems } from "./src/lib/billing/creem-events";
 import { companyTodos } from "./src/lib/company";
 import { indexingAllowed, noindexHeaders } from "./src/lib/indexing";
 import { turnstileKeyProblems } from "./src/lib/turnstile-keys";
@@ -128,6 +129,14 @@ export default function config(phase: string): NextConfig {
       );
       throw new Error("Turnstile keys aren't valid for production");
     }
+  }
+  // Creem: name anything missing for checkout or webhooks (names only, never values). Not fatal:
+  // Get Pro then says "temporarily unavailable" and emails the admin (lib/billing/checkout.ts).
+  if (phase === PHASE_PRODUCTION_BUILD && process.env.VERCEL_ENV === "production") {
+    const creem = creemEnvProblems(process.env);
+    if (!process.env.CREEM_WEBHOOK_SECRET) creem.push("CREEM_WEBHOOK_SECRET");
+    if (creem.length)
+      console.warn(`⚠ Creem isn't fully set up, so Get Pro can't check out: ${creem.join(", ")}.`);
   }
   // GA4 only runs with a Measurement ID (G-XXXXXXXX); say so when the value can't be used.
   if (

@@ -21,3 +21,15 @@ export function getMailer() {
 
 /** Header-safe subject: no newlines from visitor input. */
 export const oneLine = (s: string) => s.replace(/[\r\n]+/g, " ").slice(0, 80);
+
+/** A short plain-text alert to ADMIN_EMAIL (billing problems). Never throws; no secrets in it. */
+export async function alertAdmin(subject: string, lines: string[]) {
+  const mailer = getMailer();
+  const to = process.env.ADMIN_EMAIL;
+  if (!mailer || !to) return;
+  try {
+    await mailer.send({ from: mailer.from, to, subject: oneLine(subject), text: lines.join("\n") });
+  } catch {
+    console.error("admin alert failed", { subject: oneLine(subject) });
+  }
+}

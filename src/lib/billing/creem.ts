@@ -5,6 +5,8 @@ import { randomUUID } from "node:crypto";
 import type { Billing, BillingResult } from "@/lib/billing";
 import {
   changeFor,
+  checkoutBody,
+  creemEnvProblems,
   nextRow,
   parseCreemEvent,
   verifyCreemSignature,
@@ -12,6 +14,7 @@ import {
   type SubRow,
 } from "@/lib/billing/creem-events";
 import { sendBillingEmail } from "@/lib/billing/notices";
+import { alertAdmin } from "@/lib/email";
 import { revalidateAgency } from "@/lib/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
@@ -68,14 +71,15 @@ const CUST_ID = /^cust_[A-Za-z0-9]{1,100}$/;
 export const creem: Billing = {
   async createCheckout({ agencyId, userId, email, interval, successUrl }) {
     const config = creemConfig()!;
-    const res = await call<{ checkout_url?: string }>("/checkouts", {
-      product_id: interval === "year" ? config.products.yearly : config.products.monthly,
-      // The docs describe request_id as tracking only, not idempotency (see LAUNCH.md).
-      request_id: `${agencyId}:${randomUUID()}`,
-      success_url: successUrl,
-      ...(email ? { customer: { email } } : {}),
-      metadata: { agency_id: agencyId, user_id: userId, interval },
-    });
+    // The docs describe request_id as tracking only, not idempotency (see LAUNCH.md). Creem
+    // has no cancel URL: a buyer who backs out just closes the checkout.
+    const res = await call<{ checkout_url?: string }>(
+      "/checkouts",
+      checkoutBody(
+        { agencyId, userId, email, interval, successUrl, requestId: `${agencyId}:${randomUUID()}` },
+        config.products,
+      ),
+    );
     if (!res.ok) return res;
     const url = res.data.checkout_url;
     if (!url?.startsWith("https://")) return { ok: false, error: FAILED };
@@ -141,6 +145,24 @@ export async function handleCreemWebhook(request: Request): Promise<Response> {
   };
   const change = changeFor(event, products);
   let agencyId: string | null = change?.agencyId ?? null;
+
+  // Refunds don't change the plan by themselves: logged, and the admin decides.
+  if (event.eventType === "refund.created") {
+    const sub = event.object.subscription;
+    const meta = (typeof sub === "object" && sub && "metadata" in sub ? sub.metadata : null) as {
+      agency_id?: unknown;
+    } | null;
+    agencyId =
+      typeof meta?.agency_id === "string" && /^[0-9a-f-]{36}$/i.test(meta.agency_id)
+        ? meta.agency_id
+        : null;
+    console.info("creem refund received", { event: event.id, agencyId });
+    await alertAdmin("Creem refund created", [
+      `A refund was created in Creem (event ${event.id}).`,
+      agencyId ? `Agency id: ${agencyId}` : "No agency id on the event.",
+      "Pro isn't ended automatically: end it in Admin → Agencies → Change plan if needed.",
+    ]);
+  }
 
   if (change) {
     const existing = await db
@@ -255,4 +277,22 @@ async function notify(
   } catch {
     console.error("billing email failed", { agencyId: agency.id, email });
   }
+}
+
+let lastUnavailableAlert = 0;
+
+/**
+ * Get Pro was clicked but checkout can't start: a clear server log naming the missing settings
+ * (names only) and, at most hourly per server instance, an email to the admin.
+ */
+export async function reportCheckoutUnavailable() {
+  const missing = creemEnvProblems(process.env);
+  console.error("Creem checkout unavailable", { missing });
+  if (Date.now() - lastUnavailableAlert < 3_600_000) return;
+  lastUnavailableAlert = Date.now();
+  await alertAdmin("Checkout is unavailable", [
+    "Someone clicked Get Pro, but Creem checkout isn't configured.",
+    missing.length ? `Missing or wrong: ${missing.join(", ")}.` : "The Creem request failed.",
+    "Set them in Vercel → Settings → Environment Variables (see docs/LAUNCH.md), then redeploy.",
+  ]);
 }

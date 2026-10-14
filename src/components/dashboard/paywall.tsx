@@ -63,11 +63,9 @@ export function Paywall({
         <div className="rounded-2xl bg-raised p-5">
           <ChoosePro
             agencyId={agency.id}
-            agencyUrl={pro.agencyUrl}
             monthly={pro.monthly}
             yearly={pro.yearly}
             saving={pro.saving}
-            live={pro.checkout}
             from="billing"
           />
         </div>

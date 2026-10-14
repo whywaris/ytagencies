@@ -1,5 +1,4 @@
 import { PlanCards } from "@/components/pro-billing";
-import { checkoutAvailable } from "@/lib/billing";
 import { getPlanPrices } from "@/lib/data/placement";
 import { proFeatures } from "@/lib/entitlements";
 
@@ -21,12 +20,5 @@ export async function getProPrices() {
 
 export async function PlanColumns() {
   const prices = await getProPrices();
-  return (
-    <PlanCards
-      monthly={prices.monthly}
-      yearly={prices.yearly}
-      live={checkoutAvailable()}
-      proFeatures={proFeatures()}
-    />
-  );
+  return <PlanCards monthly={prices.monthly} yearly={prices.yearly} proFeatures={proFeatures()} />;
 }

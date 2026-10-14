@@ -1,18 +1,16 @@
 import Link from "next/link";
 
-import { RequestProForm } from "@/components/forms/request-pro-form";
 import { Button } from "@/components/ui/button";
 import { keepPro, openBillingPortal, startCheckout, switchToYearly } from "@/lib/actions/billing";
-import { checkoutAvailable } from "@/lib/billing";
 import { dashboardContext } from "@/lib/data/dashboard";
 import { getPlanPrices } from "@/lib/data/placement";
 import { liveSubscription, planIncludes } from "@/lib/entitlements";
-import { absoluteUrl } from "@/lib/site";
+import { CONTACT_EMAIL } from "@/lib/site";
 
 export const metadata = { title: "Billing" };
 
 const ERRORS: Record<string, string> = {
-  unavailable: "Online payments aren't available right now. Request Pro below and we'll set it up.",
+  unavailable: `Checkout is temporarily unavailable. Email ${CONTACT_EMAIL}`,
   checkout: "We couldn't start the checkout. Please try again in a minute.",
   portal: "We couldn't open billing. Please try again in a minute, or email us.",
   switch: "We couldn't switch you to yearly. Please try again in a minute.",
@@ -58,7 +56,6 @@ export default async function BillingPage({
   const yearly = Number(pro?.price_yearly ?? 279);
   const saving = Math.round((1 - yearly / (monthly * 12)) * 100);
   const lapsed = !live && subs.data.length > 0;
-  const canCheckout = checkoutAvailable();
 
   const error = ERRORS[one(sp.error) ?? ""];
   const status =
@@ -136,32 +133,26 @@ export default async function BillingPage({
             </form>
           </div>
         ) : !live ? (
-          canCheckout ? (
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-3">
-                {(["month", "year"] as const).map((i) => (
-                  <form key={i} action={startCheckout.bind(null, agency.id, i, "billing")}>
-                    <Button type="submit" className={i === preferred ? undefined : outline}>
-                      {i === "month"
-                        ? `Get Pro, ${usd(monthly)} a month`
-                        : `Get Pro, ${usd(yearly)} a year${saving > 0 ? ` (save ${saving}%)` : ""}`}
-                    </Button>
-                  </form>
-                ))}
-              </div>
-              <p className="text-small">
-                Secure checkout by Creem, our payment provider. Cancel any time.{" "}
-                <Link href="/refunds" className="text-accent hover:underline">
-                  Refund policy
-                </Link>
-              </p>
+          // Always the checkout; if Creem isn't set up, the action comes back with "unavailable".
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-3">
+              {(["month", "year"] as const).map((i) => (
+                <form key={i} action={startCheckout.bind(null, agency.id, i, "billing")}>
+                  <Button type="submit" className={i === preferred ? undefined : outline}>
+                    {i === "month"
+                      ? `Get Pro, ${usd(monthly)} a month`
+                      : `Get Pro, ${usd(yearly)} a year${saving > 0 ? ` (save ${saving}%)` : ""}`}
+                  </Button>
+                </form>
+              ))}
             </div>
-          ) : (
-            <RequestProForm
-              agency={absoluteUrl(`/agency/${agency.slug}`)}
-              period={preferred === "year" ? "yearly" : "monthly"}
-            />
-          )
+            <p className="text-small">
+              Secure checkout by Creem, our payment provider. Cancel any time.{" "}
+              <Link href="/refunds" className="text-accent hover:underline">
+                Refund policy
+              </Link>
+            </p>
+          </div>
         ) : null}
 
         {!live?.customer_id && lastPaid && (

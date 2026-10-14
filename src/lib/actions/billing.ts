@@ -3,8 +3,9 @@
 import { redirect } from "next/navigation";
 
 import { billing, checkoutAvailable, type Interval } from "@/lib/billing";
+import { checkoutTarget } from "@/lib/billing/checkout";
+import { reportCheckoutUnavailable } from "@/lib/billing/creem";
 import { getOwnedAgency, getUser } from "@/lib/auth";
-import { isManaged } from "@/lib/entitlements";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -33,10 +34,7 @@ async function paymentRow(o: Awaited<ReturnType<typeof owned>>) {
   return data;
 }
 
-/**
- * Starts a Creem checkout for Pro. `from` decides where Creem sends the buyer back: the Billing
- * page, the claim flow's welcome screen, or the dashboard after adding a new agency.
- */
+/** The Billing page's and the claim flow's Get Pro buttons. */
 export async function startCheckout(
   agencyId: string,
   interval: Interval,
@@ -45,28 +43,8 @@ export async function startCheckout(
   if (interval !== "month" && interval !== "year") redirect("/dashboard");
   const o = await owned(agencyId);
   const user = await getUser();
-  if (!user || !checkoutAvailable()) redirect(billingPage(o.agency.slug, "?error=unavailable"));
-
-  // Already managed: nothing to buy (switching to yearly is its own button).
-  const { data: subs } = await o.supabase
-    .from("agency_subscriptions")
-    .select("plan_id, status, starts_at, ends_at, cancel_at_period_end, past_due_since")
-    .eq("agency_id", o.agency.id);
-  if (isManaged(subs ?? [])) redirect(billingPage(o.agency.slug));
-
-  const res = await billing().createCheckout({
-    agencyId: o.agency.id,
-    userId: user.id,
-    email: user.email ?? null,
-    interval,
-    successUrl: absoluteUrl(
-      from === "claim"
-        ? `/claim/${o.agency.slug}?status=success`
-        : billingPage(o.agency.slug, "?status=success"),
-    ),
-  });
-  if (!res.ok) redirect(billingPage(o.agency.slug, "?error=checkout"));
-  redirect(res.data.url);
+  if (!user) redirect(`/login?next=${encodeURIComponent(billingPage(o.agency.slug))}`);
+  redirect(await checkoutTarget(o, user.id, user.email ?? null, interval, from));
 }
 
 /**
@@ -78,7 +56,11 @@ export async function startSubmissionCheckout(agencyId: string, interval: Interv
   if (!/^[0-9a-f-]{36}$/i.test(agencyId) || (interval !== "month" && interval !== "year"))
     redirect("/dashboard");
   const user = await getUser();
-  if (!user || !checkoutAvailable()) redirect("/dashboard");
+  if (!user) redirect("/dashboard");
+  if (!checkoutAvailable()) {
+    await reportCheckoutUnavailable();
+    redirect("/dashboard?status=checkout-failed");
+  }
   const { data: draft } = await createAdminClient()
     .from("agencies")
     .select("id")

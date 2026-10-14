@@ -29,7 +29,6 @@ function internalPath(href: string) {
 
 const link = "text-accent underline underline-offset-2";
 
-
 /** Heading with a stable id (lib/guide-content.ts) and a copy-link button that shows on hover/focus. */
 function heading(Tag: "h2" | "h3", className: string) {
   function Heading({ id, children }: { id?: string; children?: React.ReactNode }) {

@@ -5,6 +5,8 @@ import { test } from "node:test";
 
 import {
   changeFor,
+  checkoutBody,
+  creemEnvProblems,
   nextRow,
   parseCreemEvent,
   verifyCreemSignature,
@@ -207,26 +209,77 @@ test("canceled and expired: Pro ends now, with an email", () => {
   }
 });
 
-test("refund.created: a full refund ends Pro immediately; a partial one doesn't", () => {
-  const refund = (amount) =>
-    event(
-      "refund.created",
-      {
-        id: "ref_1",
-        refund_amount: amount,
-        transaction: { id: "tran_1", amount: 2900, amount_paid: 3509, subscription: "sub_1" },
-        subscription: { id: "sub_1", product: "prod_month", customer: "cust_1" },
-      },
-      T0 + DAY,
-    );
-  const full = run([event("subscription.paid", sub()), refund(3509)]);
-  assert.equal(full.row.status, "cancelled");
-  assert.equal(managedAt(full.row, T0 + DAY + 1000), false);
-  assert.deepEqual(full.emails, ["welcome", "ended"]);
+test("refund.created: logged and emailed to the admin; the plan isn't changed by itself", () => {
+  const refund = event(
+    "refund.created",
+    {
+      id: "ref_1",
+      refund_amount: 3509,
+      transaction: { id: "tran_1", amount: 2900, amount_paid: 3509, subscription: "sub_1" },
+      subscription: { id: "sub_1", product: "prod_month", customer: "cust_1" },
+    },
+    T0 + DAY,
+  );
+  assert.equal(changeFor(refund, PRODUCTS), null);
+  const after = run([event("subscription.paid", sub()), refund]);
+  assert.equal(after.row.status, "active");
+  assert.deepEqual(after.emails, ["welcome"]);
+});
 
-  const partial = run([event("subscription.paid", sub()), refund(1000)]);
-  assert.equal(partial.row.status, "active");
-  assert.equal(managedAt(partial.row, T0 + DAY + 1000), true);
+test("metadata period (monthly/yearly) gives the interval when the product isn't embedded", () => {
+  const yearly = sub({ product: "prod_other", metadata: { agency_id: AGENCY, period: "yearly" } });
+  assert.equal(changeFor(event("subscription.active", yearly), PRODUCTS).interval, "year");
+});
+
+test("checkout body: the product and metadata for each period", () => {
+  const input = {
+    agencyId: AGENCY,
+    userId: "u1",
+    email: "owner@acme.test",
+    successUrl: "https://ytagencies.com/dashboard/acme/billing/success",
+    requestId: "r1",
+  };
+  const month = checkoutBody({ ...input, interval: "month" }, PRODUCTS);
+  assert.equal(month.product_id, "prod_month");
+  assert.deepEqual(month.metadata, {
+    agency_id: AGENCY,
+    user_id: "u1",
+    period: "monthly",
+    interval: "month",
+  });
+  assert.deepEqual(month.customer, { email: "owner@acme.test" });
+  assert.equal(month.success_url, input.successUrl);
+
+  const year = checkoutBody({ ...input, interval: "year", email: null }, PRODUCTS);
+  assert.equal(year.product_id, "prod_year");
+  assert.equal(year.metadata.period, "yearly");
+  assert.equal("customer" in year, false, "no email: Creem asks for it");
+});
+
+test("Creem env: names what's missing or mismatched, never values", () => {
+  const ok = {
+    PAYMENTS_ENABLED: "true",
+    CREEM_API_KEY: "creem_test_abc",
+    CREEM_TEST_MODE: "true",
+    CREEM_PRODUCT_PRO_MONTHLY: "prod_m",
+    CREEM_PRODUCT_PRO_YEARLY: "prod_y",
+  };
+  assert.deepEqual(creemEnvProblems(ok), []);
+  assert.deepEqual(creemEnvProblems({}), [
+    "PAYMENTS_ENABLED (must be exactly true)",
+    "CREEM_API_KEY",
+    "CREEM_PRODUCT_PRO_MONTHLY",
+    "CREEM_PRODUCT_PRO_YEARLY",
+  ]);
+  assert.deepEqual(creemEnvProblems({ ...ok, CREEM_TEST_MODE: undefined }), [
+    "CREEM_TEST_MODE (true for a creem_test_ key, unset for a live key)",
+  ]);
+  assert.match(creemEnvProblems({ ...ok, CREEM_PRODUCT_PRO_YEARLY: "123" }).join(), /prod_/);
+  assert.ok(
+    !creemEnvProblems({ ...ok, CREEM_API_KEY: "creem_secret" })
+      .join()
+      .includes("secret"),
+  );
 });
 
 test("events for a subscription we never saw start are ignored; unknown types too", () => {

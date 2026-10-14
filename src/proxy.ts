@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { publicPathExists } from "@/lib/public-slugs";
-import { newDashboardPath, privateGate } from "@/lib/redirects";
+import { newDashboardPath, privateGate, safeNext } from "@/lib/redirects";
 import type { Database } from "@/lib/supabase/types";
 
 // 1. Unknown public slugs → full server-rendered 404 (see lib/public-slugs.ts for why).
@@ -63,7 +63,12 @@ export async function proxy(request: NextRequest) {
   }
 
   const gate = privateGate(path, !!user, isAdmin);
-  if (gate.action === "login") return redirectKeepingCookies(request, response, gate.to);
+  if (gate.action === "login") {
+    // Back to the same page after signing in, query included (e.g. Get Pro's ?period=yearly).
+    const next = safeNext(path + request.nextUrl.search);
+    const to = next ? `/login?next=${encodeURIComponent(next)}` : gate.to;
+    return redirectKeepingCookies(request, response, to);
+  }
 
   // Old dashboard links (/dashboard/<agency id>/…, in emails and bookmarks) → /dashboard/<slug>/…
   // Only the owner's own agency resolves (RLS + owner_id); anything else falls through to a 404.

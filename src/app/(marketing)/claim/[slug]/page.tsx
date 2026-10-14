@@ -7,14 +7,13 @@ import { ChoosePro, ClaimStep } from "@/components/forms/claim-form";
 import { btnPrimary } from "@/components/forms/claim-ui";
 import { getProPrices } from "@/components/plan-columns";
 import { getUser } from "@/lib/auth";
-import { checkoutAvailable } from "@/lib/billing";
 import { profileViews, requestsThisMonth, strengthInput } from "@/lib/data/agency-stats";
 import { getAgencyBySlug } from "@/lib/data/agencies";
 import { getIndustryBySlug, getServiceBySlug } from "@/lib/data/taxonomy";
 import { liveSubscription } from "@/lib/entitlements";
 import { profileStrength } from "@/lib/profile-strength";
 import { alreadyManagedMessage } from "@/lib/claim-rules";
-import { absoluteUrl, BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
+import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -253,11 +252,9 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
             ) : (
               <ChoosePro
                 agencyId={agency.id}
-                agencyUrl={absoluteUrl(`/agency/${agency.slug}`)}
                 monthly={prices.monthly}
                 yearly={prices.yearly}
                 saving={yearlySaving(prices.monthly, prices.yearly)}
-                live={checkoutAvailable()}
               />
             )
           ) : pending ? (

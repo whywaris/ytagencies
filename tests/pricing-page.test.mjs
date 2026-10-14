@@ -19,8 +19,8 @@ test("/for-agencies/pricing and /for-agencies 301 to /pricing", () => {
 });
 
 test("the period toggle drives the checkout period", () => {
-  assert.equal(checkoutHref("monthly"), "/dashboard/billing?interval=month");
-  assert.equal(checkoutHref("yearly"), "/dashboard/billing?interval=year");
+  assert.equal(checkoutHref("monthly"), "/dashboard/billing/checkout?period=monthly");
+  assert.equal(checkoutHref("yearly"), "/dashboard/billing/checkout?period=yearly");
   assert.equal(perMonth(279), "$23.25");
   assert.equal(perMonth(240), "$20");
 });

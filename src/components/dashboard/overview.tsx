@@ -65,11 +65,9 @@ export async function Overview({ ctx }: { ctx: DashboardContext }) {
   const viewsDelta = delta(activity.views, activity.viewsBefore);
   const proProps = {
     agencyId: agency.id,
-    agencyUrl: pro.agencyUrl,
     monthly: pro.monthly,
     yearly: pro.yearly,
     saving: pro.saving,
-    live: pro.checkout,
     from: "billing" as const,
     refundDays: COMPANY.refunds.yearlyFullRefundDays,
   };
