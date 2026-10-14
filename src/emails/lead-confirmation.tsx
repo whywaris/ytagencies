@@ -1,14 +1,16 @@
-import { EmailLayout, link, muted, text } from "@/emails/layout";
+import { Details, EmailLayout, link, muted, text } from "@/emails/layout";
 
 type Props = {
   name: string;
   agencies: { name: string; url: string }[];
   /** e.g. "YouTube Ads for Doctors & clinics"; omitted for a direct message to one agency */
   need?: string;
+  /** Get matched: their answers, so they have a copy. */
+  answers?: [string, string | null][];
 };
 
 // To the business, right after they submit.
-export function LeadConfirmationEmail({ name, agencies, need }: Props) {
+export function LeadConfirmationEmail({ name, agencies, need, answers }: Props) {
   const direct = !need;
   return (
     <EmailLayout
@@ -46,9 +48,15 @@ export function LeadConfirmationEmail({ name, agencies, need }: Props) {
         </>
       ) : (
         <p style={text}>
-          We&apos;ve saved your request for {need}. No listed agency matches it yet, so our team
-          will look for one and email you if we find a good fit.
+          We&apos;ve got your request for {need}. No agency on our list fits it yet, so we&apos;re
+          looking for one, and we&apos;ll tell you either way.
         </p>
+      )}
+      {answers && answers.some(([, v]) => v) && (
+        <>
+          <p style={text}>Your request:</p>
+          <Details rows={answers} />
+        </>
       )}
       <p style={muted}>
         You&apos;re getting this because you submitted a form on our site. To have your details

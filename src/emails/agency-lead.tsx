@@ -10,6 +10,8 @@ type Props = {
     budget?: string | null;
     need?: string | null;
     message?: string | null;
+    /** Get matched answers: goal, start, website, channel, customers, past agencies. */
+    details?: [string, string | null][];
   };
   direct: boolean;
 };
@@ -30,6 +32,7 @@ export function AgencyLeadEmail({ agencyName, lead, direct }: Props) {
           ["Company", lead.company],
           ["Looking for", lead.need],
           ["Budget", lead.budget],
+          ...(lead.details ?? []),
           ["Message", lead.message],
         ]}
       />

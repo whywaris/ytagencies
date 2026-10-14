@@ -144,10 +144,20 @@ create table leads (
   company text,
   service_id int references services(id),
   industry_id int references industries(id),
-  budget_range text,
+  -- '1k-5k' is from before the $1k–3k / $3k–5k split.
+  budget_range text constraint leads_budget_range_check check (
+    budget_range in ('under-1k', '1k-3k', '3k-5k', '5k-10k', '10k-plus', 'not-sure', '1k-5k')
+  ),
   message text,
   -- Where a Get matched request started, e.g. "profile:<slug>" (an unmanaged profile's button).
   ref text check (ref ~ '^[a-z]+(:[a-z0-9-]{1,80})?$'),
+  -- Get matched step 1 (goal, start) and step 2 (business details), all optional in the table.
+  goal text check (goal in ('leads-sales', 'views-subs', 'brand', 'not-sure')),
+  start_timeline text check (start_timeline in ('asap', 'this-month', 'exploring')),
+  business_url text check (char_length(business_url) <= 300),
+  channel_url text check (char_length(channel_url) <= 300),
+  customer_location text check (char_length(customer_location) <= 120),
+  prior_agency text check (prior_agency in ('first', 'went-well', 'didnt-work')),
   created_at timestamptz not null default now()
 );
 

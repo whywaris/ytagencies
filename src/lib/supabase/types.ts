@@ -917,6 +917,12 @@ export type Database = {
         Row: {
           ref: string | null;
           budget_range: string | null;
+          goal: string | null;
+          start_timeline: string | null;
+          business_url: string | null;
+          channel_url: string | null;
+          customer_location: string | null;
+          prior_agency: string | null;
           company: string | null;
           created_at: string;
           email: string;
@@ -929,6 +935,12 @@ export type Database = {
         Insert: {
           ref?: string | null;
           budget_range?: string | null;
+          goal?: string | null;
+          start_timeline?: string | null;
+          business_url?: string | null;
+          channel_url?: string | null;
+          customer_location?: string | null;
+          prior_agency?: string | null;
           company?: string | null;
           created_at?: string;
           email: string;
@@ -941,6 +953,12 @@ export type Database = {
         Update: {
           ref?: string | null;
           budget_range?: string | null;
+          goal?: string | null;
+          start_timeline?: string | null;
+          business_url?: string | null;
+          channel_url?: string | null;
+          customer_location?: string | null;
+          prior_agency?: string | null;
           company?: string | null;
           created_at?: string;
           email?: string;

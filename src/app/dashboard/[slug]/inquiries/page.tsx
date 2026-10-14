@@ -1,7 +1,13 @@
 import { MarkContacted } from "@/components/dashboard/mark-contacted";
 import { Paywall } from "@/components/dashboard/paywall";
 import { dashboardContext } from "@/lib/data/dashboard";
-import { BUDGET_RANGES } from "@/lib/validation/lead";
+import {
+  budgetLabel,
+  choiceLabel,
+  GOALS,
+  PRIOR_AGENCY,
+  START_TIMELINES,
+} from "@/lib/validation/lead";
 
 export const metadata = { title: "Inquiries" };
 
@@ -21,7 +27,7 @@ export default async function LeadsPage({ params }: PageProps<"/dashboard/[slug]
   const { data, error } = await supabase
     .from("lead_routes")
     .select(
-      "sent_at, contacted_at, leads(id, name, email, company, budget_range, message, services(name), industries(name))",
+      "sent_at, contacted_at, leads(id, name, email, company, budget_range, message, goal, start_timeline, business_url, channel_url, customer_location, prior_agency, services(name), industries(name))",
     )
     .eq("agency_id", agency.id)
     .order("sent_at", { ascending: false });
@@ -46,7 +52,17 @@ export default async function LeadsPage({ params }: PageProps<"/dashboard/[slug]
     <ul className="flex flex-col gap-3">
       {leads.map((l) => {
         const need = [l.services?.name, l.industries?.name].filter(Boolean).join(" for ");
-        const budget = BUDGET_RANGES.find((b) => b.value === l.budget_range)?.label;
+        const budget = budgetLabel(l.budget_range);
+        // Get matched answers (requests sent before the two-step form have none).
+        const answers: [string, string | null, "link"?][] = [
+          ["Main goal", choiceLabel(GOALS, l.goal)],
+          ["Wants to start", choiceLabel(START_TIMELINES, l.start_timeline)],
+          ["Customers in", l.customer_location],
+          ["Worked with an agency before", choiceLabel(PRIOR_AGENCY, l.prior_agency)],
+          ["Website", l.business_url, "link"],
+          ["YouTube channel", l.channel_url, "link"],
+        ];
+        const shown = answers.filter(([, v]) => v);
         return (
           <li
             key={l.id}
@@ -74,6 +90,29 @@ export default async function LeadsPage({ params }: PageProps<"/dashboard/[slug]
                 </div>
               )}
             </dl>
+            {shown.length > 0 && (
+              <dl className="grid gap-x-6 gap-y-2 rounded-lg bg-surface p-4 text-[15px] sm:grid-cols-2">
+                {shown.map(([label, value, kind]) => (
+                  <div key={label} className="flex min-w-0 flex-col">
+                    <dt className="text-small">{label}</dt>
+                    <dd className="truncate">
+                      {kind === "link" ? (
+                        <a
+                          href={value!}
+                          target="_blank"
+                          rel="noopener noreferrer nofollow"
+                          className="text-accent hover:underline"
+                        >
+                          {value!.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+                        </a>
+                      ) : (
+                        value
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
             {l.message && <p className="whitespace-pre-line">{l.message}</p>}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <a

@@ -9,6 +9,7 @@ type Props = {
     company?: string | null;
     budget?: string | null;
     need?: string | null;
+    details?: [string, string | null][];
   };
   routes: { name: string; notified: boolean }[];
 };
@@ -27,6 +28,7 @@ export function AdminLeadEmail({ leadId, kind, lead, routes }: Props) {
           ["Company", lead.company],
           ["Looking for", lead.need],
           ["Budget", lead.budget],
+          ...(lead.details ?? []),
           [
             "Routed to",
             routes.length

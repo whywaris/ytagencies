@@ -6,17 +6,31 @@ import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
 import { getEntitlements } from "@/lib/data/entitlements";
 import { getPublishedAgency, matchAgencies, queueLeadEmails, saveLead } from "@/lib/leads";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getIndexableCombos } from "@/lib/data/agencies";
+import { getLiveGuides } from "@/lib/data/guides";
 import {
   BUDGET_RANGES,
+  budgetLabel,
+  choiceLabel,
   contactAgencySchema,
   getMatchedSchema,
+  GOALS,
+  PRIOR_AGENCY,
+  START_TIMELINES,
   type FormResult,
 } from "@/lib/validation/lead";
 
 // Public form actions. Order (SECURITY.md): honeypot → Zod → Turnstile → rate limit → write.
 // Nothing touches the database with the service role until every check has passed.
 
-type Matched = { agencies: { name: string; slug: string }[]; need: string };
+type Link = { href: string; label: string };
+/** The sent screen: who got it, and "While you wait" links. */
+type Matched = {
+  agencies: { name: string; slug: string }[];
+  need: string;
+  page: Link | null;
+  guide: Link | null;
+};
 type Contacted = { agencyName: string };
 
 const GENERIC_ERROR = "Something went wrong on our side. Please try again in a minute.";
@@ -66,12 +80,10 @@ async function guard(
   return null;
 }
 
-const budgetLabel = (value: string | undefined) =>
-  BUDGET_RANGES.find((b) => b.value === value)?.label ?? null;
-
 export async function submitGetMatched(raw: unknown): Promise<FormResult<Matched>> {
   // Bots that fill the hidden field get a normal-looking success and nothing is stored.
-  if (honeypotFilled(raw)) return { ok: true, data: { agencies: [], need: "" } };
+  if (honeypotFilled(raw))
+    return { ok: true, data: { agencies: [], need: "", page: null, guide: null } };
 
   const parsed = getMatchedSchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
@@ -97,6 +109,7 @@ export async function submitGetMatched(raw: unknown): Promise<FormResult<Matched
       };
     }
 
+    // "Not sure yet" and $10k+ have no ceiling, so the budget doesn't narrow the match.
     const budgetMax = BUDGET_RANGES.find((b) => b.value === input.budget)?.max ?? Infinity;
     const agencies = await matchAgencies(service.data.id, industry.data.id, budgetMax);
     const need = `${service.data.name} for ${industry.data.name}`;
@@ -106,11 +119,17 @@ export async function submitGetMatched(raw: unknown): Promise<FormResult<Matched
         ref: input.ref || null,
         name: input.name,
         email: input.email,
-        company: input.company || null,
+        company: null,
         service_id: service.data.id,
         industry_id: industry.data.id,
         budget_range: input.budget,
         message: input.message || null,
+        goal: input.goal,
+        start_timeline: input.start,
+        business_url: input.businessUrl || null,
+        channel_url: input.channelUrl || null,
+        customer_location: input.customerLocation || null,
+        prior_agency: input.priorAgency || null,
       },
       agencies,
     );
@@ -121,17 +140,47 @@ export async function submitGetMatched(raw: unknown): Promise<FormResult<Matched
       lead: {
         name: input.name,
         email: input.email,
-        company: input.company || null,
         budget: budgetLabel(input.budget),
         need,
         message: input.message || null,
+        details: [
+          ["Main goal", choiceLabel(GOALS, input.goal)],
+          ["Wants to start", choiceLabel(START_TIMELINES, input.start)],
+          ["Website", input.businessUrl || null],
+          ["YouTube channel", input.channelUrl || null],
+          ["Customers in", input.customerLocation || null],
+          ["Worked with an agency before", choiceLabel(PRIOR_AGENCY, input.priorAgency)],
+        ],
       },
       agencies,
     });
 
+    // While you wait: the live service × industry page, else the service page; and a guide
+    // about that page (or the service), if there is one.
+    const [combos, guides] = await Promise.all([getIndexableCombos(), getLiveGuides()]);
+    const live = combos.some(
+      (c) => c.serviceSlug === input.service && c.segment === `for-${input.industry}`,
+    );
+    const guide =
+      guides.find((g) =>
+        g.combos.some(
+          (c) => c.service_id === service.data!.id && c.industry_id === industry.data!.id,
+        ),
+      ) ?? guides.find((g) => g.serviceIds.includes(service.data!.id));
+
     return {
       ok: true,
-      data: { agencies: agencies.map((a) => ({ name: a.name, slug: a.slug })), need },
+      data: {
+        agencies: agencies.map((a) => ({ name: a.name, slug: a.slug })),
+        need,
+        page: live
+          ? {
+              href: `/${input.service}/for-${input.industry}`,
+              label: `${service.data.name} agencies for ${industry.data.name}`,
+            }
+          : { href: `/${input.service}`, label: `${service.data.name} agencies` },
+        guide: guide ? { href: `/guides/${guide.slug}`, label: guide.title } : null,
+      },
     };
   } catch {
     console.error("submitGetMatched failed"); // no payload in logs (SECURITY.md)

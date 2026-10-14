@@ -20,7 +20,8 @@ export const shouldLoadGa = ({ pathname, cookie }: { pathname: string; cookie: s
   !PRIVATE_ROUTE.test(pathname) && !hasSession(cookie);
 
 type Events = {
-  get_matched_submit: { service: string; industry: string };
+  /** Get matched sent: the choices only, never contact details. */
+  lead_submitted: { service: string; industry: string; budget_range: string; goal: string };
   contact_agency_submit: { agency_slug: string };
   website_click: { agency_slug: string; utm_content: string };
   claim_start: { agency_slug: string };

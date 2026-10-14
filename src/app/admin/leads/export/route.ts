@@ -4,7 +4,7 @@ import { adminContext } from "@/lib/admin-context";
 import { toCsv } from "@/lib/csv";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { applyLeadFilters, parseLeadFilters } from "@/lib/leads-filter";
-import { BUDGET_RANGES } from "@/lib/validation/lead";
+import { budgetLabel } from "@/lib/validation/lead";
 
 // CSV export of the admin leads table with the same filters (ADMIN_V2_SPEC §5.5). Personal data:
 // admin only, never cached, logged to admin_actions (filters and row count, no lead details).
@@ -52,7 +52,6 @@ export async function GET(request: NextRequest) {
     if (data.length < PAGE) break;
   }
 
-  const budget = new Map<string, string>(BUDGET_RANGES.map((b) => [b.value, b.label]));
   const csv = toCsv(
     [
       "Received (UTC)",
@@ -72,7 +71,7 @@ export async function GET(request: NextRequest) {
       l.company,
       l.services?.name,
       l.industries?.name,
-      l.budget_range ? (budget.get(l.budget_range) ?? l.budget_range) : null,
+      l.budget_range ? (budgetLabel(l.budget_range) ?? l.budget_range) : null,
       l.message,
       [
         ...l.lead_routes.map((r) => r.agencies?.name),

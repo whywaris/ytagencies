@@ -8,7 +8,7 @@ import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { formatCount } from "@/lib/format";
 import { applyLeadFilters, leadFilterParams, parseLeadFilters } from "@/lib/leads-filter";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BUDGET_RANGES } from "@/lib/validation/lead";
+import { BUDGET_RANGES, budgetLabel } from "@/lib/validation/lead";
 
 export const metadata = { title: "Leads" };
 
@@ -41,7 +41,6 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
     .range(from, from + PER_PAGE - 1);
   if (error) throw new Error("Couldn't load leads");
 
-  const budget = new Map<string, string>(BUDGET_RANGES.map((b) => [b.value, b.label]));
   const leads: LeadRow[] = data.map((l) => ({
     id: l.id,
     name: l.name,
@@ -50,7 +49,7 @@ export default async function AdminLeadsPage({ searchParams }: PageProps<"/admin
     need: [l.services?.name, l.industries?.name && `for ${l.industries.name}`]
       .filter(Boolean)
       .join(" "),
-    budget: l.budget_range ? (budget.get(l.budget_range) ?? l.budget_range) : null,
+    budget: l.budget_range ? (budgetLabel(l.budget_range) ?? l.budget_range) : null,
     message: l.message,
     createdAt: l.created_at,
     routes: [

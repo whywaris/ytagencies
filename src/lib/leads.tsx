@@ -5,6 +5,7 @@ import { AdminLeadEmail } from "@/emails/admin-lead";
 import { AgencyLeadEmail } from "@/emails/agency-lead";
 import { LeadConfirmationEmail } from "@/emails/lead-confirmation";
 import { getMailer, oneLine } from "@/lib/email";
+import { getResponseTimes, listQuery, toListItem } from "@/lib/data/agencies";
 import { getPlacement } from "@/lib/data/placement";
 import { pickMatches } from "@/lib/match";
 import { absoluteUrl, BRAND_NAME } from "@/lib/site";
@@ -41,24 +42,33 @@ export async function matchAgencies(serviceId: number, industryId: number, budge
   if (serviceIds.length === 0) return [];
   const inIndustry = new Set(byIndustry.data.map((r) => r.agency_id));
 
-  const { data, error } = await admin
-    .from("agencies")
-    .select("id, slug, name, min_budget_usd, is_claimed, is_verified, owner_id")
-    .eq("status", "published")
-    .in("id", serviceIds);
-  if (error) throw error;
+  // Published agencies with their quality score (the directory's own list and scoring), plus
+  // who owns them, for the emails.
+  const [list, owners, placement, responses] = await Promise.all([
+    listQuery().in("id", serviceIds),
+    admin.from("agencies").select("id, is_claimed, owner_id").in("id", serviceIds),
+    getPlacement(),
+    getResponseTimes(),
+  ]);
+  if (list.error) throw list.error;
+  if (owners.error) throw owners.error;
+  const owner = new Map(owners.data.map((o) => [o.id, o]));
 
-  const placement = await getPlacement();
   return pickMatches(
-    data.map((a) => ({
-      ...a,
-      managed: placement.entitlements(a.id).managed,
-      inIndustry: inIndustry.has(a.id),
-      minBudgetUsd: a.min_budget_usd,
-      isVerified: a.is_verified,
+    list.data.map((row) => ({
+      ...toListItem(row, placement, responses),
+      inIndustry: inIndustry.has(row.id),
     })),
     budgetMax,
-  ).map(toRouted);
+  ).map((a) =>
+    toRouted({
+      id: a.id,
+      slug: a.slug,
+      name: a.name,
+      is_claimed: owner.get(a.id)?.is_claimed ?? false,
+      owner_id: owner.get(a.id)?.owner_id ?? null,
+    }),
+  );
 }
 
 export async function getPublishedAgency(slug: string) {
@@ -92,6 +102,12 @@ type LeadRow = {
   industry_id: number | null;
   budget_range: string | null;
   message: string | null;
+  goal?: string | null;
+  start_timeline?: string | null;
+  business_url?: string | null;
+  channel_url?: string | null;
+  customer_location?: string | null;
+  prior_agency?: string | null;
 };
 
 /** Inserts the lead and its routes. Returns the lead id. */
@@ -120,6 +136,8 @@ type LeadEmailInput = {
     budget?: string | null;
     need?: string | null;
     message?: string | null;
+    /** Get matched answers, as [label, value] rows (empty values are left out). */
+    details?: [string, string | null][];
   };
   agencies: RoutedAgency[];
 };
@@ -172,6 +190,16 @@ async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) 
       <LeadConfirmationEmail
         name={lead.name}
         need={direct ? undefined : (lead.need ?? undefined)}
+        answers={
+          direct
+            ? undefined
+            : [
+                ["Looking for", lead.need ?? null],
+                ["Budget", lead.budget ?? null],
+                ...(lead.details ?? []),
+                ["Your message", lead.message ?? null],
+              ]
+        }
         agencies={agencies.map((a) => ({ name: a.name, url: absoluteUrl(`/agency/${a.slug}`) }))}
       />
     ),

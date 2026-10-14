@@ -18,7 +18,7 @@ import { responseLabel } from "@/lib/pricing";
 import { profileStrength } from "@/lib/profile-strength";
 import { CONTACT_EMAIL } from "@/lib/site";
 import { cn } from "@/lib/utils";
-import { BUDGET_RANGES } from "@/lib/validation/lead";
+import { budgetLabel } from "@/lib/validation/lead";
 
 // Overview (docs/mockups/agency-dashboard.html, without Founding). Real numbers only: anything
 // without data is left out, and what's locked says what Pro unlocks instead of showing a number.
@@ -252,7 +252,7 @@ export async function Overview({ ctx }: { ctx: DashboardContext }) {
                         <span className="text-[13px] text-text-2">
                           {[
                             l.leads.services?.name ?? "Direct message",
-                            BUDGET_RANGES.find((b) => b.value === l.leads!.budget_range)?.label,
+                            budgetLabel(l.leads!.budget_range),
                           ]
                             .filter(Boolean)
                             .join(", ")}
