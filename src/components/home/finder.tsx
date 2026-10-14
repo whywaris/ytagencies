@@ -36,7 +36,12 @@ export function Finder({
 }) {
   const router = useRouter();
   const [service, setService] = useState(services[0]?.slug ?? "");
-  const [industry, setIndustry] = useState(industries[0]?.slug ?? "");
+  // Starts on SaaS (else E-commerce, else the first industry): broad, with a live page.
+  const [industry, setIndustry] = useState(
+    (["saas", "ecommerce"].find((d) => industries.some((i) => i.slug === d)) ??
+      industries[0]?.slug) ||
+      "",
+  );
 
   return (
     <form
