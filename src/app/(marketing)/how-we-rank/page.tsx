@@ -15,7 +15,7 @@ import { JsonLd } from "@/components/json-ld";
 import { MAX_SPONSORED, RANKING_UPDATED } from "@/lib/ranking";
 import { breadcrumbJsonLd, webPageJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
-import { BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
+import { BRAND_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
@@ -475,8 +475,7 @@ export default function HowWeRankPage() {
       {/* f) Note */}
       <section aria-label="Notes" className={cn(shell, "pt-0 md:pt-0")}>
         <p className="max-w-[70ch] text-[14px] text-text-2">
-          Directory pages need {MIN_AGENCIES_TO_INDEX} published agencies before search engines
-          index them. What each plan includes is on our{" "}
+          What each plan includes is on our{" "}
           <Link href="/pricing" className={cn("rounded text-accent hover:underline", focusRing)}>
             pricing page
           </Link>
