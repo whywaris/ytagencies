@@ -96,7 +96,7 @@ export const getPlacement = cache(async (now = new Date()) => {
   };
 });
 
-/** Plan prices for /for-agencies/pricing (plans is seeded and admin-write; anon can't read it). */
+/** Plan prices for /pricing (plans is seeded and admin-write; anon can't read it). */
 export const getPlanPrices = cache(async () => {
   const { data, error } = await createAdminClient()
     .from("plans")

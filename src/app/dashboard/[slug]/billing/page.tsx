@@ -6,7 +6,7 @@ import { keepPro, openBillingPortal, startCheckout, switchToYearly } from "@/lib
 import { checkoutAvailable } from "@/lib/billing";
 import { dashboardContext } from "@/lib/data/dashboard";
 import { getPlanPrices } from "@/lib/data/placement";
-import { liveSubscription } from "@/lib/entitlements";
+import { liveSubscription, planIncludes } from "@/lib/entitlements";
 import { absoluteUrl } from "@/lib/site";
 
 export const metadata = { title: "Billing" };
@@ -69,19 +69,7 @@ export default async function BillingPage({
       : STATUS[one(sp.status) ?? ""];
   const preferred = one(sp.interval) === "year" ? "year" : "month";
 
-  const yes = (b: boolean) => (b ? "Yes" : "No");
-  const includes: [string, string][] = [
-    ["Edit your listing", yes(e.canEdit)],
-    ["Contact form and inquiries", yes(e.contactForm)],
-    ["Requests from Get matched", yes(e.managed)],
-    ["Link to your website", e.websiteLink ? "Yes, tagged so you can track visits" : "No"],
-    [
-      "Placement on directory pages",
-      e.listTier === "managed" ? "Above unmanaged agencies" : "Below managed agencies",
-    ],
-    ["Other agencies suggested on your profile", yes(e.showSimilarAgencies)],
-    ["Analytics history", e.analyticsDays >= 365 ? "12 months" : "30 days"],
-  ];
+  const includes = planIncludes(e);
 
   let summary: string;
   if (!live)
@@ -190,14 +178,14 @@ export default async function BillingPage({
           What your listing has now
         </h2>
         <dl className="flex flex-col divide-y divide-line rounded-lg border border-line">
-          {includes.map(([k, v]) => (
-            <div key={k} className="flex min-h-11 items-center justify-between gap-4 px-4 py-2">
-              <dt className="text-text-2">{k}</dt>
-              <dd className="text-right">{v}</dd>
+          {includes.map(({ label, value }) => (
+            <div key={label} className="flex min-h-11 items-center justify-between gap-4 px-4 py-2">
+              <dt className="text-text-2">{label}</dt>
+              <dd className="text-right">{value}</dd>
             </div>
           ))}
         </dl>
-        <Link href="/for-agencies/pricing" className="self-start text-accent hover:underline">
+        <Link href="/pricing" className="self-start text-accent hover:underline">
           Pricing and what Pro includes
         </Link>
       </section>

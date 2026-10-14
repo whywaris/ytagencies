@@ -32,7 +32,7 @@ const GROUPS = [
     links: [
       { href: "/list-your-agency", label: "List your agency" },
       { href: "/list-your-agency#claim", label: "Claim a listing" },
-      { href: "/for-agencies/pricing", label: "Pricing" },
+      { href: "/pricing", label: "Pricing" },
       { href: "/login", label: "Sign in" },
     ],
   },

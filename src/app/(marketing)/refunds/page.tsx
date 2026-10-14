@@ -103,7 +103,7 @@ export default function RefundsPage() {
       {!live && (
         <p className="rounded-2xl border border-line px-6 py-4 text-[16px] text-text-2">
           Online payments aren&apos;t live yet. Agencies can{" "}
-          <Link href="/for-agencies/pricing" className="text-accent underline underline-offset-2">
+          <Link href="/pricing" className="text-accent underline underline-offset-2">
             request Pro
           </Link>{" "}
           and we set it up by email. This policy applies to every Pro plan.

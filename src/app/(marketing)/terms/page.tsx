@@ -124,7 +124,7 @@ const sections: LegalSection[] = [
         <p>
           Listings are free. Managing a listing (editing it and receiving inquiries) requires an
           active Pro subscription; Pro also places an agency above unmanaged listings, as described
-          on the <Link href="/for-agencies/pricing">pricing page</Link>. When Pro ends, the listing
+          on the <Link href="/pricing">pricing page</Link>. When Pro ends, the listing
           stays public as unmanaged, we keep its details, editing is locked and inquiries stop.
           Agencies on Pro with the Verified badge can sponsor a directory page. Sponsored places are
           labeled &ldquo;Sponsored&rdquo; wherever they appear. How placement works is explained in{" "}

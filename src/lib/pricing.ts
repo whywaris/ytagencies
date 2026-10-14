@@ -64,3 +64,16 @@ export function responseLabel(medianMinutes: number | null) {
 /** "Save 20%": yearly against twelve months. */
 export const yearlySaving = (monthly: number, yearly: number) =>
   Math.round((1 - yearly / (monthly * 12)) * 100);
+
+export type Period = "monthly" | "yearly";
+
+/** Where "Get Pro" goes for the selected period: sign-in if needed, then the agency's checkout
+ * (app/dashboard/billing), or List your agency when the account has no agency yet. */
+export const checkoutHref = (period: Period) =>
+  `/dashboard/billing?interval=${period === "yearly" ? "year" : "month"}`;
+
+/** "$23.25": a yearly price as a monthly amount. */
+export const perMonth = (yearly: number) => {
+  const m = Math.round((yearly / 12) * 100) / 100;
+  return `$${Number.isInteger(m) ? m : m.toFixed(2)}`;
+};

@@ -1,52 +1,180 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { RequestProForm } from "@/components/forms/request-pro-form";
+import { checkoutHref, perMonth, yearlySaving, type Period } from "@/lib/pricing";
 import { track } from "@/lib/track";
-import { yearlySaving } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 const usd = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
-// Pro's price with a monthly/yearly toggle, and its button: "Get Pro" opens the Request Pro form
-// while payments are off, and leads to the Creem checkout once they're on.
-export function ProBilling({
+const card = "flex flex-col gap-2 rounded-[22px] p-7";
+const btn =
+  "inline-flex h-12 w-full items-center justify-center rounded-full px-6 text-[15.5px] font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2";
+const priceCls = "text-[40px] leading-tight font-[650] tracking-[-0.03em] tabular-nums";
+
+function Feature({ on = true, children }: { on?: boolean; children: React.ReactNode }) {
+  return (
+    <li className={cn("flex items-start gap-2.5", !on && "text-text-2")}>
+      {on ? (
+        <Check className="mt-[3px] size-4 shrink-0 [stroke-width:2.5] text-(--mint)" aria-hidden />
+      ) : (
+        <X className="mt-[3px] size-4 shrink-0 [stroke-width:2.5]" aria-hidden />
+      )}
+      <span>
+        {!on && <span className="sr-only">Not included: </span>}
+        {children}
+      </span>
+    </li>
+  );
+}
+
+/**
+ * Listing / Pro / Sponsored with the Monthly/Yearly toggle, which sets Pro's price and the
+ * period "Get Pro" checks out with. Get Pro opens the Request Pro form while payments are off.
+ */
+export function PlanCards({
   monthly,
   yearly,
   live,
+  proFeatures,
 }: {
   monthly: number;
   yearly: number;
   live: boolean;
+  /** lib/entitlements.ts proFeatures(): the same list the billing page shows. */
+  proFeatures: string[];
 }) {
-  const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [period, setPeriod] = useState<Period>("monthly");
   const saving = yearlySaving(monthly, yearly);
 
   return (
-    <div className="flex flex-col gap-4">
-      <BillingToggle value={period} onChange={setPeriod} saving={saving} />
-      <p className="text-h2" aria-live="polite">
-        {period === "monthly" ? usd(monthly) : usd(yearly)}
-        <span className="text-[17px] font-normal text-text-2">
-          {period === "monthly" ? " a month" : " a year"}
-        </span>
-      </p>
-      {live ? (
-        // Sign in if needed, then the agency's Billing page starts the Creem checkout.
-        <Link
-          href={`/dashboard/billing?interval=${period === "yearly" ? "year" : "month"}`}
-          onClick={() =>
-            track("checkout_start", { interval: period === "yearly" ? "year" : "month" })
-          }
-          className="inline-flex h-11 items-center self-start rounded-full bg-accent px-5 font-semibold text-on-accent"
+    <div className="flex flex-col items-center gap-8">
+      <BillingToggle value={period} onChange={setPeriod} saving={saving} className="self-center" />
+      <div className="grid w-full items-stretch gap-4 text-left lg:grid-cols-3">
+        <section
+          aria-labelledby="plan-listing"
+          className={cn(card, "border border-line bg-raised")}
         >
-          Get Pro
-        </Link>
-      ) : (
-        <RequestProForm period={period} />
-      )}
+          <h3 id="plan-listing" className="text-[18px] font-[650]">
+            Listing
+          </h3>
+          <p className={priceCls}>Free</p>
+          <p className="text-[14.5px] text-text-2">
+            Your agency on the pages that fit it, listed by us or by you.
+          </p>
+          <ul className="my-5 grid gap-2.5 border-t border-line pt-5 text-[15px]">
+            <Feature>Profile on matching service, industry and location pages</Feature>
+            <Feature>Can earn the Verified badge</Feature>
+            <Feature on={false}>No contact form: visitors are offered other agencies</Feature>
+          </ul>
+          <Link
+            href="/list-your-agency#claim"
+            className={cn(
+              btn,
+              "mt-auto border border-line hover:border-text-2 focus-visible:outline-accent",
+            )}
+          >
+            Add or claim your agency
+          </Link>
+        </section>
+
+        <section
+          aria-labelledby="plan-pro"
+          className={cn(
+            card,
+            "relative border-2 border-accent bg-raised shadow-[0_1px_2px_rgba(20,25,40,.05),0_24px_48px_-20px_rgba(31,94,255,.35)] lg:-my-3 lg:py-10",
+          )}
+        >
+          <p className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-[12.5px] font-semibold whitespace-nowrap text-on-accent">
+            For agencies that want clients
+          </p>
+          <h3 id="plan-pro" className="text-[18px] font-[650]">
+            Pro
+          </h3>
+          <p className={priceCls} aria-live="polite">
+            {period === "monthly" ? usd(monthly) : usd(yearly)}
+            <span className="text-[17px] font-normal text-text-2">
+              {period === "monthly" ? " / month" : " / year"}
+            </span>
+          </p>
+          <p className="text-[14.5px] text-text-2">
+            {period === "monthly"
+              ? "Billed monthly. Cancel anytime."
+              : `Works out to ${perMonth(yearly)} a month. Billed yearly.`}
+          </p>
+          <p className="mt-5 border-t border-line pt-5 text-[14px] font-semibold">
+            Everything in Listing, plus
+          </p>
+          <ul className="mt-2 mb-5 grid gap-2.5 text-[15px]">
+            {proFeatures.map((f) => (
+              <Feature key={f}>{f}</Feature>
+            ))}
+          </ul>
+          <div className="mt-auto">
+            {live ? (
+              <Link
+                href={checkoutHref(period)}
+                onClick={() =>
+                  track("checkout_start", { interval: period === "yearly" ? "year" : "month" })
+                }
+                className={cn(
+                  btn,
+                  "bg-accent text-on-accent hover:bg-(--accent-hover) focus-visible:outline-accent",
+                )}
+              >
+                Get Pro
+              </Link>
+            ) : (
+              <RequestProForm period={period} />
+            )}
+          </div>
+        </section>
+
+        <section
+          aria-labelledby="plan-sponsored"
+          className={cn(
+            card,
+            "bg-[#16171a] text-white site-dark:border site-dark:border-line site-dark:bg-[#202228]",
+          )}
+        >
+          <h3 id="plan-sponsored" className="text-[18px] font-[650]">
+            Sponsored
+          </h3>
+          <p className={priceCls}>Let&apos;s talk</p>
+          <p className="text-[14.5px] text-white/75">
+            A top spot on the pages your best clients search. For Pro agencies with the Verified
+            badge.
+          </p>
+          <ul className="my-5 grid gap-2.5 border-t border-white/15 pt-5 text-[15px]">
+            {[
+              "A top 3 spot on pages you choose",
+              "Always labelled Sponsored, so buyers trust it",
+              "Limited spots per page",
+            ].map((f) => (
+              <li key={f} className="flex items-start gap-2.5">
+                <Check
+                  className="mt-[3px] size-4 shrink-0 [stroke-width:2.5] text-[#3ccb9c]"
+                  aria-hidden
+                />
+                {f}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/contact?topic=sponsored"
+            className={cn(
+              btn,
+              "mt-auto bg-white text-[#16171a] hover:bg-white/90 focus-visible:outline-white",
+            )}
+          >
+            Contact us
+          </Link>
+        </section>
+      </div>
     </div>
   );
 }
@@ -56,16 +184,18 @@ export function BillingToggle({
   value,
   onChange,
   saving,
+  className = "self-start",
 }: {
-  value: "monthly" | "yearly";
-  onChange: (v: "monthly" | "yearly") => void;
+  value: Period;
+  onChange: (v: Period) => void;
   saving: number;
+  className?: string;
 }) {
   return (
     <div
       role="radiogroup"
       aria-label="Billing"
-      className="inline-flex self-start rounded-full border border-line bg-raised p-1"
+      className={cn("inline-flex rounded-full border border-line bg-raised p-1", className)}
     >
       {(["monthly", "yearly"] as const).map((p) => (
         <button
@@ -75,13 +205,18 @@ export function BillingToggle({
           aria-checked={value === p}
           onClick={() => onChange(p)}
           className={cn(
-            "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-[14px] font-medium",
+            "inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-[14.5px] font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             value === p ? "bg-text text-bg" : "text-text-2 hover:text-text",
           )}
         >
           {p === "monthly" ? "Monthly" : "Yearly"}
           {p === "yearly" && saving > 0 && (
-            <span className={cn("text-[12px]", value === p ? "" : "text-accent")}>
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[12px] font-semibold",
+                value === p ? "bg-bg/20" : "bg-accent-soft text-(--accent-on-soft)",
+              )}
+            >
               Save {saving}%
             </span>
           )}

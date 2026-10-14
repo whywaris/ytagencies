@@ -44,7 +44,7 @@ export async function sitemapEntries(file: SitemapFile): Promise<Entry[]> {
         },
         { path: "/get-matched" },
         { path: "/list-your-agency" },
-        { path: "/for-agencies/pricing" },
+        { path: "/pricing" },
         { path: "/how-we-rank" },
         { path: "/about" },
         { path: "/contact" },

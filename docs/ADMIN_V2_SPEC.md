@@ -197,7 +197,7 @@ Unmanaged profiles replace Contact with "Get matched with similar agencies" (`/g
 - **Pricing details and response time:** agencies give a minimum contract, ad spend (separate / included / not applicable) and an optional setup fee; the profile shows a Pricing block, directory rows and hero cards a "No lock-in" chip for no minimum or month-to-month. Owners mark routed leads as contacted (dashboard → Leads; server time, set once); profiles and rows show "Usually replies within …" from the `agency_response_times` view (3+ contacted in 90 days, median under 2 days). Unanswered leads get one reminder email after 24 hours (daily cron). Admin → agency → Activity shows the median and contacted rate.
 - Website links (Pro only): `rel="sponsored noopener"`; unmanaged profiles have no outbound website link and no contact form.
 - Get-matched routing: only managed agencies (up to 3). If none match, the request is saved and the admin is notified to follow up by hand.
-- **/for-agencies/pricing** page: three columns (Listing: free, can't be contacted; Pro $29/mo or $279/yr with a monthly/yearly toggle and "Save 20%"; Sponsored from $49/mo per page, Pro + Verified only). While `PAYMENTS_ENABLED !== "true"`, every "Get Pro" opens a Request Pro form (name, email, agency, monthly/yearly) that lands in Admin → Inbox (topic `pro`) and emails help@; the admin grants Pro by hand (source manual). Sponsored shows "Contact us".
+- **/pricing** page (was /for-agencies/pricing, 301): three columns (Listing: free, can't be contacted; Pro $29/mo or $279/yr with a monthly/yearly toggle and "Save 20%"; Sponsored: no public price, "Contact us"; Pro + Verified only). While `PAYMENTS_ENABLED !== "true"`, every "Get Pro" opens a Request Pro form (name, email, agency, monthly/yearly) that lands in Admin → Inbox (topic `pro`) and emails help@; the admin grants Pro by hand (source manual). Sponsored shows "Contact us".
 - Agency dashboard: shows current plan, entitlements, and an analytics panel (profile views, website clicks, inquiries) limited to the plan's history window.
 
 ### Payments (Creem)
@@ -261,6 +261,6 @@ Update SECURITY.md with: YOUTUBE_API_KEY (server-only), PAYMENTS_ENABLED, the be
 3. **Dashboard:** KPIs with count-up, leads chart, needs attention, supply gaps, recent leads, top agencies, period selector.
 4. **Directory:** agencies table + detail tabs, submissions/claims/reviews queues, verification flow with YouTube API.
 5. **Growth:** leads page (filters, drawer, CSV), SEO pages health.
-6. **Revenue & public plans:** plans page, sponsored slots, ranking order, /how-we-rank, /for-agencies/pricing, entitlements applied on public pages and agency dashboard, billing interface (no-op).
+6. **Revenue & public plans:** plans page, sponsored slots, ranking order, /how-we-rank, /pricing, entitlements applied on public pages and agency dashboard, billing interface (no-op).
 7. **Guides CMS:** table, editor, sanitized rendering, scheduling cron, MDX migration.
 8. **Final audit:** re-run SECURITY.md and SEO.md checks, access tests, screenshots review, update docs/LAUNCH.md with new env vars (YOUTUBE_API_KEY, PAYMENTS_ENABLED, CRON_SECRET) and manual steps.

@@ -22,9 +22,11 @@ import { contactSchema, type ContactInput } from "@/lib/validation/contact";
 export function ContactForm({
   initialTopic,
   initialAgencyUrl,
+  initialMessage = "",
 }: {
   initialTopic: ContactTopic;
   initialAgencyUrl: string;
+  initialMessage?: string;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ email: string; topic: ContactTopic } | null>(null);
@@ -44,7 +46,7 @@ export function ContactForm({
       topic: initialTopic,
       name: "",
       email: "",
-      message: "",
+      message: initialMessage,
       agencyUrl: initialAgencyUrl,
       turnstileToken: "",
       website: "",

@@ -20,7 +20,7 @@
 | Guides index                            | `/guides`, `/guides?page=2`         | Yes (`?service=` filters: no)   |
 | Author                                  | `/authors/jane-doe`                 | Yes, if they have a live guide  |
 | List your agency                        | `/list-your-agency`                 | Yes                             |
-| Pricing for agencies                    | `/for-agencies/pricing`             | Yes                             |
+| Pricing for agencies                    | `/pricing`                          | Yes                             |
 | How we rank                             | `/how-we-rank`                      | Yes                             |
 | About, contact                          | `/about`, `/contact`                | Yes (`/contact?topic=` canonical to `/contact`) |
 | Policies                                | `/privacy`, `/terms`, `/refunds`, `/cookies`, `/disclosure`, `/editorial-policy` | Yes |

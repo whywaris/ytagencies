@@ -94,3 +94,67 @@ export function entitlementsFor({
     verifiedBadge: verificationApproved,
   };
 }
+
+/**
+ * What a listing includes, from its entitlements: the billing page shows every row with its
+ * value, the pricing page lists Pro's `feature` lines. One list, so the two never disagree.
+ */
+export function planIncludes(e: Entitlements) {
+  const yes = (b: boolean) => (b ? "Yes" : "No");
+  const managed = e.listTier === "managed";
+  return [
+    {
+      label: "Edit your listing",
+      value: yes(e.canEdit),
+      feature: e.canEdit ? "Edit your profile any time" : null,
+    },
+    {
+      label: "Contact form and inquiries",
+      value: yes(e.contactForm),
+      feature: e.contactForm
+        ? "A contact form on your profile: inquiries go straight to you"
+        : null,
+    },
+    {
+      label: "Requests from Get matched",
+      value: yes(e.managed),
+      feature: e.managed ? "Requests from Get matched that fit your services" : null,
+    },
+    {
+      label: "Link to your website",
+      value: e.websiteLink ? "Yes, tagged so you can track visits" : "No",
+      feature: e.websiteLink ? "A link to your website, tagged so you can track visits" : null,
+    },
+    {
+      label: "Your reply time on your profile",
+      value: yes(e.responseTime),
+      feature: e.responseTime ? "Your reply time on your profile" : null,
+    },
+    {
+      label: "Placement on directory pages",
+      value: managed ? "Above unmanaged agencies" : "Below managed agencies",
+      feature: managed ? "Listed above unmanaged agencies" : null,
+    },
+    {
+      label: "Other agencies suggested on your profile",
+      value: yes(e.showSimilarAgencies),
+      feature: e.showSimilarAgencies ? null : "No other agencies suggested on your profile",
+    },
+    {
+      label: "Analytics history",
+      value: e.analyticsDays >= 365 ? "12 months" : "30 days",
+      feature: e.analyticsDays >= 365 ? "12 months of profile analytics" : null,
+    },
+  ];
+}
+
+/** Pro's feature lines for the pricing page (a live Pro subscription's entitlements). */
+export const proFeatures = () =>
+  planIncludes(
+    entitlementsFor({
+      subscriptions: [
+        { plan_id: "pro", status: "active", starts_at: "2000-01-01T00:00:00Z", ends_at: null },
+      ],
+      verificationApproved: false,
+    }),
+  ).flatMap((r) => (r.feature ? [r.feature] : []));

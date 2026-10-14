@@ -115,7 +115,7 @@ export default function HowWeRankPage() {
           <p className="text-text-2">
             Pages need {MIN_AGENCIES_TO_INDEX} published agencies before search engines index them.
             Agencies can see what each plan includes on our{" "}
-            <Link href="/for-agencies/pricing" className="text-accent hover:underline">
+            <Link href="/pricing" className="text-accent hover:underline">
               pricing page
             </Link>
             .

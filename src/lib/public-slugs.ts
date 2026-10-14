@@ -67,6 +67,7 @@ const STATIC_ROOTS = new Set([
   "get-matched",
   "list-your-agency",
   "for-agencies",
+  "pricing",
   "how-we-rank",
   "no-access",
   "login",
