@@ -18,7 +18,10 @@ const SERVICE_ID = "finder-service";
 const field =
   "flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 focus-within:outline-2 focus-within:outline-accent";
 const select =
-  "w-full min-w-0 cursor-pointer bg-transparent text-[17px] font-medium text-text outline-none";
+  "w-full min-w-0 cursor-pointer bg-raised text-[17px] font-medium text-text outline-none";
+/** The open list is drawn by the browser: give each option the theme's colours, or Windows shows
+ * light text on a white list in dark mode. */
+const option = "bg-raised text-text";
 
 export function Finder({
   services,
@@ -63,7 +66,7 @@ export function Finder({
             className={select}
           >
             {services.map((s) => (
-              <option key={s.slug} value={s.slug}>
+              <option key={s.slug} value={s.slug} className={option}>
                 {s.name}
               </option>
             ))}
@@ -87,7 +90,7 @@ export function Finder({
             className={select}
           >
             {industries.map((i) => (
-              <option key={i.slug} value={i.slug}>
+              <option key={i.slug} value={i.slug} className={option}>
                 {i.name}
               </option>
             ))}

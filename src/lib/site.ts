@@ -7,8 +7,15 @@ export const EMAIL_SENDER = `help@send.${SITE_DOMAIN}`;
 
 // Absolute base for canonicals, sitemap, robots, JSON-LD and email links. Set SITE_URL per environment
 // (server-side, not secret). Without it, production builds use the real domain and dev uses localhost.
+// On Vercel Production a localhost SITE_URL (copied from .env.local) is ignored: canonicals and the
+// sitemap must never point search engines at localhost.
+const envSiteUrl =
+  process.env.VERCEL_ENV === "production" &&
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(process.env.SITE_URL ?? "")
+    ? undefined
+    : process.env.SITE_URL;
 export const SITE_URL = (
-  process.env.SITE_URL ??
+  envSiteUrl ??
   (process.env.NODE_ENV === "production" ? `https://${SITE_DOMAIN}` : "http://localhost:3000")
 ).replace(/\/$/, "");
 

@@ -97,9 +97,6 @@ export default async function AnalyticsPage({ params }: PageProps<"/dashboard/[s
                   </div>
                 ))}
             </dl>
-            <p className="text-small">
-              In Google Analytics these visits appear as source ytagencies, medium referral.
-            </p>
           </div>
         ) : (
           <p className="text-small">
