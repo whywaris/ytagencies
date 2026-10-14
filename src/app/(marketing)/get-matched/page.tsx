@@ -1,7 +1,6 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
 
-import { Breadcrumbs } from "@/components/breadcrumbs";
 import { GetMatchedForm } from "@/components/forms/get-matched-form";
 import { JsonLd } from "@/components/json-ld";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
@@ -43,8 +42,8 @@ export default async function GetMatchedPage() {
   return (
     <>
       <JsonLd data={breadcrumbJsonLd(breadcrumbs)} />
+      {/* No visible breadcrumb (the BreadcrumbList JSON-LD above stays for search). */}
       <div className="mx-auto flex max-w-[1120px] flex-col gap-8 px-4 py-10 md:px-6 md:py-14">
-        <Breadcrumbs items={breadcrumbs} />
         <div className="grid gap-10 lg:grid-cols-[minmax(0,640px)_minmax(0,1fr)] lg:gap-14">
           <div className="flex min-w-0 flex-col gap-8">
             <header className="flex flex-col gap-4">
