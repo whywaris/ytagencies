@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { TocGroup } from "@/lib/markdown";
+import type { TocGroup } from "@/lib/guide-content";
 import { cn } from "@/lib/utils";
 
 /** px from the top of the window: the 52px nav plus some room, matching the headings' scroll-mt. */

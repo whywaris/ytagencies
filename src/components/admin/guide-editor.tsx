@@ -1,20 +1,6 @@
 "use client";
 
-import {
-  ArrowUpRight,
-  Bold,
-  Heading2,
-  Heading3,
-  ImagePlus,
-  Italic,
-  Link2,
-  List,
-  ListOrdered,
-  Quote,
-  Table2,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowUpRight, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
@@ -24,16 +10,16 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { SeoFields } from "@/components/admin/seo-fields";
 import { usePortalContainer } from "@/components/admin/portal";
-import { GuideBody } from "@/components/guide-body";
+import { RichEditor, type ServiceOption } from "@/components/admin/rich-editor";
 import {
   changeGuideSlug,
   deleteGuide,
   saveGuide,
   setGuideStatus,
-  uploadGuideImage,
   type GuideInput,
 } from "@/lib/actions/admin-guides";
 import { formatDateTime } from "@/lib/format";
+import type { Doc } from "@/lib/guide-content";
 import { imageLinkError } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +35,7 @@ export type EditorGuide = {
   title: string;
   slug: string;
   excerpt: string;
-  body: string;
+  body: Doc;
   coverPath: string | null;
   seoTitle: string;
   seoDescription: string;
@@ -63,7 +49,7 @@ export type EditorGuide = {
   slugLocked: boolean;
 };
 
-type Values = GuideInput;
+type Values = Omit<GuideInput, "body"> & { body: Doc };
 type SaveState = "new" | "saved" | "dirty" | "untitled" | "saving" | "error";
 
 const AUTOSAVE_MS = 2500;
@@ -75,22 +61,6 @@ const slugPreview = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
-
-type Tool = "h2" | "h3" | "bold" | "italic" | "link" | "ul" | "ol" | "quote" | "image" | "table";
-const TOOLS: { id: Tool; label: string; icon: LucideIcon }[] = [
-  { id: "h2", label: "Heading", icon: Heading2 },
-  { id: "h3", label: "Subheading", icon: Heading3 },
-  { id: "bold", label: "Bold", icon: Bold },
-  { id: "italic", label: "Italic", icon: Italic },
-  { id: "link", label: "Link", icon: Link2 },
-  { id: "ul", label: "Bulleted list", icon: List },
-  { id: "ol", label: "Numbered list", icon: ListOrdered },
-  { id: "quote", label: "Quote", icon: Quote },
-  { id: "image", label: "Image", icon: ImagePlus },
-  { id: "table", label: "Table", icon: Table2 },
-];
-
-const TABLE_SNIPPET = ["| Column | Column |", "| --- | --- |", "| Cell | Cell |", ""].join("\n");
 
 const input = "h-9 w-full rounded-lg border border-line bg-bg px-3";
 const label = "flex flex-col gap-1.5";
@@ -104,6 +74,7 @@ export function GuideEditor({
   authors,
   mediaHosts,
   siteHost,
+  services,
 }: {
   guide: EditorGuide;
   comboOptions: ComboOption[];
@@ -111,6 +82,8 @@ export function GuideEditor({
   /** Image hosts allowed for the cover link (MEDIA_HOSTS). */
   mediaHosts: string[];
   siteHost: string;
+  /** For the budget range block. */
+  services: ServiceOption[];
 }) {
   const router = useRouter();
   const [id, setId] = useState(guide.id);
@@ -132,11 +105,9 @@ export function GuideEditor({
   });
   const [saveState, setSaveState] = useState<SaveState>(guide.id ? "saved" : "new");
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [preview, setPreview] = useState(false);
   const [pending, startTransition] = useTransition();
   const latest = useRef(values);
   const saving = useRef<Promise<string | null> | null>(null);
-  const body = useRef<HTMLTextAreaElement>(null);
 
   const set = <K extends keyof Values>(k: K, v: Values[K]) => {
     setValues((s) => {
@@ -194,74 +165,6 @@ export function GuideEditor({
     return () => window.removeEventListener("beforeunload", warn);
   }, [saveState]);
 
-  // ───────── Markdown toolbar ─────────
-  const edit = (fn: (text: string, start: number, end: number) => [string, number, number]) => {
-    const el = body.current;
-    if (!el) return;
-    const [text, s, e] = fn(el.value, el.selectionStart, el.selectionEnd);
-    set("body", text);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(s, e);
-    });
-  };
-  const wrap = (before: string, after = before, placeholder = "text") =>
-    edit((t, s, e) => {
-      const sel = t.slice(s, e) || placeholder;
-      return [
-        t.slice(0, s) + before + sel + after + t.slice(e),
-        s + before.length,
-        s + before.length + sel.length,
-      ];
-    });
-  const prefixLines = (prefix: (i: number) => string) =>
-    edit((t, s, e) => {
-      const from = t.lastIndexOf("\n", s - 1) + 1;
-      const lines = t
-        .slice(from, e)
-        .split("\n")
-        .map((l, i) => prefix(i) + l);
-      const block = lines.join("\n");
-      return [t.slice(0, from) + block + t.slice(e), from, from + block.length];
-    });
-  const insert = (snippet: string) =>
-    edit((t, s) => {
-      const pad = s > 0 && t[s - 1] !== "\n" ? "\n\n" : "";
-      const text = t.slice(0, s) + pad + snippet + t.slice(s);
-      const at = s + pad.length + snippet.length;
-      return [text, at, at];
-    });
-
-  // Inline images upload to storage; the cover is a pasted link (CoverField).
-  const fileInput = useRef<HTMLInputElement>(null);
-  const upload = () => fileInput.current?.click();
-  const onFile = (file: File | undefined) => {
-    if (!file) return;
-    startTransition(async () => {
-      const guideId = id ?? (await save());
-      if (!guideId) return void toast.error("Give the guide a title first, so it can be saved.");
-      const fd = new FormData();
-      fd.set("image", file);
-      const res = await uploadGuideImage(guideId, fd);
-      if (!res.ok) return void toast.error(res.error);
-      insert(`![Describe the image](${res.data.url})\n`);
-    });
-    if (fileInput.current) fileInput.current.value = "";
-  };
-
-  const runTool = (tool: Tool) => {
-    if (tool === "h2") prefixLines(() => "## ");
-    else if (tool === "h3") prefixLines(() => "### ");
-    else if (tool === "bold") wrap("**");
-    else if (tool === "italic") wrap("_");
-    else if (tool === "link") wrap("[", "](https://)", "link text");
-    else if (tool === "ul") prefixLines(() => "- ");
-    else if (tool === "ol") prefixLines((i) => `${i + 1}. `);
-    else if (tool === "quote") prefixLines(() => "> ");
-    else if (tool === "image") upload();
-    else insert(TABLE_SNIPPET);
-  };
-
   // ───────── Status ─────────
   const [scheduleAt, setScheduleAt] = useState("");
   const changeStatus = (
@@ -293,14 +196,6 @@ export function GuideEditor({
 
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <input
-        ref={fileInput}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={(e) => onFile(e.target.files?.[0])}
-      />
-
       {/* ───────── Left: content ───────── */}
       <div className="flex min-w-0 flex-col gap-5">
         <label className={label}>
@@ -338,64 +233,13 @@ export function GuideEditor({
           )}
         </div>
 
-        <div className="flex flex-col rounded-xl border border-line">
-          <div
-            role="toolbar"
-            aria-label="Formatting"
-            className="flex flex-wrap items-center gap-0.5 border-b border-line p-1"
-          >
-            {TOOLS.map((t) => (
-              <button
-                key={t.label}
-                type="button"
-                title={t.label}
-                aria-label={t.label}
-                disabled={pending}
-                onClick={() => runTool(t.id)}
-                className="flex size-8 items-center justify-center rounded-md text-text-2 hover:bg-surface-2 hover:text-text disabled:opacity-50"
-              >
-                <t.icon className="size-4 [stroke-width:1.5]" aria-hidden />
-              </button>
-            ))}
-            <label className="ml-auto flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-text-2 hover:text-text">
-              <input
-                type="checkbox"
-                checked={preview}
-                onChange={(e) => setPreview(e.target.checked)}
-                className="accent-[var(--accent)]"
-              />
-              Preview
-            </label>
-          </div>
-          <div className={cn("grid min-h-[60vh]", preview && "lg:grid-cols-2")}>
-            <textarea
-              ref={body}
-              aria-label="Guide text (Markdown)"
-              value={values.body}
-              onChange={(e) => set("body", e.target.value)}
-              spellCheck
-              placeholder={
-                "Write in Markdown.\n\n## A heading\n\nA paragraph with **bold** and a [link](/guides).\n\n{{budget-range youtube-ads-agencies}} on its own line adds the live budget box."
-              }
-              className="min-h-[60vh] w-full resize-y bg-transparent p-4 font-[inherit] leading-6 outline-none"
-            />
-            {preview && (
-              <div
-                aria-label="Preview"
-                className="min-w-0 border-t border-line p-4 text-[17px] leading-relaxed lg:border-t-0 lg:border-l"
-              >
-                <GuideBody
-                  md={values.body}
-                  budgetRange={(service) => (
-                    <p className="mb-5 rounded-lg bg-surface p-4 text-text-2">
-                      Live budget box for {service}: real figures appear on the published page.
-                    </p>
-                  )}
-                />
-              </div>
-            )}
-          </div>
-        </div>
+        <RichEditor
+          initial={guide.body}
+          services={services}
+          status={<SaveIndicator state={saveState} error={saveError} />}
+          ensureGuideId={async () => id ?? (await save())}
+          onChange={(doc) => set("body", doc)}
+        />
       </div>
 
       {/* ───────── Right: settings ───────── */}

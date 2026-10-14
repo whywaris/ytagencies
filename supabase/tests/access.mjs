@@ -1537,5 +1537,21 @@ await as("anon", null, async () =>
 );
 await db.exec(`reset role; update agency_subscriptions set status = 'active', ends_at = now() + interval '6 months'
   where agency_id = '${MINE}'`);
+console.log("— Guide drafts (migration 20261024000100) —");
+await db.exec(`reset role; insert into guides (id, slug, title, status, published_at, body_json, draft_json, draft_html)
+  values ('dddddddd-0000-4000-8000-000000000001', 'draft-test', 'Draft test', 'published', now() - interval '1 day',
+    '{"type":"doc","content":[]}', '{"type":"doc","content":[{"type":"paragraph"}]}', '<p>secret draft</p>')`);
+await as("anon", null, async () => {
+  ok(
+    (await rows("select body_json from guides where slug = 'draft-test'")).length === 1,
+    "guides: anon reads a live guide's published content",
+  );
+  ok(await fails("select draft_json from guides where slug = 'draft-test'"), "guides: anon can't read draft_json");
+  ok(await fails("select draft_html from guides where slug = 'draft-test'"), "guides: anon can't read draft_html");
+  ok(await fails("select * from guides where slug = 'draft-test'"), "guides: select * fails for anon (drafts hidden)");
+});
+await as("authenticated", OTHER, async () =>
+  ok(await fails("select draft_html from guides"), "guides: signed-in non-admins can't read drafts either"),
+);
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

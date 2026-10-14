@@ -56,8 +56,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   experimental: {
-    // Logo uploads go through a server action: 2 MB file + multipart overhead (default is 1 MB).
-    serverActions: { bodySizeLimit: "3mb" },
+    // Uploads go through server actions: guide images up to 5 MB + multipart overhead (default 1 MB).
+    serverActions: { bodySizeLimit: "6mb" },
   },
   images: {
     // Agency logos from Supabase Storage (public bucket).

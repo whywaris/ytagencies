@@ -765,6 +765,12 @@ export type Database = {
         Row: {
           author_id: string | null;
           body_md: string;
+          body_json: Json | null;
+          body_html: string | null;
+          draft_json: Json | null;
+          draft_html: string | null;
+          draft_updated_at: string | null;
+          content_updated_at: string | null;
           cover_path: string | null;
           created_at: string;
           excerpt: string | null;
@@ -783,6 +789,12 @@ export type Database = {
         Insert: {
           author_id?: string | null;
           body_md?: string;
+          body_json?: Json | null;
+          body_html?: string | null;
+          draft_json?: Json | null;
+          draft_html?: string | null;
+          draft_updated_at?: string | null;
+          content_updated_at?: string | null;
           cover_path?: string | null;
           created_at?: string;
           excerpt?: string | null;
@@ -801,6 +813,12 @@ export type Database = {
         Update: {
           author_id?: string | null;
           body_md?: string;
+          body_json?: Json | null;
+          body_html?: string | null;
+          draft_json?: Json | null;
+          draft_html?: string | null;
+          draft_updated_at?: string | null;
+          content_updated_at?: string | null;
           cover_path?: string | null;
           created_at?: string;
           excerpt?: string | null;

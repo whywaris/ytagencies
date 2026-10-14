@@ -7,7 +7,8 @@ import { TableOfContents } from "@/components/guides/toc";
 import { TocPanel } from "@/components/toc-panel";
 import { Button } from "@/components/ui/button";
 import type { Author, GuideSummary } from "@/lib/data/guides";
-import { groupOutline, parseGuideWithOutline } from "@/lib/markdown";
+import { groupOutline, guideBlocks, type Doc } from "@/lib/guide-content";
+import { guideImageAllowed } from "@/lib/guide-media";
 import { cn } from "@/lib/utils";
 
 // The guide page layout, shared by /guides/[slug] and the admin "Preview as page".
@@ -17,7 +18,7 @@ import { cn } from "@/lib/utils";
 export type ArticleGuide = {
   slug: string;
   title: string;
-  body: string;
+  doc: Doc;
   coverPath: string | null;
   updatedAt: string;
   readMinutes: number;
@@ -53,7 +54,7 @@ export function GuideArticle({
   /** false: draw the no-cover fallback in HTML instead of loading the generated image. */
   generatedCover?: boolean;
 }) {
-  const groups = groupOutline(parseGuideWithOutline(guide.body).outline);
+  const groups = groupOutline(guideBlocks(guide.doc, guideImageAllowed).outline);
   const numbered = guide.numberedSections;
 
   return (
@@ -135,7 +136,7 @@ export function GuideArticle({
           </section>
         )}
 
-        <GuideBody md={guide.body} budgetRange={budgetRange} />
+        <GuideBody doc={guide.doc} budgetRange={budgetRange} />
 
         {related.length > 0 && (
           <section

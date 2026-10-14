@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 
-import type { TocGroup } from "@/lib/markdown";
+import type { TocGroup } from "@/lib/guide-content";
 import { cn } from "@/lib/utils";
 
 /**

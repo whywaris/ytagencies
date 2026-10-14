@@ -2,7 +2,12 @@ import { notFound } from "next/navigation";
 
 import { GuideEditor } from "@/components/admin/guide-editor";
 import { requireAdmin } from "@/lib/auth";
-import { authorOptions, comboOptions, toEditorGuide } from "@/lib/data/admin-guides";
+import {
+  authorOptions,
+  comboOptions,
+  serviceOptions,
+  toEditorGuide,
+} from "@/lib/data/admin-guides";
 import { mediaHosts } from "@/lib/media";
 import { SITE_DOMAIN } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,10 +20,11 @@ export default async function EditGuidePage({ params }: PageProps<"/admin/guides
   const { id } = await params;
   await requireAdmin(`/admin/guides/${id}`);
   if (!UUID.test(id)) notFound();
-  const [{ data: guide }, options, authors] = await Promise.all([
+  const [{ data: guide }, options, authors, services] = await Promise.all([
     createAdminClient().from("guides").select("*").eq("id", id).maybeSingle(),
     comboOptions(),
     authorOptions(),
+    serviceOptions(),
   ]);
   if (!guide) notFound();
   return (
@@ -30,6 +36,7 @@ export default async function EditGuidePage({ params }: PageProps<"/admin/guides
       authors={authors}
       mediaHosts={mediaHosts()}
       siteHost={SITE_DOMAIN}
+      services={services}
     />
   );
 }

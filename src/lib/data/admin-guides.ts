@@ -1,6 +1,8 @@
 import "server-only";
 
 import type { AuthorOption, ComboOption, EditorGuide } from "@/components/admin/guide-editor";
+import type { ServiceOption } from "@/components/admin/rich-editor";
+import { emptyDoc, guideDoc } from "@/lib/guide-content";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 
@@ -28,6 +30,11 @@ export async function comboOptions(): Promise<ComboOption[]> {
   ]);
 }
 
+/** Services for the budget range block. */
+export async function serviceOptions(): Promise<ServiceOption[]> {
+  return (await getServices()).map((s) => ({ slug: s.slug, name: s.name }));
+}
+
 /** Authors for the editor's picker, by name. */
 export async function authorOptions(): Promise<AuthorOption[]> {
   const { data, error } = await createAdminClient()
@@ -44,6 +51,8 @@ type Row = {
   title: string;
   excerpt: string | null;
   body_md: string;
+  body_json: unknown;
+  draft_json: unknown;
   cover_path: string | null;
   seo_title: string | null;
   seo_description: string | null;
@@ -61,7 +70,8 @@ export function toEditorGuide(g: Row): EditorGuide {
     title: g.title,
     slug: g.slug,
     excerpt: g.excerpt ?? "",
-    body: g.body_md,
+    // Unpublished changes first; guides from before the Tiptap editor convert from Markdown.
+    body: guideDoc(g.draft_json ?? g.body_json, g.body_md),
     coverPath: g.cover_path,
     seoTitle: g.seo_title ?? "",
     seoDescription: g.seo_description ?? "",
@@ -82,7 +92,7 @@ export const NEW_GUIDE: EditorGuide = {
   title: "",
   slug: "",
   excerpt: "",
-  body: "",
+  body: emptyDoc(),
   coverPath: null,
   seoTitle: "",
   seoDescription: "",

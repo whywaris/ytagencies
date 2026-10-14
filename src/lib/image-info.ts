@@ -1,5 +1,5 @@
 // Image type and size from the file's own bytes (SECURITY.md: never trust the declared type or
-// extension). PNG, JPEG and WebP only. No imports, so tests load this file directly.
+// extension). PNG, JPEG, WebP and GIF. No imports, so tests load this file directly.
 
 export type ImageInfo = { type: string; ext: string; width: number | null; height: number | null };
 
@@ -10,7 +10,11 @@ const u32be = (b: Uint8Array, i: number) =>
   ((b[i] << 24) >>> 0) + (b[i + 1] << 16) + (b[i + 2] << 8) + b[i + 3];
 const ascii = (b: Uint8Array, i: number, n: number) => String.fromCharCode(...b.subarray(i, i + n));
 
-export function imageInfo(b: Uint8Array): ImageInfo | null {
+/** `gif`: also accept GIF (guide images only; logos and author photos stay PNG/JPEG/WebP). */
+export function imageInfo(
+  b: Uint8Array,
+  { gif = false }: { gif?: boolean } = {},
+): ImageInfo | null {
   // PNG: signature, then the IHDR chunk with width and height.
   const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (b.length >= 24 && PNG.every((x, i) => b[i] === x)) {
@@ -47,6 +51,10 @@ export function imageInfo(b: Uint8Array): ImageInfo | null {
       height = u24le(b, 27) + 1;
     }
     return { type: "image/webp", ext: "webp", width, height };
+  }
+  // GIF: GIF87a / GIF89a, then the logical screen width and height (little-endian).
+  if (gif && b.length >= 10 && (ascii(b, 0, 6) === "GIF87a" || ascii(b, 0, 6) === "GIF89a")) {
+    return { type: "image/gif", ext: "gif", width: u16le(b, 6), height: u16le(b, 8) };
   }
   return null;
 }

@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 
-import { readMinutes } from "@/lib/markdown";
+import { docReadMinutes, guideDoc, type Doc } from "@/lib/guide-content";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { createStaticClient } from "@/lib/supabase/server";
 
@@ -12,7 +12,7 @@ import { createStaticClient } from "@/lib/supabase/server";
 const LIVE_STATUSES = ["published", "scheduled"];
 export const AUTHOR_COLUMNS =
   "slug, name, role, bio, avatar_path, linkedin_url, x_url, website_url";
-const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, published_at, updated_at, cover_path, body_md, related_combos, author:authors(${AUTHOR_COLUMNS})`;
+const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, published_at, updated_at, content_updated_at, cover_path, body_md, body_json, related_combos, author:authors(${AUTHOR_COLUMNS})`;
 
 /**
  * Public URL of an image: a pasted https link (covers hosted on Cloudflare, see lib/media.ts) as
@@ -84,8 +84,10 @@ type SummaryRow = {
   seo_description: string | null;
   published_at: string | null;
   updated_at: string;
+  content_updated_at: string | null;
   cover_path: string | null;
   body_md: string;
+  body_json: unknown;
   related_combos: unknown;
   author: AuthorRow | null;
 };
@@ -97,9 +99,10 @@ function summary(g: SummaryRow): GuideSummary {
     excerpt: g.excerpt,
     description: g.seo_description || g.excerpt || g.title,
     publishedAt: g.published_at!,
-    updatedAt: g.updated_at,
+    // The last published change to the content (not every save of a draft).
+    updatedAt: g.content_updated_at ?? g.published_at ?? g.updated_at,
     coverPath: g.cover_path,
-    readMinutes: readMinutes(g.body_md),
+    readMinutes: docReadMinutes(guideDoc(g.body_json, g.body_md)),
     author: toAuthor(g.author),
     serviceIds: [...new Set(combosOf(g.related_combos).map((c) => c.service_id))],
   };
@@ -135,7 +138,7 @@ export const getGuideBySlug = cache(async (slug: string) => {
   };
   return {
     ...summary(row),
-    body: row.body_md,
+    doc: guideDoc(row.body_json, row.body_md) as Doc,
     seoTitle: row.seo_title,
     keyTakeaways: row.key_takeaways,
     numberedSections: row.numbered_sections,

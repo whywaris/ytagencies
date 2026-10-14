@@ -781,7 +781,17 @@ create table guides (
   slug text unique not null check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) <= 80),
   title text not null check (char_length(title) between 1 and 200),
   excerpt text check (char_length(excerpt) <= 300),
+  -- Backup of the Markdown body from before the Tiptap editor; read-only.
   body_md text not null default '' check (char_length(body_md) <= 100000),
+  -- Live content: Tiptap JSON and the sanitized HTML rendered from it (lib/guide-content.ts).
+  body_json jsonb,
+  body_html text check (char_length(body_html) <= 400000),
+  -- Unpublished edits of a live guide; admin-only (column grants below).
+  draft_json jsonb,
+  draft_html text check (char_length(draft_html) <= 400000),
+  draft_updated_at timestamptz,
+  -- When the live content last changed ("Updated" on the page, Article dateModified).
+  content_updated_at timestamptz,
   cover_path text,
   seo_title text check (char_length(seo_title) <= 70),
   seo_description text check (char_length(seo_description) <= 200),
@@ -817,6 +827,27 @@ alter table guide_redirects enable row level security;
 create policy "read live guides" on guides for select
   using ((status in ('published', 'scheduled') and published_at <= now()) or is_admin());
 create policy "admin write" on guides for all to authenticated using (is_admin()) with check (is_admin());
+-- Drafts are never public: every column but the draft ones (admin pages use the service role).
+revoke select on guides from anon, authenticated;
+grant select (id, slug, title, excerpt, cover_path, seo_title, seo_description, author_id, status,
+  published_at, related_combos, key_takeaways, numbered_sections, created_at, updated_at,
+  body_json, body_html, content_updated_at, body_md)
+  on guides to anon, authenticated;
+
+-- Guide images and covers: public read, admin-only write, jpg/png/webp/gif up to 5 MB.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('guide-media', 'guide-media', true, 5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+create policy "admins read guide media" on storage.objects for select to authenticated
+  using (bucket_id = 'guide-media' and is_admin());
+create policy "admins write guide media" on storage.objects for insert to authenticated
+  with check (bucket_id = 'guide-media' and is_admin());
+create policy "admins update guide media" on storage.objects for update to authenticated
+  using (bucket_id = 'guide-media' and is_admin()) with check (bucket_id = 'guide-media' and is_admin());
+create policy "admins delete guide media" on storage.objects for delete to authenticated
+  using (bucket_id = 'guide-media' and is_admin());
 -- A redirect is only readable once its target is live, so it can't leak an unpublished slug.
 create policy "read live redirects" on guide_redirects for select using (
   exists (select 1 from guides g where g.id = guide_id

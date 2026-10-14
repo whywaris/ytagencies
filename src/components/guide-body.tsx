@@ -1,20 +1,19 @@
 import { toJsxRuntime, type Components } from "hast-util-to-jsx-runtime";
-import { Info, Lightbulb, TriangleAlert, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Children, Fragment, isValidElement } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
 
 import { CopyLinkButton } from "@/components/guides/copy-link";
 import { ZoomableImage } from "@/components/guides/zoom-image";
-import { imageSize, parseGuideWithOutline, type CalloutKind } from "@/lib/markdown";
+import { guideBlocks, imageSize, type Doc } from "@/lib/guide-content";
+import { guideImageAllowed } from "@/lib/guide-media";
 import { SITE_URL } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-// Renders sanitized guide Markdown (lib/markdown.ts) as React, never as an HTML string. Used by
-// the public guide page (server) and the editor preview (browser). The live budget box is passed
-// in, because it's a server component the browser preview can't run.
+// Renders a guide document (Tiptap JSON, through the allowlist in lib/guide-content.ts) as React,
+// never as an HTML string. Server-rendered on the public page and the admin preview: no editor
+// code. The live budget box is passed in (a server component).
 
-const STORAGE_PREFIX = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/agency-media/guides/`;
 const SITE_HOST = new URL(SITE_URL).host;
 
 /** Internal: /path or an absolute link to this site. */
@@ -30,17 +29,8 @@ function internalPath(href: string) {
 
 const link = "text-accent underline underline-offset-2";
 
-const CALLOUT: Record<CalloutKind, { icon: LucideIcon; box: string; iconColor: string }> = {
-  tip: { icon: Lightbulb, box: "bg-accent/5 border-accent/20", iconColor: "text-accent" },
-  note: { icon: Info, box: "bg-surface border-line", iconColor: "text-text-2" },
-  warning: {
-    icon: TriangleAlert,
-    box: "bg-destructive/5 border-destructive/25",
-    iconColor: "text-destructive",
-  },
-};
 
-/** Heading with a stable id (lib/markdown.ts) and a copy-link button that shows on hover/focus. */
+/** Heading with a stable id (lib/guide-content.ts) and a copy-link button that shows on hover/focus. */
 function heading(Tag: "h2" | "h3", className: string) {
   function Heading({ id, children }: { id?: string; children?: React.ReactNode }) {
     return (
@@ -62,7 +52,7 @@ function heading(Tag: "h2" | "h3", className: string) {
 /** An uploaded guide image: rounded, hairline border, caption from its title (else alt), zoomable. */
 function Figure({ src, alt, title }: { src?: unknown; alt?: string; title?: string }) {
   // Only images uploaded through the editor (the site's CSP would block any other host).
-  if (typeof src !== "string" || !src.startsWith(STORAGE_PREFIX)) return null;
+  if (typeof src !== "string" || !guideImageAllowed(src)) return null;
   const size = imageSize(src);
   const caption = title || alt;
   return (
@@ -102,7 +92,9 @@ const components: Partial<Components> = {
   h1: heading("h2", "guide-h2 mt-16 mb-4 text-h2"), // one H1 per page: the title
   h2: heading("h2", "guide-h2 mt-16 mb-4 text-h2"),
   h3: heading("h3", "mt-10 mb-3 text-h3"),
-  h4: (props) => <h4 className="mt-8 mb-2 font-semibold" {...props} />,
+  h4: (props) => <h4 className="mt-8 mb-2 scroll-mt-20 font-semibold" {...props} />,
+  h5: (props) => <h5 className="mt-6 mb-2 font-semibold" {...props} />,
+  h6: (props) => <h6 className="mt-6 mb-2 font-semibold text-text-2" {...props} />,
   // A paragraph holding only an image becomes the figure itself (a <figure> can't sit in a <p>).
   p: (props) =>
     isImageOnly(props.children) ? <>{props.children}</> : <p className="mb-6" {...props} />,
@@ -112,22 +104,6 @@ const components: Partial<Components> = {
   blockquote: (props) => (
     <blockquote className="mb-6 border-l-2 border-line pl-5 text-text-2" {...props} />
   ),
-  aside: ({ className, children }) => {
-    const kind = (String(className).match(/callout-(tip|note|warning)/)?.[1] ??
-      "note") as CalloutKind;
-    const { icon: Icon, box, iconColor } = CALLOUT[kind];
-    return (
-      <aside className={cn("mb-6 flex gap-3 rounded-2xl border p-5 [&_p:last-child]:mb-0", box)}>
-        <Icon className={cn("mt-1 size-5 shrink-0 [stroke-width:1.75]", iconColor)} aria-hidden />
-        <div className="min-w-0">
-          <span className="sr-only">
-            {kind === "tip" ? "Tip" : kind === "note" ? "Note" : "Warning"}:{" "}
-          </span>
-          {children}
-        </div>
-      </aside>
-    );
-  },
   code: (props) => <code className="rounded bg-surface px-1 py-0.5 text-[0.88em]" {...props} />,
   pre: (props) => (
     <pre className="mb-6 overflow-x-auto rounded-2xl bg-surface p-5 text-[15px]" {...props} />
@@ -171,13 +147,13 @@ const components: Partial<Components> = {
 };
 
 export function GuideBody({
-  md,
+  doc,
   budgetRange,
 }: {
-  md: string;
+  doc: Doc;
   budgetRange: (service: string) => React.ReactNode;
 }) {
-  const { blocks } = parseGuideWithOutline(md);
+  const { blocks } = guideBlocks(doc, guideImageAllowed);
   return (
     <>
       {blocks.map((block, i) =>

@@ -1,11 +1,22 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { lookup } from "node:dns/promises";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
+import {
+  docText,
+  docToHtml,
+  guideDoc,
+  imagesWithoutAlt,
+  sanitizeDoc,
+  type Doc,
+} from "@/lib/guide-content";
+import { GUIDE_MEDIA_BUCKET, guideImageAllowed, guideMediaUrl } from "@/lib/guide-media";
 import { imageInfo } from "@/lib/image-info";
+import { isPublicIp } from "@/lib/net-guard";
 import { imageLinkError } from "@/lib/media";
 import type { Json } from "@/lib/supabase/types";
 import type { FormResult } from "@/lib/validation/lead";
@@ -17,8 +28,8 @@ import { revalidateSitemaps } from "@/lib/revalidate";
 
 const uuid = z.uuid();
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const BUCKET = "agency-media";
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_HTML = 400_000;
 const SAVE_FAILED = "We couldn't save the guide. Please try again.";
 
 const slugify = (s: string) =>
@@ -46,8 +57,10 @@ const guideSchema = z.object({
     .max(80)
     .refine((v) => v === "" || SLUG.test(v), "Use lowercase letters, numbers and single hyphens."),
   excerpt: z.string().trim().max(300, "Keep the excerpt under 300 characters."),
-  body: z.string().max(100_000, "The guide is too long."),
-  // A link to our Cloudflare image host (lib/media.ts), or an older upload in storage.
+  // Tiptap JSON. Sanitized on the server (lib/guide-content.ts) before anything is stored.
+  body: z.unknown(),
+  // An upload in guide-media, a link to our Cloudflare image host (lib/media.ts), or an older
+  // upload in agency-media.
   coverPath: z.string().trim().max(500).nullable(),
   seoTitle: z.string().trim().max(70, "Keep the SEO title under 70 characters."),
   seoDescription: z.string().trim().max(200, "Keep the SEO description under 200 characters."),
@@ -86,15 +99,19 @@ export async function saveGuide(id: string | null, raw: unknown): Promise<FormRe
   const parsed = guideSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const v = parsed.data;
-  if (v.coverPath && !v.coverPath.startsWith("guides/")) {
+  if (v.coverPath && !v.coverPath.startsWith("guides/") && !guideImageAllowed(v.coverPath)) {
     const coverError = imageLinkError(v.coverPath);
     if (coverError) return { ok: false, error: `Cover image: ${coverError}` };
   }
+  const doc = sanitizeDoc(v.body, guideImageAllowed);
+  const html = docToHtml(doc, guideImageAllowed);
+  if (html.length > MAX_HTML) return { ok: false, error: "The guide is too long." };
 
   const content = {
     title: v.title,
     excerpt: v.excerpt || null,
-    body_md: v.body,
+    body_json: doc as unknown as Json,
+    body_html: html,
     cover_path: v.coverPath,
     seo_title: v.seoTitle || null,
     seo_description: v.seoDescription || null,
@@ -173,29 +190,41 @@ export async function setGuideStatus(
 
   const { data: g } = await ctx.db
     .from("guides")
-    .select("slug, title, body_md, published_at")
+    .select("slug, title, body_md, body_json, published_at")
     .eq("id", id)
     .maybeSingle();
   if (!g) return { ok: false, error: "This guide was deleted." };
-  if (v.action !== "unpublish" && !g.body_md.trim()) {
-    return { ok: false, error: "Write the guide before publishing it." };
+  if (v.action !== "unpublish") {
+    const doc = guideDoc(g.body_json, g.body_md);
+    if (!docText(doc)) return { ok: false, error: "Write the guide before publishing it." };
+    const noAlt = imagesWithoutAlt(doc);
+    if (noAlt)
+      return {
+        ok: false,
+        error: `Add alt text to ${noAlt === 1 ? "1 image" : `${noAlt} images`} before publishing (click the image, then Alt text).`,
+      };
   }
 
   const now = new Date();
   let update: { status: string; published_at: string | null };
+  let contentUpdated: string | null = null;
   if (v.action === "publish") {
     // Keep the original date when republishing; first publish is now.
     update = {
       status: "published",
       published_at: hasBeenLive(g) ? g.published_at : now.toISOString(),
     };
+    contentUpdated = now.toISOString();
   } else if (v.action === "schedule") {
     if (new Date(v.at) <= now) return { ok: false, error: "Pick a time in the future." };
     update = { status: "scheduled", published_at: new Date(v.at).toISOString() };
   } else {
     update = { status: "draft", published_at: g.published_at };
   }
-  const { error } = await ctx.db.from("guides").update(update).eq("id", id);
+  const { error } = await ctx.db
+    .from("guides")
+    .update({ ...update, ...(contentUpdated ? { content_updated_at: contentUpdated } : {}) })
+    .eq("id", id);
   if (error) return { ok: false, error: SAVE_FAILED };
   await ctx.log(
     `guide.${v.action}`,
@@ -264,31 +293,109 @@ export async function deleteGuide(id: string): Promise<FormResult> {
   return { ok: true, data: undefined };
 }
 
+/** Stores image bytes in guide-media under <guide id>/, with the size in the file name. */
+async function storeGuideImage(
+  ctx: NonNullable<Awaited<ReturnType<typeof adminContext>>>,
+  guideId: string,
+  bytes: Uint8Array,
+): Promise<FormResult<{ url: string }>> {
+  if (bytes.length > MAX_IMAGE_BYTES) return { ok: false, error: "Use an image under 5 MB." };
+  const info = imageInfo(bytes, { gif: true });
+  if (!info) return { ok: false, error: "Use a JPG, PNG, WebP or GIF image." };
+  const size = info.width && info.height ? `-${info.width}x${info.height}` : "";
+  const path = `${guideId}/${randomUUID().slice(0, 12)}${size}.${info.ext}`;
+  const { error } = await ctx.db.storage
+    .from(GUIDE_MEDIA_BUCKET)
+    .upload(path, bytes, { contentType: info.type, cacheControl: "31536000", upsert: false });
+  if (error) return { ok: false, error: "We couldn't upload that image. Please try again." };
+  await ctx.log("guide.upload_image", "guide", guideId, { path });
+  return { ok: true, data: { url: guideMediaUrl(path) } };
+}
+
 /**
- * Uploads a cover or inline image to guides/<guide id>/ in the public bucket. Type is checked
- * from the bytes; the size goes in the file name so pages can use next/image without guessing.
+ * Uploads an image (toolbar, drag & drop, paste, cover) to guide-media. The type is checked from
+ * the bytes, never the declared type; the size goes in the file name for next/image.
  */
 export async function uploadGuideImage(
   guideId: string,
   formData: FormData,
-): Promise<FormResult<{ path: string; url: string }>> {
+): Promise<FormResult<{ url: string }>> {
   const ctx = await adminContext();
   if (!ctx) return { ok: false, error: NOT_ADMIN };
   if (!uuid.safeParse(guideId).success) return { ok: false, error: "Save the guide first." };
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose an image." };
-  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Use an image under 2 MB." };
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const info = imageInfo(bytes);
-  if (!info) return { ok: false, error: "Use a PNG, JPG or WebP image." };
-
-  const size = info.width && info.height ? `-${info.width}x${info.height}` : "";
-  const path = `guides/${guideId}/${randomUUID().slice(0, 12)}${size}.${info.ext}`;
-  const { error } = await ctx.db.storage
-    .from(BUCKET)
-    .upload(path, bytes, { contentType: info.type, cacheControl: "31536000", upsert: false });
-  if (error) return { ok: false, error: "We couldn't upload that image. Please try again." };
-  await ctx.log("guide.upload_image", "guide", guideId, { path });
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
-  return { ok: true, data: { path, url } };
+  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Use an image under 5 MB." };
+  return storeGuideImage(ctx, guideId, new Uint8Array(await file.arrayBuffer()));
 }
+
+/**
+ * A remote image from pasted content, copied into guide-media. Only https, only public addresses
+ * (checked for every redirect hop: no requests into private networks), an image content type and
+ * at most 5 MB. Any failure: the editor drops the image and says so.
+ */
+// ponytail: the address is checked at lookup time; a DNS answer that changes between the check
+// and the fetch (rebinding) isn't covered. Pin the resolved IP with a custom agent if that matters.
+export async function importRemoteImage(
+  guideId: string,
+  url: string,
+): Promise<FormResult<{ url: string }>> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  if (!uuid.safeParse(guideId).success) return { ok: false, error: "Save the guide first." };
+  const failed = { ok: false as const, error: "That image couldn't be copied." };
+  let target = url;
+  for (let hop = 0; hop < 4; hop++) {
+    let parsed: URL;
+    try {
+      parsed = new URL(target);
+    } catch {
+      return failed;
+    }
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password) return failed;
+    if (parsed.port && parsed.port !== "443") return failed;
+    const addresses = await lookup(parsed.hostname, { all: true }).catch(() => []);
+    if (!addresses.length || !addresses.every((a) => isPublicIp(a.address))) return failed;
+
+    const res = await fetch(parsed, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(10_000),
+      headers: { accept: "image/*" },
+    }).catch(() => null);
+    if (!res) return failed;
+    if (res.status >= 300 && res.status < 400) {
+      const next = res.headers.get("location");
+      if (!next) return failed;
+      target = new URL(next, parsed).href;
+      continue;
+    }
+    if (!res.ok || !/^image\//.test(res.headers.get("content-type") ?? "")) return failed;
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_IMAGE_BYTES) return failed;
+    // Read with a cap, whatever the server claims.
+    const reader = res.body?.getReader();
+    if (!reader) return failed;
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > MAX_IMAGE_BYTES) {
+        await reader.cancel();
+        return failed;
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) {
+      bytes.set(c, offset);
+      offset += c.length;
+    }
+    return storeGuideImage(ctx, guideId, bytes);
+  }
+  return failed;
+}
+
+/** The document type the editor sends, for client imports. */
+export type GuideDoc = Doc;

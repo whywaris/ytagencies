@@ -5,7 +5,7 @@ import { BudgetRange } from "@/components/guides/budget-range";
 import { GuideArticle } from "@/components/guides/guide-article";
 import { requireAdmin } from "@/lib/auth";
 import { AUTHOR_COLUMNS, resolveCombos, toAuthor, type AuthorRow } from "@/lib/data/guides";
-import { readMinutes } from "@/lib/markdown";
+import { docReadMinutes, guideDoc } from "@/lib/guide-content";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -27,11 +27,13 @@ export default async function GuidePreviewPage({
     .maybeSingle();
   if (!g) notFound();
   const related = await resolveCombos(g.related_combos);
+  // Unpublished changes if there are any, else the live content.
+  const previewDoc = guideDoc(g.draft_json ?? g.body_json, g.body_md);
 
   return (
     <div className="flex flex-col gap-2">
       <p className="rounded-lg border border-line px-4 py-3 text-text-2">
-        Preview of the saved version. {g.status === "published" ? null : "Not live yet. "}
+        Preview of the saved version{g.draft_json ? ", with unpublished changes" : ""}. {g.status === "published" ? null : "Not live yet. "}
         <Link href={`/admin/guides/${g.id}`} className="text-accent hover:underline">
           Back to the editor
         </Link>
@@ -40,10 +42,10 @@ export default async function GuidePreviewPage({
         guide={{
           slug: g.slug,
           title: g.title,
-          body: g.body_md,
+          doc: previewDoc,
           coverPath: g.cover_path,
-          updatedAt: g.updated_at,
-          readMinutes: readMinutes(g.body_md),
+          updatedAt: g.draft_updated_at ?? g.content_updated_at ?? g.updated_at,
+          readMinutes: docReadMinutes(previewDoc),
           author: toAuthor(g.author as AuthorRow | null),
           keyTakeaways: g.key_takeaways,
           numberedSections: g.numbered_sections,
