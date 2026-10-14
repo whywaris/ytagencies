@@ -3,7 +3,8 @@
 // never on localhost or preview deployments. Independent of ALLOW_INDEXING (lib/indexing.ts).
 // Signed-in visitors and private routes are excluded in the browser (lib/track.ts).
 export function gaId(env: Record<string, string | undefined> = process.env) {
-  const id = env.NEXT_PUBLIC_GA_ID;
+  // Pasted values often carry a space or newline.
+  const id = env.NEXT_PUBLIC_GA_ID?.trim();
   if (!id || env.VERCEL_ENV !== "production") return null;
   return /^G-[A-Z0-9]{4,20}$/.test(id) ? id : null;
 }

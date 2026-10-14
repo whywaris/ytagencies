@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
+import { gaId } from "./src/lib/analytics";
 import { companyTodos } from "./src/lib/company";
 import { indexingAllowed, noindexHeaders } from "./src/lib/indexing";
 import { turnstileKeyProblems } from "./src/lib/turnstile-keys";
@@ -127,6 +128,17 @@ export default function config(phase: string): NextConfig {
       );
       throw new Error("Turnstile keys aren't valid for production");
     }
+  }
+  // GA4 only runs with a Measurement ID (G-XXXXXXXX); say so when the value can't be used.
+  if (
+    phase === PHASE_PRODUCTION_BUILD &&
+    process.env.VERCEL_ENV === "production" &&
+    process.env.NEXT_PUBLIC_GA_ID &&
+    !gaId()
+  ) {
+    console.warn(
+      "⚠ NEXT_PUBLIC_GA_ID isn't a GA4 Measurement ID (G-XXXXXXXX), so Google Analytics is off.",
+    );
   }
   // Next loads this file in several build workers; they inherit the env, so this prints once.
   const todos =

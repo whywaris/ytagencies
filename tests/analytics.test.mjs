@@ -96,3 +96,11 @@ test("robots.txt: blocks everything with no sitemap until launch, normal rules a
   assert.deepEqual(ai.disallow, everyone.disallow);
   assert.deepEqual(ai.allow, everyone.allow);
 });
+
+test("gaId ignores spaces and newlines around a pasted ID", () => {
+  assert.equal(
+    gaId({ NEXT_PUBLIC_GA_ID: " G-ABC123XYZ\n", VERCEL_ENV: "production" }),
+    "G-ABC123XYZ",
+  );
+  assert.equal(gaId({ NEXT_PUBLIC_GA_ID: "123456789", VERCEL_ENV: "production" }), null);
+});
