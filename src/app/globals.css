@@ -544,3 +544,23 @@
   content: attr(data-placeholder);
   pointer-events: none;
 }
+
+/* Home hero: a very faint 48px line grid that fades out towards the edges. On a pseudo-element,
+   so the fade (mask) never touches the hero's content. */
+.home-grid {
+  position: relative;
+  isolation: isolate;
+}
+.home-grid::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--line) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--line) 55%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center top;
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 30%, #000 30%, transparent 100%);
+  content: "";
+  pointer-events: none;
+}

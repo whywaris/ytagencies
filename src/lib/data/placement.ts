@@ -84,6 +84,15 @@ export const getPlacement = cache(async (now = new Date()) => {
         })
         .map((s) => s.agency_id);
     },
+    /** Every eligible active slot holder, by position (the home page shows at most one). */
+    sponsoredAnywhere() {
+      return slots.data
+        .filter((s) => {
+          const e = entitlements(s.agency_id);
+          return e.canBuySponsored && e.verifiedBadge;
+        })
+        .map((s) => s.agency_id);
+    },
   };
 });
 

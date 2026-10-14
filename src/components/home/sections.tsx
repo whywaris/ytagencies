@@ -1,74 +1,117 @@
 import {
+  ArrowRight,
+  BadgeCheck,
+  Bitcoin,
+  Building2,
   ChartColumn,
+  Check,
   ChevronDown,
-  ChevronRight,
+  Cloud,
+  Dumbbell,
+  Gamepad2,
+  GraduationCap,
+  Home,
+  Landmark,
   Megaphone,
+  MessageSquare,
   Play,
+  Scale,
   Search,
+  ShoppingCart,
   Smartphone,
+  Smile,
+  Stethoscope,
+  Target,
   Users,
   Video,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 
+import { AgencyLogo } from "@/components/agency-logo";
+import { GuideCard } from "@/components/guides/guide-parts";
+import { FindAgenciesButton, Finder } from "@/components/home/finder";
 import { JsonLd } from "@/components/json-ld";
-import { getDirectoryIndex, getPopularIndustries } from "@/lib/data/agencies";
+import { getDirectoryIndex } from "@/lib/data/agencies";
+import { getLiveGuides } from "@/lib/data/guides";
+import { getHomeAgencies } from "@/lib/data/home";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
+import { formatUsd } from "@/lib/directory";
+import { popularIndustryCombos, type ComboCounts } from "@/lib/home";
 import { faqJsonLd } from "@/lib/seo/json-ld";
-import { BRAND_NAME } from "@/lib/site";
+import { BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-// Home page sections below the hero. Server components, real data only: a card, chip or tile
-// without data is left out, and a section with nothing to show isn't rendered.
+// Home page sections. Server components with real data only: anything without data is left out,
+// and a section with nothing to show isn't rendered. The finder is the only client code.
 
-const shell = "mx-auto max-w-[1200px] px-4 py-16 md:px-6 md:py-24";
+/** ~112px between sections on desktop (56 + 56), less on mobile. */
+const shell = "mx-auto max-w-[1200px] px-4 py-10 md:px-6 md:py-14";
+const h2 = "text-[clamp(28px,3.4vw,42px)] leading-[1.1] font-[650] tracking-[-0.03em] text-balance";
+const focusRing =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 function SectionHeader({
   id,
+  eyebrow,
   title,
   lede,
   link,
 }: {
   id: string;
+  eyebrow: string;
   title: string;
-  lede: string;
+  lede?: string;
   link?: { href: string; label: string };
 }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
-      <div className="flex max-w-[640px] flex-col gap-3">
-        <h2
-          id={id}
-          className="text-[clamp(28px,3.4vw,42px)] leading-[1.1] font-[650] tracking-[-0.03em] text-balance"
-        >
+      <div className="flex max-w-[680px] min-w-0 flex-[1_1_480px] flex-col gap-3">
+        <p className="text-[13px] font-semibold tracking-[0.08em] text-accent uppercase">
+          {eyebrow}
+        </p>
+        <h2 id={id} className={h2}>
           {title}
         </h2>
-        <p className="text-[17px] text-text-2">{lede}</p>
+        {lede && <p className="text-[17px] text-text-2">{lede}</p>}
       </div>
       {link && (
         <Link
           href={link.href}
-          className="flex min-h-11 items-center gap-1 font-medium text-accent hover:underline"
+          className={cn(
+            "flex min-h-11 items-center gap-1 rounded font-medium text-accent hover:underline",
+            focusRing,
+          )}
         >
           {link.label}
-          <ChevronRight className="size-4 [stroke-width:2]" aria-hidden />
+          <ArrowRight className="size-4 [stroke-width:2]" aria-hidden />
         </Link>
       )}
     </div>
   );
 }
 
-/** Tile colours (DESIGN.md): soft background with the matching colour. */
-const TONES = {
-  blue: "bg-(--accent-soft) text-accent",
+/** Solid tile colours, one per service; the icon uses the page background so it stays visible
+ * in both themes. */
+const SOLID = {
+  blue: "bg-accent",
+  violet: "bg-(--violet)",
+  mint: "bg-(--mint)",
+  coral: "bg-(--coral)",
+  amber: "bg-(--amber)",
+  pink: "bg-(--pink)",
+} as const;
+type Tone = keyof typeof SOLID;
+const SOFT: Record<Tone, string> = {
+  blue: "bg-accent-soft text-accent",
   violet: "bg-(--violet-soft) text-(--violet)",
   mint: "bg-(--mint-soft) text-(--mint)",
   coral: "bg-(--coral-soft) text-(--coral)",
   amber: "bg-(--amber-soft) text-(--amber)",
   pink: "bg-(--pink-soft) text-(--pink)",
-} as const;
-type Tone = keyof typeof TONES;
+};
+const TONE_ORDER: Tone[] = ["blue", "mint", "amber", "coral", "violet", "pink"];
 
 /** Smartphone with a play mark: lucide has no single icon for it. */
 function ShortsIcon({ className }: { className?: string }) {
@@ -131,27 +174,139 @@ const SERVICE_CARDS: {
   },
 ];
 
-/** "Doctors & clinics" → "doctors & clinics"; keeps "SaaS". */
-const inSentence = (name: string) =>
-  /^[A-Z][a-z]/.test(name) ? name[0].toLowerCase() + name.slice(1) : name;
+const INDUSTRY_ICON: Record<string, LucideIcon> = {
+  crypto: Bitcoin,
+  doctors: Stethoscope,
+  dentists: Smile,
+  "real-estate": Home,
+  saas: Cloud,
+  ecommerce: ShoppingCart,
+  coaches: Target,
+  "law-firms": Scale,
+  education: GraduationCap,
+  finance: Landmark,
+  fitness: Dumbbell,
+  gaming: Gamepad2,
+};
 
-export async function ServicesSection() {
+/** Shared lookups for the sections below. */
+async function homeData() {
   const [services, industries, index] = await Promise.all([
     getServices(),
     getIndustries(),
     getDirectoryIndex(),
   ]);
+  const serviceName = new Map(services.map((s) => [s.slug, s.name]));
+  const industryBySegment = new Map(industries.map((i) => [`for-${i.slug}`, i]));
+  return { services, industries, index, serviceName, industryBySegment };
+}
+
+// ───────── 2. Hero ─────────
+
+const TRUST = [
+  "Starting prices on every profile",
+  "Filter by your industry",
+  "Free for businesses, no middleman",
+];
+
+export async function HomeHero() {
+  const { services, industries, index, serviceName, industryBySegment } = await homeData();
+  const counts: ComboCounts = {};
+  for (const [key, page] of index.pages) if (key.includes("|for-")) counts[key] = page.count;
+  const popular = popularIndustryCombos(index.combos, 4).flatMap((c) => {
+    const industry = industryBySegment.get(c.segment);
+    const service = serviceName.get(c.serviceSlug);
+    return industry && service
+      ? [{ href: `/${c.serviceSlug}/${c.segment}`, label: `${service} for ${industry.name}` }]
+      : [];
+  });
+
+  return (
+    <section className="home-grid relative overflow-clip px-4 pt-14 pb-10 md:px-6 md:pt-20 md:pb-14">
+      <div className="mx-auto flex max-w-[980px] flex-col items-center text-center">
+        <p className="inline-flex items-center gap-2 rounded-full border border-line bg-raised py-1 pr-3.5 pl-1 text-[14px] font-medium">
+          <span className="rounded-full bg-(--mint-soft) px-2.5 py-0.5 text-[13px] font-semibold text-(--mint)">
+            Free
+          </span>
+          For business owners
+        </p>
+        <h1 className="mt-6 max-w-[14em] text-[clamp(40px,6.2vw,76px)] leading-[1.02] font-[680] tracking-[-0.045em] text-balance">
+          Hire a YouTube agency that already{" "}
+          <span className="relative inline-block text-(--coral)">
+            knows your industry.
+            <svg
+              aria-hidden
+              viewBox="0 0 300 16"
+              preserveAspectRatio="none"
+              className="absolute -bottom-[0.12em] left-0 h-[0.22em] w-full"
+            >
+              <path
+                d="M3 11 C 60 4, 120 3, 175 7 S 260 13, 297 6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
+        </h1>
+        <p className="mt-6 max-w-[36em] text-[clamp(17px,1.6vw,20px)] leading-normal text-text-2">
+          Compare specialists by service and starting price. Free, and you only talk to the ones you
+          choose.
+        </p>
+
+        {services.length > 0 && industries.length > 0 && (
+          <div className="mt-10 w-full max-w-[860px]">
+            <Finder
+              services={services.map((s) => ({ slug: s.slug, name: s.name }))}
+              industries={industries.map((i) => ({ slug: i.slug, name: i.name }))}
+              counts={counts}
+              minToIndex={MIN_AGENCIES_TO_INDEX}
+            />
+          </div>
+        )}
+
+        {popular.length > 0 && (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-[14px]">
+            <span className="text-text-2">Popular:</span>
+            {popular.map((p) => (
+              <Link
+                key={p.href}
+                href={p.href}
+                className={cn(
+                  "inline-flex min-h-9 items-center rounded-full border border-line bg-raised px-3.5 hover:border-text-2",
+                  focusRing,
+                )}
+              >
+                {p.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[14.5px] text-text-2">
+          {TRUST.map((t) => (
+            <li key={t} className="flex items-center gap-1.5">
+              <Check className="size-4 [stroke-width:2.5] text-verified" aria-hidden />
+              {t}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ───────── 3. Services ─────────
+
+export async function ServicesSection() {
+  const { services, index, industryBySegment } = await homeData();
   const cards = SERVICE_CARDS.filter((c) => services.some((s) => s.slug === c.slug)).map((c) => ({
     ...c,
-    // Indexable industry pages for this service (3+ published agencies), most agencies first.
-    chips: index.combos
-      .filter((combo) => combo.serviceSlug === c.slug && combo.segment.startsWith("for-"))
-      .sort((a, b) => b.count - a.count)
-      .flatMap((combo) => {
-        const industry = industries.find((i) => `for-${i.slug}` === combo.segment);
-        return industry ? [{ href: `/${c.slug}/${combo.segment}`, name: industry.name }] : [];
-      })
-      .slice(0, 4),
+    popular: popularIndustryCombos(index.combos, 3, c.slug).flatMap((combo) => {
+      const industry = industryBySegment.get(combo.segment);
+      return industry ? [{ href: `/${c.slug}/${combo.segment}`, name: industry.name }] : [];
+    }),
   }));
   if (!cards.length) return null;
 
@@ -160,19 +315,19 @@ export async function ServicesSection() {
       <div className={cn(shell, "flex flex-col gap-10")}>
         <SectionHeader
           id="services-heading"
+          eyebrow="Services"
           title="Every kind of YouTube help, from specialists"
-          lede="Pick what you need, then narrow it down to agencies that already work in your industry."
         />
         <ul className="grid gap-4 min-[620px]:grid-cols-2 min-[960px]:grid-cols-3">
-          {cards.map(({ slug, title, description, tone, Icon, chips }) => (
+          {cards.map(({ slug, title, description, tone, Icon, popular }) => (
             <li
               key={slug}
-              className="relative flex flex-col gap-4 rounded-[22px] border border-line bg-raised p-6 transition-[border-color,box-shadow] duration-200 ease-out hover:border-text-2 hover:shadow-[0_1px_2px_rgba(20,25,40,.05),0_12px_28px_-10px_rgba(20,25,40,.16)]"
+              className="relative flex h-full flex-col gap-4 rounded-[22px] border border-line bg-raised p-6 transition-[transform,box-shadow,border-color] duration-200 ease-out hover:border-text-2/40 hover:shadow-[0_16px_32px_-16px_rgba(20,25,40,.22)] has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-accent motion-safe:hover:-translate-y-1"
             >
               <span
                 className={cn(
-                  "flex size-11 items-center justify-center rounded-[13px]",
-                  TONES[tone],
+                  "flex size-11 items-center justify-center rounded-[13px] text-bg",
+                  SOLID[tone],
                 )}
                 aria-hidden
               >
@@ -180,29 +335,34 @@ export async function ServicesSection() {
               </span>
               <div className="flex flex-col gap-1.5">
                 <h3 className="text-[19px] leading-tight font-[650]">
-                  {/* The whole card is the link; chips sit above it. */}
+                  {/* The whole card is the link; the industry links sit above it. */}
                   <Link
                     href={`/${slug}`}
-                    className="after:absolute after:inset-0 after:rounded-[22px] after:content-['']"
+                    className="outline-none after:absolute after:inset-0 after:rounded-[22px] after:content-['']"
                   >
                     {title}
                   </Link>
                 </h3>
-                <p className="text-[14.5px] text-text-2">{description}</p>
+                <p className="text-[15px] text-text-2">{description}</p>
               </div>
-              {chips.length > 0 && (
-                <ul className="mt-auto flex flex-wrap gap-1.5 border-t border-line-2 pt-4">
-                  {chips.map((chip) => (
-                    <li key={chip.href} className="relative z-10">
+              {popular.length > 0 && (
+                <p className="mt-auto border-t border-line pt-4 text-[14px] text-text-2">
+                  Popular for{" "}
+                  {popular.map((p, i) => (
+                    <span key={p.href}>
+                      {i > 0 && (i === popular.length - 1 ? " and " : ", ")}
                       <Link
-                        href={chip.href}
-                        className="block rounded-full bg-surface px-2.5 py-1 text-[12.5px] text-text-2 transition-colors duration-150 hover:text-text"
+                        href={p.href}
+                        className={cn(
+                          "relative z-10 rounded font-medium text-text hover:underline",
+                          focusRing,
+                        )}
                       >
-                        for {inSentence(chip.name)}
+                        {p.name}
                       </Link>
-                    </li>
+                    </span>
                   ))}
-                </ul>
+                </p>
               )}
             </li>
           ))}
@@ -212,30 +372,185 @@ export async function ServicesSection() {
   );
 }
 
-const STEPS: { title: string; body: string; tone: Tone }[] = [
+// ───────── 4. Agencies ─────────
+
+const UNIT: Record<string, string> = {
+  retainer: "month",
+  per_video: "video",
+  project: "project",
+  performance: "month",
+};
+
+export async function AgenciesSection() {
+  const agencies = await getHomeAgencies(); // [] when fewer than 3
+  if (!agencies.length) return null;
+
+  return (
+    <section aria-labelledby="agencies-heading">
+      <div className={cn(shell, "flex flex-col gap-10")}>
+        <SectionHeader
+          id="agencies-heading"
+          eyebrow="Agencies"
+          title="Agencies business owners are looking at"
+          lede="Every profile shows the industries they work in and where their prices start."
+        />
+        <ul className="grid gap-4 min-[620px]:grid-cols-2 min-[960px]:grid-cols-3">
+          {agencies.map((a) => {
+            const main = a.services[0];
+            const unit = UNIT[a.pricingModel ?? ""];
+            return (
+              <li
+                key={a.id}
+                className={cn(
+                  "relative flex h-full flex-col gap-4 rounded-[22px] border border-line p-5 transition-[transform,box-shadow] duration-200 ease-out hover:shadow-[0_16px_32px_-16px_rgba(20,25,40,.22)] has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-accent motion-safe:hover:-translate-y-1",
+                  a.sponsored ? "bg-surface" : "bg-raised",
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <AgencyLogo name={a.name} logoPath={a.logoPath} />
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <h3 className="flex items-center gap-1.5 text-[17px] font-[650]">
+                      <span className="truncate">{a.name}</span>
+                      {a.isVerified && (
+                        <BadgeCheck
+                          className="size-[18px] shrink-0 [stroke-width:2] text-verified"
+                          aria-label="Verified"
+                        />
+                      )}
+                    </h3>
+                    {a.hq && <p className="text-[14px] text-text-2">{a.hq.name}</p>}
+                  </div>
+                  {a.sponsored && (
+                    <span className="ml-auto shrink-0 rounded-full border border-line px-2 py-0.5 text-[12.5px] text-text-2">
+                      Sponsored
+                    </span>
+                  )}
+                </div>
+                {(main || a.industries.length > 0) && (
+                  <ul className="flex flex-wrap gap-1.5 text-[13px]">
+                    {main && (
+                      <li className="rounded-full bg-accent-soft px-2.5 py-0.5 text-(--accent-on-soft)">
+                        {main.name}
+                      </li>
+                    )}
+                    {a.industries.slice(0, 2).map((i) => (
+                      <li
+                        key={i.slug}
+                        className="rounded-full bg-surface px-2.5 py-0.5 text-text-2"
+                      >
+                        {i.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4 text-[14px]">
+                  {a.minBudgetUsd !== null ? (
+                    <span>
+                      From <strong className="font-semibold">{formatUsd(a.minBudgetUsd)}</strong>
+                      {unit && <span className="text-text-2"> / {unit}</span>}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                  <Link
+                    href={`/agency/${a.slug}`}
+                    aria-label={`View profile: ${a.name}`}
+                    className="flex items-center gap-1 font-medium text-accent outline-none after:absolute after:inset-0 after:rounded-[22px]"
+                  >
+                    View profile
+                    <ArrowRight className="size-4 [stroke-width:2]" aria-hidden />
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ───────── 5. How it works ─────────
+
+/** Decorative illustrations: not real data. */
+const panel = "flex h-44 items-center justify-center rounded-2xl p-5";
+const miniBox = "rounded-xl border border-line bg-raised shadow-sm";
+
+function MiniFinder() {
+  return (
+    <div className={cn(miniBox, "flex w-full max-w-[240px] flex-col gap-2 p-3 text-[12px]")}>
+      {["Service", "Industry"].map((l) => (
+        <div
+          key={l}
+          className="flex items-center justify-between rounded-lg bg-surface px-2.5 py-2"
+        >
+          <span className="text-text-2">{l}</span>
+          <ChevronDown className="size-3.5 text-text-2" />
+        </div>
+      ))}
+      <div className="rounded-lg bg-accent py-2 text-center font-semibold text-on-accent">
+        Find agencies
+      </div>
+    </div>
+  );
+}
+
+function MiniRows() {
+  return (
+    <div className="flex w-full max-w-[250px] flex-col gap-2 text-[12px]">
+      {[
+        { i: "NV", w: "w-20", p: "$1.5k" },
+        { i: "BK", w: "w-14", p: "$3k" },
+      ].map((r) => (
+        <div key={r.i} className={cn(miniBox, "flex items-center gap-2.5 p-2.5")}>
+          <span className="grid size-7 place-items-center rounded-md bg-surface text-[10px] font-semibold">
+            {r.i}
+          </span>
+          <span className="flex flex-1 flex-col gap-1">
+            <span className={cn("h-2 rounded-full bg-text/70", r.w)} />
+            <span className="h-1.5 w-16 rounded-full bg-line" />
+          </span>
+          <span className="font-semibold">{r.p}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MiniMessage() {
+  return (
+    <div className="flex w-full max-w-[240px] flex-col items-end gap-2 text-[12px]">
+      <div className="rounded-2xl rounded-br-md bg-accent px-3 py-2 text-on-accent">
+        Hi! We&apos;re a clinic looking for YouTube ads help.
+      </div>
+      <span className="flex items-center gap-1 text-(--mint)">
+        <Check className="size-3.5 [stroke-width:2.5]" />
+        Sent to the agency
+      </span>
+    </div>
+  );
+}
+
+const STEPS = [
   {
     title: "Tell us what you need",
-    body: "Your industry, the kind of YouTube help you want and your monthly budget.",
-    tone: "blue",
+    body: "Pick the kind of YouTube help and your industry.",
+    tint: "bg-accent-soft",
+    Art: MiniFinder,
   },
   {
-    title: "Compare agencies",
-    body: "See the industries they work in, the channels they've worked on and their starting price.",
-    tone: "violet",
+    title: "Compare side by side",
+    body: "Starting prices, industries and verified badges, all in one place.",
+    tint: "bg-(--mint-soft)",
+    Art: MiniRows,
   },
   {
     title: "Contact them directly",
-    body: "Reach out to the agencies you like. No middleman, no fees.",
-    tone: "mint",
+    body: "Message the agencies you like. No middleman, no fees.",
+    tint: "bg-(--amber-soft)",
+    Art: MiniMessage,
   },
 ];
-
-/** The step number is text, so blue and violet use their darker "on soft" shades (4.5:1). */
-const STEP_TONES: Record<Tone, string> = {
-  ...TONES,
-  blue: "bg-(--accent-soft) text-(--accent-on-soft)",
-  violet: "bg-(--violet-soft) text-(--violet-on-soft)",
-};
 
 export function HowItWorksSection() {
   return (
@@ -243,23 +558,25 @@ export function HowItWorksSection() {
       <div className={cn(shell, "flex flex-col gap-10")}>
         <SectionHeader
           id="how-heading"
-          title="How it works"
+          eyebrow="How it works"
+          title="From “who do I hire?” to a shortlist in minutes"
           lede="Free for businesses. We don't take a cut of what you pay the agency."
         />
-        <ol className="grid gap-8 min-[860px]:grid-cols-3">
-          {STEPS.map((step, i) => (
-            <li key={step.title} className="flex flex-col gap-3">
-              <span
-                className={cn(
-                  "flex size-11 items-center justify-center rounded-[13px] text-[17px] font-[650]",
-                  STEP_TONES[step.tone],
-                )}
-                aria-hidden
-              >
-                {i + 1}
-              </span>
-              <h3 className="text-[18px] leading-snug font-[650]">{step.title}</h3>
-              <p className="max-w-[38ch] text-[15px] text-text-2">{step.body}</p>
+        <ol className="grid gap-4 min-[860px]:grid-cols-3">
+          {STEPS.map(({ title, body, tint, Art }, i) => (
+            <li
+              key={title}
+              className="flex flex-col gap-4 rounded-[22px] border border-line bg-raised p-4"
+            >
+              <div aria-hidden className={cn(panel, tint)}>
+                <Art />
+              </div>
+              <div className="flex flex-col gap-1.5 px-2 pb-2">
+                <h3 className="text-[18px] font-[650]">
+                  <span className="text-text-2">{i + 1}.</span> {title}
+                </h3>
+                <p className="text-[15px] text-text-2">{body}</p>
+              </div>
             </li>
           ))}
         </ol>
@@ -268,60 +585,114 @@ export function HowItWorksSection() {
   );
 }
 
-const TILE_TONES: Tone[] = ["blue", "mint", "amber", "coral", "violet", "pink"];
-/** The tile's soft background, and its colour for the chevron only. */
-const TILE_BG: Record<Tone, string> = {
-  blue: "bg-(--accent-soft)",
-  violet: "bg-(--violet-soft)",
-  mint: "bg-(--mint-soft)",
-  coral: "bg-(--coral-soft)",
-  amber: "bg-(--amber-soft)",
-  pink: "bg-(--pink-soft)",
-};
-const TILE_ICON: Record<Tone, string> = {
-  blue: "text-accent",
-  violet: "text-(--violet)",
-  mint: "text-(--mint)",
-  coral: "text-(--coral)",
-  amber: "text-(--amber)",
-  pink: "text-(--pink)",
-};
+// ───────── 6. Why ─────────
+
+const ALONE = [
+  "Prices are hidden until a sales call",
+  "No idea if they've worked in your industry",
+  "Every agency says they're the best",
+  "Ten tabs open, nothing to compare",
+];
+const WITH_US = [
+  "Starting price on every profile",
+  "Filter by the industries they work in",
+  "Verified badges that can't be bought",
+  "Side by side in one place, free",
+];
+
+export function WhySection() {
+  return (
+    <section aria-labelledby="why-heading">
+      <div className={cn(shell, "flex flex-col gap-10")}>
+        <SectionHeader
+          id="why-heading"
+          eyebrow={`Why ${BRAND_NAME}`}
+          title="Why not just Google it?"
+          lede="You can. Here's what usually happens."
+        />
+        <div className="grid gap-4 md:grid-cols-2 md:items-center">
+          <div className="flex flex-col gap-5 rounded-[22px] bg-surface p-7">
+            <h3 className="text-[19px] font-[650]">Searching on your own</h3>
+            <ul className="flex flex-col gap-3">
+              {ALONE.map((t) => (
+                <li key={t} className="flex gap-3 text-text-2">
+                  <X
+                    className="mt-0.5 size-5 shrink-0 [stroke-width:2.25] text-(--coral)"
+                    aria-label="No:"
+                  />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-col gap-5 rounded-[22px] border border-accent/25 bg-accent-soft p-7 shadow-[0_20px_40px_-20px_rgba(31,94,255,.35)] md:-my-3 md:py-10">
+            <h3 className="text-[19px] font-[650]">With {BRAND_NAME}</h3>
+            <ul className="flex flex-col gap-3">
+              {WITH_US.map((t) => (
+                <li key={t} className="flex gap-3">
+                  <Check
+                    className="mt-0.5 size-5 shrink-0 [stroke-width:2.5] text-verified"
+                    aria-label="Yes:"
+                  />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ───────── 7. Industries ─────────
 
 export async function IndustriesSection() {
-  // Industries have no page of their own (docs/SEO.md), so each tile links to its best service ×
-  // industry page. Industries without a published agency aren't listed.
-  const industries = await getPopularIndustries(100);
-  if (!industries.length) return null;
+  const { industries, index } = await homeData();
+  // Industries have no page of their own: each tile links to its live service × industry page
+  // with the most agencies. Industries without one aren't listed.
+  const best = new Map<string, { href: string; count: number }>();
+  for (const c of popularIndustryCombos(index.combos, Infinity)) {
+    const slug = c.segment.slice(4);
+    if (!best.has(slug)) best.set(slug, { href: `/${c.serviceSlug}/${c.segment}`, count: c.count });
+  }
+  const tiles = industries
+    .filter((i) => best.has(i.slug))
+    .sort((a, b) => best.get(b.slug)!.count - best.get(a.slug)!.count)
+    .slice(0, 12);
+  if (!tiles.length) return null;
 
   return (
-    <section
-      id="industries"
-      aria-labelledby="industries-heading"
-      className="scroll-mt-16 bg-surface"
-    >
+    <section id="industries" aria-labelledby="industries-heading" className="scroll-mt-16">
       <div className={cn(shell, "flex flex-col gap-10")}>
         <SectionHeader
           id="industries-heading"
+          eyebrow="Industries"
           title="Agencies that know your industry"
           lede="A clinic and a crypto project need very different videos. Start with people who've done yours before."
         />
-        <ul className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4">
-          {industries.map(({ industry, service }, i) => {
-            const tone = TILE_TONES[i % TILE_TONES.length];
+        <ul className="grid grid-cols-2 gap-3 min-[720px]:grid-cols-3 min-[1000px]:grid-cols-4">
+          {tiles.map((industry, i) => {
+            const Icon = INDUSTRY_ICON[industry.slug] ?? Building2;
             return (
               <li key={industry.slug}>
                 <Link
-                  href={`/${service.slug}/for-${industry.slug}`}
+                  href={best.get(industry.slug)!.href}
                   className={cn(
-                    "flex h-full min-h-11 items-center justify-between gap-2 rounded-[18px] p-4 text-[15px] font-semibold text-text transition-transform duration-200 ease-out motion-safe:hover:-translate-y-0.5 min-[480px]:px-[22px] min-[480px]:py-5 min-[480px]:text-[16px]",
-                    TILE_BG[tone],
+                    "flex h-full min-h-16 items-center gap-3 rounded-[18px] border border-line bg-raised p-3 text-[15px] font-semibold transition-[transform,border-color] duration-200 ease-out hover:border-text-2/40 motion-safe:hover:-translate-y-0.5",
+                    focusRing,
                   )}
                 >
-                  {industry.name}
-                  <ChevronRight
-                    className={cn("size-4 shrink-0 [stroke-width:2.25]", TILE_ICON[tone])}
+                  <span
                     aria-hidden
-                  />
+                    className={cn(
+                      "grid size-10 shrink-0 place-items-center rounded-xl",
+                      SOFT[TONE_ORDER[i % TONE_ORDER.length]],
+                    )}
+                  >
+                    <Icon className="size-5 [stroke-width:1.75]" />
+                  </span>
+                  {industry.name}
                 </Link>
               </li>
             );
@@ -331,6 +702,35 @@ export async function IndustriesSection() {
     </section>
   );
 }
+
+// ───────── 8. Guides ─────────
+
+export async function GuidesSection() {
+  const guides = (await getLiveGuides()).slice(0, 3);
+  if (!guides.length) return null;
+  return (
+    <section aria-labelledby="guides-heading">
+      <div className={cn(shell, "flex flex-col gap-10")}>
+        <SectionHeader
+          id="guides-heading"
+          eyebrow="Guides"
+          title="Before you hire"
+          lede="Plain answers to what business owners ask first."
+          link={{ href: "/guides", label: "All guides" }}
+        />
+        <ul className="grid gap-8 min-[640px]:grid-cols-2 min-[1000px]:grid-cols-3">
+          {guides.map((g) => (
+            <li key={g.slug}>
+              <GuideCard guide={g} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// ───────── 9. FAQ ─────────
 
 const FAQS = [
   {
@@ -343,7 +743,7 @@ const FAQS = [
     answer: "No. You agree prices and pay the agency directly.",
   },
   {
-    question: "What happens when I use Find my agency?",
+    question: "What happens when I use Get matched?",
     answer:
       "You answer a few questions about your business and budget. We send your request to up to three matching agencies that manage their listing with us, and they contact you directly.",
   },
@@ -361,18 +761,20 @@ const FAQS = [
 export function FaqSection() {
   return (
     <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-16">
+      {/* The same text as the answers below. */}
       <JsonLd data={faqJsonLd(FAQS)} />
       <div className={cn(shell, "grid gap-10 min-[900px]:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]")}>
         <div className="flex flex-col gap-3">
-          <h2
-            id="faq-heading"
-            className="text-[clamp(28px,3.4vw,42px)] leading-[1.1] font-[650] tracking-[-0.03em] text-balance"
-          >
+          <p className="text-[13px] font-semibold tracking-[0.08em] text-accent uppercase">FAQ</p>
+          <h2 id="faq-heading" className={h2}>
             Questions business owners ask
           </h2>
           <p className="text-[17px] text-text-2">
             Still unsure?{" "}
-            <Link href="/contact" className="font-medium text-accent hover:underline">
+            <Link
+              href="/contact"
+              className={cn("rounded font-medium text-accent hover:underline", focusRing)}
+            >
               Contact us
             </Link>
           </p>
@@ -380,7 +782,12 @@ export function FaqSection() {
         <div className="divide-y divide-line border-y border-line">
           {FAQS.map((faq, i) => (
             <details key={faq.question} open={i === 0} className="group">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 py-5 text-[17px] font-semibold [&::-webkit-details-marker]:hidden">
+              <summary
+                className={cn(
+                  "flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 rounded py-5 text-[17px] font-semibold [&::-webkit-details-marker]:hidden",
+                  focusRing,
+                )}
+              >
                 {faq.question}
                 <span
                   className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface transition-transform duration-200 ease-out group-open:rotate-180"
@@ -393,6 +800,25 @@ export function FaqSection() {
             </details>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ───────── 10. Closing band ─────────
+
+export function ClosingBand() {
+  return (
+    <section aria-labelledby="closing-heading" className={shell}>
+      <div className="flex flex-col items-center gap-5 rounded-[28px] bg-[#16171a] px-6 py-14 text-center text-white md:py-20 site-dark:border site-dark:border-line site-dark:bg-raised">
+        <MessageSquare className="size-7 [stroke-width:1.5] text-white/70" aria-hidden />
+        <h2 id="closing-heading" className={cn(h2, "max-w-[18em]")}>
+          Hire an agency that&apos;s done your industry before.
+        </h2>
+        <p className="text-[17px] text-white/75">
+          Free for businesses. Takes under a minute to start.
+        </p>
+        <FindAgenciesButton className="mt-2" />
       </div>
     </section>
   );

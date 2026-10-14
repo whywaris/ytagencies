@@ -1,9 +1,13 @@
-import { HomeHero } from "@/components/home/hero";
 import {
+  AgenciesSection,
+  ClosingBand,
   FaqSection,
+  GuidesSection,
+  HomeHero,
   HowItWorksSection,
   IndustriesSection,
   ServicesSection,
+  WhySection,
 } from "@/components/home/sections";
 import { JsonLd } from "@/components/json-ld";
 import { getAgencyCount } from "@/lib/data/agencies";
@@ -31,9 +35,13 @@ export default function HomePage() {
 
       <HomeHero />
       <ServicesSection />
+      <AgenciesSection />
       <HowItWorksSection />
+      <WhySection />
       <IndustriesSection />
+      <GuidesSection />
       <FaqSection />
+      <ClosingBand />
     </>
   );
 }

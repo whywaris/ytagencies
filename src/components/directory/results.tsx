@@ -21,6 +21,8 @@ type Filters = {
   size?: string;
   lang?: string;
   contract?: ContractFilter;
+  /** From the home finder (?industry=): no visible field; "Clear filters" removes it. */
+  industry?: string;
   sort?: Sort;
 };
 
@@ -29,12 +31,14 @@ const SORTS: { value: Sort; label: string }[] = [
   { value: "budget", label: "Lowest minimum budget" },
 ];
 
-function parseFilters(params: URLSearchParams, languages: string[]): Filters {
+function parseFilters(params: URLSearchParams, languages: string[], industries: string[]): Filters {
   const budget = Number(params.get("budget"));
   const size = params.get("size") ?? undefined;
   const lang = params.get("lang") ?? undefined;
   const contract = params.get("contract") as ContractFilter | null;
+  const industry = params.get("industry");
   return {
+    industry: industry && industries.includes(industry) ? industry : undefined,
     sort: params.get("sort") === "budget" ? "budget" : undefined,
     contract: contract && CONTRACTS.includes(contract) ? contract : undefined,
     budget: BUDGETS.includes(budget) ? budget : undefined,
@@ -49,6 +53,7 @@ function matches(a: AgencyListItem, f: Filters) {
   if (f.size && a.teamSize !== f.size) return false;
   if (f.lang && !a.languages.includes(f.lang)) return false;
   if (f.contract && !CONTRACT_FILTERS[f.contract].test(a.minContract)) return false;
+  if (f.industry && !a.industries.some((i) => i.slug === f.industry)) return false;
   return true;
 }
 
@@ -67,7 +72,8 @@ type ResultsProps = {
 export function Results(props: ResultsProps) {
   const params = useSearchParams();
   const languages = languagesOf(props.agencies);
-  return <ResultsView {...props} filters={parseFilters(params, languages)} />;
+  const industries = [...new Set(props.agencies.flatMap((a) => a.industries.map((i) => i.slug)))];
+  return <ResultsView {...props} filters={parseFilters(params, languages, industries)} />;
 }
 
 function languagesOf(agencies: AgencyListItem[]) {
@@ -87,7 +93,16 @@ export function ResultsView({
     agencies.filter((a) => matches(a, filters)),
     filters.sort ?? "recommended",
   );
-  const active = !!(filters.budget || filters.size || filters.lang || filters.contract);
+  const active = !!(
+    filters.budget ||
+    filters.size ||
+    filters.lang ||
+    filters.contract ||
+    filters.industry
+  );
+  const industryName = agencies
+    .flatMap((a) => a.industries)
+    .find((i) => i.slug === filters.industry)?.name;
 
   function setFilter(key: keyof Filters, value: string) {
     const next = new URLSearchParams();
@@ -163,8 +178,16 @@ export function ResultsView({
 
       <p className="text-small" aria-live="polite">
         {active
-          ? `Showing ${shown.length} of ${agencies.length} agencies`
+          ? `Showing ${shown.length} of ${agencies.length} agencies${industryName ? ` for ${industryName}` : ""}`
           : `${agencies.length} ${agencies.length === 1 ? "agency" : "agencies"}`}
+        {active && shown.length > 0 && (
+          <>
+            {" · "}
+            <Link href={pathname} replace scroll={false} className="text-accent hover:underline">
+              Show all
+            </Link>
+          </>
+        )}
       </p>
 
       {shown.length > 0 ? (

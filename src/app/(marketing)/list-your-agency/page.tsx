@@ -127,7 +127,10 @@ export default async function ListYourAgencyPage() {
           Business owners compare agencies here by industry, price and the channels you&apos;ve
           worked on. Listing is free.
         </p>
-        <AgencySearch />
+        {/* "Claim a listing" in the footer lands here. */}
+        <div id="claim" className="scroll-mt-24">
+          <AgencySearch />
+        </div>
       </section>
 
       {numbers.views >= MIN_VIEWS_FOR_NUMBERS && (

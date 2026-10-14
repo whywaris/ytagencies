@@ -128,7 +128,7 @@ export type AgencyProfile = AgencyListItem & {
 
 const LIST_SELECT = `
   id, slug, name, tagline, description, logo_path, min_budget_usd, team_size, pricing_model, languages, is_verified,
-  min_contract, ad_spend, setup_fee_usd, updated_at,
+  min_contract, ad_spend, setup_fee_usd, updated_at, created_at,
   hq:locations!agencies_hq_location_id_fkey(slug, name),
   case_study_count:case_studies(count),
   location_count:agency_locations(count),
@@ -152,7 +152,7 @@ function ratingOf(reviews: { rating: number }[]) {
   return { average: Math.round((sum / reviews.length) * 10) / 10, count: reviews.length };
 }
 
-function listQuery() {
+export function listQuery() {
   // Alphabetical here; directory pages rank in JS (rankAgencies) because plans and sponsored
   // slots aren't readable with the anon key.
   return createStaticClient()
@@ -181,7 +181,11 @@ export const getResponseTimes = cache(async () => {
 });
 type ResponseTimes = Awaited<ReturnType<typeof getResponseTimes>>;
 
-function toListItem(row: ListRow, placement: Placement, responses: ResponseTimes): AgencyListItem {
+export function toListItem(
+  row: ListRow,
+  placement: Placement,
+  responses: ResponseTimes,
+): AgencyListItem {
   const e = placement.entitlements(row.id);
   const rating = ratingOf(row.reviews);
   // Unmanaged listings get no inquiries, so no reply time either.

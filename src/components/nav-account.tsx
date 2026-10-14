@@ -7,7 +7,6 @@ import { useEffect, useId, useState } from "react";
 import { AccountMenu, AvatarPlaceholder } from "@/components/account-menu";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
 import { accountFrom, type Account } from "@/lib/account";
 import { cn } from "@/lib/utils";
 
@@ -81,7 +80,8 @@ function closeOnSelect(e: React.MouseEvent<HTMLElement>) {
 }
 
 /**
- * Right side of the nav at desktop widths. Signed out: theme toggle, Sign in, List your agency.
+ * Right side of the nav at desktop widths. Signed out: theme toggle, Sign in. Agency-facing links
+ * (List your agency, Pricing) live in the footer only: the header is for business owners.
  * Signed in: the theme toggle right next to the avatar menu (the signed-out links are removed, not
  * just hidden, so they don't leave a gap). The server HTML is the signed-out state.
  */
@@ -105,9 +105,6 @@ export function NavAccount() {
       >
         Sign in
       </Link>
-      <Button asChild>
-        <Link href="/list-your-agency">List your agency</Link>
-      </Button>
     </div>
   );
 }
@@ -135,18 +132,13 @@ export function NavAccountMenuItems() {
   const onLogin = usePathname() === "/login";
   if (state.status === "out") {
     return (
-      <>
-        <Link
-          href="/login"
-          aria-current={onLogin ? "page" : undefined}
-          className={cn(menuItem, "aria-[current=page]:font-semibold")}
-        >
-          Sign in
-        </Link>
-        <Link href="/list-your-agency" className={cn(menuItem, "font-medium text-accent")}>
-          List your agency
-        </Link>
-      </>
+      <Link
+        href="/login"
+        aria-current={onLogin ? "page" : undefined}
+        className={cn(menuItem, "aria-[current=page]:font-semibold")}
+      >
+        Sign in
+      </Link>
     );
   }
   // Signed in: Dashboard, Admin and Sign out are in the avatar menu (MobileAccount).
