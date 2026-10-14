@@ -1,7 +1,6 @@
 import { ArrowRight, ChevronDown, Sparkles } from "lucide-react";
 import Link from "next/link";
 
-import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { getProPrices, PlanColumns } from "@/components/plan-columns";
 import { COMPANY } from "@/lib/company";
@@ -178,11 +177,9 @@ export default async function PricingPage() {
       <JsonLd data={faqJsonLd(FAQS)} />
 
       {/* 1. Hero */}
-      <section className="home-grid overflow-clip px-4 pt-8 pb-10 md:px-6 md:pb-14">
-        <div className="mx-auto max-w-[1200px]">
-          <Breadcrumbs items={breadcrumbs} />
-        </div>
-        <div className="mx-auto mt-10 flex max-w-[900px] flex-col items-center text-center md:mt-14">
+      {/* No visible breadcrumb (the BreadcrumbList JSON-LD above stays for search). */}
+      <section className="home-grid overflow-clip px-4 pt-10 pb-10 md:px-6 md:pt-14 md:pb-14">
+        <div className="mx-auto flex max-w-[900px] flex-col items-center text-center">
           <p className="rounded-full border border-line bg-raised px-3.5 py-1 text-[14px] font-medium">
             For YouTube agencies
           </p>
