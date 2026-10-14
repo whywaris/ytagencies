@@ -57,12 +57,25 @@ import {
   type Doc,
 } from "@/lib/guide-content";
 import { guideImageAllowed } from "@/lib/guide-media";
+import type { FormResult } from "@/lib/validation/lead";
 import { cn } from "@/lib/utils";
 
 // WYSIWYG guide editor (Tiptap, MIT extensions only). The document is Tiptap JSON; the server
 // sanitizes it and renders the HTML on save (lib/guide-content.ts). Public pages never load this.
 
 export type ServiceOption = { slug: string; name: string };
+
+/**
+ * A server action call that never throws: a failed request (network, or a page opened before a
+ * new deployment, whose actions no longer exist) becomes an error result instead of crashing the
+ * editor and losing unsaved changes.
+ */
+export const reach = <T,>(call: Promise<FormResult<T>>): Promise<FormResult<T>> =>
+  call.catch(() => ({
+    ok: false,
+    error:
+      "Couldn't reach the server. The site may have just been updated: copy your recent changes, then reload the page.",
+  }));
 
 const MAX_IMAGE = 5 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -474,7 +487,7 @@ export function RichEditor({
   async function upload(guideId: string, file: Blob): Promise<string | null> {
     const fd = new FormData();
     fd.set("image", file);
-    const res = await uploadGuideImage(guideId, fd);
+    const res = await reach(uploadGuideImage(guideId, fd));
     if (!res.ok) {
       toast.error(res.error);
       return null;
@@ -534,11 +547,11 @@ export function RichEditor({
             if (blob && IMAGE_TYPES.includes(blob.type) && blob.size <= MAX_IMAGE) {
               const fd = new FormData();
               fd.set("image", blob);
-              const res = await uploadGuideImage(guideId, fd);
+              const res = await reach(uploadGuideImage(guideId, fd));
               if (res.ok) url = res.data.url;
             }
           } else {
-            const res = await importRemoteImage(guideId, src);
+            const res = await reach(importRemoteImage(guideId, src));
             if (res.ok) url = res.data.url;
           }
         }

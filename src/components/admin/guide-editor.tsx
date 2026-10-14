@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { SeoFields } from "@/components/admin/seo-fields";
 import { usePortalContainer } from "@/components/admin/portal";
-import { RichEditor, type ServiceOption } from "@/components/admin/rich-editor";
+import { reach, RichEditor, type ServiceOption } from "@/components/admin/rich-editor";
 import {
   changeGuideSlug,
   deleteGuide,
@@ -130,7 +130,7 @@ export function GuideEditor({
     }
     const run = (async () => {
       setSaveState("saving");
-      const res = await saveGuide(id, snapshot);
+      const res = await reach(saveGuide(id, snapshot));
       if (!res.ok) {
         setSaveState("error");
         setSaveError(res.error);
@@ -177,7 +177,7 @@ export function GuideEditor({
     startTransition(async () => {
       const guideId = await save();
       if (!guideId) return void toast.error(saveError ?? "Save the guide first.");
-      const res = await setGuideStatus(guideId, raw);
+      const res = await reach(setGuideStatus(guideId, raw));
       if (!res.ok) return void toast.error(res.error);
       setStatus(res.data.status as EditorGuide["status"]);
       if (raw.action !== "unpublish") setHasDraft(false);
@@ -284,7 +284,7 @@ export function GuideEditor({
                   confirmLabel="Discard changes"
                   onConfirm={async () => {
                     if (saving.current) await saving.current;
-                    const res = await discardGuideDraft(id);
+                    const res = await reach(discardGuideDraft(id));
                     if (!res.ok) return res.error;
                     setHasDraft(false);
                     setSaveState("saved");
@@ -521,7 +521,7 @@ export function GuideEditor({
             }
             confirmLabel="Delete guide"
             onConfirm={async () => {
-              const res = await deleteGuide(id);
+              const res = await reach(deleteGuide(id));
               if (!res.ok) return res.error;
               setSaveState("saved");
               toast.success("Guide deleted");
@@ -738,7 +738,7 @@ function ChangeUrl({
               disabled={pending}
               onClick={() =>
                 startTransition(async () => {
-                  const res = await changeGuideSlug(guideId, slug);
+                  const res = await reach(changeGuideSlug(guideId, slug));
                   if (!res.ok) return setError(res.error);
                   toast.success("URL changed. The old one redirects.");
                   setOpen(false);
@@ -781,7 +781,7 @@ function CoverField({
       if (!guideId) return void toast.error("Give the guide a title first, so it can be saved.");
       const fd = new FormData();
       fd.set("image", file);
-      const res = await uploadGuideImage(guideId, fd);
+      const res = await reach(uploadGuideImage(guideId, fd));
       if (!res.ok) return void toast.error(res.error);
       onChange(res.data.url);
     });
