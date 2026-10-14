@@ -110,6 +110,8 @@ export function GuideEditor({
   const [pending, startTransition] = useTransition();
   const latest = useRef(values);
   const saving = useRef<Promise<string | null> | null>(null);
+  // The last save's error, read right after awaiting save() (state would still hold the old one).
+  const lastError = useRef<string | null>(null);
 
   const set = <K extends keyof Values>(k: K, v: Values[K]) => {
     setValues((s) => {
@@ -130,13 +132,17 @@ export function GuideEditor({
     }
     const run = (async () => {
       setSaveState("saving");
-      const res = await reach(saveGuide(id, snapshot));
+      // Plain JSON: the editor's node attributes aren't plain objects, and a server action
+      // receives anything else as an unreadable client reference.
+      const res = await reach(saveGuide(id, JSON.parse(JSON.stringify(snapshot)) as Values));
       if (!res.ok) {
         setSaveState("error");
         setSaveError(res.error);
+        lastError.current = res.error;
         return null;
       }
       setSaveError(null);
+      lastError.current = null;
       if (!id) {
         setId(res.data.id);
         // Stay mounted: just update the address bar to the guide's own URL.
@@ -176,7 +182,7 @@ export function GuideEditor({
   ) =>
     startTransition(async () => {
       const guideId = await save();
-      if (!guideId) return void toast.error(saveError ?? "Save the guide first.");
+      if (!guideId) return void toast.error(lastError.current ?? "Save the guide first.");
       const res = await reach(setGuideStatus(guideId, raw));
       if (!res.ok) return void toast.error(res.error);
       setStatus(res.data.status as EditorGuide["status"]);
