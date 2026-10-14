@@ -16,7 +16,6 @@ const ROWS: [string, string | boolean, string | boolean][] = [
   ["Get matched requests", false, true],
   ["Link to your website", false, true],
   ["No other agencies on your profile", false, true],
-  ["Listed above unmanaged agencies", false, true],
   ["Case studies and channels", "As we listed them", "Unlimited"],
   ["Analytics history", "30 days", "12 months"],
   ["Sponsored top spots", false, true],

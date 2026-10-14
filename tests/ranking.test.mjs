@@ -34,41 +34,91 @@ test("quality score: 0 for an empty profile, 100 for a complete, reviewed, check
   );
 });
 
-test("quality score: each part counts (the first three scaled to 90 points)", () => {
-  assert.equal(qualityScore({ ...empty, descriptionLength: 60 }), 5); // 4.5
-  assert.equal(qualityScore({ ...empty, descriptionLength: 250 }), 9);
-  assert.equal(qualityScore({ ...empty, caseStudies: 1 }), 9);
-  assert.equal(qualityScore({ ...empty, reviews: { count: 2, average: 4 } }), 14); // 13.5
-  assert.equal(qualityScore({ ...empty, verification: "approved" }), 14); // 13.5
-  assert.equal(qualityScore({ ...empty, verification: "withStats" }), 27);
+test("quality score: each part counts (no reply data: the 90 points scaled to 100)", () => {
+  assert.equal(qualityScore({ ...empty, descriptionLength: 60 }), 5); // 4.5 → 5
+  assert.equal(qualityScore({ ...empty, descriptionLength: 250 }), 10); // 9 → 10
+  assert.equal(qualityScore({ ...empty, caseStudies: 1 }), 10);
+  assert.equal(qualityScore({ ...empty, reviews: { count: 2, average: 4 } }), 15); // 13.5 → 15
+  assert.equal(qualityScore({ ...empty, verification: "approved" }), 15);
+  assert.equal(qualityScore({ ...empty, verification: "withStats" }), 30); // 27 → 30
 });
 
-test("quality score: response time is worth up to 10", () => {
-  assert.equal(qualityScore({ ...empty, responseMinutes: 3 * 60 }), 10);
-  assert.equal(qualityScore({ ...empty, responseMinutes: 20 * 60 }), 7);
-  assert.equal(qualityScore({ ...empty, responseMinutes: 40 * 60 }), 4);
-  assert.equal(qualityScore({ ...empty, responseMinutes: 72 * 60 }), 0);
-  assert.equal(qualityScore({ ...empty, responseMinutes: null }), 0);
+test("quality score: response time is worth up to 10 when there's data", () => {
+  // A full 90-point profile: base 90 + response points.
+  const full = {
+    hasLogo: true,
+    hasTagline: true,
+    descriptionLength: 400,
+    hasMinBudget: true,
+    caseStudies: 3,
+    locations: 2,
+    reviews: { count: 12, average: 5 },
+    verification: "withStats",
+  };
+  assert.equal(qualityScore({ ...full, responseMinutes: 3 * 60 }), 100);
+  assert.equal(qualityScore({ ...full, responseMinutes: 20 * 60 }), 97);
+  assert.equal(qualityScore({ ...full, responseMinutes: 40 * 60 }), 94);
+  assert.equal(qualityScore({ ...full, responseMinutes: 72 * 60 }), 90);
 });
 
-const a = (id, managed, quality, name = id) => ({ id, name, managed, quality });
+test("quality score: without reply data the other 90 points are scaled to 100", () => {
+  assert.equal(qualityScore({ ...empty, verification: "withStats" }), 30); // 27 × 100/90
+  assert.equal(qualityScore({ ...empty, caseStudies: 1 }), 10); // 9 × 100/90
+  assert.equal(qualityScore({ ...empty, descriptionLength: 60 }), 5); // 4.5 × 100/90 = 5
+  // Same profile: no data ↔ fastest replies both reach the top.
+  assert.equal(qualityScore({ ...empty, verification: "withStats", responseMinutes: 60 }), 37);
+});
 
-test("order: sponsored by position, then managed, then unmanaged, each by quality then name", () => {
+const a = (id, isVerified, quality, name = id) => ({ id, name, isVerified, quality });
+
+test("order: sponsored, then verified, then everyone else, each by quality then name", () => {
   const items = [
-    a("free-hi", false, 90),
-    a("paid-lo", true, 10),
-    a("paid-hi", true, 80),
-    a("free-lo", false, 5),
-    a("spon", false, 1),
+    { ...a("free-hi", false, 90), managed: false },
+    { ...a("pro-lo", false, 10), managed: true },
+    { ...a("ver-lo", true, 20), managed: false },
+    { ...a("ver-pro", true, 60), managed: true },
+    { ...a("spon", false, 1), managed: true },
   ];
   const ranked = rankAgencies(items, ["spon"]);
   assert.deepEqual(
     ranked.map((r) => r.id),
-    ["spon", "paid-hi", "paid-lo", "free-hi", "free-lo"],
+    ["spon", "ver-pro", "ver-lo", "free-hi", "pro-lo"],
   );
   assert.deepEqual(
     ranked.map((r) => r.sponsored),
     [true, false, false, false, false],
+  );
+});
+
+test("Pro doesn't change the order: a free, complete profile outranks a thin Pro one", () => {
+  const free = {
+    ...empty,
+    hasLogo: true,
+    hasTagline: true,
+    descriptionLength: 300,
+    hasMinBudget: true,
+    caseStudies: 2,
+    locations: 1,
+  };
+  const pro = { ...empty, hasLogo: true, responseMinutes: 60 };
+  const ranked = rankAgencies(
+    [
+      { ...a("pro", false, qualityScore(pro)), managed: true },
+      { ...a("free", false, qualityScore(free)), managed: false },
+    ],
+    [],
+  );
+  assert.deepEqual(
+    ranked.map((r) => r.id),
+    ["free", "pro"],
+  );
+});
+
+test("verified always above unverified, whatever the scores", () => {
+  const ranked = rankAgencies([a("top", false, 100), a("low", true, 1)], []);
+  assert.deepEqual(
+    ranked.map((r) => r.id),
+    ["low", "top"],
   );
 });
 

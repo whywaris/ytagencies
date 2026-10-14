@@ -564,3 +564,16 @@
   content: "";
   pointer-events: none;
 }
+
+/* /how-we-rank: score bars grow in once on load. Static under reduced motion. */
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .grow-x {
+    transform-origin: left;
+    animation: grow-x 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}

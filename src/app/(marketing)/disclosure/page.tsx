@@ -43,8 +43,8 @@ const sections: LegalSection[] = [
         <ul>
           <li>
             <strong>Pro for agencies.</strong> Listings are free, but to manage a listing and
-            receive inquiries an agency needs Pro. Pro also adds a link to the agency&apos;s website
-            and lists it above unmanaged listings. See{" "}
+            receive inquiries an agency needs Pro. Pro also adds a link to the agency&apos;s
+            website; it doesn&apos;t change where the agency ranks. See{" "}
             <Link href="/pricing">pricing</Link>.
           </li>
           <li>

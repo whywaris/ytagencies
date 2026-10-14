@@ -274,7 +274,6 @@ async function PlanTab({
     ["Website link on profile", yes(e.websiteLink)],
     ["Response time on profile", yes(e.responseTime)],
     ["Similar agencies on profile", e.showSimilarAgencies ? "Shown" : "Hidden"],
-    ["List position", e.listTier === "managed" ? "Above unmanaged" : "Below managed"],
     ["Analytics history", e.analyticsDays >= 365 ? "12 months" : "30 days"],
     ["Can buy Sponsored slots", yes(e.canBuySponsored)],
   ];

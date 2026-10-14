@@ -51,7 +51,7 @@ const FAQS = [
   {
     question: "What do I get with Pro?",
     answer:
-      "You can edit your profile, businesses can contact you from it, and we send you Get matched requests that fit your services. You also get a link to your website, your reply time on your profile, a place above unmanaged listings and no other agencies suggested on your profile.",
+      "You can edit your profile, businesses can contact you from it, and we send you Get matched requests that fit your services. You also get a link to your website, your reply time on your profile and no other agencies suggested on your profile. Pro doesn't change where you rank.",
   },
   {
     question: "What happens if I cancel?",
@@ -61,7 +61,7 @@ const FAQS = [
   {
     question: "Can I pay to rank higher?",
     answer:
-      "Agencies on Pro are listed above unmanaged ones, and Sponsored spots sit at the top of a page with a clear label. Inside each group, the order depends on verification, profile completeness, reviews and reply time, and none of that can be bought.",
+      "No. Sponsored spots sit at the top of a page with a clear label. After them come Verified agencies, then everyone else, each sorted by a quality score from profile completeness, reviews, verification and reply time. Paying for Pro doesn't change the order, and none of the score can be bought.",
   },
   {
     question: "How do I get Verified?",

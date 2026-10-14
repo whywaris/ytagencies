@@ -7,7 +7,7 @@ import { getPlacement } from "@/lib/data/placement";
 import { pickHomeAgencies } from "@/lib/home";
 
 // Home page "Agencies business owners are looking at": indexable profiles only (no thin, noindex
-// or unpublished ones), at most one sponsored first, then by profile views (lib/home.ts).
+// or unpublished ones), at most one sponsored first, then by profile views, then merit (lib/home.ts).
 export const getHomeAgencies = cache(async () => {
   const [{ data, error }, slugs, placement, responses] = await Promise.all([
     listQuery(),
@@ -24,7 +24,6 @@ export const getHomeAgencies = cache(async () => {
     {
       sponsoredIds: placement.sponsoredAnywhere(),
       views: Object.fromEntries(views),
-      createdAt: Object.fromEntries(rows.map((r) => [r.id, r.created_at])),
     },
   );
 });

@@ -12,7 +12,6 @@ export const PRO_BENEFITS = [
   "Edit your profile, channels and case studies",
   "A contact form: inquiries go straight to you",
   "Get matched requests that fit your services",
-  "Listed above unmanaged agencies",
   "A link to your website, tagged so you can track visits",
   "No other agencies suggested on your profile",
 ];

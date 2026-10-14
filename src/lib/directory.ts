@@ -98,8 +98,9 @@ export function defaultHowToChoose(service: Service, segment?: Segment) {
   ];
 }
 
-/** "one agency", "2 agencies" */
-export const agencyCount = (n: number) => (n === 1 ? "one agency" : `${n} agencies`);
+/** The directory pages' "How are these agencies ranked?" answer (lib/ranking.ts). */
+export const RANKING_ANSWER =
+  "Sponsored placements come first and are labelled. Then Verified agencies, then everyone else, each sorted by quality score. Paying for Pro doesn't change the order, and the Verified badge can't be bought.";
 
 /** FAQs built from the agencies on the page, used when no hand-written FAQs exist. A sentence
  * only appears when its data exists: no zero counts. */
@@ -131,15 +132,9 @@ export function defaultFaqs(
     faqs.push({ question: `How much do ${what} cost?`, answer: range + retainer });
   }
 
-  const verified = agencies.filter((a) => a.isVerified).length;
   faqs.push({
     question: "How are these agencies ranked?",
-    answer:
-      "Sponsored agencies come first and are always labeled. Next are agencies that manage their listing and answer inquiries, then everyone else, each group sorted by profile quality. " +
-      "The Verified badge can't be bought" +
-      (verified > 0
-        ? `: ${verified === agencies.length && verified > 1 ? "all of them have it" : `${agencyCount(verified)} here ${verified === 1 ? "has" : "have"} it`}.`
-        : "."),
+    answer: RANKING_ANSWER,
   });
 
   const languages = [...new Set(agencies.flatMap((a) => a.languages))].sort();
@@ -208,7 +203,7 @@ export function monthYear(dates: (string | null | undefined)[]) {
 
 export type Sort = "recommended" | "budget";
 
-/** Recommended keeps the ranking (sponsored → managed → unmanaged); budget: lowest minimum first,
+/** Recommended keeps the ranking (sponsored → verified → everyone else); budget: lowest minimum first,
  * agencies without one last. */
 export function sortAgencies<T extends Pick<AgencyListItem, "minBudgetUsd">>(
   list: T[],

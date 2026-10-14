@@ -363,8 +363,8 @@ where a.is_verified
   and a.id::text like '00000000-0000-4000-8000-%'
   and not exists (select 1 from verifications v where v.agency_id = a.id and v.status = 'approved');
 
--- Plans (ADMIN_V2_SPEC §6). Two samples are on Pro (managed), so ranking has managed agencies
--- to order above unmanaged ones.
+-- Plans (ADMIN_V2_SPEC §6). Two samples are on Pro (managed), so contact forms and inquiries
+-- have agencies to show on. Pro doesn't affect ranking.
 insert into agency_subscriptions (agency_id, plan_id, status, starts_at, ends_at, source)
 select a.id, 'pro', 'active', now(), now() + interval '6 months', 'manual'
 from agencies a

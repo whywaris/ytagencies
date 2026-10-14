@@ -8,6 +8,7 @@ import {
   cardActions,
   defaultFaqs,
   monthYear,
+  RANKING_ANSWER,
   oneLineSummary,
   shortParagraphs,
   sortAgencies,
@@ -48,7 +49,6 @@ test("FAQs with one agency: singular grammar", () => {
   const t = text(faqs);
   assert.match(t, /Minimum projects here start at \$2k\./);
   assert.match(t, /It works on a monthly retainer\./);
-  assert.match(t, /one agency here has it\./);
   assert.doesNotMatch(t, /\b0\b|1 agencies|of them/);
 });
 
@@ -61,11 +61,24 @@ test("FAQs with many agencies: ranges, counts only when they exist", () => {
   const t = text(defaultFaqs(service, list, segment));
   assert.match(t, /range from \$1k to \$5k\./);
   assert.match(t, /2 work on a monthly retainer; the others charge/);
-  assert.match(t, /2 agencies here have it\./);
 
   const none = text(defaultFaqs(service, [agency({ id: "1" }), agency({ id: "2" })], segment));
-  assert.doesNotMatch(none, /\b0\b|Verified badge can't be bought:/);
-  assert.match(none, /The Verified badge can't be bought\./);
+  assert.doesNotMatch(none, /\b0\b/);
+});
+
+test("ranking answer: merit order, Pro doesn't change it, the same text on every page", () => {
+  for (const list of [
+    [],
+    [agency()],
+    [agency({ id: "1" }), agency({ id: "2", isVerified: true })],
+  ]) {
+    const answer = defaultFaqs(service, list, segment).find(
+      (f) => f.question === "How are these agencies ranked?",
+    ).answer;
+    assert.equal(answer, RANKING_ANSWER);
+  }
+  assert.match(RANKING_ANSWER, /Then Verified agencies, then everyone else/);
+  assert.match(RANKING_ANSWER, /Paying for Pro doesn't change the order/);
 });
 
 test("Contact agency only for managed agencies; View profile always", () => {

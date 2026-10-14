@@ -28,7 +28,11 @@ test("the period toggle drives the checkout period", () => {
 test("Pro's features are the entitlements' list", () => {
   const f = proFeatures();
   assert.ok(f.includes("A contact form on your profile: inquiries go straight to you"));
-  assert.ok(f.includes("Listed above unmanaged agencies"));
+  assert.ok(
+    f.includes("Your profile can be contacted. Free listings send visitors to other agencies."),
+  );
+  // Pro doesn't change the order (lib/ranking.ts).
+  assert.ok(!f.some((x) => /above unmanaged|rank/i.test(x)));
   assert.ok(f.includes("No other agencies suggested on your profile"));
   assert.ok(f.includes("12 months of profile analytics"));
 });

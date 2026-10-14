@@ -34,8 +34,6 @@ export type Entitlements = {
   showSimilarAgencies: boolean;
   /** Case studies shown; all of them either way (what an admin entered still shows). */
   caseStudies: number;
-  /** Directory order after sponsored slots: managed above unmanaged. */
-  listTier: "managed" | "unmanaged";
   /** Profile analytics history in the dashboard. */
   analyticsDays: number;
   canBuySponsored: boolean;
@@ -87,7 +85,6 @@ export function entitlementsFor({
     responseTime: managed,
     showSimilarAgencies: !managed,
     caseStudies: Infinity,
-    listTier: managed ? "managed" : "unmanaged",
     analyticsDays: managed ? 365 : 30,
     canBuySponsored: managed,
     canEdit: managed,
@@ -101,7 +98,6 @@ export function entitlementsFor({
  */
 export function planIncludes(e: Entitlements) {
   const yes = (b: boolean) => (b ? "Yes" : "No");
-  const managed = e.listTier === "managed";
   return [
     {
       label: "Edit your listing",
@@ -131,9 +127,11 @@ export function planIncludes(e: Entitlements) {
       feature: e.responseTime ? "Your reply time on your profile" : null,
     },
     {
-      label: "Placement on directory pages",
-      value: managed ? "Above unmanaged agencies" : "Below managed agencies",
-      feature: managed ? "Listed above unmanaged agencies" : null,
+      label: "Visitors can contact you from your profile",
+      value: yes(e.contactForm),
+      feature: e.contactForm
+        ? "Your profile can be contacted. Free listings send visitors to other agencies."
+        : null,
     },
     {
       label: "Other agencies suggested on your profile",

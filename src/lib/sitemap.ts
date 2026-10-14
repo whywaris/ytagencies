@@ -134,7 +134,7 @@ export async function buildLlmsTxt() {
     about: [
       `Businesses use ${BRAND_NAME} for free: they browse agencies by service, industry and location, or describe what they need and get matched with up to three agencies.`,
       "Listings are free and can be created by us from public information or submitted by agencies. Agencies can manage their profile, receive inquiries and link to their website with a paid Pro plan.",
-      "Directory order is sponsored placements first (always labelled Sponsored), then agencies on Pro, then other listings, each sorted by a quality score from profile completeness, reviews, verification and reply time. The Verified badge can't be bought: it's given after we check an agency's YouTube channels, website and business.",
+      "Directory order is sponsored placements first (always labelled Sponsored), then Verified agencies, then everyone else, each sorted by a quality score from profile completeness, reviews, verification and reply time. Paying for Pro doesn't change the order. The Verified badge can't be bought: it's given after we check an agency's YouTube channels, website and business.",
       "Subscriber counts for the channels on a profile come from the YouTube Data API; a channel an agency adds shows as listed by the agency until the channel owner confirms the work to us.",
       `${BRAND_NAME} is not affiliated with YouTube or Google.`,
     ].join(" "),

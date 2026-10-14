@@ -25,7 +25,6 @@ test("no subscription: unmanaged", () => {
       websiteLink: e.websiteLink,
       responseTime: e.responseTime,
       showSimilarAgencies: e.showSimilarAgencies,
-      listTier: e.listTier,
       canEdit: e.canEdit,
       canBuySponsored: e.canBuySponsored,
     },
@@ -36,7 +35,6 @@ test("no subscription: unmanaged", () => {
       websiteLink: false,
       responseTime: false,
       showSimilarAgencies: true,
-      listTier: "unmanaged",
       canEdit: false,
       canBuySponsored: false,
     },
@@ -54,7 +52,6 @@ test("active Pro: managed, with the Pro entitlements", () => {
   assert.equal(e.utmLinks, true);
   assert.equal(e.responseTime, true);
   assert.equal(e.showSimilarAgencies, false);
-  assert.equal(e.listTier, "managed");
   assert.equal(e.analyticsDays, 365);
   assert.equal(e.canEdit, true);
   assert.equal(e.canBuySponsored, true);

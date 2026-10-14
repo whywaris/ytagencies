@@ -39,47 +39,39 @@ test("popular combos: industry pages only, most agencies first; none when no liv
   assert.deepEqual(popularIndustryCombos([], 4), []);
 });
 
-const ag = (id, managed = false) => ({ id, managed });
+const ag = (id, isVerified = false, quality = 0) => ({ id, name: id, isVerified, quality });
 
-test("agencies: one sponsored first, then views, managed, newest", () => {
+test("agencies: one sponsored first, then views, then merit (verified, score, name)", () => {
   const list = [
-    ag("old"),
-    ag("new"),
-    ag("pro", true),
+    ag("plain", false, 50),
+    ag("ver", true, 10),
     ag("viewed"),
     ag("s1", true),
-    ag("s2", true),
+    ag("s2", true, 5),
   ];
   const picked = pickHomeAgencies(list, {
     sponsoredIds: ["missing", "s1", "s2"],
-    views: { viewed: 40, new: 2 },
-    createdAt: { old: "2026-01-01", new: "2026-09-01", pro: "2026-02-01", s2: "2026-03-01" },
+    views: { viewed: 40 },
   });
   assert.deepEqual(
     picked.map((a) => [a.id, a.sponsored]),
     [
       ["s1", true],
       ["viewed", false],
-      ["new", false],
+      ["ver", false],
       ["s2", false],
-      ["pro", false],
-      ["old", false],
+      ["plain", false],
     ],
   );
 });
 
-test("agencies: no view data falls back to managed first, then newest; max 6", () => {
-  const list = ["a", "b", "c", "d", "e", "f", "g"].map((id) => ag(id, id === "g"));
-  const createdAt = { a: "1", b: "2", c: "3", d: "4", e: "5", f: "6", g: "0" };
-  const picked = pickHomeAgencies(list, { sponsoredIds: [], views: {}, createdAt });
-  assert.deepEqual(
-    picked.map((a) => a.id),
-    ["g", "f", "e", "d", "c", "b"],
-  );
+test("agencies: max 6", () => {
+  const list = ["a", "b", "c", "d", "e", "f", "g"].map((id) => ag(id));
+  assert.equal(pickHomeAgencies(list, { sponsoredIds: [], views: {} }).length, 6);
 });
 
 test("agencies: fewer than 3 hides the section", () => {
-  const opts = { sponsoredIds: [], views: {}, createdAt: {} };
+  const opts = { sponsoredIds: [], views: {} };
   assert.deepEqual(pickHomeAgencies([ag("a"), ag("b")], opts), []);
   assert.equal(pickHomeAgencies([ag("a"), ag("b"), ag("c")], opts).length, 3);
 });

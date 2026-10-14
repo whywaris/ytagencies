@@ -33,7 +33,7 @@ export type AgencyListItem = {
   response: { medianMinutes: number; contacted: number } | null;
   languages: string[];
   isVerified: boolean;
-  /** Live Pro subscription (lib/entitlements.ts): contactable, ranked above unmanaged. */
+  /** Live Pro subscription (lib/entitlements.ts): contactable. Not part of the ranking. */
   managed: boolean;
   /** 0–100, orders agencies within their group (lib/ranking.ts, /how-we-rank). */
   quality: number;
@@ -128,7 +128,7 @@ export type AgencyProfile = AgencyListItem & {
 
 const LIST_SELECT = `
   id, slug, name, tagline, description, logo_path, min_budget_usd, team_size, pricing_model, languages, is_verified,
-  min_contract, ad_spend, setup_fee_usd, updated_at, created_at,
+  min_contract, ad_spend, setup_fee_usd, updated_at,
   hq:locations!agencies_hq_location_id_fkey(slug, name),
   case_study_count:case_studies(count),
   location_count:agency_locations(count),
