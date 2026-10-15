@@ -282,21 +282,28 @@ export function nextRow(
 }
 
 /**
+ * An env value as typed in Vercel, without the stray spaces, line breaks or wrapping quotes a
+ * paste can bring along (a "true " would otherwise leave checkout off).
+ */
+export function envValue(env: Record<string, string | undefined>, name: string) {
+  return (env[name] ?? "").trim().replace(/^(["'])([^]*)\1$/, "$2").trim();
+}
+
+/**
  * What's missing for checkout, by variable name (never values). Empty when Get Pro can start a
  * Creem checkout. PAYMENTS_ENABLED stays the on/off switch (SECURITY.md).
  */
 export function creemEnvProblems(env: Record<string, string | undefined>) {
+  const v = (name: string) => envValue(env, name);
   const missing: string[] = [];
-  if (env.PAYMENTS_ENABLED !== "true") missing.push("PAYMENTS_ENABLED (must be exactly true)");
+  if (v("PAYMENTS_ENABLED") !== "true") missing.push("PAYMENTS_ENABLED (must be true)");
   for (const name of ["CREEM_API_KEY", "CREEM_PRODUCT_PRO_MONTHLY", "CREEM_PRODUCT_PRO_YEARLY"])
-    if (!env[name]?.trim()) missing.push(name);
-  if (env.CREEM_PRODUCT_PRO_MONTHLY && !/^prod_/.test(env.CREEM_PRODUCT_PRO_MONTHLY))
-    missing.push("CREEM_PRODUCT_PRO_MONTHLY (should start with prod_)");
-  if (env.CREEM_PRODUCT_PRO_YEARLY && !/^prod_/.test(env.CREEM_PRODUCT_PRO_YEARLY))
-    missing.push("CREEM_PRODUCT_PRO_YEARLY (should start with prod_)");
+    if (!v(name)) missing.push(name);
+  for (const name of ["CREEM_PRODUCT_PRO_MONTHLY", "CREEM_PRODUCT_PRO_YEARLY"])
+    if (v(name) && !v(name).startsWith("prod_")) missing.push(`${name} (should start with prod_)`);
   // A test key against the live API (or the reverse) fails every call.
-  const key = env.CREEM_API_KEY ?? "";
-  if (key && key.startsWith("creem_test_") !== (env.CREEM_TEST_MODE === "true"))
+  const key = v("CREEM_API_KEY");
+  if (key && key.startsWith("creem_test_") !== (v("CREEM_TEST_MODE") === "true"))
     missing.push("CREEM_TEST_MODE (true for a creem_test_ key, unset for a live key)");
   return missing;
 }

@@ -7,6 +7,7 @@ import {
   changeFor,
   checkoutBody,
   creemEnvProblems,
+  envValue,
   nextRow,
   parseCreemEvent,
   verifyCreemSignature,
@@ -266,7 +267,7 @@ test("Creem env: names what's missing or mismatched, never values", () => {
   };
   assert.deepEqual(creemEnvProblems(ok), []);
   assert.deepEqual(creemEnvProblems({}), [
-    "PAYMENTS_ENABLED (must be exactly true)",
+    "PAYMENTS_ENABLED (must be true)",
     "CREEM_API_KEY",
     "CREEM_PRODUCT_PRO_MONTHLY",
     "CREEM_PRODUCT_PRO_YEARLY",
@@ -280,6 +281,20 @@ test("Creem env: names what's missing or mismatched, never values", () => {
       .join()
       .includes("secret"),
   );
+});
+
+test("Creem env: stray spaces, line breaks and quotes from a paste don't switch checkout off", () => {
+  const pasted = {
+    PAYMENTS_ENABLED: ' "true"\n',
+    CREEM_API_KEY: " creem_test_abc ",
+    CREEM_TEST_MODE: "'true'",
+    CREEM_PRODUCT_PRO_MONTHLY: "prod_m\r\n",
+    CREEM_PRODUCT_PRO_YEARLY: "prod_y ",
+  };
+  assert.deepEqual(creemEnvProblems(pasted), []);
+  assert.equal(envValue(pasted, "PAYMENTS_ENABLED"), "true");
+  assert.equal(envValue(pasted, "MISSING"), "");
+  assert.equal(envValue({ X: `"a'` }, "X"), `"a'`, "mismatched quotes are kept");
 });
 
 test("events for a subscription we never saw start are ignored; unknown types too", () => {

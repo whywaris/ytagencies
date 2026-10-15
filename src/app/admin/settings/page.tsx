@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { requireAdmin } from "@/lib/auth";
 import { creemConfig, paymentsEnabled } from "@/lib/billing";
+import { creemEnvProblems, envValue } from "@/lib/billing/creem-events";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Settings" };
@@ -30,8 +31,10 @@ function Section({
 export default async function AdminSettingsPage() {
   const admin = await requireAdmin("/admin/settings");
   const creem = creemConfig();
-  const webhook = !!process.env.CREEM_WEBHOOK_SECRET;
+  const webhook = !!envValue(process.env, "CREEM_WEBHOOK_SECRET");
   const payments = paymentsEnabled() && !!creem;
+  // Variable names only, never values (SECURITY.md).
+  const problems = creemEnvProblems(process.env);
 
   return (
     <div className="flex max-w-[880px] flex-col">
@@ -61,9 +64,7 @@ export default async function AdminSettingsPage() {
           <p className="mt-1 text-text-2">
             {payments
               ? `Agencies can buy Pro through Creem${creem?.test ? " (test mode: no real charges)" : ""}.`
-              : paymentsEnabled()
-                ? "PAYMENTS_ENABLED is on but the Creem keys or product ids are missing, so Get Pro still opens the request form. Plans are granted by hand on "
-                : "No one is charged. Plans are granted by hand on "}
+              : "Get Pro shows “Checkout is temporarily unavailable”. Plans are granted by hand on "}
             {!payments && (
               <Link href="/admin/plans" className="text-accent hover:underline">
                 Plans
@@ -71,6 +72,18 @@ export default async function AdminSettingsPage() {
             )}
             {!payments && "."}
           </p>
+          {problems.length > 0 && (
+            <div className="mt-3 text-text-2">
+              <p>Fix in Vercel (Production), then redeploy:</p>
+              <ul className="mt-1 list-disc pl-5">
+                {problems.map((p) => (
+                  <li key={p}>
+                    <code>{p}</code>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="mt-1 text-text-2">
             Creem webhook:{" "}
             {webhook

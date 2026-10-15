@@ -9,6 +9,7 @@ import {
   creemEnvProblems,
   nextRow,
   parseCreemEvent,
+  envValue,
   verifyCreemSignature,
   type Email,
   type SubRow,
@@ -25,11 +26,11 @@ import type { Json } from "@/lib/supabase/types";
 
 /** Server-only Creem settings, or null when any is missing. CREEM_TEST_MODE picks the sandbox. */
 export function creemConfig() {
-  const apiKey = process.env.CREEM_API_KEY;
-  const monthly = process.env.CREEM_PRODUCT_PRO_MONTHLY;
-  const yearly = process.env.CREEM_PRODUCT_PRO_YEARLY;
+  const apiKey = envValue(process.env, "CREEM_API_KEY");
+  const monthly = envValue(process.env, "CREEM_PRODUCT_PRO_MONTHLY");
+  const yearly = envValue(process.env, "CREEM_PRODUCT_PRO_YEARLY");
   if (!apiKey || !monthly || !yearly) return null;
-  const test = process.env.CREEM_TEST_MODE === "true";
+  const test = envValue(process.env, "CREEM_TEST_MODE") === "true";
   return {
     apiKey,
     products: { monthly, yearly },
@@ -122,7 +123,7 @@ const SUB_COLUMNS =
  * applying twice is harmless (nextRow ignores events not newer than the last one applied).
  */
 export async function handleCreemWebhook(request: Request): Promise<Response> {
-  const secret = process.env.CREEM_WEBHOOK_SECRET;
+  const secret = envValue(process.env, "CREEM_WEBHOOK_SECRET");
   if (!secret) return new Response("Not configured", { status: 503 });
   const raw = await request.text();
   if (!verifyCreemSignature(raw, request.headers.get("creem-signature"), secret))
@@ -140,8 +141,8 @@ export async function handleCreemWebhook(request: Request): Promise<Response> {
   if (seen.data?.processed_at) return Response.json({ received: true, duplicate: true });
 
   const products = creemConfig()?.products ?? {
-    monthly: process.env.CREEM_PRODUCT_PRO_MONTHLY ?? "",
-    yearly: process.env.CREEM_PRODUCT_PRO_YEARLY ?? "",
+    monthly: envValue(process.env, "CREEM_PRODUCT_PRO_MONTHLY"),
+    yearly: envValue(process.env, "CREEM_PRODUCT_PRO_YEARLY"),
   };
   const change = changeFor(event, products);
   let agencyId: string | null = change?.agencyId ?? null;

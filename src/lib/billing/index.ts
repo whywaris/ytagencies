@@ -1,15 +1,16 @@
 import "server-only";
 
 import { creem, creemConfig } from "@/lib/billing/creem";
+import { envValue } from "@/lib/billing/creem-events";
 
 export { creemConfig };
 
 // Billing interface (ADMIN_V2_SPEC §6). Creem (merchant of record) implements it; nothing else in
-// the app talks to Creem. Checkout is gated by PAYMENTS_ENABLED, which must be exactly "true"
+// the app talks to Creem. Checkout is gated by PAYMENTS_ENABLED, which must be "true"
 // (SECURITY.md), and by the Creem env being present. Webhooks are applied whenever the webhook
 // secret is set, so existing subscriptions stay in sync even if checkout is switched off.
 
-export const paymentsEnabled = () => process.env.PAYMENTS_ENABLED === "true";
+export const paymentsEnabled = () => envValue(process.env, "PAYMENTS_ENABLED") === "true";
 
 export type BillingResult<T> = { ok: true; data: T } | { ok: false; error: string };
 export type Interval = "month" | "year";
