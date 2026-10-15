@@ -276,6 +276,10 @@ test("Creem env: names what's missing or mismatched, never values", () => {
     "CREEM_TEST_MODE (true for a creem_test_ key, unset for a live key)",
   ]);
   assert.match(creemEnvProblems({ ...ok, CREEM_PRODUCT_PRO_YEARLY: "123" }).join(), /prod_/);
+  assert.match(
+    creemEnvProblems({ ...ok, CREEM_PRODUCT_PRO_MONTHLY: "prod_y" }).join(),
+    /same product/,
+  );
   assert.ok(
     !creemEnvProblems({ ...ok, CREEM_API_KEY: "creem_secret" })
       .join()

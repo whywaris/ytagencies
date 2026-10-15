@@ -286,7 +286,10 @@ export function nextRow(
  * paste can bring along (a "true " would otherwise leave checkout off).
  */
 export function envValue(env: Record<string, string | undefined>, name: string) {
-  return (env[name] ?? "").trim().replace(/^(["'])([^]*)\1$/, "$2").trim();
+  return (env[name] ?? "")
+    .trim()
+    .replace(/^(["'])([^]*)\1$/, "$2")
+    .trim();
 }
 
 /**
@@ -301,6 +304,12 @@ export function creemEnvProblems(env: Record<string, string | undefined>) {
     if (!v(name)) missing.push(name);
   for (const name of ["CREEM_PRODUCT_PRO_MONTHLY", "CREEM_PRODUCT_PRO_YEARLY"])
     if (v(name) && !v(name).startsWith("prod_")) missing.push(`${name} (should start with prod_)`);
+  // Same id in both: Monthly checks out the yearly product (or the reverse).
+  if (
+    v("CREEM_PRODUCT_PRO_MONTHLY") &&
+    v("CREEM_PRODUCT_PRO_MONTHLY") === v("CREEM_PRODUCT_PRO_YEARLY")
+  )
+    missing.push("CREEM_PRODUCT_PRO_MONTHLY (same product as CREEM_PRODUCT_PRO_YEARLY)");
   // A test key against the live API (or the reverse) fails every call.
   const key = v("CREEM_API_KEY");
   if (key && key.startsWith("creem_test_") !== (v("CREEM_TEST_MODE") === "true"))
