@@ -56,6 +56,15 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           Payment received. Pro starts as soon as we approve your listing; we&apos;ll email you.
         </p>
       )}
+      {status === "verification-link-invalid" && (
+        <p
+          role="alert"
+          className="max-w-reading rounded-lg border border-destructive p-4 text-destructive"
+        >
+          That verification link has expired or was already used. Ask for verification again from
+          your listing&apos;s Verification tab.
+        </p>
+      )}
       {status === "checkout-failed" && (
         <p
           role="alert"

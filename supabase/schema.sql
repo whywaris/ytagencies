@@ -598,16 +598,24 @@ create index sponsored_slots_agency_idx on sponsored_slots (agency_id);
 create table verifications (
   id uuid primary key default gen_random_uuid(),
   agency_id uuid not null references agencies(id) on delete cascade,
-  status text not null default 'requested' check (status in ('requested', 'approved', 'rejected')),
+  -- email_pending: waiting for the one-time link to the company-domain work email (then requested).
+  status text not null default 'requested'
+    check (status in ('email_pending', 'requested', 'approved', 'rejected')),
   channels jsonb not null default '[]',
   stats_snapshot jsonb,
   checklist jsonb not null default '{}',
   reviewed_by uuid references auth.users(id) on delete set null,
   reviewed_at timestamptz,
+  -- The website domain proven by the work-email link, and when it was clicked.
+  verified_domain text check (char_length(verified_domain) <= 253),
+  verified_email_at timestamptz,
+  -- Approved, then the agency's website moved to another domain: the admin re-checks it.
+  needs_recheck boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create unique index verifications_one_open on verifications (agency_id) where status = 'requested';
+create unique index verifications_one_open on verifications (agency_id)
+  where status in ('email_pending', 'requested');
 create index verifications_agency_idx on verifications (agency_id);
 
 -- agencies.is_verified is now derived: true while the agency has an approved verification.
@@ -712,6 +720,30 @@ alter table profiles add column if not exists notifications_seen_at timestamptz;
 create trigger set_updated_at before update on agency_subscriptions for each row execute function set_updated_at();
 create trigger set_updated_at before update on sponsored_slots for each row execute function set_updated_at();
 create trigger set_updated_at before update on verifications for each row execute function set_updated_at();
+
+-- A website URL's host, lowercased, without "www.": https://www.Acme.com/x → acme.com.
+create or replace function website_host(url text) returns text
+language sql immutable set search_path = public as $$
+  select nullif(lower(regexp_replace(coalesce(url, ''), '^[a-z]+://(www\.)?([^/:?#]+).*$', '\2', 'i')), '')
+$$;
+
+-- The website moved to another domain after Verified was approved: flag it for re-check.
+create or replace function flag_verified_domain_change() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if website_host(new.website) is distinct from website_host(old.website) then
+    update verifications
+    set needs_recheck = true
+    where agency_id = new.id
+      and status = 'approved'
+      and verified_domain is not null
+      and verified_domain is distinct from website_host(new.website);
+  end if;
+  return null;
+end $$;
+revoke execute on function flag_verified_domain_change() from public, anon, authenticated;
+create trigger flag_verified_domain_change after update of website on agencies
+  for each row execute function flag_verified_domain_change();
 
 -- ───────── Row Level Security ─────────
 alter table plans enable row level security;

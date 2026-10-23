@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { VerifyWorkEmail } from "@/emails/verify-work-email";
 import { applyProfile } from "@/lib/agency-profile";
 import { parseCalendly, parseWhatsApp } from "@/lib/booking";
 import { getOwnedAgency } from "@/lib/auth";
+import { createVerificationToken } from "@/lib/claims";
+import { getMailer, oneLine } from "@/lib/email";
 import { removeCaseStudy, writeCaseStudy } from "@/lib/case-studies";
 import { getEntitlements } from "@/lib/data/entitlements";
 import { imageInfo } from "@/lib/image-info";
@@ -15,12 +18,15 @@ import { caseStudySchema, profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
 import { fetchChannel } from "@/lib/youtube";
 import { caseStudyChannelRef, parseChannelUrl } from "@/lib/youtube-url";
+import { absoluteUrl } from "@/lib/site";
+import { NO_OWN_DOMAIN, ownDomain, workEmailProblem } from "@/lib/work-email";
 
 // Agency dashboard mutations. Each one re-checks ownership (SECURITY.md) and writes with the
 // user's own client, so RLS and the column privileges in schema.sql apply as a second guard.
 
 const NOT_OWNER = "You don't manage this listing.";
 const SAVE_FAILED = "We couldn't save that. Please try again in a minute.";
+const SEND_FAILED = "We couldn't send the confirmation email. Please try again in a minute.";
 const LOGO_BUCKET = "agency-media";
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
@@ -168,7 +174,17 @@ export async function deleteCaseStudy(agencyId: string, caseStudyId: string): Pr
  * Owners can't write verifications under RLS, so this inserts with the service role after the
  * ownership check. One open request per agency (unique index).
  */
-export async function requestVerification(agencyId: string, urls: string[]): Promise<FormResult> {
+/**
+ * Asks for the Verified badge. The owner gives a work email on the agency's own website domain;
+ * we email it a one-time link (24 hours), and only once it's clicked does the request reach the
+ * admin queue (app/api/verification/confirm). Asking again replaces a request still waiting for
+ * its link.
+ */
+export async function requestVerification(
+  agencyId: string,
+  urls: string[],
+  workEmail: string,
+): Promise<FormResult<{ domain: string }>> {
   // Verification is part of managing a listing: Pro only, like editing.
   const owned = await editableAgency(agencyId);
   if ("error" in owned) return { ok: false, error: owned.error };
@@ -184,31 +200,75 @@ export async function requestVerification(agencyId: string, urls: string[]): Pro
     const reason = parseChannelUrl(bad.slice(0, 300));
     return { ok: false, error: `${bad.slice(0, 80)}: ${reason.ok ? "too long" : reason.error}` };
   }
+  const email = z.string().trim().toLowerCase().max(254).email().safeParse(workEmail);
+  if (!email.success)
+    return {
+      ok: false,
+      error: "Check the highlighted fields.",
+      fieldErrors: { workEmail: "Enter a valid email address." },
+    };
 
   const db = createAdminClient();
+  const { data: agency } = await db
+    .from("agencies")
+    .select("name, website")
+    .eq("id", agencyId)
+    .maybeSingle();
+  const domain = ownDomain(agency?.website);
+  if (!agency || !domain) return { ok: false, error: NO_OWN_DOMAIN };
+  const problem = workEmailProblem(email.data, agency.website);
+  if (problem)
+    return {
+      ok: false,
+      error: "Check the highlighted fields.",
+      fieldErrors: { workEmail: problem },
+    };
+
   const { data: current } = await db
     .from("verifications")
     .select("status")
     .eq("agency_id", agencyId)
     .in("status", ["requested", "approved"]);
-  if (current?.some((v) => v.status === "approved")) {
+  if (current?.some((v) => v.status === "approved"))
     return { ok: false, error: "Your agency is already verified." };
-  }
-  const { error } = await db.from("verifications").insert({
-    agency_id: agencyId,
-    status: "requested",
-    channels: list.map((url) => ({ url })),
-  });
-  if (error) {
+  if (current?.some((v) => v.status === "requested"))
     return {
       ok: false,
-      error:
-        error.code === "23505"
-          ? "You already have a request in review. We'll email you when it's decided."
-          : "We couldn't send your request. Please try again in a minute.",
+      error: "You already have a request in review. We'll email you when it's decided.",
     };
+
+  const mail = getMailer();
+  if (!mail) return { ok: false, error: SEND_FAILED };
+  // A new request replaces one still waiting for its email link (that link stops working).
+  await db.from("verifications").delete().eq("agency_id", agencyId).eq("status", "email_pending");
+  const { data: row, error } = await db
+    .from("verifications")
+    .insert({
+      agency_id: agencyId,
+      status: "email_pending",
+      channels: list.map((url) => ({ url })),
+      verified_domain: domain,
+    })
+    .select("id")
+    .single();
+  if (error || !row) return { ok: false, error: SEND_FAILED };
+
+  const url = absoluteUrl(
+    `/api/verification/confirm?token=${encodeURIComponent(createVerificationToken(row.id))}`,
+  );
+  const { error: sendError } = await mail.send({
+    from: mail.from,
+    to: email.data,
+    subject: oneLine(`Confirm ${domain} for ${agency.name}'s Verified badge`),
+    react: VerifyWorkEmail({ agencyName: agency.name, domain, url }),
+  });
+  if (sendError) {
+    console.error("verification email failed", { verificationId: row.id });
+    await db.from("verifications").delete().eq("id", row.id);
+    return { ok: false, error: SEND_FAILED };
   }
-  return { ok: true, data: undefined };
+  revalidatePath(`/dashboard/${owned.agency.slug}/verification`);
+  return { ok: true, data: { domain } };
 }
 
 /**

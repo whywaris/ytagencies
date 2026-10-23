@@ -58,7 +58,7 @@ export const sponsoredEnabled = (env: Record<string, string | undefined> = proce
   env.SPONSORED_ENABLED?.trim() === "true";
 
 /** When these rules last changed (yyyy-mm-dd): /how-we-rank "Last updated" and dateModified. */
-export const RANKING_UPDATED = "2026-10-23";
+export const RANKING_UPDATED = "2026-10-24";
 
 export type Rankable = { id: string; name: string; isVerified: boolean; quality: number };
 

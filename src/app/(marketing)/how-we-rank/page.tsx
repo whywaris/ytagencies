@@ -94,7 +94,7 @@ const GROUPS = [
   {
     n: 1,
     title: "Verified agencies",
-    body: "Agencies that passed our checks, on any plan, free included. Sorted by quality score.",
+    body: "Agencies that proved their own domain with a work email and passed our checks, on any plan. Sorted by quality score.",
     tone: "border-verified/40 bg-(--mint-soft)",
     num: "bg-verified text-bg",
   },
@@ -156,9 +156,11 @@ const SCORE_CARDS: {
     tint: "bg-(--mint-soft) text-(--mint)",
     body: (
       <p>
-        30 points when we&apos;ve verified the agency and checked its YouTube channel stats, 15 when
-        it was verified before channel stats were recorded. Channel stats are re-checked every
-        month.
+        To apply, an agency confirms a work email on its own website domain; free and temporary
+        addresses don&apos;t count. Then 30 points when we&apos;ve verified it and checked its
+        YouTube channel stats, 15 when it was verified before channel stats were recorded. Channel
+        stats are re-checked every month, and a badge is re-checked if the agency&apos;s website
+        moves to another domain.
       </p>
     ),
   },
@@ -187,7 +189,7 @@ const NOT_FOR_SALE = [
 const OWNERS = [
   "The order reflects how complete, reviewed and verified an agency is, not what it pays us.",
   "No agency can pay for a higher place, on any plan.",
-  "Verified badges mean we've checked the agency's website, business and YouTube channels.",
+  "Verified badges mean the agency confirmed a work email on its own website domain, and we've checked its website, business and YouTube channels.",
 ];
 
 const STEPS = [
@@ -204,7 +206,7 @@ const STEPS = [
   {
     n: "03",
     title: "Apply for Verified",
-    body: "Verified agencies are listed above everyone else. It's free to apply.",
+    body: "Confirm a work email at your agency's own domain (not Gmail or Outlook), then we check your website, channels and business. Verified agencies are listed above everyone else. It's free.",
   },
   {
     n: "04",

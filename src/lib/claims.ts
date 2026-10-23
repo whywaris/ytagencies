@@ -2,6 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emailOnOwnDomain, readLinkToken, signLinkToken } from "@/lib/work-email";
 
 // Claim verification links: "<claimId>.<expiresAtSeconds>.<hmac>". Stateless, so no token table.
 // The link alone isn't enough: confirming also requires being signed in as the claimant.
@@ -36,20 +37,11 @@ export function readClaimToken(token: string, now = Date.now()) {
 
 /**
  * True if the work email is on the agency's own website domain (or a subdomain of it):
- * ana@acmemedia.com and ana@mail.acmemedia.com both match https://www.acmemedia.com.
+ * ana@acmemedia.com and ana@mail.acmemedia.com both match https://www.acmemedia.com. Free,
+ * personal and disposable providers and site-builder URLs never match (lib/work-email.ts).
  */
-export function emailMatchesWebsite(email: string, website: string | null) {
-  if (!website) return false;
-  let host: string;
-  try {
-    host = new URL(website).hostname.toLowerCase().replace(/^www\./, "");
-  } catch {
-    return false;
-  }
-  const domain = email.split("@")[1]?.toLowerCase();
-  if (!domain || !host.includes(".")) return false;
-  return domain === host || domain.endsWith(`.${host}`);
-}
+export const emailMatchesWebsite = (email: string, website: string | null) =>
+  emailOnOwnDomain(email, website);
 
 /**
  * Grants ownership for a pending claim (service role). Callers do the checks first: the claimant's
@@ -79,3 +71,14 @@ export async function approveClaim(claim: { id: string; agencyId: string; userId
   ]);
   return true;
 }
+
+const linkSecret = () => {
+  const s = process.env.CLAIM_TOKEN_SECRET;
+  if (!s || s.length < 32) throw new Error("CLAIM_TOKEN_SECRET must be at least 32 characters");
+  return s;
+};
+
+/** The Verified work-email link (24 hours; its own HMAC label, so it never works as a claim link). */
+export const createVerificationToken = (verificationId: string) =>
+  signLinkToken(verificationId, linkSecret());
+export const readVerificationToken = (token: string) => readLinkToken(token, linkSecret());

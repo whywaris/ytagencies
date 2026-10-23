@@ -607,6 +607,32 @@ await db.exec(
 ok((await verified(PINE)) === true, "verification: approving sets the agency's badge");
 await db.exec(`update verifications set status = 'rejected' where agency_id = '${PINE}'`);
 ok((await verified(PINE)) === false, "verification: revoking clears the badge");
+// Verified on a proven domain: moving the website to another domain flags it, never removes it.
+await db.exec(`
+  update agencies set website = 'https://www.pinecask.example' where id = '${PINE}';
+  insert into verifications (agency_id, status, verified_domain, verified_email_at)
+  values ('${PINE}', 'approved', 'pinecask.example', now());
+`);
+const recheck = async () =>
+  (
+    await rows(
+      `select needs_recheck from verifications where agency_id = '${PINE}' and status = 'approved'`,
+    )
+  )[0].needs_recheck;
+await db.exec(
+  `update agencies set website = 'https://pinecask.example/about' where id = '${PINE}'`,
+);
+ok((await recheck()) === false, "verification: same domain (www, path) doesn't flag");
+await db.exec(`update agencies set website = 'https://pinecask-new.example' where id = '${PINE}'`);
+ok((await recheck()) === true, "verification: a new website domain flags it for re-check");
+ok((await verified(PINE)) === true, "verification: the flag doesn't remove the badge");
+ok(
+  await fails(
+    `insert into verifications (agency_id, status) values ('${PINE}', 'email_pending'), ('${PINE}', 'requested')`,
+  ),
+  "verification: one open request (email_pending or requested) per agency",
+);
+await db.exec(`update verifications set status = 'rejected' where agency_id = '${PINE}'`);
 const drift = await rows(
   `select a.slug from agencies a where a.is_verified <> exists (select 1 from verifications v where v.agency_id = a.id and v.status = 'approved')`,
 );

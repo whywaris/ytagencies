@@ -1334,6 +1334,9 @@ export type Database = {
           created_at: string;
           id: string;
           reviewed_at: string | null;
+          verified_domain: string | null;
+          verified_email_at: string | null;
+          needs_recheck: boolean;
           reviewed_by: string | null;
           stats_snapshot: Json | null;
           status: string;
@@ -1346,6 +1349,9 @@ export type Database = {
           created_at?: string;
           id?: string;
           reviewed_at?: string | null;
+          verified_domain?: string | null;
+          verified_email_at?: string | null;
+          needs_recheck?: boolean;
           reviewed_by?: string | null;
           stats_snapshot?: Json | null;
           status?: string;
@@ -1358,6 +1364,9 @@ export type Database = {
           created_at?: string;
           id?: string;
           reviewed_at?: string | null;
+          verified_domain?: string | null;
+          verified_email_at?: string | null;
+          needs_recheck?: boolean;
           reviewed_by?: string | null;
           stats_snapshot?: Json | null;
           status?: string;

@@ -20,12 +20,21 @@ export default async function AdminVerificationPage({
     .slice(0, 100);
 
   const db = createAdminClient();
-  const [requests, matches] = await Promise.all([
+  const [requests, recheck, matches] = await Promise.all([
     db
       .from("verifications")
-      .select("id, agency_id, created_at, agencies(name, slug, website)")
+      .select(
+        "id, agency_id, created_at, verified_domain, verified_email_at, agencies(name, slug, website)",
+      )
       .eq("status", "requested")
       .order("created_at", { ascending: true })
+      .limit(200),
+    // Verified, then the website moved to another domain (a trigger flags it; nothing is removed).
+    db
+      .from("verifications")
+      .select("id, agency_id, verified_domain, agencies(name, website)")
+      .eq("status", "approved")
+      .eq("needs_recheck", true)
       .limit(200),
     q
       ? db
@@ -36,7 +45,8 @@ export default async function AdminVerificationPage({
           .limit(10)
       : null,
   ]);
-  if (requests.error || matches?.error) throw new Error("Couldn't load verification requests");
+  if (requests.error || recheck.error || matches?.error)
+    throw new Error("Couldn't load verification requests");
 
   // §6: any plan can request verification; Free requests are queued behind paid ones.
   const plans = new Map<string, string>();
@@ -80,6 +90,7 @@ export default async function AdminVerificationPage({
               <tr>
                 <th scope="col">Agency</th>
                 <th scope="col">Plan</th>
+                <th scope="col">Domain proven</th>
                 <th scope="col">Requested</th>
                 <th scope="col">
                   <span className="sr-only">Action</span>
@@ -97,6 +108,24 @@ export default async function AdminVerificationPage({
                   </td>
                   <td>
                     <PlanBadge plan={plans.get(r.agency_id) ?? "free"} />
+                  </td>
+                  <td>
+                    {r.verified_domain && r.verified_email_at ? (
+                      <>
+                        <span className="font-medium">{r.verified_domain}</span>
+                        <div className="text-admin-meta">
+                          Email confirmed{" "}
+                          <time
+                            dateTime={r.verified_email_at}
+                            title={formatDateTime(r.verified_email_at)}
+                          >
+                            {formatRelative(r.verified_email_at)}
+                          </time>
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-text-2">Not proven (older request)</span>
+                    )}
                   </td>
                   <td>
                     <time
@@ -121,6 +150,38 @@ export default async function AdminVerificationPage({
           </Table>
         )}
       </section>
+
+      {recheck.data.length > 0 && (
+        <section aria-labelledby="recheck" className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 id="recheck" className="text-admin-section">
+              Re-check: website domain changed
+            </h2>
+            <p className="text-text-2">
+              These agencies are Verified on one domain but their website now points elsewhere. The
+              badge stays until you review it: approve again (on the new domain) or revoke it.
+            </p>
+          </div>
+          <ul className="divide-y divide-line rounded-xl border border-line">
+            {recheck.data.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/admin/verification/${r.agency_id}`}
+                  className="flex min-h-11 flex-wrap items-center gap-x-3 px-4 py-2 transition-colors duration-150 hover:bg-surface-2"
+                >
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {r.agencies?.name ?? "Deleted agency"}
+                  </span>
+                  <span className="text-admin-meta">
+                    Verified on {r.verified_domain} · now{" "}
+                    {r.agencies?.website?.replace(/^https?:\/\/(www\.)?/, "") ?? "no website"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="verify-any" className="flex max-w-2xl flex-col gap-4">
         <h2 id="verify-any" className="text-admin-section">
