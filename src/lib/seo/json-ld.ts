@@ -21,6 +21,7 @@ export function organizationJsonLd() {
     // Google wants a raster logo of at least 112×112 (src/app/logo.png/route.tsx renders 512×512).
     logo: absolute("/logo.png"),
     email: CONTACT_EMAIL,
+    sameAs: Object.values(COMPANY.social),
     ...(legalName ? { legalName } : {}),
     foundingDate: String(foundedYear),
     ...(city || countryCode

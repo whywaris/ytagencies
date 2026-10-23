@@ -25,6 +25,16 @@ export const COMPANY = {
   /** The one contact address for every topic (privacy, agencies, press…). */
   email: CONTACT_EMAIL,
 
+  /** Our social profiles: the footer icons and Organization JSON-LD sameAs, in that order. */
+  social: {
+    x: "https://x.com/ytagencies",
+    linkedin: "https://www.linkedin.com/company/ytagencies",
+    youtube: "https://www.youtube.com/@YTAgencies",
+    instagram: "https://www.instagram.com/ytagencies/",
+    threads: "https://www.threads.com/@ytagencies",
+    facebook: "https://www.facebook.com/ytagencies/",
+  },
+
   /**
    * How quickly each inbox answers, as a phrase ("within 2 business days"). Privacy requests have
    * the legal limit (one month under GDPR); the others are TODO promises only you can make.
