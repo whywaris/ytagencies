@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DirectoryPage } from "@/components/directory/directory-page";
-import { getAgenciesForService, getIndexableCombos } from "@/lib/data/agencies";
+import { getAgenciesForService, getDirectoryIndex } from "@/lib/data/agencies";
 import { getIndustries, getLocations, getServiceBySlug, getServices } from "@/lib/data/taxonomy";
 import {
   defaultFaqs,
@@ -12,6 +12,7 @@ import {
   directoryTitle,
   monthYear,
   oneLineSummary,
+  relatedGroup,
   shortParagraphs,
 } from "@/lib/directory";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -44,22 +45,33 @@ export async function generateMetadata({ params }: PageProps<"/[service]">) {
 
 export default async function ServiceHubPage({ params }: PageProps<"/[service]">) {
   const { service, agencies } = await load((await params).service);
-  const [combos, industries, locations, services] = await Promise.all([
-    getIndexableCombos(),
+  const [{ combos, hubCounts }, industries, locations, services] = await Promise.all([
+    getDirectoryIndex(),
     getIndustries(),
     getLocations(),
     getServices(),
   ]);
 
-  // docs/SEO.md: the hub links to all of its indexed industry and location pages.
+  // "Explore more": indexable pages only (the sitemap's index and 3-agency rule), most agencies
+  // first. docs/SEO.md: the hub links to its indexed industry and location pages.
   const mine = combos.filter((c) => c.serviceSlug === service.slug);
   const industryName = new Map(industries.map((i) => [`for-${i.slug}`, i.name]));
   const locationName = new Map(locations.map((l) => [`in-${l.slug}`, l.name]));
-  const linksFor = (names: Map<string, string>) =>
+  const linksFor = (names: Map<string, string>, phrase: (name: string) => string) =>
     mine.flatMap((c) => {
       const label = names.get(c.segment);
-      return label ? [{ href: `/${service.slug}/${c.segment}`, label }] : [];
+      return label
+        ? [
+            {
+              href: `/${service.slug}/${c.segment}`,
+              label,
+              title: `${service.name} agencies ${phrase(label)}`,
+              count: c.count,
+            },
+          ]
+        : [];
     });
+  const browseService = { href: `/agencies?service=${service.slug}`, label: "View all" };
 
   const intro =
     service.intro ??
@@ -91,14 +103,31 @@ export default async function ServiceHubPage({ params }: PageProps<"/[service]">
       howToChoose={defaultHowToChoose(service)}
       faqs={defaultFaqs(service, agencies)}
       related={[
-        { title: `${service.name} agencies by industry`, links: linksFor(industryName) },
-        { title: `${service.name} agencies by location`, links: linksFor(locationName) },
-        {
-          title: "Other services",
-          links: services
-            .filter((s) => s.slug !== service.slug)
-            .map((s) => ({ href: `/${s.slug}`, label: `${s.name} agencies` })),
-        },
+        relatedGroup(
+          `${service.name} by industry`,
+          linksFor(industryName, (n) => `for ${n}`),
+          browseService,
+        ),
+        relatedGroup(
+          `${service.name} by location`,
+          linksFor(locationName, (n) => `in ${n}`),
+          browseService,
+        ),
+        relatedGroup(
+          "Other services",
+          services
+            .filter(
+              (s) =>
+                s.slug !== service.slug && (hubCounts.get(s.slug) ?? 0) >= MIN_AGENCIES_TO_INDEX,
+            )
+            .map((s) => ({
+              href: `/${s.slug}`,
+              label: s.name,
+              title: `${s.name} agencies`,
+              count: hubCounts.get(s.slug) ?? 0,
+            })),
+          { href: "/agencies", label: "View all agencies" },
+        ),
       ]}
     />
   );

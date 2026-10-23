@@ -8,10 +8,8 @@ import { JsonLd } from "@/components/json-ld";
 import { PageTracker } from "@/components/page-tracker";
 import type { AgencyListItem } from "@/lib/data/agencies";
 import type { Faq } from "@/lib/data/taxonomy";
-import { atAGlance } from "@/lib/directory";
+import { atAGlance, type RelatedGroup } from "@/lib/directory";
 import { breadcrumbJsonLd, faqJsonLd, itemListJsonLd } from "@/lib/seo/json-ld";
-
-type LinkGroup = { title: string; links: { href: string; label: string }[] };
 
 type DirectoryPageProps = {
   heading: string;
@@ -32,7 +30,8 @@ type DirectoryPageProps = {
   about: string[];
   howToChoose: string[];
   faqs: Faq[];
-  related: LinkGroup[];
+  /** "Explore more": up to 3 groups of live pages (relatedGroup); null groups are left out. */
+  related: (RelatedGroup | null)[];
 };
 
 const icon = "size-4 shrink-0 text-text-2 [stroke-width:1.5]";
@@ -53,7 +52,7 @@ export function DirectoryPage({
   faqs,
   related,
 }: DirectoryPageProps) {
-  const groups = related.filter((g) => g.links.length > 0);
+  const groups = related.filter((g): g is RelatedGroup => g !== null).slice(0, 3);
   const glance = atAGlance(agencies);
   const n = agencies.length;
 
@@ -211,29 +210,41 @@ export function DirectoryPage({
 
         {groups.length > 0 && (
           <section
-            aria-labelledby="related"
-            className="grid gap-8 border-t border-line pt-12 md:grid-cols-3"
+            aria-labelledby="explore-more"
+            className="flex min-w-0 flex-col gap-6 border-t border-line pt-12"
           >
-            <h2 id="related" className="sr-only">
-              Related pages
+            <h2 id="explore-more" className="text-h2">
+              Explore more
             </h2>
-            {groups.map((g) => (
-              <div key={g.title} className="flex flex-col gap-3">
-                <h3 className="text-h3">{g.title}</h3>
-                <ul className="flex flex-wrap gap-2">
-                  {g.links.map((l) => (
-                    <li key={l.href}>
-                      <Link
-                        href={l.href}
-                        className="inline-flex min-h-10 items-center rounded-full border border-line px-4 text-[15px] hover:border-text-2"
-                      >
-                        {l.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-8">
+              {groups.map((g) => (
+                <div key={g.title} className="flex min-w-0 flex-col gap-3">
+                  <h3 className="text-[16px] font-semibold">{g.title}</h3>
+                  <ul className="flex flex-wrap gap-2">
+                    {g.links.map((l) => (
+                      <li key={l.href}>
+                        <Link
+                          href={l.href}
+                          title={l.title}
+                          aria-label={l.title}
+                          className="inline-flex min-h-9 items-center rounded-full border border-line px-3.5 py-1 text-[14.5px] transition-colors duration-150 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        >
+                          {l.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  {g.viewAll && (
+                    <Link
+                      href={g.viewAll.href}
+                      className="self-start rounded text-[14.5px] font-medium text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    >
+                      {g.viewAll.label} →
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
           </section>
         )}
       </div>

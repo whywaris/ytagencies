@@ -12,6 +12,7 @@ import {
   oneLineSummary,
   shortParagraphs,
   sortAgencies,
+  relatedGroup,
 } from "../src/lib/directory.ts";
 
 const service = { id: 1, slug: "youtube-ads-agencies", name: "YouTube Ads", intro: null };
@@ -138,4 +139,23 @@ test("short paragraphs keep every word; Updated month from the newest date", () 
   assert.equal(parts.join(" ").split(/\s+/).length, intro.split(/\s+/).length);
   assert.equal(monthYear(["2026-03-02T00:00:00Z", null, "2026-10-14T00:00:00Z"]), "October 2026");
   assert.equal(monthYear([]), null);
+});
+
+test("Explore more: most agencies first, 12 at most then View all, empty groups dropped", () => {
+  const link = (label, count) => ({ href: `/x/${label}`, label, title: `X ${label}`, count });
+  assert.equal(relatedGroup("Empty", []), null);
+  const g = relatedGroup(
+    "By industry",
+    Array.from({ length: 14 }, (_, i) => link(`i${String(i).padStart(2, "0")}`, i % 3)),
+    { href: "/agencies?service=x", label: "View all" },
+  );
+  assert.equal(g.links.length, 12);
+  assert.deepEqual(
+    g.links.slice(0, 2).map((l) => l.count),
+    [2, 2],
+  );
+  assert.equal(g.links[0].label, "i02", "ties A–Z");
+  assert.deepEqual(g.viewAll, { href: "/agencies?service=x", label: "View all" });
+  const small = relatedGroup("Few", [link("a", 3)], { href: "/agencies", label: "View all" });
+  assert.equal(small.viewAll, undefined, "no View all when nothing was cut");
 });

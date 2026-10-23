@@ -255,3 +255,32 @@ export function atAGlance(agencies: AgencyListItem[]) {
 }
 
 export const pricingName = (model: string | null) => PRICING_NAME[model ?? ""] ?? null;
+
+/** One chip in "Explore more": a short label, the full phrase for title / aria-label. */
+export type RelatedLink = { href: string; label: string; title: string; count: number };
+export type RelatedGroup = {
+  title: string;
+  links: RelatedLink[];
+  viewAll?: { href: string; label: string };
+};
+
+export const MAX_RELATED = 12;
+
+/**
+ * An "Explore more" group: live (indexable) pages only, which the caller picks from the same
+ * index as the sitemap; most agencies first, then A–Z; at most 12, then "View all". Null when
+ * there's nothing to link to, so the group (and an empty block) is left out.
+ */
+export function relatedGroup(
+  title: string,
+  links: RelatedLink[],
+  viewAll?: { href: string; label: string },
+): RelatedGroup | null {
+  if (links.length === 0) return null;
+  const sorted = [...links].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  return {
+    title,
+    links: sorted.slice(0, MAX_RELATED),
+    ...(viewAll && sorted.length > MAX_RELATED ? { viewAll } : {}),
+  };
+}

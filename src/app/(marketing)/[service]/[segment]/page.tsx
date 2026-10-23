@@ -23,6 +23,7 @@ import {
   segmentName,
   segmentPhrase,
   shortParagraphs,
+  relatedGroup,
 } from "@/lib/directory";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
@@ -77,22 +78,41 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
   ]);
   const prefix = segment.kind === "industry" ? "for-" : "in-";
 
-  // Related links only point at indexable pages, so crawl budget isn't spent on noindex ones.
+  // "Explore more" only points at indexable pages (the sitemap's index and 3-agency rule), so
+  // crawl budget isn't spent on noindex or empty ones. Most agencies first.
+  const phrase = (label: string) => (segment.kind === "industry" ? `for ${label}` : `in ${label}`);
   const sameService = combos
     .filter(
       (c) =>
         c.serviceSlug === service.slug && c.segment !== segmentSlug && c.segment.startsWith(prefix),
     )
-    .map((c) => ({
-      href: `/${c.serviceSlug}/${c.segment}`,
-      label: segmentLabel.get(c.segment) ?? c.segment,
-    }));
+    .map((c) => {
+      const label = segmentLabel.get(c.segment) ?? c.segment;
+      return {
+        href: `/${c.serviceSlug}/${c.segment}`,
+        label,
+        title: `${service.name} agencies ${phrase(label)}`,
+        count: c.count,
+      };
+    });
   const sameSegment = combos
     .filter((c) => c.segment === segmentSlug && c.serviceSlug !== service.slug)
-    .map((c) => ({
-      href: `/${c.serviceSlug}/${c.segment}`,
-      label: `${serviceName.get(c.serviceSlug) ?? c.serviceSlug} agencies`,
-    }));
+    .map((c) => {
+      const label = serviceName.get(c.serviceSlug) ?? c.serviceSlug;
+      return {
+        href: `/${c.serviceSlug}/${c.segment}`,
+        label,
+        title: `${label} agencies ${segmentPhrase(segment)}`,
+        count: c.count,
+      };
+    });
+  const place = segmentName(segment);
+  const browseSegment =
+    segment.kind === "industry"
+      ? { href: `/agencies?industry=${segment.industry.slug}`, label: "View all" }
+      : segment.location.type === "country"
+        ? { href: `/agencies?country=${segment.location.slug}`, label: "View all" }
+        : undefined;
 
   const fallbackIntro =
     segment.kind === "industry"
@@ -151,18 +171,26 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
       howToChoose={howToChoose.length ? howToChoose : defaultHowToChoose(service, segment)}
       faqs={content?.faqs.length ? content.faqs : defaultFaqs(service, agencies, segment)}
       related={[
-        {
-          title:
-            segment.kind === "industry"
-              ? `${service.name} for other industries`
-              : `${service.name} agencies in other locations`,
-          links: sameService,
-        },
-        { title: `Other services ${segmentPhrase(segment)}`, links: sameSegment },
-        {
-          title: "Related guide",
-          links: guide ? [{ href: `/guides/${guide.slug}`, label: guide.title }] : [],
-        },
+        relatedGroup(
+          segment.kind === "industry"
+            ? `${service.name} for other industries`
+            : `${service.name} in other locations`,
+          sameService,
+          { href: `/${service.slug}`, label: `All ${service.name} agencies` },
+        ),
+        relatedGroup(
+          segment.kind === "industry"
+            ? `Other services for ${place}`
+            : `Other services in ${place}`,
+          sameSegment,
+          browseSegment,
+        ),
+        relatedGroup(
+          "Related guide",
+          guide
+            ? [{ href: `/guides/${guide.slug}`, label: guide.title, title: guide.title, count: 0 }]
+            : [],
+        ),
       ]}
     />
   );
