@@ -1,4 +1,4 @@
-import { ArrowRight, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import Link from "next/link";
 import { siFacebook, siInstagram, siThreads, siX, siYoutube } from "simple-icons";
 
@@ -88,16 +88,6 @@ export function Footer() {
               Compare YouTube agencies that already know your niche. Free for businesses and
               creators.
             </p>
-            <Link
-              href="/request-proposals"
-              className={cn(
-                "inline-flex h-11 items-center gap-2 self-start rounded-full bg-[#16171a] px-5 text-[15px] font-semibold text-white hover:bg-[#2a2c31] site-dark:border site-dark:border-line site-dark:bg-raised site-dark:hover:border-text-2",
-                focusRing,
-              )}
-            >
-              Request proposals
-              <ArrowRight className="size-4" aria-hidden />
-            </Link>
             <ul aria-label={`${BRAND_NAME} on social media`} className="flex flex-wrap gap-2">
               {SOCIAL.map((s) => (
                 <li key={s.key}>
