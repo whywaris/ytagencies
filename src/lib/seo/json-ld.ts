@@ -12,7 +12,7 @@ export function websiteJsonLd() {
 
 /** The site's organization, with company facts from lib/company.ts once they're filled in. */
 export function organizationJsonLd() {
-  const { founder, legalName, city, country } = COMPANY;
+  const { founder, legalName, city, countryCode, foundedYear } = COMPANY;
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -22,21 +22,22 @@ export function organizationJsonLd() {
     logo: absolute("/logo.png"),
     email: CONTACT_EMAIL,
     ...(legalName ? { legalName } : {}),
-    ...(city || country
+    foundingDate: String(foundedYear),
+    ...(city || countryCode
       ? {
           address: {
             "@type": "PostalAddress",
             ...(city ? { addressLocality: city } : {}),
-            ...(country ? { addressCountry: country } : {}),
+            ...(countryCode ? { addressCountry: countryCode } : {}),
           },
         }
       : {}),
-    ...(founder.name && founder.role
+    ...(founder.name
       ? {
           founder: {
             "@type": "Person",
             name: founder.name,
-            jobTitle: founder.role,
+            ...(founder.role ? { jobTitle: founder.role } : {}),
             ...(founder.linkedinUrl ? { sameAs: [founder.linkedinUrl] } : {}),
           },
         }

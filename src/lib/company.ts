@@ -10,10 +10,13 @@ export const COMPANY = {
   tradingName: BRAND_NAME,
   /** TODO: registered legal name, e.g. "Example Media Ltd". Used in the terms and the footer. */
   legalName: null as string | null,
-  /** TODO: country the business is registered in. */
-  country: null as string | null,
-  /** TODO: city. */
-  city: null as string | null,
+  /** Country the business is run from. */
+  country: "Pakistan" as string | null,
+  /** ISO 3166-1 alpha-2 code for `country` (JSON-LD addressCountry). */
+  countryCode: "PK" as string | null,
+  city: "Multan" as string | null,
+  /** The year YT Agencies started (/about, Organization foundingDate). */
+  foundedYear: 2026,
   /** Optional: a postal address, shown only if you want it public. Not a launch TODO. */
   address: null as string | null,
   /** TODO: the law and courts for the terms, e.g. "England and Wales". */
@@ -34,7 +37,7 @@ export const COMPANY = {
 
   /** TODO: the founder card on /about (shown once name, role and bio are filled). */
   founder: {
-    name: null as string | null,
+    name: "Waris Jamil" as string | null,
     role: null as string | null,
     /** Two or three plain sentences. */
     bio: null as string | null,

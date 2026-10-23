@@ -1,24 +1,23 @@
-import Image from "next/image";
+import { ArrowRight, EyeOff, LayoutGrid, ShieldQuestion, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
-import { Button } from "@/components/ui/button";
+import { getProPrices } from "@/components/plan-columns";
 import { COMPANY } from "@/lib/company";
 import { getAgencyCount } from "@/lib/data/agencies";
-import { getLiveGuides } from "@/lib/data/guides";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { breadcrumbJsonLd, organizationJsonLd, webPageJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
+import { cn } from "@/lib/utils";
 
-// /about. Every number is live from the database; the founder card appears once lib/company.ts
-// has the founder's name, role and bio. Nothing here is made up.
+// /about. The first three numbers are live from the database (ISR hourly), the Pro price comes
+// from the plans table and the company facts from lib/company.ts. Nothing here is made up.
 export const revalidate = 3600;
 
 const TITLE = "About YT Agencies";
-const DESCRIPTION =
-  "YT Agencies is an independent directory that helps businesses find YouTube agencies by service and industry. How it works, how we make money and who runs it.";
+const DESCRIPTION = `${BRAND_NAME} is an independent directory of YouTube agencies. We help businesses and creators compare agencies by what they do, who they've done it for and what they charge, before anyone gets on a sales call.`;
 
 export const metadata = buildMetadata({
   title: `About | ${BRAND_NAME}`,
@@ -31,54 +30,98 @@ const crumbs = [
   { name: "About", path: "/about" },
 ];
 
-const STEPS = {
-  businesses: [
-    {
-      title: "Choose what you need",
-      text: "Pick a service, such as YouTube ads or channel management, and your industry.",
-    },
-    {
-      title: "Compare agencies",
-      text: "See each agency's starting budget, specialties, case studies and reviews side by side.",
-    },
-    {
-      title: "Get in touch for free",
-      text: "Message an agency directly, or tell us what you need and we'll pass it to up to three that fit.",
-    },
-  ],
-  agencies: [
-    {
-      title: "List your agency for free",
-      text: "Add your services, the industries you work with and your starting budget. We review every new listing.",
-    },
-    {
-      title: "Show your work",
-      text: "Add case studies with real numbers, and get Verified once we've checked your YouTube channels.",
-    },
-    {
-      title: "Hear from the right businesses",
-      text: "With Pro, inquiries arrive in your dashboard and inbox.",
-    },
-  ],
-};
+const shell = "mx-auto max-w-[1200px] px-4 py-10 md:px-6 md:py-14";
+const h2 = "text-[clamp(28px,3.4vw,42px)] leading-[1.1] font-[650] tracking-[-0.03em] text-balance";
+const eyebrow = "text-[13px] font-semibold tracking-[0.08em] text-accent uppercase";
+const focusRing =
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+const pill = cn(
+  "inline-flex h-12 items-center gap-2 self-start rounded-full px-6 font-semibold",
+  focusRing,
+);
+
+const PROBLEMS: { title: string; body: string; Icon: LucideIcon; tint: string }[] = [
+  {
+    title: "Prices hidden until a sales call",
+    body: "Most agency websites don't say what they charge, so every comparison costs you a week of calls.",
+    Icon: EyeOff,
+    tint: "bg-(--coral-soft) text-(--coral)",
+  },
+  {
+    title: "Portfolios you can't check",
+    body: "Screenshots of view counts are easy to fake. It's hard to tell which channels an agency really worked on.",
+    Icon: ShieldQuestion,
+    tint: "bg-(--violet-soft) text-(--violet)",
+  },
+  {
+    title: "Big directories aren't built for YouTube",
+    body: "General marketing directories mix YouTube specialists with web designers and app developers, so the right team gets buried.",
+    Icon: LayoutGrid,
+    tint: "bg-accent-soft text-accent",
+  },
+];
+
+const RULES = [
+  {
+    title: "Ranked on merit",
+    body: "Verified agencies first, then everyone else by quality score. Paying for Pro never changes the order.",
+    link: { href: "/how-we-rank", label: "How we rank" },
+  },
+  {
+    title: "Verified is earned",
+    body: "We check the business, its website and its YouTube channels. The badge can't be bought, on any plan.",
+  },
+  {
+    title: "Prices up front",
+    body: "Profiles show where an agency's prices start, so you only talk to the ones that fit your budget.",
+  },
+  {
+    title: "Independent",
+    body: "We don't broker deals or take a cut of the work. We're not affiliated with YouTube or Google.",
+  },
+];
 
 const count = new Intl.NumberFormat("en-US");
 
 export default async function AboutPage() {
-  const [agencies, services, industries, guides] = await Promise.all([
+  const [agencies, services, industries, prices] = await Promise.all([
     getAgencyCount(),
     getServices(),
     getIndustries(),
-    getLiveGuides(),
+    getProPrices(),
   ]);
-  const numbers = [
-    { label: agencies === 1 ? "Published agency" : "Published agencies", value: agencies },
-    { label: services.length === 1 ? "Service" : "Services", value: services.length },
-    { label: industries.length === 1 ? "Industry" : "Industries", value: industries.length },
-    { label: guides.length === 1 ? "Guide" : "Guides", value: guides.length },
-  ].filter((n) => n.value > 0);
-  const { founder } = COMPANY;
-  const showFounder = !!(founder.name && founder.role && founder.bio);
+  const stats = [
+    { value: count.format(agencies), label: "Agencies listed", tone: "text-accent" },
+    {
+      value: count.format(services.length),
+      label: "YouTube services",
+      tone: "text-(--violet-on-soft)",
+    },
+    {
+      value: count.format(industries.length),
+      label: "Industries and niches",
+      tone: "text-(--mint)",
+    },
+    { value: "0%", label: "Commission, ever", tone: "text-(--coral-on-soft)" },
+  ];
+  const { city, country, foundedYear, founder, email } = COMPANY;
+  const based = [city, country].filter(Boolean).join(", ");
+  const facts: { label: string; value: React.ReactNode }[] = [
+    { label: "Founded", value: String(foundedYear) },
+    ...(founder.name ? [{ label: "Operated by", value: founder.name }] : []),
+    ...(based ? [{ label: "Based in", value: based }] : []),
+    {
+      label: "Contact",
+      value: (
+        <a
+          href={`mailto:${email}`}
+          className={cn("rounded text-accent hover:underline", focusRing)}
+        >
+          {email}
+        </a>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -93,140 +136,203 @@ export default async function AboutPage() {
       />
       <JsonLd data={organizationJsonLd()} />
 
-      <div className="mx-auto flex max-w-content flex-col gap-20 px-4 pt-10 pb-24 md:px-6 md:pt-16">
-        <header className="flex max-w-reading flex-col gap-5">
+      {/* 1. Hero */}
+      <section className="home-grid overflow-clip px-4 pt-8 pb-10 md:px-6 md:pb-14">
+        <div className="mx-auto flex max-w-[1200px] flex-col gap-6">
           <Breadcrumbs items={crumbs} />
-          <h1 className="text-display">An independent directory of YouTube agencies.</h1>
-          <p className="text-[19px] leading-relaxed text-text-2">
-            {BRAND_NAME} helps businesses compare agencies by service and industry, and contact them
-            for free.
+          <h1 className="max-w-[15em] text-[clamp(40px,5.6vw,68px)] leading-[1.02] font-[680] tracking-[-0.045em] text-balance">
+            Choosing a YouTube agency shouldn&apos;t be{" "}
+            <span className="text-(--coral-on-soft)">a gamble.</span>
+          </h1>
+          <p className="max-w-[40em] text-[clamp(17px,1.6vw,19px)] leading-normal text-text-2">
+            {DESCRIPTION}
           </p>
-        </header>
-
-        {numbers.length > 0 && (
-          <section aria-label="The directory today">
-            <dl className="grid grid-cols-2 gap-y-8 border-y border-line py-8 md:grid-cols-4 md:divide-x md:divide-line">
-              {numbers.map((n) => (
-                <div key={n.label} className="flex flex-col gap-1 md:px-8 md:first:pl-0">
-                  <dt className="order-2 text-[15px] text-text-2">{n.label}</dt>
-                  <dd className="text-h1 tabular-nums">{count.format(n.value)}</dd>
+          <div className="mt-4 flex flex-col gap-3">
+            <dl className="grid grid-cols-2 overflow-hidden rounded-[22px] border border-line bg-raised md:grid-cols-4">
+              {stats.map((s, i) => (
+                <div
+                  key={s.label}
+                  className={cn(
+                    "flex flex-col gap-1 border-line p-5 md:p-6",
+                    i % 2 === 1 && "border-l",
+                    i >= 2 && "border-t md:border-t-0",
+                    i === 2 && "md:border-l",
+                  )}
+                >
+                  <dt className="order-2 text-[14.5px] text-text-2">{s.label}</dt>
+                  <dd
+                    className={cn(
+                      "font-mono text-[clamp(28px,3.4vw,40px)] leading-none font-semibold tabular-nums",
+                      s.tone,
+                    )}
+                  >
+                    {s.value}
+                  </dd>
                 </div>
               ))}
             </dl>
-          </section>
-        )}
+            <p className="text-[13.5px] text-text-2">Numbers update live from the directory.</p>
+          </div>
+        </div>
+      </section>
 
-        <section aria-labelledby="how-it-works" className="flex flex-col gap-10">
-          <h2 id="how-it-works" className="text-h2">
-            How it works
-          </h2>
-          <div className="grid gap-12 md:grid-cols-2">
-            {(
-              [
-                ["For businesses", STEPS.businesses],
-                ["For agencies", STEPS.agencies],
-              ] as const
-            ).map(([heading, steps]) => (
-              <div key={heading} className="flex flex-col gap-6">
-                <h3 className="text-h3">{heading}</h3>
-                <ol className="flex flex-col gap-5">
-                  {steps.map((s, i) => (
-                    <li key={s.title} className="flex gap-4">
-                      <span
-                        aria-hidden
-                        className="flex size-8 shrink-0 items-center justify-center rounded-full border border-line text-[15px] font-medium text-text-2 tabular-nums"
-                      >
-                        {i + 1}
-                      </span>
-                      <div className="flex flex-col gap-1">
-                        <p className="font-semibold">{s.title}</p>
-                        <p className="text-text-2">{s.text}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
+      {/* 2. Why we started */}
+      <section aria-labelledby="why-heading">
+        <div className={cn(shell, "grid gap-10 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]")}>
+          <div className="flex flex-col gap-3">
+            <p className={eyebrow}>Why we started</p>
+            <h2 id="why-heading" className={h2}>
+              Hiring for YouTube was harder than it should be
+            </h2>
+          </div>
+          <ul className="flex flex-col gap-4">
+            {PROBLEMS.map(({ title, body, Icon, tint }) => (
+              <li
+                key={title}
+                className="flex gap-4 rounded-[22px] border border-line bg-raised p-5 md:p-6"
+              >
+                <span
+                  aria-hidden
+                  className={cn("grid size-11 shrink-0 place-items-center rounded-xl", tint)}
+                >
+                  <Icon className="size-5 [stroke-width:1.75]" />
+                </span>
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-[18px] font-[650]">{title}</h3>
+                  <p className="text-[15.5px] text-text-2">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* 3. What we believe */}
+      <section aria-labelledby="rules-heading">
+        <div className={cn(shell, "flex flex-col gap-10")}>
+          <div className="flex flex-col gap-3">
+            <p className={eyebrow}>What we believe</p>
+            <h2 id="rules-heading" className={h2}>
+              Four rules we don&apos;t break
+            </h2>
+          </div>
+          <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {RULES.map((r, i) => (
+              <li
+                key={r.title}
+                className="flex flex-col gap-3 rounded-[22px] border border-line bg-raised p-6"
+              >
+                <span aria-hidden className="font-mono text-[15px] font-semibold text-accent">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <h3 className="text-[18px] font-[650]">{r.title}</h3>
+                <p className="text-[15.5px] text-text-2">{r.body}</p>
+                {r.link && (
+                  <Link
+                    href={r.link.href}
+                    className={cn(
+                      "mt-auto inline-flex min-h-11 items-center gap-1.5 self-start rounded font-semibold text-accent hover:underline",
+                      focusRing,
+                    )}
+                  >
+                    {r.link.label}
+                    <ArrowRight className="size-4 [stroke-width:2]" aria-hidden />
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* 4. Who it's for */}
+      <section aria-label="Who it's for" className={shell}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-4 rounded-[28px] bg-accent-soft p-7 md:p-10">
+            <p className={eyebrow}>For businesses and creators</p>
+            <h2 className="text-[clamp(24px,2.6vw,32px)] leading-tight font-[650] tracking-[-0.025em]">
+              Free, and you only talk to the agencies you choose
+            </h2>
+            <p className="text-[16px] text-text-2">
+              Browse by service and industry, compare starting prices, read checked reviews, and
+              contact agencies directly or request proposals.
+            </p>
+            <Link
+              href="/#finder"
+              className={cn(pill, "mt-auto bg-accent text-on-accent hover:bg-(--accent-hover)")}
+            >
+              Compare agencies
+              <ArrowRight className="size-5 [stroke-width:2]" aria-hidden />
+            </Link>
+          </div>
+          <div className="flex flex-col gap-4 rounded-[28px] bg-[#16171a] p-7 text-white md:p-10 site-dark:border site-dark:border-line site-dark:bg-raised">
+            <p className="text-[13px] font-semibold tracking-[0.08em] text-white/70 uppercase">
+              For agencies
+            </p>
+            <h2 className="text-[clamp(24px,2.6vw,32px)] leading-tight font-[650] tracking-[-0.025em]">
+              Get found by people already looking for you
+            </h2>
+            <p className="text-[16px] text-white/75">
+              Listing is free. Pro (${prices.monthly}/month) lets you manage your profile and
+              receive inquiries, with no commission on the work you win.
+            </p>
+            <Link
+              href="/pricing"
+              className="mt-auto inline-flex h-12 items-center gap-2 self-start rounded-full bg-white px-6 font-semibold text-[#16171a] hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              See pricing
+              <ArrowRight className="size-5 [stroke-width:2]" aria-hidden />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. The company */}
+      <section aria-labelledby="company-heading">
+        <div className={cn(shell, "flex flex-col gap-10")}>
+          <div className="flex flex-col gap-3">
+            <p className={eyebrow}>The company</p>
+            <h2 id="company-heading" className={h2}>
+              Who&apos;s behind {BRAND_NAME}
+            </h2>
+          </div>
+          <dl className="grid overflow-hidden rounded-[22px] border border-line bg-raised sm:grid-cols-2 lg:grid-cols-4">
+            {facts.map((f, i) => (
+              <div
+                key={f.label}
+                className={cn(
+                  "flex min-w-0 flex-col gap-1 border-line p-6",
+                  i > 0 && "border-t",
+                  i % 2 === 1 && "sm:border-l",
+                  i < 2 && "sm:border-t-0",
+                  i >= 2 && "lg:border-t-0",
+                  i === 2 && "lg:border-l",
+                )}
+              >
+                <dt className="text-[14px] text-text-2">{f.label}</dt>
+                <dd className="text-[17px] font-semibold break-words">{f.value}</dd>
               </div>
             ))}
-          </div>
-        </section>
+          </dl>
+        </div>
+      </section>
 
-        <section aria-labelledby="how-we-make-money" className="flex max-w-reading flex-col gap-4">
-          <h2 id="how-we-make-money" className="text-h2">
-            How we make money
+      {/* 6. Closing band */}
+      <section aria-labelledby="closing-heading" className={shell}>
+        <div className="flex flex-col items-center gap-5 rounded-[28px] bg-[#16171a] px-6 py-14 text-center text-white md:py-20 site-dark:border site-dark:border-line site-dark:bg-raised">
+          <h2 id="closing-heading" className={cn(h2, "max-w-[18em]")}>
+            Compare YouTube agencies that already know your niche.
           </h2>
-          <p className="text-[17px] leading-relaxed">
-            Businesses and creators never pay us, and listing an agency is free. To manage its
-            listing and receive inquiries, an agency needs Pro; Pro doesn&apos;t change where it
-            ranks, and no place in the order can be bought. We don&apos;t charge per lead or take a
-            commission.
-          </p>
-          <p className="text-[17px]">
-            <Link href="/disclosure" className="text-accent underline underline-offset-2">
-              Read our disclosure
-            </Link>{" "}
-            or see{" "}
-            <Link href="/how-we-rank" className="text-accent underline underline-offset-2">
-              how we rank agencies
-            </Link>
-            .
-          </p>
-        </section>
-
-        {showFounder && (
-          <section aria-labelledby="whos-behind-it" className="flex max-w-reading flex-col gap-6">
-            <h2 id="whos-behind-it" className="text-h2">
-              Who&apos;s behind it
-            </h2>
-            <div className="flex flex-col gap-5 rounded-2xl border border-line p-6 sm:flex-row">
-              {founder.photoPath && (
-                <Image
-                  src={founder.photoPath}
-                  alt={founder.name ?? ""}
-                  width={96}
-                  height={96}
-                  className="size-24 shrink-0 rounded-full object-cover"
-                />
-              )}
-              <div className="flex flex-col gap-1">
-                <p className="text-[19px] font-semibold">{founder.name}</p>
-                <p className="text-small">{founder.role}</p>
-                <p className="mt-2 leading-relaxed">{founder.bio}</p>
-                {founder.linkedinUrl && (
-                  <a
-                    href={founder.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer me"
-                    className="mt-1 flex min-h-11 items-center self-start text-accent hover:underline"
-                  >
-                    LinkedIn
-                    <span className="sr-only"> profile of {founder.name} (opens in a new tab)</span>
-                  </a>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-
-        <section
-          aria-labelledby="get-started"
-          className="flex flex-col gap-6 rounded-2xl bg-surface p-8 md:flex-row md:items-center md:justify-between md:p-10"
-        >
-          <h2 id="get-started" className="text-h3">
-            Looking for an agency, or run one?
-          </h2>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <Button asChild>
-              <Link href="/#services">Find an agency</Link>
-            </Button>
-            <Link
-              href="/list-your-agency"
-              className="flex min-h-11 items-center font-medium text-accent hover:underline"
-            >
-              List your agency
-            </Link>
-          </div>
-        </section>
-      </div>
+          <p className="text-[17px] text-white/75">Free for businesses and creators.</p>
+          <Link
+            href="/#services"
+            className="mt-2 inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 font-semibold text-[#16171a] transition-transform duration-150 hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            Browse agencies
+            <ArrowRight className="size-5 [stroke-width:2]" aria-hidden />
+          </Link>
+        </div>
+      </section>
     </>
   );
 }
