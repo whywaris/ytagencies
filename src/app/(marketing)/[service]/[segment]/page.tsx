@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { DirectoryPage } from "@/components/directory/directory-page";
 import { getAgenciesForCombo, getIndexableCombos } from "@/lib/data/agencies";
-import { getLiveGuides } from "@/lib/data/guides";
+import { guidesForPage } from "@/lib/data/guides";
 import {
   getComboContent,
   getIndustries,
@@ -23,6 +23,7 @@ import {
   segmentName,
   segmentPhrase,
   shortParagraphs,
+  guideGroup,
   relatedGroup,
 } from "@/lib/directory";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -68,7 +69,12 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
     getServices(),
     getIndustries(),
     getLocations(),
-    getLiveGuides(),
+    guidesForPage({
+      serviceId: service.id,
+      ...(segment.kind === "industry"
+        ? { industryId: segment.industry.id }
+        : { locationId: segment.location.id }),
+    }),
   ]);
 
   const serviceName = new Map(services.map((s) => [s.slug, s.name]));
@@ -120,17 +126,6 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
       : `These ${service.name} agencies are based ${segmentPhrase(segment)} or work with businesses there. Compare minimum budgets, team sizes, languages and reviews, then contact the ones that fit.`;
   const intro = content?.intro ?? fallbackIntro;
   const howToChoose = (content?.howToChoose ?? "").split(/\n\s*\n/).filter(Boolean);
-
-  // Live guides that list this page among their related directory pages.
-  const guide = guides.find((g) =>
-    g.combos.some(
-      (c) =>
-        c.service_id === service.id &&
-        (segment.kind === "industry"
-          ? c.industry_id === segment.industry.id
-          : c.location_id === segment.location.id),
-    ),
-  );
 
   const match = new URLSearchParams({ service: service.slug });
   if (segment.kind === "industry") match.set("industry", segment.industry.slug);
@@ -185,13 +180,8 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
           sameSegment,
           browseSegment,
         ),
-        relatedGroup(
-          "Related guide",
-          guide
-            ? [{ href: `/guides/${guide.slug}`, label: guide.title, title: guide.title, count: 0 }]
-            : [],
-        ),
       ]}
+      guides={guideGroup(guides)}
     />
   );
 }

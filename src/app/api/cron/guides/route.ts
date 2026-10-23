@@ -9,8 +9,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidateSitemap } from "@/lib/revalidate";
 
 // Scheduled guides (ADMIN_V2_SPEC §8). Guide pages revalidate hourly anyway, so a scheduled guide
-// shows up within an hour of its time; this daily sweep (vercel.json) refreshes the guides that
-// went live since yesterday, the /guides index and the sitemap. On Vercel Pro, change the
+// shows up within an hour of its time; this daily sweep (vercel.json, 00:05 UTC) refreshes the
+// guides that went live since yesterday, the /guides index, the home page (its daily guides) and
+// the sitemap. On Vercel Pro, change the
 // schedule to every 15 minutes ("*/15 * * * *") as the spec intends.
 // The same daily run sends lead reminders (lib/lead-reminders.ts), "Pro ends in 3 days" emails
 // (lib/billing/notices.tsx) and deletes data past its
@@ -42,6 +43,8 @@ export async function GET(request: NextRequest) {
     revalidatePath(`/og/guide/${g.slug}`);
   }
   revalidatePath("/guides");
+  // The home page's daily guides (dailyPick, seeded by the UTC date): runs just after 00:00 UTC.
+  revalidatePath("/");
   revalidateSitemap("guides", "authors", "pages");
 
   let reminders: unknown;

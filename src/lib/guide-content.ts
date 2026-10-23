@@ -736,3 +736,26 @@ export function imageSize(src: string) {
 /** The stored document, or the old Markdown converted on the fly (guides not migrated yet). */
 export const guideDoc = (bodyJson: unknown, bodyMd: string | null | undefined): Doc =>
   bodyJson && (bodyJson as Doc).type === "doc" ? (bodyJson as Doc) : markdownToDoc(bodyMd ?? "");
+
+/**
+ * Agency profiles a guide links to, in order of first mention: links to /agency/<slug>, relative
+ * or on our own domain (`host`, e.g. "ytagencies.com"). For "Agencies mentioned".
+ */
+export function agencySlugsIn(doc: Doc, host: string): string[] {
+  const slugs: string[] = [];
+  const own = new RegExp(
+    `^(?:https?://(?:www\.)?${host.replace(/\./g, "\.")})?/agency/([a-z0-9-]+)/?(?:[?#].*)?$`,
+  );
+  const visit = (nodes: Node[] = []) => {
+    for (const n of nodes) {
+      for (const m of n.marks ?? []) {
+        const href = m.type === "link" ? m.attrs?.href : undefined;
+        const slug = typeof href === "string" ? href.match(own)?.[1] : undefined;
+        if (slug && !slugs.includes(slug)) slugs.push(slug);
+      }
+      visit(n.content);
+    }
+  };
+  visit(doc.content);
+  return slugs;
+}

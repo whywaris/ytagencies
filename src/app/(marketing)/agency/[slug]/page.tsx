@@ -22,11 +22,12 @@ import { JsonLd } from "@/components/json-ld";
 import {
   getAgencyBySlug,
   getAgencySlugs,
-  getIndexableCombos,
   getSimilarAgencies,
   type AgencyProfile,
 } from "@/lib/data/agencies";
 import { bookingLinks } from "@/lib/booking";
+import { getLivePaths } from "@/lib/data/live-pages";
+import { liveOnly } from "@/lib/sitemap-core";
 import { agencyWebsiteLink } from "@/lib/outbound";
 import { contractLabel, responseLabel } from "@/lib/pricing";
 import { formatMetrics, safeExternalUrl } from "@/lib/profile";
@@ -149,10 +150,10 @@ const btnLight = `${btn} border border-line bg-raised text-text hover:border-tex
 export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">) {
   const agency = await load(params);
   const e = agency.entitlements;
-  const [similar, combos] = await Promise.all([
+  const [similar, live] = await Promise.all([
     // Unmanaged profiles only: managed agencies a visitor can actually reach.
     e.showSimilarAgencies ? getSimilarAgencies(agency, 3) : [],
-    getIndexableCombos(),
+    getLivePaths(),
   ]);
 
   const primary = agency.services[0];
@@ -226,31 +227,34 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   // The Request proposals click isn't an agency event (nothing reaches the agency): untracked.
   const ctaTrack = mode.kind === "contact" ? "contact_open" : undefined;
 
-  // Related directory pages: the main service for their industries and HQ country, if indexed.
-  const indexed = new Set(combos.map((c) => `${c.serviceSlug}|${c.segment}`));
-  const related = primary
-    ? [
-        ...agency.industries.slice(0, 3).map((i) => ({
-          href: `/${primary.slug}/for-${i.slug}`,
-          label: `${primary.name} agencies for ${i.name.toLowerCase()}`,
-          key: `${primary.slug}|for-${i.slug}`,
+  // "Listed in": the live directory pages this agency appears on (its services, each with its
+  // industries and locations), only those in the sitemap. Short chip text, the full phrase as
+  // the title. Hubs first, then service × industry, then service × location; 12 at most.
+  const places = [...(agency.hq ? [agency.hq] : []), ...agency.locations];
+  const listedIn = liveOnly(
+    [
+      ...agency.services.map((s) => ({
+        href: `/${s.slug}`,
+        label: s.name,
+        title: `${s.name} agencies`,
+      })),
+      ...agency.services.flatMap((s) =>
+        agency.industries.map((i) => ({
+          href: `/${s.slug}/for-${i.slug}`,
+          label: `${s.name} for ${i.name}`,
+          title: `${s.name} agencies for ${i.name}`,
         })),
-        ...agency.locations
-          .filter((l) => l.type === "country")
-          .slice(0, 2)
-          .map((l) => ({
-            href: `/${primary.slug}/in-${l.slug}`,
-            label: `${primary.name} agencies in ${l.name}`,
-            key: `${primary.slug}|in-${l.slug}`,
-          })),
-      ].filter((r) => indexed.has(r.key))
-    : [];
-  // Always at least the service pages they're listed on.
-  const serviceLinks = agency.services.map((s) => ({
-    href: `/${s.slug}`,
-    label: `${s.name} agencies`,
-  }));
-  const relatedLinks = [...related, ...serviceLinks].slice(0, 6);
+      ),
+      ...agency.services.flatMap((s) =>
+        places.map((l) => ({
+          href: `/${s.slug}/in-${l.slug}`,
+          label: `${s.name} in ${l.name}`,
+          title: `${s.name} agencies in ${l.name}`,
+        })),
+      ),
+    ].filter((l, i, all) => all.findIndex((x) => x.href === l.href) === i),
+    live,
+  ).slice(0, 12);
 
   return (
     <>
@@ -672,10 +676,10 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               </section>
             )}
 
-            {(similar.length > 0 || relatedLinks.length > 0) && (
+            {(similar.length > 0 || listedIn.length > 0) && (
               <section id="related" aria-labelledby="related-h" className={sectionCls}>
                 <h2 id="related-h" className={h2}>
-                  {similar.length > 0 ? "Compare with similar agencies" : "Related agencies"}
+                  {similar.length > 0 ? "Compare with similar agencies" : "Listed in"}
                 </h2>
                 {similar.length > 0 && (
                   <ul className="mt-4 grid gap-3 min-[760px]:grid-cols-3">
@@ -714,19 +718,24 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                     ))}
                   </ul>
                 )}
-                {relatedLinks.length > 0 && (
-                  <ul className="mt-4 flex flex-wrap gap-2">
-                    {relatedLinks.map((l) => (
-                      <li key={l.href}>
-                        <Link
-                          href={l.href}
-                          className="inline-flex min-h-9 items-center rounded-full bg-surface px-3 text-[13.5px] transition-colors duration-150 hover:text-accent"
-                        >
-                          {l.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                {listedIn.length > 0 && (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {similar.length > 0 && <h3 className="text-[14px] font-semibold">Listed in</h3>}
+                    <ul className="flex flex-wrap gap-2">
+                      {listedIn.map((l) => (
+                        <li key={l.href}>
+                          <Link
+                            href={l.href}
+                            title={l.title}
+                            aria-label={l.title}
+                            className="inline-flex min-h-9 items-center rounded-full border border-line px-3.5 text-[14px] transition-colors duration-150 hover:border-accent"
+                          >
+                            {l.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </section>
             )}

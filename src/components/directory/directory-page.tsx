@@ -32,6 +32,8 @@ type DirectoryPageProps = {
   faqs: Faq[];
   /** "Explore more": up to 3 groups of live pages (relatedGroup); null groups are left out. */
   related: (RelatedGroup | null)[];
+  /** 1–3 related guides (guidesForPage), shown with the groups. */
+  guides: RelatedGroup | null;
 };
 
 const icon = "size-4 shrink-0 text-text-2 [stroke-width:1.5]";
@@ -51,8 +53,12 @@ export function DirectoryPage({
   howToChoose,
   faqs,
   related,
+  guides,
 }: DirectoryPageProps) {
-  const groups = related.filter((g): g is RelatedGroup => g !== null).slice(0, 3);
+  const groups = [
+    ...related.filter((g): g is RelatedGroup => g !== null).slice(0, 3),
+    guides,
+  ].filter((g): g is RelatedGroup => g !== null);
   const glance = atAGlance(agencies);
   const n = agencies.length;
 

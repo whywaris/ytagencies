@@ -169,3 +169,13 @@ export function llmsTxt(d: {
     .filter(Boolean)
     .join("\n");
 }
+
+/** The path a link points at, without query or hash (how the sitemap lists it). */
+const pathOf = (href: string) => href.replace(/[?#].*$/, "");
+
+/**
+ * Internal-linking blocks link only to live, indexable pages: the ones the sitemap lists
+ * (`live` = every sitemap path). Anything else (noindex, thin, empty, draft) is dropped.
+ */
+export const liveOnly = <T extends { href: string }>(links: T[], live: ReadonlySet<string>) =>
+  links.filter((l) => live.has(pathOf(l.href)));

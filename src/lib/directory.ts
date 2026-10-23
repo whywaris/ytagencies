@@ -284,3 +284,17 @@ export function relatedGroup(
     ...(viewAll && sorted.length > MAX_RELATED ? { viewAll } : {}),
   };
 }
+
+/** "Related guides" for a directory page: 1–3 guides (already picked by guidesForPage). */
+export const guideGroup = (guides: { slug: string; title: string }[]) =>
+  guides.length
+    ? {
+        title: guides.length === 1 ? "Related guide" : "Related guides",
+        links: guides.map((g, i) => ({
+          href: `/guides/${g.slug}`,
+          label: g.title,
+          title: g.title,
+          count: guides.length - i,
+        })),
+      }
+    : null;

@@ -120,6 +120,8 @@ export default async function GuidesPage({ searchParams }: PageProps<"/guides">)
                   <li key={c.slug ?? "all"}>
                     <Link
                       href={href(c.slug)}
+                      // Category views are noindex (docs/SEO.md): filters, not pages to rank.
+                      rel={c.slug ? "nofollow" : undefined}
                       aria-current={current ? "page" : undefined}
                       className={cn(
                         "flex h-11 items-center rounded-full border px-4 text-[15px] transition-colors duration-150",

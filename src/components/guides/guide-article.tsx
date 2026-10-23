@@ -1,11 +1,13 @@
 import Link from "next/link";
 
+import { AgencyCard } from "@/components/directory/agency-card";
 import { GuideBody } from "@/components/guide-body";
 import { AuthorAvatar, AuthorBox, GuideCard, GuideCover } from "@/components/guides/guide-parts";
 import { ShareBar } from "@/components/guides/share-bar";
 import { TableOfContents } from "@/components/guides/toc";
 import { TocPanel } from "@/components/toc-panel";
 import { Button } from "@/components/ui/button";
+import type { AgencyListItem } from "@/lib/data/agencies";
 import type { Author, GuideSummary } from "@/lib/data/guides";
 import { groupOutline, guideBlocks, type Doc } from "@/lib/guide-content";
 import { guideImageAllowed } from "@/lib/guide-media";
@@ -40,6 +42,7 @@ export function GuideArticle({
   primaryService,
   related,
   relatedGuides,
+  agencies = [],
   shareUrl,
   budgetRange,
   generatedCover = true,
@@ -49,6 +52,8 @@ export function GuideArticle({
   primaryService: { name: string; slug: string } | null;
   related: { href: string; label: string }[];
   relatedGuides: GuideSummary[];
+  /** "Agencies mentioned": live profiles the guide links to (the public page only). */
+  agencies?: AgencyListItem[];
   shareUrl: string;
   budgetRange: (service: string) => React.ReactNode;
   /** false: draw the no-cover fallback in HTML instead of loading the generated image. */
@@ -137,6 +142,21 @@ export function GuideArticle({
         )}
 
         <GuideBody doc={guide.doc} budgetRange={budgetRange} />
+
+        {agencies.length > 0 && (
+          <section aria-labelledby="agencies-mentioned" className="mt-16 flex flex-col gap-4">
+            <h2 id="agencies-mentioned" className="text-h3">
+              Agencies mentioned
+            </h2>
+            <ul className="flex flex-col gap-4">
+              {agencies.map((a) => (
+                <li key={a.id}>
+                  <AgencyCard agency={a} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {related.length > 0 && (
           <section

@@ -176,7 +176,16 @@ export function GuideMeta({
 }) {
   return (
     <p className="flex flex-wrap gap-x-4 gap-y-1 text-small">
-      {showAuthor && guide.author && <span>{guide.author.name}</span>}
+      {/* Above the card's full-size link (GuideCard), so the author link stays clickable. Author
+          pages exist for every author with a live guide. */}
+      {showAuthor && guide.author && (
+        <Link
+          href={`/authors/${guide.author.slug}`}
+          className="relative z-10 rounded hover:text-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {guide.author.name}
+        </Link>
+      )}
       <span>{guide.readMinutes} min read</span>
     </p>
   );

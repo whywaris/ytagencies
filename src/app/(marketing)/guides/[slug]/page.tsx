@@ -7,7 +7,11 @@ import { getGuideBySlug, getGuideRedirect, getLiveGuides, relatedGuides } from "
 import { firstThatFits } from "@/lib/directory";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
-import { absoluteUrl, BRAND_NAME } from "@/lib/site";
+import { absoluteUrl, BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
+import { liveOnly } from "@/lib/sitemap-core";
+import { agencySlugsIn } from "@/lib/guide-content";
+import { getBrowsePool } from "@/lib/data/browse";
+import { getLivePaths } from "@/lib/data/live-pages";
 
 // Guides come from the CMS (ADMIN_V2_SPEC §8). ISR: publishing revalidates the page straight
 // away; scheduled guides appear on the next hourly revalidation (or the daily cron sweep).
@@ -40,7 +44,17 @@ export async function generateMetadata({ params }: PageProps<"/guides/[slug]">) 
 export default async function GuidePage({ params }: PageProps<"/guides/[slug]">) {
   const g = await load(params);
   const path = `/guides/${g.slug}`;
-  const more = await relatedGuides(g.slug, g.serviceIds);
+  const [more, live, pool] = await Promise.all([
+    relatedGuides(g.slug, g.serviceIds),
+    getLivePaths(),
+    getBrowsePool(),
+  ]);
+  // Links out only to live, indexable pages (the sitemap's set).
+  const related = liveOnly(g.related, live);
+  const mentioned = agencySlugsIn(g.doc, SITE_DOMAIN)
+    .filter((slug) => live.has(`/agency/${slug}`))
+    .flatMap((slug) => pool.filter((a) => a.slug === slug))
+    .slice(0, 6);
 
   return (
     <>
@@ -64,9 +78,10 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
       />
       <GuideArticle
         guide={g}
-        primaryService={g.related[0]?.service ?? null}
-        related={g.related}
+        primaryService={related[0]?.service ?? null}
+        related={related}
         relatedGuides={more}
+        agencies={mentioned}
         shareUrl={absoluteUrl(path)}
         budgetRange={(service) => <BudgetRange service={service} />}
       />

@@ -160,6 +160,28 @@ export async function relatedGuides(slug: string, serviceIds: number[], n = 3) {
     .map((x) => x.g);
 }
 
+/**
+ * Up to `n` guides for a directory page: those that list this exact page among their related
+ * directory pages first, then guides for the same service. Newest first within each.
+ */
+export async function guidesForPage(
+  page: { serviceId: number; industryId?: number; locationId?: number },
+  n = 3,
+) {
+  const exact = (g: GuideSummary) =>
+    g.combos.some(
+      (c) =>
+        c.service_id === page.serviceId &&
+        (c.industry_id ?? undefined) === page.industryId &&
+        (c.location_id ?? undefined) === page.locationId,
+    );
+  const guides = await getLiveGuides();
+  return [
+    ...guides.filter(exact),
+    ...guides.filter((g) => !exact(g) && g.serviceIds.includes(page.serviceId)),
+  ].slice(0, n);
+}
+
 /** The current slug of a guide whose old slug is `slug` (only for live guides, via RLS). */
 export const getGuideRedirect = cache(async (slug: string) => {
   const { data } = await createStaticClient()

@@ -41,7 +41,7 @@ import { getLiveGuides } from "@/lib/data/guides";
 import { getHomeAgencies } from "@/lib/data/home";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { firstSentence, formatUsd } from "@/lib/directory";
-import { popularIndustryCombos, type ComboCounts } from "@/lib/home";
+import { dailyPick, popularIndustryCombos, utcDay, type ComboCounts } from "@/lib/home";
 import { faqJsonLd } from "@/lib/seo/json-ld";
 import { BRAND_NAME, INDEPENDENT_DIRECTORY, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -367,7 +367,18 @@ export async function ServicesSection() {
                 <h3 className="text-[19px] leading-tight font-[650]">
                   {/* The whole card is the link; the industry links sit above it. */}
                   <Link
-                    href={`/${slug}`}
+                    // A hub with under 3 agencies is noindex: the card opens /agencies filtered
+                    // to the service instead (a nofollow filter link) until it's live.
+                    href={
+                      (index.hubCounts.get(slug) ?? 0) >= MIN_AGENCIES_TO_INDEX
+                        ? `/${slug}`
+                        : `/agencies?service=${slug}`
+                    }
+                    rel={
+                      (index.hubCounts.get(slug) ?? 0) >= MIN_AGENCIES_TO_INDEX
+                        ? undefined
+                        : "nofollow"
+                    }
                     className="outline-none after:absolute after:inset-0 after:rounded-[22px] after:content-['']"
                   >
                     {title}
@@ -737,7 +748,10 @@ export async function IndustriesSection() {
 // ───────── 8. Guides ─────────
 
 export async function GuidesSection() {
-  const guides = (await getLiveGuides()).slice(0, 3);
+  // 3 guides a day, the same for everyone: a shuffle seeded by the UTC date over the live guides
+  // in slug order. The page revalidates hourly and the daily cron refreshes it after 00:00 UTC.
+  const live = [...(await getLiveGuides())].sort((a, b) => a.slug.localeCompare(b.slug));
+  const guides = dailyPick(live, utcDay(new Date()), 3);
   if (!guides.length) return null;
   return (
     <section aria-labelledby="guides-heading">

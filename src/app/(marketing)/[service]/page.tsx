@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { DirectoryPage } from "@/components/directory/directory-page";
 import { getAgenciesForService, getDirectoryIndex } from "@/lib/data/agencies";
+import { guidesForPage } from "@/lib/data/guides";
 import { getIndustries, getLocations, getServiceBySlug, getServices } from "@/lib/data/taxonomy";
 import {
   defaultFaqs,
@@ -12,6 +13,7 @@ import {
   directoryTitle,
   monthYear,
   oneLineSummary,
+  guideGroup,
   relatedGroup,
   shortParagraphs,
 } from "@/lib/directory";
@@ -45,11 +47,12 @@ export async function generateMetadata({ params }: PageProps<"/[service]">) {
 
 export default async function ServiceHubPage({ params }: PageProps<"/[service]">) {
   const { service, agencies } = await load((await params).service);
-  const [{ combos, hubCounts }, industries, locations, services] = await Promise.all([
+  const [{ combos, hubCounts }, industries, locations, services, guides] = await Promise.all([
     getDirectoryIndex(),
     getIndustries(),
     getLocations(),
     getServices(),
+    guidesForPage({ serviceId: service.id }),
   ]);
 
   // "Explore more": indexable pages only (the sitemap's index and 3-agency rule), most agencies
@@ -102,6 +105,7 @@ export default async function ServiceHubPage({ params }: PageProps<"/[service]">
       }
       howToChoose={defaultHowToChoose(service)}
       faqs={defaultFaqs(service, agencies)}
+      guides={guideGroup(guides)}
       related={[
         relatedGroup(
           `${service.name} by industry`,

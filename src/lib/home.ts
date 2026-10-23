@@ -70,3 +70,30 @@ export function pickHomeAgencies<T extends Pickable>(
   ].slice(0, limit);
   return picked.length >= min ? picked : [];
 }
+
+/** UTC date as YYYY-MM-DD: the home page's daily seed. */
+export const utcDay = (now: Date) => now.toISOString().slice(0, 10);
+
+/**
+ * `n` items picked by a shuffle seeded from `seed` (the UTC day): the same pick for everyone all
+ * day, a new one the next day. Items should come in a stable order (e.g. by slug). FNV-1a hash
+ * for the seed, mulberry32 for the shuffle; nothing random at request time.
+ */
+export function dailyPick<T>(items: T[], seed: string, n: number): T[] {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 0x01000193);
+  let s = h >>> 0;
+  const rand = () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out.slice(0, n);
+}
