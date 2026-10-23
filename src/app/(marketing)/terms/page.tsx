@@ -130,7 +130,8 @@ const sections: LegalSection[] = [
           and our <Link href="/disclosure">disclosure</Link>.
         </p>
         <p>
-          Payments are handled by our payment provider. Cancellations and refunds follow our{" "}
+          Pro is sold by Lemon Squeezy as merchant of record: it takes the payment, handles tax
+          and sends receipts. Cancellations and refunds follow our{" "}
           <Link href="/refunds">refund policy</Link>.
         </p>
       </>

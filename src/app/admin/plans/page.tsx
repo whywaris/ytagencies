@@ -16,8 +16,8 @@ const SOURCE: Record<string, string> = {
   payment: "Payment",
 };
 const PER_PAGE = 50;
-// The only Creem dashboard URL the docs give; search it for the subscription id shown here.
-const CREEM_DASHBOARD = "https://www.creem.io/dashboard";
+// Lemon Squeezy dashboard; search Subscriptions for the subscription id shown here.
+const LS_DASHBOARD = "https://app.lemonsqueezy.com";
 const EVENT_LABEL: Record<string, string> = {
   "checkout.completed": "Checkout completed",
   "subscription.active": "Subscription active",
@@ -69,7 +69,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
           .lte("starts_at", now.toISOString())
           .or(`ends_at.is.null,ends_at.gt.${now.toISOString()},status.eq.past_due`)
           .order("starts_at", { ascending: false }),
-    // Latest Creem events, for the "Last billing event" column.
+    // Latest Lemon Squeezy events, for the "Last billing event" column.
     db
       .from("billing_events")
       .select("agency_id, type, received_at")
@@ -88,11 +88,11 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
       <div className="flex max-w-reading flex-col gap-1">
         <h1 className="text-admin-title">Plans</h1>
         <p className="text-text-2">
-          Listings are free; managing one needs Pro. Agencies buy Pro through Creem (source Payment)
+          Listings are free; managing one needs Pro. Agencies buy Pro through Lemon Squeezy (source Payment)
           once payments are on; you can still grant it by hand (Change plan, source Manual), e.g.
           after a Pro request in the Inbox. When Pro ends, the listing stays public but unmanaged:
-          no contact form, editing locked. Ending a paid plan here doesn&apos;t cancel it in Creem:
-          cancel or refund it in the Creem dashboard too.
+          no contact form, editing locked. Ending a paid plan here doesn&apos;t cancel it in Lemon Squeezy:
+          cancel or refund it in the Lemon Squeezy dashboard too.
         </p>
       </div>
 
@@ -249,10 +249,10 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
                       `, ${s.billing_interval === "year" ? "yearly" : "monthly"}`}
                     {s.external_id && (
                       <a
-                        href={CREEM_DASHBOARD}
+                        href={LS_DASHBOARD}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="Open the Creem dashboard and search for this subscription"
+                        title="Open the Lemon Squeezy dashboard and search for this subscription"
                         className="block font-mono text-[12px] text-accent hover:underline"
                       >
                         {s.external_id}

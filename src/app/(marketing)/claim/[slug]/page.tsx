@@ -240,7 +240,7 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
           ) : mine ? (
             paid ? (
               <p role="status" className="rounded-2xl bg-surface p-4 text-[14px]">
-                Payment received. Pro turns on as soon as Creem confirms it, usually within a
+                Payment received. Pro turns on as soon as Lemon Squeezy confirms it, usually within a
                 minute.{" "}
                 <Link
                   href={`/claim/${agency.slug}?status=success`}

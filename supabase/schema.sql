@@ -514,7 +514,7 @@ create table agency_subscriptions (
   external_id text,
   cancel_at_period_end boolean not null default false,
   past_due_since timestamptz,
-  -- Creem (lib/billing): interval, customer (for the portal), last applied event, 3-day notice.
+  -- Billing provider (lib/billing, Lemon Squeezy): interval, customer (for the portal), last applied event, 3-day notice.
   billing_interval text check (billing_interval in ('month', 'year')),
   customer_id text check (char_length(customer_id) <= 200),
   last_event_at timestamptz,
@@ -557,7 +557,7 @@ create policy "owner marks contacted" on lead_routes for update to authenticated
     and exists (select 1 from agencies a where a.id = agency_id and a.owner_id = auth.uid()));
 
 
--- Creem webhook events, by Creem event id: retries are skipped once processed.
+-- Billing webhook events (Lemon Squeezy: name + object + updated_at; older rows: Creem event ids). Processed ones are skipped on retry.
 create table billing_events (
   id text primary key check (char_length(id) between 1 and 200),
   type text not null check (char_length(type) between 1 and 100),

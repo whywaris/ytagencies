@@ -2,8 +2,9 @@ import Link from "next/link";
 
 import { RefreshSitemap } from "@/components/admin/refresh-sitemap";
 import { requireAdmin } from "@/lib/auth";
-import { creemConfig, paymentsEnabled } from "@/lib/billing";
-import { creemEnvProblems, envValue } from "@/lib/billing/creem-events";
+import { lsConfig, paymentsEnabled } from "@/lib/billing";
+import { envValue } from "@/lib/billing/events";
+import { lsEnvProblems } from "@/lib/billing/lemonsqueezy-events";
 import { sitemapEntries, SITEMAP_FILES } from "@/lib/sitemap";
 import { cn } from "@/lib/utils";
 
@@ -32,11 +33,11 @@ function Section({
 /** ADMIN_V2_SPEC §5.10: admin profile and payments status (read-only). */
 export default async function AdminSettingsPage() {
   const admin = await requireAdmin("/admin/settings");
-  const creem = creemConfig();
-  const webhook = !!envValue(process.env, "CREEM_WEBHOOK_SECRET");
-  const payments = paymentsEnabled() && !!creem;
+  const ls = lsConfig();
+  const webhook = !!envValue(process.env, "LEMONSQUEEZY_WEBHOOK_SECRET");
+  const payments = paymentsEnabled() && !!ls;
   // Variable names only, never values (SECURITY.md).
-  const problems = creemEnvProblems(process.env);
+  const problems = lsEnvProblems(process.env);
   const sitemapCounts = Object.fromEntries(
     await Promise.all(
       SITEMAP_FILES.map(async (f) => [f, (await sitemapEntries(f)).length] as const),
@@ -59,7 +60,7 @@ export default async function AdminSettingsPage() {
 
         <Section
           title="Payments"
-          description="Read-only. Set by PAYMENTS_ENABLED and the CREEM_* variables in the Vercel environment."
+          description="Read-only. Set by PAYMENTS_ENABLED and the LEMONSQUEEZY_* variables in the Vercel environment."
         >
           <p className="flex items-center gap-2 font-medium">
             <span
@@ -70,7 +71,7 @@ export default async function AdminSettingsPage() {
           </p>
           <p className="mt-1 text-text-2">
             {payments
-              ? `Agencies can buy Pro through Creem${creem?.test ? " (test mode: no real charges)" : ""}.`
+              ? `Agencies can buy Pro through Lemon Squeezy${ls?.testMode ? " (test mode: no real charges)" : ""}.`
               : "Get Pro shows “Checkout is temporarily unavailable”. Plans are granted by hand on "}
             {!payments && (
               <Link href="/admin/plans" className="text-accent hover:underline">
@@ -92,10 +93,10 @@ export default async function AdminSettingsPage() {
             </div>
           )}
           <p className="mt-1 text-text-2">
-            Creem webhook:{" "}
+            Lemon Squeezy webhook:{" "}
             {webhook
               ? "secret set"
-              : "CREEM_WEBHOOK_SECRET missing, so payments won't update plans"}
+              : "LEMONSQUEEZY_WEBHOOK_SECRET missing, so payments won't update plans"}
             .
           </p>
         </Section>

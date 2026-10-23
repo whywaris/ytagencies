@@ -80,8 +80,8 @@ export const COMPANY = {
     yearlyFullRefundDays: 14,
   },
 
-  /** Payment provider that sells Pro as merchant of record (lib/billing/creem.ts). */
-  paymentProvider: "Creem" as string | null,
+  /** Payment provider that sells Pro as merchant of record (lib/billing/lemonsqueezy.ts). */
+  paymentProvider: "Lemon Squeezy" as string | null,
 } as const;
 
 /** The name to put after ©: the legal name once it's filled in. */

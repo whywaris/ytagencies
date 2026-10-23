@@ -4,7 +4,7 @@ import { dashboardContext } from "@/lib/data/dashboard";
 
 export const metadata = { title: "Payment received" };
 
-// Creem's success_url for Get Pro. The plan itself is switched on by the webhook
+// Lemon Squeezy's redirect URL for Get Pro. The plan itself is switched on by the webhook
 // (/api/billing/webhook), usually within seconds; until then this says so.
 export default async function BillingSuccessPage({
   params,

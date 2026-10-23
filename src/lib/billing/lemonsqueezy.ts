@@ -1,116 +1,100 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-
 import type { Billing, BillingResult } from "@/lib/billing";
+import { envValue, nextRow, type Email, type SubRow } from "@/lib/billing/events";
 import {
   changeFor,
   checkoutBody,
-  creemEnvProblems,
-  nextRow,
-  parseCreemEvent,
-  envValue,
-  verifyCreemSignature,
-  type Email,
-  type SubRow,
-} from "@/lib/billing/creem-events";
+  lsEnvProblems,
+  parseEvent,
+  refundOf,
+  verifySignature,
+} from "@/lib/billing/lemonsqueezy-events";
 import { sendBillingEmail } from "@/lib/billing/notices";
 import { alertAdmin } from "@/lib/email";
 import { revalidateAgency } from "@/lib/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
-// Creem (https://docs.creem.io): REST with the x-api-key header. Plain fetch for the four calls we
-// make (checkout, customer portal, upgrade, resume) rather than the SDK: field names are from the
-// API reference, and the webhook payload types we need are our own (creem-events.ts) either way.
+// Lemon Squeezy (merchant of record; docs.lemonsqueezy.com/api): REST in JSON:API with a Bearer
+// API key. Plain fetch for the two calls we make (create a checkout, read the customer for its
+// portal URL); the webhook payload rules are in lemonsqueezy-events.ts.
 
-/** Server-only Creem settings, or null when any is missing. CREEM_TEST_MODE picks the sandbox. */
-export function creemConfig() {
-  const apiKey = envValue(process.env, "CREEM_API_KEY");
-  const monthly = envValue(process.env, "CREEM_PRODUCT_PRO_MONTHLY");
-  const yearly = envValue(process.env, "CREEM_PRODUCT_PRO_YEARLY");
-  if (!apiKey || !monthly || !yearly) return null;
-  const test = envValue(process.env, "CREEM_TEST_MODE") === "true";
+const API = "https://api.lemonsqueezy.com/v1";
+
+/** Server-only settings, or null when any is missing. LEMONSQUEEZY_TEST_MODE=true: test mode. */
+export function lsConfig() {
+  const v = (name: string) => envValue(process.env, name);
+  const apiKey = v("LEMONSQUEEZY_API_KEY");
+  const storeId = v("LEMONSQUEEZY_STORE_ID");
+  const monthly = v("LEMONSQUEEZY_VARIANT_MONTHLY");
+  const yearly = v("LEMONSQUEEZY_VARIANT_YEARLY");
+  if (!apiKey || !storeId || !monthly || !yearly) return null;
   return {
     apiKey,
-    products: { monthly, yearly },
-    test,
-    baseUrl: test ? "https://test-api.creem.io/v1" : "https://api.creem.io/v1",
+    storeId,
+    variants: { monthly, yearly },
+    testMode: v("LEMONSQUEEZY_TEST_MODE") === "true",
   };
 }
 
 const FAILED = "We couldn't reach our payment provider. Please try again in a minute.";
 
-async function call<T>(path: string, body?: object): Promise<BillingResult<T>> {
-  const config = creemConfig();
-  if (!config) return { ok: false, error: "Payments aren't enabled yet." };
+async function call<T>(path: string, init: { method: "GET" | "POST"; body?: object }) {
+  const config = lsConfig();
+  if (!config) return { ok: false, error: "Payments aren't enabled yet." } as BillingResult<T>;
   try {
-    const res = await fetch(`${config.baseUrl}${path}`, {
-      method: "POST",
-      headers: { "x-api-key": config.apiKey, "content-type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
+    const res = await fetch(`${API}${path}`, {
+      method: init.method,
+      headers: {
+        Accept: "application/vnd.api+json",
+        "Content-Type": "application/vnd.api+json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: init.body ? JSON.stringify(init.body) : undefined,
       signal: AbortSignal.timeout(15_000),
       cache: "no-store",
     });
     if (!res.ok) {
-      console.error("creem request failed", {
-        path: path.replace(/sub_\w+/, "sub_…"),
+      console.error("lemonsqueezy request failed", {
+        path: path.replace(/\d+/g, "…"),
         status: res.status,
       });
-      return { ok: false, error: FAILED };
+      return { ok: false, error: FAILED } as BillingResult<T>;
     }
-    return { ok: true, data: (await res.json()) as T };
+    return { ok: true, data: (await res.json()) as T } as BillingResult<T>;
   } catch {
-    console.error("creem request failed", { path: path.replace(/sub_\w+/, "sub_…") });
-    return { ok: false, error: FAILED };
+    console.error("lemonsqueezy request failed", { path: path.replace(/\d+/g, "…") });
+    return { ok: false, error: FAILED } as BillingResult<T>;
   }
 }
 
-const SUB_ID = /^sub_[A-Za-z0-9]{1,100}$/;
-const CUST_ID = /^cust_[A-Za-z0-9]{1,100}$/;
+type Resource<A> = { data?: { id?: string; attributes?: A } };
 
-export const creem: Billing = {
+export const lemonSqueezy: Billing = {
   async createCheckout({ agencyId, userId, email, interval, successUrl }) {
-    const config = creemConfig()!;
-    // The docs describe request_id as tracking only, not idempotency (see LAUNCH.md). Creem
-    // has no cancel URL: a buyer who backs out just closes the checkout.
-    const res = await call<{ checkout_url?: string }>(
-      "/checkouts",
-      checkoutBody(
-        { agencyId, userId, email, interval, successUrl, requestId: `${agencyId}:${randomUUID()}` },
-        config.products,
-      ),
+    const config = lsConfig()!;
+    const res = await call<Resource<{ url?: string }>>("/checkouts", {
+      method: "POST",
+      body: checkoutBody({ agencyId, userId, email, interval, redirectUrl: successUrl }, config),
+    });
+    if (!res.ok) return res;
+    const url = res.data.data?.attributes?.url;
+    if (!url?.startsWith("https://")) return { ok: false, error: FAILED };
+    return { ok: true, data: { url } };
+  },
+
+  /** The customer's portal: a pre-signed URL valid 24 hours, so it's read fresh each time. */
+  async portalUrl(customerId) {
+    if (!/^[0-9]{1,20}$/.test(customerId)) return { ok: false, error: FAILED };
+    const res = await call<Resource<{ urls?: { customer_portal?: string | null } }>>(
+      `/customers/${customerId}`,
+      { method: "GET" },
     );
     if (!res.ok) return res;
-    const url = res.data.checkout_url;
+    const url = res.data.data?.attributes?.urls?.customer_portal;
     if (!url?.startsWith("https://")) return { ok: false, error: FAILED };
     return { ok: true, data: { url } };
-  },
-
-  async portalUrl(customerId) {
-    if (!CUST_ID.test(customerId)) return { ok: false, error: FAILED };
-    const res = await call<{ customer_portal_link?: string }>("/customers/billing", {
-      customer_id: customerId,
-    });
-    if (!res.ok) return res;
-    const url = res.data.customer_portal_link;
-    if (!url?.startsWith("https://")) return { ok: false, error: FAILED };
-    return { ok: true, data: { url } };
-  },
-
-  async switchToYearly(subscriptionId) {
-    if (!SUB_ID.test(subscriptionId)) return { ok: false, error: FAILED };
-    const res = await call(`/subscriptions/${subscriptionId}/upgrade`, {
-      product_id: creemConfig()!.products.yearly,
-      update_behavior: "proration-charge-immediately",
-    });
-    return res.ok ? { ok: true, data: null } : res;
-  },
-
-  async resume(subscriptionId) {
-    if (!SUB_ID.test(subscriptionId)) return { ok: false, error: FAILED };
-    const res = await call(`/subscriptions/${subscriptionId}/resume`);
-    return res.ok ? { ok: true, data: null } : res;
   },
 };
 
@@ -118,48 +102,43 @@ const SUB_COLUMNS =
   "id, agency_id, status, starts_at, ends_at, cancel_at_period_end, past_due_since, billing_interval, customer_id, last_event_at";
 
 /**
- * POST /api/billing/webhook. Verify → parse → skip if processed → apply → record. A failure while
- * applying returns 500 and leaves the event unprocessed, so Creem's retry applies it again;
- * applying twice is harmless (nextRow ignores events not newer than the last one applied).
+ * POST /api/webhooks/lemonsqueezy. Verify → parse → skip if processed → apply → record. A failure
+ * while applying returns 500 and leaves the event unprocessed, so Lemon Squeezy's retry (up to 3
+ * more times) applies it again; applying twice is harmless (nextRow ignores events not newer than
+ * the last one applied).
  */
-export async function handleCreemWebhook(request: Request): Promise<Response> {
-  const secret = envValue(process.env, "CREEM_WEBHOOK_SECRET");
+export async function handleWebhook(rawBody: string, headers: Headers): Promise<Response> {
+  const secret = envValue(process.env, "LEMONSQUEEZY_WEBHOOK_SECRET");
   if (!secret) return new Response("Not configured", { status: 503 });
-  const raw = await request.text();
-  if (!verifyCreemSignature(raw, request.headers.get("creem-signature"), secret))
+  if (!verifySignature(rawBody, headers.get("x-signature"), secret))
     return new Response("Invalid signature", { status: 400 });
-  const event = parseCreemEvent(raw);
+  const event = parseEvent(rawBody, headers.get("x-event-name"));
   if (!event) return new Response("Invalid event", { status: 400 });
 
   const db = createAdminClient();
   const seen = await db
     .from("billing_events")
     .select("processed_at")
-    .eq("id", event.id)
+    .eq("id", event.key)
     .maybeSingle();
   if (seen.error) return new Response("Try again", { status: 500 });
   if (seen.data?.processed_at) return Response.json({ received: true, duplicate: true });
 
-  const products = creemConfig()?.products ?? {
-    monthly: envValue(process.env, "CREEM_PRODUCT_PRO_MONTHLY"),
-    yearly: envValue(process.env, "CREEM_PRODUCT_PRO_YEARLY"),
+  const config = lsConfig();
+  const variants = config?.variants ?? {
+    monthly: envValue(process.env, "LEMONSQUEEZY_VARIANT_MONTHLY"),
+    yearly: envValue(process.env, "LEMONSQUEEZY_VARIANT_YEARLY"),
   };
-  const change = changeFor(event, products);
+  const change = changeFor(event, variants);
   let agencyId: string | null = change?.agencyId ?? null;
 
   // Refunds don't change the plan by themselves: logged, and the admin decides.
-  if (event.eventType === "refund.created") {
-    const sub = event.object.subscription;
-    const meta = (typeof sub === "object" && sub && "metadata" in sub ? sub.metadata : null) as {
-      agency_id?: unknown;
-    } | null;
-    agencyId =
-      typeof meta?.agency_id === "string" && /^[0-9a-f-]{36}$/i.test(meta.agency_id)
-        ? meta.agency_id
-        : null;
-    console.info("creem refund received", { event: event.id, agencyId });
-    await alertAdmin("Creem refund created", [
-      `A refund was created in Creem (event ${event.id}).`,
+  const refund = refundOf(event);
+  if (refund) {
+    agencyId = refund.agencyId;
+    console.info("lemonsqueezy refund received", { order: refund.orderId, agencyId });
+    await alertAdmin("Lemon Squeezy refund", [
+      `A ${refund.full ? "full" : "partial"} refund was made on order ${refund.orderId}.`,
       agencyId ? `Agency id: ${agencyId}` : "No agency id on the event.",
       "Pro isn't ended automatically: end it in Admin → Agencies → Change plan if needed.",
     ]);
@@ -185,12 +164,12 @@ export async function handleCreemWebhook(request: Request): Promise<Response> {
     if (agency?.error) return new Response("Try again", { status: 500 });
 
     if (!agency?.data) {
-      // No agency to apply it to (e.g. metadata missing): recorded for the admin, not retried.
-      console.error("creem event without agency", { event: event.id, type: event.eventType });
+      // No agency to apply it to (e.g. custom data missing): recorded for the admin, not retried.
+      console.error("lemonsqueezy event without agency", { event: event.name });
       agencyId = null;
     } else {
       const current = existing.data ? (existing.data as SubRow & { id: string }) : null;
-      const next = nextRow(current, change, new Date(event.created_at));
+      const next = nextRow(current, change, event.at);
       if (next) {
         const applied = await applyRow(
           db,
@@ -207,13 +186,13 @@ export async function handleCreemWebhook(request: Request): Promise<Response> {
   }
 
   const { error } = await db.from("billing_events").upsert({
-    id: event.id,
-    type: event.eventType,
+    id: event.key,
+    type: event.name,
     agency_id: agencyId,
-    payload: JSON.parse(raw) as Json,
+    payload: JSON.parse(rawBody) as Json,
     processed_at: new Date().toISOString(),
   });
-  if (error) console.error("billing event not recorded", { event: event.id });
+  if (error) console.error("billing event not recorded", { event: event.name });
   return Response.json({ received: true });
 }
 
@@ -287,13 +266,15 @@ let lastUnavailableAlert = 0;
  * (names only) and, at most hourly per server instance, an email to the admin.
  */
 export async function reportCheckoutUnavailable() {
-  const missing = creemEnvProblems(process.env);
-  console.error("Creem checkout unavailable", { missing });
+  const missing = lsEnvProblems(process.env);
+  console.error("Lemon Squeezy checkout unavailable", { missing });
   if (Date.now() - lastUnavailableAlert < 3_600_000) return;
   lastUnavailableAlert = Date.now();
   await alertAdmin("Checkout is unavailable", [
-    "Someone clicked Get Pro, but Creem checkout isn't configured.",
-    missing.length ? `Missing or wrong: ${missing.join(", ")}.` : "The Creem request failed.",
+    "Someone clicked Get Pro, but Lemon Squeezy checkout isn't configured.",
+    missing.length
+      ? `Missing or wrong: ${missing.join(", ")}.`
+      : "The Lemon Squeezy request failed.",
     "Set them in Vercel → Settings → Environment Variables (see docs/LAUNCH.md), then redeploy.",
   ]);
 }

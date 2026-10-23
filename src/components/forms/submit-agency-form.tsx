@@ -78,7 +78,7 @@ export function SubmitAgencyForm({
   industries: Option[];
   /** Our locations: countries with their cities. */
   countries: Country[];
-  /** Checkout is available (payments on and Creem configured): offer "Subscribe now". */
+  /** Checkout is available (payments on and Lemon Squeezy configured): offer "Subscribe now". */
   live: boolean;
   prices: { monthly: number; yearly: number; saving: number };
 }) {

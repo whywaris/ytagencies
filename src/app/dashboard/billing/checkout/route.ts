@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // GET /dashboard/billing/checkout?period=monthly|yearly: "Get Pro" on /pricing. Signed out →
 // sign in and come back here. No agency → find or add one first (List your agency). One agency
-// → its Creem checkout for that period, created server-side. Several → ?agency=<slug>, else
+// → its Lemon Squeezy checkout for that period, created server-side. Several → ?agency=<slug>, else
 // the dashboard to pick one (each Billing page has its own Get Pro). Linked with a plain <a>, so
 // it's never prefetched.
 export const dynamic = "force-dynamic";

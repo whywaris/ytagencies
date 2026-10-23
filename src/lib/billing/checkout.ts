@@ -1,12 +1,12 @@
 import "server-only";
 
 import { billing, checkoutAvailable, type Interval } from "@/lib/billing";
-import { reportCheckoutUnavailable } from "@/lib/billing/creem";
+import { reportCheckoutUnavailable } from "@/lib/billing/lemonsqueezy";
 import type { getOwnedAgency } from "@/lib/auth";
 import { isManaged } from "@/lib/entitlements";
 import { absoluteUrl } from "@/lib/site";
 
-// Get Pro → Creem checkout. Not a server action: callers pass an agency they've already checked
+// Get Pro → Lemon Squeezy checkout. Not a server action: callers pass an agency they've already checked
 // the user owns (lib/auth getOwnedAgency), never anything from the browser.
 
 type Owned = NonNullable<Awaited<ReturnType<typeof getOwnedAgency>>>;
@@ -14,9 +14,9 @@ type Owned = NonNullable<Awaited<ReturnType<typeof getOwnedAgency>>>;
 const billingPage = (slug: string, query = "") => `/dashboard/${slug}/billing${query}`;
 
 /**
- * Where Get Pro sends an owner: the Creem checkout for the period (created server-side), the
+ * Where Get Pro sends an owner: the Lemon Squeezy checkout for the period (created server-side), the
  * Billing page when they're already on Pro, or the Billing page with "unavailable" when checkout
- * can't start (logged and emailed to the admin; never a form instead). `from` decides where Creem
+ * can't start (logged and emailed to the admin; never a form instead). `from` decides where Lemon Squeezy
  * sends the buyer back: Billing's success page, or the claim flow's welcome screen.
  */
 export async function checkoutTarget(

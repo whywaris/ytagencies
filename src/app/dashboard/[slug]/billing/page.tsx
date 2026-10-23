@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { keepPro, openBillingPortal, startCheckout, switchToYearly } from "@/lib/actions/billing";
+import { openBillingPortal, startCheckout } from "@/lib/actions/billing";
 import { dashboardContext } from "@/lib/data/dashboard";
 import { getPlanPrices } from "@/lib/data/placement";
 import { liveSubscription, planIncludes } from "@/lib/entitlements";
@@ -12,14 +12,9 @@ export const metadata = { title: "Billing" };
 const ERRORS: Record<string, string> = {
   unavailable: `Checkout is temporarily unavailable. Email ${CONTACT_EMAIL}`,
   checkout: "We couldn't start the checkout. Please try again in a minute.",
-  portal: "We couldn't open billing. Please try again in a minute, or email us.",
-  switch: "We couldn't switch you to yearly. Please try again in a minute.",
-  resume: "We couldn't keep your plan going. Please try again in a minute.",
+  portal: "We couldn't open your subscription. Please try again in a minute, or email us.",
 };
-const STATUS: Record<string, string> = {
-  switched: "Switched to yearly. Your new renewal date shows here in a moment.",
-  resumed: "Pro will renew as usual. It can take a moment to show here.",
-};
+const STATUS: Record<string, string> = {};
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -62,7 +57,7 @@ export default async function BillingPage({
     one(sp.status) === "success"
       ? e.managed
         ? "Payment received. You're on Pro."
-        : "Payment received. Pro turns on as soon as Creem confirms it, usually within a minute. Refresh this page to check."
+        : "Payment received. Pro turns on as soon as Lemon Squeezy confirms it, usually within a minute. Refresh this page to check."
       : STATUS[one(sp.status) ?? ""];
   const preferred = one(sp.interval) === "year" ? "year" : "month";
 
@@ -74,7 +69,7 @@ export default async function BillingPage({
       ? "Your Pro plan has ended. Your profile stays public with the details we hold, but businesses can't contact you and editing is locked."
       : "Your listing is unmanaged: your profile is public, but businesses can't contact you and editing is locked.";
   else if (live.status === "past_due")
-    summary = `Your last payment didn't go through. Pro stays on until ${fmt(new Date(Date.parse(live.past_due_since!) + 7 * 86_400_000).toISOString())} while Creem retries it. Update your card in Manage billing.`;
+    summary = `Your last payment didn't go through. Pro stays on until ${fmt(new Date(Date.parse(live.past_due_since!) + 7 * 86_400_000).toISOString())} while Lemon Squeezy retries it. Update your card in Manage subscription.`;
   else if (live.cancel_at_period_end && live.ends_at) summary = `Ends on ${fmt(live.ends_at)}.`;
   else if (live.source === "manual")
     summary = live.ends_at
@@ -112,28 +107,21 @@ export default async function BillingPage({
 
         {live?.source === "payment" ? (
           <div className="flex flex-wrap gap-3">
-            {live.cancel_at_period_end && (
-              <form action={keepPro.bind(null, agency.id)}>
-                <Button type="submit">Keep Pro</Button>
-              </form>
-            )}
-            {live.billing_interval === "month" &&
-              live.status === "active" &&
-              !live.cancel_at_period_end && (
-                <form action={switchToYearly.bind(null, agency.id)}>
-                  <Button type="submit">
-                    Switch to yearly{saving > 0 ? `, save ${saving}%` : ""}
-                  </Button>
-                </form>
-              )}
+            {/* Lemon Squeezy's customer portal: switch to yearly, update the card, cancel or
+                resume, invoices. */}
             <form action={openBillingPortal.bind(null, agency.id)}>
-              <Button type="submit" className={outline}>
-                Manage billing
-              </Button>
+              <Button type="submit">Manage subscription</Button>
             </form>
+            <p className="basis-full text-small">
+              {live.cancel_at_period_end
+                ? "Changed your mind? Resume Pro in Manage subscription."
+                : live.billing_interval === "month" && saving > 0
+                  ? `Switch to yearly in Manage subscription and save ${saving}%.`
+                  : "Change your plan, card or invoices in Manage subscription."}
+            </p>
           </div>
         ) : !live ? (
-          // Always the checkout; if Creem isn't set up, the action comes back with "unavailable".
+          // Always the checkout; if Lemon Squeezy isn't set up, the action comes back with "unavailable".
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap gap-3">
               {(["month", "year"] as const).map((i) => (
@@ -147,7 +135,7 @@ export default async function BillingPage({
               ))}
             </div>
             <p className="text-small">
-              Secure checkout by Creem, our payment provider. Cancel any time.{" "}
+              Secure checkout by Lemon Squeezy, our payment provider. Cancel any time.{" "}
               <Link href="/refunds" className="text-accent hover:underline">
                 Refund policy
               </Link>

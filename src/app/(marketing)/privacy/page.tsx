@@ -158,8 +158,8 @@ const sections: LegalSection[] = [
           </li>
         </ul>
         <p>
-          Creem sells Pro as merchant of record: it processes payment details, your billing address
-          and tax information, and sends receipts. We receive your email, Creem customer and
+          Lemon Squeezy sells Pro as merchant of record: it processes payment details, your billing address
+          and tax information, and sends receipts. We receive your email, Lemon Squeezy customer and
           subscription ids and the plan&apos;s status, never card numbers.
         </p>
       </>

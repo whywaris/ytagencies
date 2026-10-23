@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Billing" };
 
-// /dashboard/billing: where "Get Pro" on the pricing page and Creem's success_url land. Sends the
+// /dashboard/billing: where "Get Pro" on the pricing page and Lemon Squeezy's redirect URL land. Sends the
 // owner to their agency's Billing page (keeping status/interval), or to the listings list when
 // they have several, or to List your agency when they have none.
 export default async function BillingRedirect({ searchParams }: PageProps<"/dashboard/billing">) {
@@ -23,7 +23,7 @@ export default async function BillingRedirect({ searchParams }: PageProps<"/dash
   const { data } = await supabase.from("agencies").select("id, slug").eq("owner_id", user.id);
   const owned = data ?? [];
   const wanted = one(sp.agency)?.toLowerCase();
-  // ?agency= by id (older Creem return links) or slug.
+  // ?agency= by id (older checkout return links) or slug.
   const match = owned.find((a) => a.id === wanted || a.slug === wanted);
   if (match) redirect(`/dashboard/${match.slug}/billing${q}`);
   if (owned.length === 1) redirect(`/dashboard/${owned[0].slug}/billing${q}`);

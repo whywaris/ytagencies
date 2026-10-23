@@ -290,7 +290,7 @@ function ProofForm({
   );
 }
 
-/** Step 3: monthly or yearly, then Creem checkout (or Request Pro while payments are off). */
+/** Step 3: monthly or yearly, then Lemon Squeezy checkout (or Request Pro while payments are off). */
 export function ChoosePro({
   agencyId,
   monthly,
@@ -302,7 +302,7 @@ export function ChoosePro({
   monthly: number;
   yearly: number;
   saving: number;
-  /** Where Creem sends the buyer back (lib/actions/billing.ts). */
+  /** Where Lemon Squeezy sends the buyer back (lib/actions/billing.ts). */
   from?: "claim" | "billing";
 }) {
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
@@ -315,14 +315,14 @@ export function ChoosePro({
           {period === "monthly" ? " a month" : " a year"}
         </small>
       </p>
-      {/* Always a Creem checkout; if Creem isn't set up, "temporarily unavailable" (never a form). */}
+      {/* Always a Lemon Squeezy checkout; if Lemon Squeezy isn't set up, "temporarily unavailable" (never a form). */}
       <form
         action={startCheckout.bind(null, agencyId, period === "yearly" ? "year" : "month", from)}
       >
         <button type="submit" className={btnPrimary}>
           Get Pro
         </button>
-        <p className="mt-2 text-[13px] text-text-2">Secure checkout by Creem. Cancel any time.</p>
+        <p className="mt-2 text-[13px] text-text-2">Secure checkout by Lemon Squeezy. Cancel any time.</p>
       </form>
     </div>
   );

@@ -33,8 +33,8 @@ function Feature({ on = true, children }: { on?: boolean; children: React.ReactN
 
 /**
  * Listing / Pro with the Monthly/Yearly toggle, which sets Pro's price and the
- * period "Get Pro" checks out with: always a Creem checkout created on the server
- * (app/dashboard/billing/checkout), or "temporarily unavailable" if Creem isn't set up.
+ * period "Get Pro" checks out with: always a Lemon Squeezy checkout created on the server
+ * (app/dashboard/billing/checkout), or "temporarily unavailable" if Lemon Squeezy isn't set up.
  */
 export function PlanCards({
   monthly,
@@ -113,7 +113,7 @@ export function PlanCards({
             ))}
           </ul>
           <div className="mt-auto">
-            {/* A plain <a>: the checkout route creates a Creem session, so it's never prefetched. */}
+            {/* A plain <a>: the checkout route creates a Lemon Squeezy session, so it's never prefetched. */}
             <a
               href={checkoutHref(period)}
               onClick={() =>

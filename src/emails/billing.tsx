@@ -1,6 +1,6 @@
 import { EmailLayout, link, muted, text } from "@/emails/layout";
 
-// Pro billing emails to the agency owner (lib/billing/creem.ts, lib/billing/notices.tsx). Creem,
+// Pro billing emails to the agency owner (lib/billing/lemonsqueezy.ts, lib/billing/notices.tsx). Lemon Squeezy,
 // as merchant of record, sends the receipt and invoices itself; these link to our Billing page.
 
 type Props = { agencyName: string; billingUrl: string };
@@ -14,7 +14,7 @@ export function ProStartedEmail({ agencyName, billingUrl }: Props) {
         listing any time.
       </p>
       <p style={text}>
-        Your receipt comes from Creem, our payment provider, in a separate email. Your plan, renewal
+        Your receipt comes from Lemon Squeezy, our payment provider, in a separate email. Your plan, renewal
         date and invoices are on your{" "}
         <a href={billingUrl} style={link}>
           Billing page
@@ -29,7 +29,7 @@ export function PaymentFailedEmail({ agencyName, billingUrl }: Props) {
   return (
     <EmailLayout preview="Payment failed: update your card">
       <p style={text}>
-        We couldn&apos;t take the payment for {agencyName}&apos;s Pro plan. Creem will try again
+        We couldn&apos;t take the payment for {agencyName}&apos;s Pro plan. Lemon Squeezy will try again
         over the next few days.
       </p>
       <p style={text}>

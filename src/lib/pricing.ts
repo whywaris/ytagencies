@@ -67,7 +67,7 @@ export const yearlySaving = (monthly: number, yearly: number) =>
 
 export type Period = "monthly" | "yearly";
 
-/** Where "Get Pro" goes for the selected period: sign-in if needed, then a Creem checkout created
+/** Where "Get Pro" goes for the selected period: sign-in if needed, then a Lemon Squeezy checkout created
  * server-side (app/dashboard/billing/checkout), or List your agency when there's no agency yet. */
 export const checkoutHref = (period: Period) => `/dashboard/billing/checkout?period=${period}`;
 

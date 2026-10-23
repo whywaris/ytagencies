@@ -36,7 +36,7 @@ export default async function AdminSubmissionsPage() {
   const items: QueueItem[] = agencies.map((a) => {
     const claim = a.claims.find((c) => c.user_id === a.submitted_by && c.status !== "rejected");
     const match = claim ? emailMatchesWebsite(claim.work_email, a.website) : false;
-    // "Subscribe now" when submitting: rejecting deletes the draft but not the Creem charge.
+    // "Subscribe now" when submitting: rejecting deletes the draft but not the Lemon Squeezy charge.
     const paid = a.agency_subscriptions.find(
       (s) => s.source === "payment" && (s.status === "active" || s.status === "past_due"),
     );
@@ -49,9 +49,9 @@ export default async function AdminSubmissionsPage() {
         <>
           {paid && (
             <p role="note" className="max-w-reading rounded-lg border border-line bg-surface-2 p-3">
-              Paid for Pro when submitting (Creem subscription{" "}
+              Paid for Pro when submitting (Lemon Squeezy subscription{" "}
               <span className="font-mono text-[12px]">{paid.external_id}</span>). If you reject it,
-              refund and cancel that subscription in the Creem dashboard too.
+              refund and cancel that subscription in the Lemon Squeezy dashboard too.
             </p>
           )}
           <DetailList

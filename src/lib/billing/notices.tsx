@@ -6,7 +6,7 @@ import {
   ProEndingEmail,
   ProStartedEmail,
 } from "@/emails/billing";
-import type { Email } from "@/lib/billing/creem-events";
+import type { Email } from "@/lib/billing/events";
 import { getMailer } from "@/lib/email";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";

@@ -127,37 +127,36 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    | `ADMIN_EMAIL` | server | recommended | Gets a note for every new lead, agency submission and claim that needs review. Unset: those notes are skipped (the admin queues still show everything). |
    | `EMAIL_FROM` | server | no | Defaults to `YT Agencies <help@send.ytagencies.com>` (the Resend-verified subdomain). Every email the app sends sets Reply-To `help@ytagencies.com`, except lead emails to agencies, which reply to the business. |
    | `MEDIA_HOSTS` | server | yes | Host name(s) of your Cloudflare image hosting, comma-separated, e.g. `media.ytagencies.com` (the R2 bucket on a custom domain). Agency logos (Admin → Agencies → Edit → Logo) and guide cover links must be on one of these: https, a .png/.webp/.jpg/.jpeg file (no SVG), up to 1 MB, checked with a HEAD request when saved. It also opens the CSP `img-src` and `next/image` to them. Without it, admins can't set logos by link. Changing it needs a redeploy. |
-   | `PAYMENTS_ENABLED` | server | for payments | Only exactly `true` turns checkout on (with the Creem variables below). While off (or any Creem variable is missing), "Get Pro" shows "Checkout is temporarily unavailable. Email help@ytagencies.com", logs which variable is missing and emails `ADMIN_EMAIL` (at most hourly). There's no fallback form; grant Pro by hand in Agencies → Change plan if needed. The production build log also warns when any is missing. |
-   | `CREEM_API_KEY` | server, secret | for payments | Creem dashboard → **Developers → API keys**. Test key (`creem_test_…`) on Preview/local with `CREEM_TEST_MODE=true`, live key on Production without it. |
-   | `CREEM_WEBHOOK_SECRET` | server, secret | for payments | Creem dashboard → **Developers → Webhooks** → add the endpoint `https://ytagencies.com/api/billing/webhook` → copy its signing secret. Without it, payments don't update plans. |
-   | `CREEM_PRODUCT_PRO_MONTHLY` | server | for payments | Creem dashboard → **Products** → "YT Agencies Pro" monthly → product id (`prod_…`). |
-   | `CREEM_PRODUCT_PRO_YEARLY` | server | for payments | Creem dashboard → **Products** → "YT Agencies Pro" yearly → product id (`prod_…`). |
-   | `CREEM_TEST_MODE` | server | for test payments | `true` sends API calls to `https://test-api.creem.io` (test keys); unset uses `https://api.creem.io` (live keys). Must match the key, or every call fails. |
+   | `PAYMENTS_ENABLED` | server | for payments | Only exactly `true` turns checkout on (with the Lemon Squeezy variables below). While off (or any of them is missing), "Get Pro" shows "Checkout is temporarily unavailable. Email help@ytagencies.com", logs which variable is missing and emails `ADMIN_EMAIL` (at most hourly). There's no fallback form; grant Pro by hand in Agencies → Change plan if needed. The production build log also warns when any is missing. |
+   | `LEMONSQUEEZY_API_KEY` | server, secret | for payments | Lemon Squeezy → **Settings → API** → create a key. A key created in test mode is a test key: test key on Preview/local, live key on Production. |
+   | `LEMONSQUEEZY_STORE_ID` | server | for payments | Lemon Squeezy → **Settings → Stores** → your store's ID (a number). |
+   | `LEMONSQUEEZY_VARIANT_MONTHLY` | server | for payments | Lemon Squeezy → **Products** → "YT Agencies Pro" → the $29/month variant's ID (a number). |
+   | `LEMONSQUEEZY_VARIANT_YEARLY` | server | for payments | The same product → the $279/year variant's ID. Must differ from the monthly one. |
+   | `LEMONSQUEEZY_WEBHOOK_SECRET` | server, secret | for payments | Lemon Squeezy → **Settings → Webhooks** → add the endpoint `https://ytagencies.com/api/webhooks/lemonsqueezy`; you choose the signing secret there (a random string, 6–40 characters). Without it, payments don't update plans. |
+   | `LEMONSQUEEZY_TEST_MODE` | server | for test payments | `true` creates checkouts in test mode. Unset (or `false`) on Production. |
 
 3. Enable Web Analytics.
 4. Cron jobs come from `vercel.json` and run on Production only:
    - `/api/cron/verification-stats` on the 1st of each month at 06:00 UTC (re-checks verified channels' YouTube stats).
-   - `/api/cron/guides` daily at 07:00 UTC. It refreshes guides whose scheduled time passed (guide pages also refresh hourly, so a scheduled guide appears within an hour either way; on Vercel Pro you can run it every 15 minutes, `*/15 * * * *`), sends the one "A business is waiting for your reply" email for leads not marked contacted after 24 hours, and deletes data past its retention period: leads after 24 months, closed contact messages 12 months after closing (set in `src/lib/company.ts`, shown in the privacy policy). Its response and logs hold counts only.
+   - `/api/cron/guides` daily at 00:05 UTC. It refreshes the home page's daily guides and guides whose scheduled time passed (guide pages also refresh hourly, so a scheduled guide appears within an hour either way; on Vercel Pro you can run it every 15 minutes, `*/15 * * * *`), sends the one "A business is waiting for your reply" email for leads not marked contacted after 24 hours, and deletes data past its retention period: leads after 24 months, closed contact messages 12 months after closing (set in `src/lib/company.ts`, shown in the privacy policy). Its response and logs hold counts only.
    After the first deploy, check both under Project → Settings → Cron Jobs and run each once with "Run" to see a 200.
 
-## Creem (payments for Pro)
+## Lemon Squeezy (payments for Pro)
 
-Creem is the merchant of record: it charges, handles tax and sends receipts and invoices. Test mode and live mode are separate (keys, products and webhooks don't carry over).
+Lemon Squeezy is the merchant of record: it charges, handles tax and sends receipts and invoices. Test mode and live mode are separate (API keys and webhooks don't carry over).
 
-1. **Account and verification.** Sign up at creem.io, create the store "YT Agencies", and complete account verification in the dashboard (Balances → Payout Account). Live payments need it; test mode works before it.
-2. **Products (test mode first).** Toggle Test Mode (bottom of the left sidebar). Create two recurring products, both named "YT Agencies Pro": $29, billed every month, and $279, billed every year. The Creem docs only let an existing customer switch plans between products in a bundle with self-service upgrades, so also put both in one product bundle if you want switching from the portal (our "Switch to yearly" button works either way, through the API). Copy each product id (`prod_…`).
-3. **Webhook (test).** Developers → Webhooks → add an endpoint. Dev: a tunnel to your machine (e.g. `ngrok http 3000`, then `https://<tunnel>/api/billing/webhook`), or the Preview deployment's URL plus `/api/billing/webhook`. Copy its signing secret.
-4. **Keys (test).** Developers → API keys (with Test Mode on) → copy the test key.
-5. **Env (Preview and `.env.local`).** `CREEM_API_KEY` = test key, `CREEM_WEBHOOK_SECRET` = test webhook secret, `CREEM_PRODUCT_PRO_MONTHLY` / `CREEM_PRODUCT_PRO_YEARLY` = the test product ids, `CREEM_TEST_MODE=true`, `PAYMENTS_ENABLED=true`. Admin → Settings → Payments then says "On (test mode)".
-6. **Test the flow.** As an agency owner: Dashboard → Billing → Get Pro (monthly). Pay with `4111 1111 1111 1111`, any future date, any CVC. You land on Billing with "Payment received"; within seconds the plan shows Pro, the profile gets its contact form, and you get "You're on Pro". Then check:
-   - Admin → Plans: source Payment, the `sub_…` id, last event "Payment received".
-   - Billing → Switch to yearly: the interval changes after the webhook.
-   - Billing → Manage billing opens the Creem portal; cancel there: the plan ends (the portal cancels immediately) and "Your Pro plan has ended" arrives.
-   - A declined card (`4507 9900 0000 0028`) at checkout shows Creem's error and changes nothing.
-   - Creem dashboard → Developers → Webhooks: every delivery answered 200. Resending one is ignored (already processed).
-7. **Go live.** Turn Test Mode off and repeat steps 2–4 in live mode: create the two products again (new ids), add the webhook `https://ytagencies.com/api/billing/webhook` (new secret), copy the live API key. On Vercel **Production** set the live values, leave `CREEM_TEST_MODE` unset, and set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $29 purchase on your own agency, then refund it in Creem (you get an admin email; end Pro in Admin → Agencies → Change plan, or cancel the subscription in Creem).
-8. **Ongoing.** Refunds and cancellations happen in the Creem dashboard; the webhook updates the plan. Ending a paid plan from Admin → Change plan only changes our side, so cancel it in Creem too.
-9. **Rejecting a paid submission.** "Add your agency" lets the submitter subscribe before review. Admin → Submissions marks those ("Paid for Pro when submitting", with the `sub_…` id). Rejecting deletes the draft but not the charge: in the Creem dashboard, refund the payment in full and cancel the subscription (the full refund also arrives as a webhook, which is ignored because the agency no longer exists).
+1. **Account and store.** Sign up at lemonsqueezy.com, create the store "YT Agencies" and complete the store activation in the dashboard. Live payments need it; test mode works before it.
+2. **Product (test mode first).** Turn on test mode in the dashboard. Create one subscription product "YT Agencies Pro" with two variants: $29 billed monthly and $279 billed yearly. Copy both variant IDs and the store ID (Settings → Stores).
+3. **Webhook (test).** Settings → Webhooks → add an endpoint: a tunnel to your machine (e.g. `ngrok http 3000`, then `https://<tunnel>/api/webhooks/lemonsqueezy`), or the Preview URL plus `/api/webhooks/lemonsqueezy`. Set a signing secret and tick these events: `subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_resumed`, `subscription_expired`, `subscription_payment_success`, `subscription_payment_failed`, `order_refunded`.
+4. **Key (test).** Settings → API (in test mode) → create a key.
+5. **Env (Preview and `.env.local`).** The test key, store ID, the two variant IDs, the webhook secret, `LEMONSQUEEZY_TEST_MODE=true`, `PAYMENTS_ENABLED=true`. Admin → Settings → Payments then says "On (test mode)".
+6. **Test the flow.** As an agency owner: Dashboard → Billing → Get Pro (monthly). Pay with a test card from Lemon Squeezy's test-mode docs. You land on Billing with "Payment received"; within seconds the plan shows Pro and you get "You're on Pro". Then check:
+   - Admin → Plans: source Payment, the subscription id, last event "Payment received".
+   - Billing → Manage subscription opens the Lemon Squeezy customer portal: switch to yearly, cancel (Pro stays until the period end), resume.
+   - Settings → Webhooks shows every delivery answered 200. Resending one is ignored (already processed).
+7. **Go live.** Turn test mode off and repeat steps 2–4 in live mode (new variant IDs if you recreate the product, a new webhook and secret, a live API key). On Vercel **Production** set the live values, leave `LEMONSQUEEZY_TEST_MODE` unset, set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $29 purchase on your own agency, then refund it in Lemon Squeezy (you get an admin email; end Pro in Admin → Agencies → Change plan, or cancel the subscription in Lemon Squeezy).
+8. **Ongoing.** Refunds and cancellations happen in the Lemon Squeezy dashboard; the webhook updates the plan. Ending a paid plan from Admin → Change plan only changes our side, so cancel it in Lemon Squeezy too.
+9. **Rejecting a paid submission.** "Add your agency" lets the submitter subscribe before review. Admin → Submissions marks those ("Paid for Pro when submitting", with the subscription id). Rejecting deletes the draft but not the charge: refund the order in full and cancel the subscription in Lemon Squeezy.
 
 ## Cloudflare DNS (DNS-only, grey cloud)
 
@@ -176,7 +175,7 @@ Creem is the merchant of record: it charges, handles tax and sends receipts and 
 
 ## After deploy
 
-1. End-to-end test with real services: a Creem test purchase ("Creem" step 6), magic link (opened in a different browser than the one that asked for it), Google sign-in, Turnstile, the three lead emails, a domain-matched claim, a logo upload, a verification lookup (YouTube API), and a guide image upload.
+1. End-to-end test with real services: a Lemon Squeezy test purchase ("Lemon Squeezy" step 6), magic link (opened in a different browser than the one that asked for it), Google sign-in, Turnstile, the three lead emails, a domain-matched claim, a logo upload, a verification lookup (YouTube API), and a guide image upload.
 2. Check `https://www.ytagencies.com/x` returns 308 to `https://ytagencies.com/x`, and canonicals, sitemaps and JSON-LD use `https://ytagencies.com`.
 3. PageSpeed Insights on mobile: home, a directory page, a profile.
 4. Google Search Console and Bing Webmaster Tools: verify `ytagencies.com` (domain property) and submit the three `/sitemaps/*.xml` files.
