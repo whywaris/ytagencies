@@ -10,8 +10,10 @@ import {
   BROWSE_FORM,
   BROWSE_SORTS,
   browse,
+  browseDescription,
   browseQuery,
   browseRobots,
+  browseTitle,
   filterCount,
   isFiltered,
   pageNumbers,
@@ -51,8 +53,8 @@ export async function generateMetadata({ searchParams }: PageProps<"/agencies">)
   const robots = browseRobots(await searchParams);
   const n = await getAgencyCount();
   return buildMetadata({
-    title: `YouTube Agencies: Compare ${count.format(n)} Agencies${robots.page > 1 ? `, page ${robots.page}` : ""} · ${BRAND_NAME}`,
-    description: `Browse and compare ${count.format(n)} YouTube agencies by service, niche, location and starting price. Free for businesses and creators.`,
+    title: browseTitle(new Date().getFullYear(), robots.page, BRAND_NAME),
+    description: browseDescription(n),
     path: robots.canonical,
     noindex: robots.noindex,
   });

@@ -263,3 +263,35 @@ export function pageNumbers(page: number, pages: number): (number | "gap")[] {
   }
   return out;
 }
+
+const fits = (candidates: string[], max: number) =>
+  candidates.find((c) => c.length <= max) ?? candidates[candidates.length - 1];
+
+/**
+ * /agencies title (docs/SEO.md: ≤ 60 chars, the directory pages' "Best … (year)" pattern): the
+ * head term people search, "YouTube marketing agencies", first. Page 2+ says which page.
+ */
+export function browseTitle(year: number, page: number, brand: string) {
+  const p = page > 1 ? ` – Page ${page}` : "";
+  return fits(
+    [
+      `Best YouTube Marketing Agencies (${year})${p} | ${brand}`,
+      `Best YouTube Marketing Agencies (${year})${p}`,
+      `YouTube Marketing Agencies${p}`,
+    ],
+    60,
+  );
+}
+
+/** /agencies meta description: 140–160 chars, with the live agency count. */
+export function browseDescription(n: number) {
+  const count = new Intl.NumberFormat("en-US").format(n);
+  return fits(
+    [
+      `Compare ${count} YouTube marketing agencies for ads, SEO, channel management, Shorts and video editing. See starting prices, niches and reviews. Free.`,
+      `Compare ${count} YouTube marketing agencies for ads, SEO, channel management and Shorts. See starting prices, niches and reviews. Free.`,
+      `Compare ${count} YouTube marketing agencies by service, niche and starting price. Free for businesses and creators.`,
+    ],
+    160,
+  );
+}

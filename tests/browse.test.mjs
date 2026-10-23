@@ -6,6 +6,8 @@ import { test } from "node:test";
 
 import {
   browse,
+  browseDescription,
+  browseTitle,
   browseQuery,
   browseRobots,
   cleanQuery,
@@ -153,4 +155,17 @@ test("empty state: nothing matches, and the page says so with a way out", () => 
     filterCount(parseBrowse({ verified: "1", service: "youtube-ads-agencies" }, options)),
     2,
   );
+});
+
+test("title ≤ 60 and description 140–160, with the head term and the live count", () => {
+  const t = browseTitle(2026, 1, "YT Agencies");
+  assert.equal(t, "Best YouTube Marketing Agencies (2026) | YT Agencies");
+  assert.ok(t.length <= 60);
+  assert.ok(browseTitle(2026, 12, "YT Agencies").includes("Page 12"));
+  assert.ok(browseTitle(2026, 12, "YT Agencies").length <= 60);
+  for (const n of [9, 134, 12345]) {
+    const d = browseDescription(n);
+    assert.ok(d.length >= 140 && d.length <= 160, `${d.length}: ${d}`);
+    assert.match(d, new RegExp(new Intl.NumberFormat("en-US").format(n)));
+  }
 });
