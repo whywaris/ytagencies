@@ -6,6 +6,7 @@ import { getIndustries, getLocations, getServices, type Segment } from "@/lib/da
 import type { Entitlements } from "@/lib/entitlements";
 import { thinProfileMissing } from "@/lib/profile-seo";
 import { qualityScore, rankAgencies } from "@/lib/ranking";
+import { countDirectoryPages, newer } from "@/lib/sitemap-core";
 import { MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createStaticClient } from "@/lib/supabase/server";
@@ -522,49 +523,28 @@ export const getDirectoryIndex = cache(async () => {
   if (error) throw error;
   for (const r of [services, industries, comboCopy]) if (r.error) throw r.error;
 
-  const byId = new Map(locations.map((l) => [l.id, l]));
-  const pages = new Map<string, { count: number; lastModified: string }>(); // "service|segment"
-  const hubs = new Map<string, string>(); // service slug -> lastModified
-  const hubCounts = new Map<string, number>(); // service slug -> published agencies
-  const newer = (a: string | undefined, b: string) => (a && a > b ? a : b);
-  let siteLastModified: string | null = null;
-
-  for (const agency of data) {
-    siteLastModified = newer(siteLastModified ?? undefined, agency.updated_at);
-    const segments = new Set<string>();
-    for (const { industries } of agency.agency_industries) segments.add(`for-${industries.slug}`);
-    for (const { location_id } of agency.agency_locations) {
-      const loc = byId.get(location_id);
-      if (!loc) continue;
-      segments.add(`in-${loc.slug}`);
-      const parent = loc.parentId ? byId.get(loc.parentId) : undefined;
-      if (parent) segments.add(`in-${parent.slug}`);
-    }
-    for (const { services } of agency.agency_services) {
-      hubs.set(services.slug, newer(hubs.get(services.slug), agency.updated_at));
-      hubCounts.set(services.slug, (hubCounts.get(services.slug) ?? 0) + 1);
-      for (const segment of segments) {
-        const key = `${services.slug}|${segment}`;
-        const page = pages.get(key);
-        pages.set(key, {
-          count: (page?.count ?? 0) + 1,
-          lastModified: newer(page?.lastModified, agency.updated_at),
-        });
-      }
-    }
-  }
+  const counted = countDirectoryPages(
+    data.map((a) => ({
+      updatedAt: a.updated_at,
+      services: a.agency_services.map((s) => s.services.slug),
+      industries: a.agency_industries.map((i) => i.industries.slug),
+      locationIds: a.agency_locations.map((l) => l.location_id),
+    })),
+    locations,
+  );
+  const { pages, hubs, hubCounts } = counted;
+  let { siteLastModified } = counted;
 
   // Hubs show the service intro; industry pages show the industry intro or their own copy.
   for (const svc of services.data!) {
     hubs.set(svc.slug, newer(hubs.get(svc.slug), svc.updated_at));
-    siteLastModified = newer(siteLastModified ?? undefined, svc.updated_at);
+    siteLastModified = newer(siteLastModified, svc.updated_at);
   }
   const industryDate = new Map(industries.data!.map((i) => [i.slug, i.updated_at]));
   const copyDate = new Map(
     comboCopy.data!.map((c) => [`${c.services.slug}|for-${c.industries.slug}`, c.updated_at]),
   );
-  for (const date of industryDate.values())
-    siteLastModified = newer(siteLastModified ?? undefined, date);
+  for (const date of industryDate.values()) siteLastModified = newer(siteLastModified, date);
 
   const combos = [...pages]
     .filter(([, p]) => p.count >= MIN_AGENCIES_TO_INDEX)

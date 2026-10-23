@@ -20,7 +20,7 @@ import { isPublicIp } from "@/lib/net-guard";
 import { checkLinkedImage, imageLinkError } from "@/lib/media";
 import type { Json } from "@/lib/supabase/types";
 import type { FormResult } from "@/lib/validation/lead";
-import { revalidateSitemaps } from "@/lib/revalidate";
+import { revalidateSitemap } from "@/lib/revalidate";
 
 // Guides CMS mutations (ADMIN_V2_SPEC §8). Admin only, service role, audit-logged.
 // Slugs: auto from the title, editable until the guide has been live; after that only
@@ -93,7 +93,7 @@ function revalidateGuide(slug: string) {
   revalidatePath(`/og/guide/${slug}`);
   revalidatePath(`/og/guide/${slug}/cover`);
   revalidatePath(`/og/guide/${slug}/cover/dark`);
-  revalidateSitemaps();
+  revalidateSitemap("guides", "authors", "pages");
   revalidatePath("/admin/guides");
 }
 

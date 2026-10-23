@@ -6,6 +6,8 @@ import { test } from "node:test";
 import { thinProfileMissing } from "../src/lib/profile-seo.ts";
 import {
   agencyEntries,
+  countDirectoryPages,
+  SITEMAP_CACHE_CONTROL,
   directoryEntries,
   indexXml,
   llmsTxt,
@@ -131,4 +133,66 @@ test("llms.txt: H1, one-line summary, and a Services section", () => {
   );
   assert.doesNotMatch(txt, /## Industries/); // empty sections are left out
   assert.match(txt, /## About/);
+});
+
+// ───────── Content changes reach the sitemap (countDirectoryPages → directoryEntries) ─────────
+
+const locations = [
+  { id: 1, slug: "usa", parentId: null },
+  { id: 2, slug: "austin", parentId: 1 },
+];
+const dentistsAds = (updatedAt, extra = {}) => ({
+  updatedAt,
+  services: ["youtube-ads-agencies"],
+  industries: ["dentists"],
+  locationIds: [2],
+  ...extra,
+});
+const combosFor = (published) =>
+  directoryEntries(
+    [...countDirectoryPages(published, locations).pages].map(([key, p]) => {
+      const [serviceSlug, segment] = key.split("|");
+      return { serviceSlug, segment, ...p };
+    }),
+    3,
+    "for",
+  );
+const COMBO = "/youtube-ads-agencies/for-dentists";
+
+test("publishing the 3rd agency on a combo adds it to the sitemap; unpublishing removes it", () => {
+  const two = [dentistsAds("2026-10-01T00:00:00Z"), dentistsAds("2026-10-02T00:00:00Z")];
+  assert.deepEqual(combosFor(two), []);
+  const three = [...two, dentistsAds("2026-10-03T00:00:00Z")];
+  assert.deepEqual(
+    combosFor(three).map((e) => e.path),
+    [COMBO],
+  );
+  // Unpublished agencies aren't in the published list.
+  assert.deepEqual(combosFor(three.slice(1)), []);
+});
+
+test("editing an agency moves its combo's lastmod to the edit's updated_at", () => {
+  const three = ["2026-10-01", "2026-10-02", "2026-10-03"].map((d) =>
+    dentistsAds(`${d}T00:00:00Z`),
+  );
+  assert.equal(combosFor(three)[0].lastModified, "2026-10-03T00:00:00Z");
+  const edited = [dentistsAds("2026-10-20T09:30:00Z"), ...three.slice(1)];
+  assert.equal(combosFor(edited)[0].lastModified, "2026-10-20T09:30:00Z");
+});
+
+test("hubs and cities: counts per service, a city counts towards its country", () => {
+  const r = countDirectoryPages(
+    [dentistsAds("2026-10-01T00:00:00Z"), dentistsAds("2026-10-05T00:00:00Z", { industries: [] })],
+    locations,
+  );
+  assert.equal(r.hubCounts.get("youtube-ads-agencies"), 2);
+  assert.equal(r.hubs.get("youtube-ads-agencies"), "2026-10-05T00:00:00Z");
+  assert.equal(r.pages.get("youtube-ads-agencies|in-usa").count, 2);
+  assert.equal(r.pages.get("youtube-ads-agencies|in-austin").count, 2);
+  assert.equal(r.siteLastModified, "2026-10-05T00:00:00Z");
+});
+
+test("sitemap Cache-Control: short CDN cache, never immutable", () => {
+  assert.equal(SITEMAP_CACHE_CONTROL, "public, s-maxage=300, stale-while-revalidate=3600");
+  assert.doesNotMatch(SITEMAP_CACHE_CONTROL, /immutable/);
 });

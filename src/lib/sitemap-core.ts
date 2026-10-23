@@ -5,6 +5,24 @@
 
 export type Entry = { path: string; lastModified?: string | null };
 
+/**
+ * Sitemaps and llms.txt: a short CDN cache, so a missed revalidation is at most minutes old.
+ * Never immutable.
+ */
+export const SITEMAP_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=3600";
+
+/** The child sitemaps of /sitemap.xml: /sitemaps/<file>.xml. */
+export const SITEMAP_FILES = [
+  "pages",
+  "services",
+  "combos",
+  "locations",
+  "agencies",
+  "guides",
+  "authors",
+] as const;
+export type SitemapFile = (typeof SITEMAP_FILES)[number];
+
 /** Never in a sitemap: private areas, flows, and anything with a query string. */
 const PRIVATE = /^\/(dashboard|admin|login|auth|claim|api|no-access)(\/|$)/;
 export const sitemapSafe = (path: string) =>
@@ -19,6 +37,59 @@ export function agencyEntries(rows: { slug: string; updatedAt: string; missing: 
 }
 
 type DirectoryPage = { serviceSlug: string; segment: string; count: number; lastModified: string };
+
+/** A published agency, as the directory counts it. */
+export type PublishedAgency = {
+  updatedAt: string;
+  services: string[];
+  industries: string[];
+  locationIds: number[];
+};
+
+/**
+ * One pass over published agencies: how many are on each service × industry / service × location
+ * page ("service|segment") and each service hub, and when each last changed (newest agency
+ * updated_at). A location page counts its cities too, matching resolveSegment(). Unpublishing an
+ * agency removes it from the input, so its pages lose it straight away.
+ */
+export function countDirectoryPages(
+  agencies: PublishedAgency[],
+  locations: { id: number; slug: string; parentId: number | null }[],
+) {
+  const byId = new Map(locations.map((l) => [l.id, l]));
+  const pages = new Map<string, { count: number; lastModified: string }>();
+  const hubs = new Map<string, string>(); // service slug -> lastModified
+  const hubCounts = new Map<string, number>(); // service slug -> published agencies
+  let siteLastModified: string | null = null;
+
+  for (const agency of agencies) {
+    siteLastModified = newer(siteLastModified, agency.updatedAt);
+    const segments = new Set(agency.industries.map((i) => `for-${i}`));
+    for (const id of agency.locationIds) {
+      const loc = byId.get(id);
+      if (!loc) continue;
+      segments.add(`in-${loc.slug}`);
+      const parent = loc.parentId ? byId.get(loc.parentId) : undefined;
+      if (parent) segments.add(`in-${parent.slug}`);
+    }
+    for (const service of agency.services) {
+      hubs.set(service, newer(hubs.get(service) ?? null, agency.updatedAt));
+      hubCounts.set(service, (hubCounts.get(service) ?? 0) + 1);
+      for (const segment of segments) {
+        const key = `${service}|${segment}`;
+        const page = pages.get(key);
+        pages.set(key, {
+          count: (page?.count ?? 0) + 1,
+          lastModified: newer(page?.lastModified ?? null, agency.updatedAt),
+        });
+      }
+    }
+  }
+  return { pages, hubs, hubCounts, siteLastModified };
+}
+
+/** The later of two ISO dates. */
+export const newer = (a: string | null | undefined, b: string) => (a && a > b ? a : b);
 
 /** Service × industry (for-) and service × location (in-) pages with enough agencies. */
 export function directoryEntries(pages: DirectoryPage[], minAgencies: number, kind: "for" | "in") {

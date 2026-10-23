@@ -6,7 +6,7 @@ import { sendEndingNotices } from "@/lib/billing/notices";
 import { sendLeadReminders } from "@/lib/lead-reminders";
 import { purgeExpiredData } from "@/lib/retention";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { revalidateSitemaps } from "@/lib/revalidate";
+import { revalidateSitemap } from "@/lib/revalidate";
 
 // Scheduled guides (ADMIN_V2_SPEC §8). Guide pages revalidate hourly anyway, so a scheduled guide
 // shows up within an hour of its time; this daily sweep (vercel.json) refreshes the guides that
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     revalidatePath(`/og/guide/${g.slug}`);
   }
   revalidatePath("/guides");
-  revalidateSitemaps();
+  revalidateSitemap("guides", "authors", "pages");
 
   let reminders: unknown;
   try {

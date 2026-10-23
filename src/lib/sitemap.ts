@@ -10,23 +10,16 @@ import {
   llmsTxt,
   newest,
   oneLine,
+  SITEMAP_FILES,
   type Entry,
+  type SitemapFile,
 } from "@/lib/sitemap-core";
 import { BRAND_NAME, INDEPENDENT_DIRECTORY, MIN_AGENCIES_TO_INDEX, absoluteUrl } from "@/lib/site";
 
 // Data for /sitemap.xml, /sitemaps/<file>.xml and /llms.txt (docs/SEO.md). Indexable pages only,
 // by the same rules the pages use for their robots meta (lib/sitemap-core.ts).
 
-export const SITEMAP_FILES = [
-  "pages",
-  "services",
-  "combos",
-  "locations",
-  "agencies",
-  "guides",
-  "authors",
-] as const;
-export type SitemapFile = (typeof SITEMAP_FILES)[number];
+export { SITEMAP_FILES, type SitemapFile };
 
 export async function sitemapEntries(file: SitemapFile): Promise<Entry[]> {
   switch (file) {

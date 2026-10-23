@@ -1,8 +1,10 @@
 import Link from "next/link";
 
+import { RefreshSitemap } from "@/components/admin/refresh-sitemap";
 import { requireAdmin } from "@/lib/auth";
 import { creemConfig, paymentsEnabled } from "@/lib/billing";
 import { creemEnvProblems, envValue } from "@/lib/billing/creem-events";
+import { sitemapEntries, SITEMAP_FILES } from "@/lib/sitemap";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Settings" };
@@ -35,6 +37,11 @@ export default async function AdminSettingsPage() {
   const payments = paymentsEnabled() && !!creem;
   // Variable names only, never values (SECURITY.md).
   const problems = creemEnvProblems(process.env);
+  const sitemapCounts = Object.fromEntries(
+    await Promise.all(
+      SITEMAP_FILES.map(async (f) => [f, (await sitemapEntries(f)).length] as const),
+    ),
+  );
 
   return (
     <div className="flex max-w-[880px] flex-col">
@@ -91,6 +98,13 @@ export default async function AdminSettingsPage() {
               : "CREEM_WEBHOOK_SECRET missing, so payments won't update plans"}
             .
           </p>
+        </Section>
+
+        <Section
+          title="Sitemap"
+          description="Updates by itself when agencies, guides, authors or taxonomy change, and hourly as a fallback. Refresh it after editing the database directly."
+        >
+          <RefreshSitemap initial={sitemapCounts} />
         </Section>
       </div>
     </div>

@@ -1,12 +1,15 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 
+import { SITEMAP_FILES, type SitemapFile } from "@/lib/sitemap-core";
+
 /** The profile page and every directory page it can appear on (ISR, docs/SEO.md). */
 export function revalidateAgency(slug: string) {
   revalidatePath(`/agency/${slug}`);
   revalidatePath(`/og/agency/${slug}`);
-  // A thin profile that was fixed (or emptied) joins or leaves the sitemaps and llms.txt.
-  revalidateSitemaps();
+  // Publishing, unpublishing or fixing a thin profile changes the profile list, the directory
+  // pages' counts (a combo can reach or drop below 3) and the home page's lastmod.
+  revalidateSitemap("agencies", "combos", "locations", "services", "pages");
   revalidatePath("/(marketing)/[service]", "page");
   revalidatePath("/(marketing)/[service]/[segment]", "page");
   revalidatePath("/");
@@ -19,10 +22,14 @@ export function revalidateDirectory() {
   revalidatePath("/");
 }
 
-/** /sitemap.xml, every child sitemap and /llms.txt (they all read the same data). */
-export function revalidateSitemaps() {
-  for (const f of ["pages", "services", "combos", "locations", "agencies", "guides", "authors"])
-    revalidatePath(`/sitemaps/${f}.xml`);
+/**
+ * The one way to refresh the sitemaps: /sitemap.xml, the child sitemaps that changed (all of them
+ * when none are named) and /llms.txt, which reads the same data. Call it from every write that can
+ * add, remove or re-date a URL. The routes also revalidate hourly in case a write is missed (or the
+ * database was edited directly).
+ */
+export function revalidateSitemap(...files: SitemapFile[]) {
+  for (const f of files.length ? files : SITEMAP_FILES) revalidatePath(`/sitemaps/${f}.xml`);
   revalidatePath("/sitemap.xml");
   revalidatePath("/llms.txt");
 }

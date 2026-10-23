@@ -11,7 +11,7 @@ import { removeCaseStudy, resolveCaseStudyChannels, writeCaseStudy } from "@/lib
 import { approveClaim } from "@/lib/claims";
 import { getMailer, oneLine } from "@/lib/email";
 import { getEntitlements } from "@/lib/data/entitlements";
-import { revalidateAgency, revalidateSitemaps } from "@/lib/revalidate";
+import { revalidateAgency, revalidateSitemap } from "@/lib/revalidate";
 import { absoluteUrl, BRAND_NAME } from "@/lib/site";
 import type { Json } from "@/lib/supabase/types";
 import { caseStudySchema } from "@/lib/validation/dashboard";
@@ -102,7 +102,7 @@ export async function deleteAgencies(
       ),
     ),
   );
-  revalidateSitemaps();
+  revalidateSitemap();
   revalidatePath("/about");
   revalidatePath("/admin/agencies");
   return { ok: true, data: { count: data.length, name: data.length === 1 ? data[0].name : null } };

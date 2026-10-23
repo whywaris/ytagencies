@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { type NextRequest } from "next/server";
 
 import { adminLogger } from "@/lib/admin-log";
+import { revalidateDirectory, revalidateSitemap } from "@/lib/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 import { fetchChannel, withCheck, type ChannelStats, type StatsSnapshot } from "@/lib/youtube";
@@ -82,5 +83,10 @@ export async function GET(request: NextRequest) {
     failed,
     channelsUpdated,
   });
+  // New stats change quality scores (directory order) and profile channel counts.
+  if (updated > 0 || channelsUpdated > 0) {
+    revalidateDirectory();
+    revalidateSitemap("agencies", "combos", "services");
+  }
   return Response.json({ updated, failed, channelsUpdated });
 }

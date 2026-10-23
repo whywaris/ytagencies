@@ -7,7 +7,7 @@ import { applyProfile } from "@/lib/agency-profile";
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { logoSrc } from "@/lib/logo";
 import { checkLinkedImage } from "@/lib/media";
-import { revalidateAgency, revalidateDirectory } from "@/lib/revalidate";
+import { revalidateAgency, revalidateDirectory, revalidateSitemap } from "@/lib/revalidate";
 import { agencySchema, comboContentSchema, introSchema } from "@/lib/validation/admin";
 import { profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
@@ -194,6 +194,8 @@ export async function saveIntro(kind: string, id: number, raw: unknown): Promise
   if (error) return { ok: false, error: SAVE_FAILED };
   await log("taxonomy.intro_update", k.data === "services" ? "service" : "industry", id);
   revalidateDirectory();
+  // Hub and industry-page lastmod come from the service / industry updated_at.
+  revalidateSitemap("services", "combos", "pages");
   revalidatePath("/admin/taxonomy");
   return { ok: true, data: undefined };
 }
@@ -230,6 +232,7 @@ export async function saveComboContent(
   if (error) return { ok: false, error: SAVE_FAILED };
   await log("taxonomy.combo_update", "combo", `${serviceId}:${industryId}`);
   revalidatePath(`/${service.slug}/for-${industry.slug}`);
+  revalidateSitemap("combos"); // the page's lastmod includes its copy
   revalidatePath("/admin/taxonomy");
   return { ok: true, data: undefined };
 }

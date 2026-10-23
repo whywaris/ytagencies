@@ -1,9 +1,10 @@
 import { SITEMAP_FILES, sitemapEntries } from "@/lib/sitemap";
-import { indexXml, newest } from "@/lib/sitemap-core";
+import { indexXml, newest, SITEMAP_CACHE_CONTROL } from "@/lib/sitemap-core";
 import { absoluteUrl } from "@/lib/site";
 
 // The sitemap index (robots.txt points here once ALLOW_INDEXING is "true"): one child per file,
-// dated by its newest URL. ISR hourly, revalidated with the children.
+// dated by its newest URL. Revalidated on demand with the children (revalidateSitemap in
+// lib/revalidate.ts), hourly as a fallback.
 export const revalidate = 3600;
 
 export async function GET() {
@@ -14,6 +15,9 @@ export async function GET() {
     })),
   );
   return new Response(indexXml(children), {
-    headers: { "Content-Type": "application/xml; charset=utf-8" },
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": SITEMAP_CACHE_CONTROL,
+    },
   });
 }
