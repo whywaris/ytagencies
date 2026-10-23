@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
 // SEO.md: filtered views are noindex and canonical to /guides; ?page=N is self-canonical.
 
 const PER_PAGE = 12;
-const TITLE = `Guides to hiring a YouTube agency | ${BRAND_NAME}`;
+const TITLE = `Guides to choosing a YouTube agency | ${BRAND_NAME}`;
 const DESCRIPTION =
-  "Plain-language guides to hiring a YouTube agency: what agencies cost, how pricing works, what to ask before you sign, and how to judge results honestly.";
+  "Plain-language guides to choosing a YouTube agency: what agencies cost, how pricing works, what to ask before you sign, and how to judge results honestly.";
 
 const CRUMBS = [
   { name: "Home", path: "/" },

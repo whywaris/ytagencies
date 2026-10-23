@@ -20,8 +20,8 @@ export const revalidate = 3600;
 export async function generateMetadata() {
   const count = await getAgencyCount();
   return buildMetadata({
-    title: `${BRAND_NAME}: Find the right YouTube agency for your business`,
-    description: `Compare ${count} YouTube agencies for ads, SEO, channel management and Shorts. Filter by industry and location, then contact agencies directly. Free.`,
+    title: `${BRAND_NAME}: Compare YouTube agencies that know your niche`,
+    description: `Compare ${count} YouTube agencies for ads, SEO, channel management and Shorts. Filter by industry and location, then contact agencies directly. Free for businesses and creators.`,
     path: "/",
   });
 }

@@ -5,16 +5,16 @@ import { CookieSettingsButton } from "@/components/analytics";
 import { Logo } from "@/components/logo";
 import { gaId } from "@/lib/analytics";
 import { copyrightName } from "@/lib/company";
-import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
+import { BRAND_NAME, CONTACT_EMAIL, INDEPENDENT_DIRECTORY } from "@/lib/site";
 
-// Site-wide footer. Agency-facing links live here only (the header is for business owners).
+// Site-wide footer. Agency-facing links live here only (the header is for businesses and creators).
 const GROUPS = [
   {
     heading: "Find agencies",
     links: [
       { href: "/#services", label: "Services" },
       { href: "/#industries", label: "Industries" },
-      { href: "/get-matched", label: "Get matched" },
+      { href: "/request-proposals", label: "Request proposals" },
       { href: "/guides", label: "Guides" },
     ],
   },
@@ -64,7 +64,7 @@ export function Footer() {
               <Logo className="h-6 w-auto" />
             </Link>
             <p className="text-[14px] text-text-2">
-              Helping business owners find YouTube agencies that know their industry.
+              Helping businesses and creators find YouTube agencies that know their niche.
             </p>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
@@ -106,7 +106,10 @@ export function Footer() {
               </>
             )}
           </p>
-          <p>An independent directory, not affiliated with YouTube or Google.</p>
+          <div className="flex flex-col gap-1 sm:max-w-[40em] sm:text-right">
+            <p>{INDEPENDENT_DIRECTORY}</p>
+            <p>Not affiliated with YouTube or Google.</p>
+          </div>
         </div>
       </div>
     </footer>

@@ -101,7 +101,7 @@ const botFields = {
   website: z.string().max(200).optional(), // honeypot, checked before validation
 };
 
-/** Get matched, step 1: the project. */
+/** Request proposals, step 1: the project. */
 export const getMatchedStep1 = z.object({
   service: slug("Choose a service."),
   industry: slug("Choose an industry."),
@@ -110,7 +110,7 @@ export const getMatchedStep1 = z.object({
   start: z.enum(values(START_TIMELINES), { error: "Choose when you want to start." }),
 });
 
-/** Get matched, step 2: the business's details. */
+/** Request proposals, step 2: the business's details. */
 export const getMatchedStep2 = z.object({
   name,
   email,

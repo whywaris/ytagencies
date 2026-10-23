@@ -237,7 +237,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps<"/a
             )}
           </div>
           {d.recentLeads.length === 0 ? (
-            <Empty>No leads yet. Requests from Get matched and agency profiles appear here.</Empty>
+            <Empty>
+              No leads yet. Project requests and messages from agency profiles appear here.
+            </Empty>
           ) : (
             <Table>
               <thead>

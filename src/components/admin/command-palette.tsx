@@ -45,9 +45,12 @@ const icon = "size-4 shrink-0 text-text-2 [stroke-width:1.5]";
 export function CommandPalette({
   open,
   onOpenChange,
+  hidden,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pages switched off (Sponsored while SPONSORED_ENABLED is off). */
+  hidden: string[];
 }) {
   const router = useRouter();
   const container = usePortalContainer();
@@ -88,7 +91,7 @@ export function CommandPalette({
     router.push(href);
   };
   const q = query.trim().toLowerCase();
-  const pages = PAGES.filter((p) => p.label.toLowerCase().includes(q));
+  const pages = PAGES.filter((p) => !hidden.includes(p.href) && p.label.toLowerCase().includes(q));
   const actions = ACTIONS.filter((a) => a.label.toLowerCase().includes(q));
   // Results belong to the query they were fetched for, so stale ones never show as "nothing".
   const searching = q.length >= 2 && results.for.toLowerCase() !== q;

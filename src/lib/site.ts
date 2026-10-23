@@ -2,6 +2,8 @@ export const BRAND_NAME = "YT Agencies";
 export const SITE_DOMAIN = "ytagencies.com";
 /** The one public address: contact form, legal pages, JSON-LD, Reply-To on every email. */
 export const CONTACT_EMAIL = "help@ytagencies.com";
+/** Home FAQ and the footer: we're a directory, not a broker (payment-processor-safe wording). */
+export const INDEPENDENT_DIRECTORY = `${BRAND_NAME} is an independent directory. We don't broker, negotiate or take part in agreements between you and an agency.`;
 /** Sends from the Resend-verified subdomain; replies go to CONTACT_EMAIL. */
 export const EMAIL_SENDER = `help@send.${SITE_DOMAIN}`;
 

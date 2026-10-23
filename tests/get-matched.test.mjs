@@ -1,4 +1,4 @@
-// Get matched in two steps: prefill from the link (src/lib/get-matched.ts) and step validation
+// Request proposals in two steps: prefill from the link (src/lib/get-matched.ts) and step validation
 // (src/lib/validation/lead.ts). Matching rules are in tests/match.test.mjs.
 import assert from "node:assert/strict";
 import { test } from "node:test";

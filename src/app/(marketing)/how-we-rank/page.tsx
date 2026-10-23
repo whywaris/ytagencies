@@ -12,7 +12,7 @@ import Link from "next/link";
 
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
-import { MAX_SPONSORED, RANKING_UPDATED } from "@/lib/ranking";
+import { RANKING_UPDATED } from "@/lib/ranking";
 import { breadcrumbJsonLd, webPageJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
@@ -25,7 +25,7 @@ export const revalidate = 3600;
 
 const TITLE = `How we rank agencies | ${BRAND_NAME}`;
 const DESCRIPTION =
-  "How YT Agencies orders agencies on directory pages: sponsored placements, then Verified agencies, then everyone else, each sorted by profile quality, reviews, verification and reply time.";
+  "How YT Agencies orders agencies on directory pages: Verified agencies first, then everyone else, each sorted by profile quality, reviews, verification and reply time. Paying for Pro never changes the order.";
 
 export const metadata = buildMetadata({
   title: TITLE,
@@ -64,21 +64,7 @@ function RankCard() {
     >
       <p className="text-[15px] font-semibold">YouTube Ads agencies for Dentists</p>
       <p className="text-[13px] text-text-2">Sorted by quality score</p>
-      <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-(--amber) bg-(--amber-soft) p-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-raised text-[12px] font-semibold">
-          SP
-        </span>
-        <span className="flex-1 text-[14px] font-medium">Spotlight Ads</span>
-        <span className="rounded-full border border-(--amber) px-2 py-0.5 text-[11.5px] font-semibold text-(--amber-on-soft)">
-          Sponsored
-        </span>
-      </div>
-      <div className="my-4 flex items-center gap-3 text-[11px] font-semibold tracking-[0.1em] text-text-2">
-        <span className="h-px flex-1 bg-line" />
-        EARNED BY MERIT
-        <span className="h-px flex-1 bg-line" />
-      </div>
-      <ol className="flex flex-col gap-3">
+      <ol className="mt-4 flex flex-col gap-3">
         {ROWS.map((r, n) => (
           <li key={r.i} className="flex items-center gap-3">
             <span className="w-4 font-mono text-[13px] text-text-2">{n + 1}</span>
@@ -107,20 +93,13 @@ function RankCard() {
 const GROUPS = [
   {
     n: 1,
-    title: `Sponsored, up to ${MAX_SPONSORED}`,
-    body: "Paid spots for Pro agencies with the Verified badge, in slot order. Always labelled Sponsored.",
-    tone: "border-(--amber) bg-(--amber-soft)",
-    num: "bg-(--amber) text-bg",
-  },
-  {
-    n: 2,
     title: "Verified agencies",
     body: "Agencies that passed our checks, on any plan, free included. Sorted by quality score.",
     tone: "border-verified/40 bg-(--mint-soft)",
     num: "bg-verified text-bg",
   },
   {
-    n: 3,
+    n: 2,
     title: "Everyone else",
     body: "All other agencies, Pro or free, sorted by quality score. Ties are listed alphabetically.",
     tone: "border-line bg-surface",
@@ -207,7 +186,7 @@ const NOT_FOR_SALE = [
 
 const OWNERS = [
   "The order reflects how complete, reviewed and verified an agency is, not what it pays us.",
-  "Anything paid is labelled Sponsored, so you always know what you're looking at.",
+  "No agency can pay for a higher place, on any plan.",
   "Verified badges mean we've checked the agency's website, business and YouTube channels.",
 ];
 
@@ -225,7 +204,7 @@ const STEPS = [
   {
     n: "03",
     title: "Apply for Verified",
-    body: "Verified agencies are listed above everyone else who isn't sponsored. It's free to apply.",
+    body: "Verified agencies are listed above everyone else. It's free to apply.",
   },
   {
     n: "04",
@@ -266,11 +245,11 @@ export default function HowWeRankPage() {
             </h1>
             <p className="max-w-[34em] text-[clamp(17px,1.6vw,19px)] leading-normal text-text-2">
               Agencies earn their place with a complete profile, checked reviews, verification and
-              fast replies. The only paid spots are labelled Sponsored.
+              fast replies. Paying for Pro never changes your place.
             </p>
             <div className="flex flex-wrap gap-3">
               <a href="#owners" className={pill}>
-                For business owners: what this means
+                For businesses and creators: what this means
               </a>
               <a href="#agencies" className={pill}>
                 For agencies: how to move up
@@ -289,10 +268,10 @@ export default function HowWeRankPage() {
           <div className="flex max-w-[680px] flex-col gap-3">
             <p className={eyebrow}>The order on every page</p>
             <h2 id="order-heading" className={h2}>
-              Three groups. Same on every page.
+              Two groups. Same on every page.
             </h2>
           </div>
-          <ol className="grid gap-4 md:grid-cols-3">
+          <ol className="grid gap-4 md:grid-cols-2">
             {GROUPS.map((g) => (
               <li key={g.n} className={cn("flex flex-col gap-3 rounded-[22px] border p-6", g.tone)}>
                 <span
@@ -396,9 +375,7 @@ export default function HowWeRankPage() {
               </li>
             ))}
           </ul>
-          <p className="text-[17px] text-white/75">
-            The only paid way up is a Sponsored spot, and it&apos;s always labelled.
-          </p>
+          <p className="text-[17px] text-white/75">Paying for Pro never changes your place.</p>
         </div>
       </section>
 
@@ -410,7 +387,7 @@ export default function HowWeRankPage() {
             className="flex scroll-mt-20 flex-col gap-5 rounded-[22px] border border-line bg-raised p-7"
           >
             <div className="flex flex-col gap-2">
-              <p className={eyebrow}>For business owners</p>
+              <p className={eyebrow}>For businesses and creators</p>
               <h2 className="text-[26px] leading-tight font-[650] tracking-[-0.02em]">
                 What this means for you
               </h2>

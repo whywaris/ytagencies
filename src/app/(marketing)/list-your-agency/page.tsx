@@ -25,7 +25,7 @@ export const revalidate = 3600;
 export const metadata = buildMetadata({
   title: `List your YouTube agency for free | ${BRAND_NAME}`,
   description:
-    "Get your YouTube agency in front of businesses looking to hire. Listings are free; Pro lets you manage yours, receive inquiries and link your website.",
+    "Get your YouTube agency in front of businesses and creators comparing agencies. Listings are free; Pro lets you manage yours, receive inquiries and link your website.",
   path: "/list-your-agency",
 });
 
@@ -51,7 +51,7 @@ const FAQS = [
   {
     question: "What do I get with Pro?",
     answer:
-      "You can edit your profile, businesses can contact you from it, and we send you Get matched requests that fit your services. You also get a link to your website, your reply time on your profile and no other agencies suggested on your profile. Pro doesn't change where you rank.",
+      "Businesses and creators can contact you from your profile, and project requests that fit your services come to you. You can edit your profile any time, add Calendly and WhatsApp buttons and link your website, and no other agencies are suggested on your profile. Pro doesn't change where you rank.",
   },
   {
     question: "What happens if I cancel?",
@@ -61,7 +61,7 @@ const FAQS = [
   {
     question: "Can I pay to rank higher?",
     answer:
-      "No. Sponsored spots sit at the top of a page with a clear label. After them come Verified agencies, then everyone else, each sorted by a quality score from profile completeness, reviews, verification and reply time. Paying for Pro doesn't change the order, and none of the score can be bought.",
+      "No. Verified agencies come first, then everyone else, each sorted by a quality score from profile completeness, reviews, verification and reply time. Paying for Pro doesn't change the order, and none of the score can be bought.",
   },
   {
     question: "How do I get Verified?",
@@ -124,8 +124,8 @@ export default async function ListYourAgencyPage() {
           Get found by businesses looking for YouTube help
         </h1>
         <p className="mx-auto mt-4 max-w-[34em] text-[18px] text-text-2">
-          Business owners compare agencies here by industry, price and the channels you&apos;ve
-          worked on. Listing is free.
+          Businesses and creators compare agencies here by industry, price and the channels
+          you&apos;ve worked on. Listing is free.
         </p>
         {/* "Claim a listing" in the footer lands here. */}
         <div id="claim" className="scroll-mt-24">
@@ -176,12 +176,12 @@ export default async function ListYourAgencyPage() {
               ],
               [
                 "Get Pro",
-                "Monthly or yearly. Pro turns on your contact form and Get matched requests, and lets you edit your profile.",
+                "Monthly or yearly. Pro turns on your contact form and project requests, and lets you edit your profile.",
                 "bg-(--violet-soft) text-(--violet-on-soft)",
               ],
               [
                 "Get inquiries",
-                "Businesses contact you directly. Inquiries land in your inbox and your dashboard.",
+                "Businesses and creators contact you directly. Inquiries land in your inbox and your dashboard.",
                 "bg-(--mint-soft) text-(--mint)",
               ],
             ].map(([title, body, tone], i) => (
@@ -336,8 +336,8 @@ export default async function ListYourAgencyPage() {
           </p>
           <PlanColumns />
           <p className="mt-[22px] text-[14px] text-text-2">
-            Rankings can&apos;t be bought. Sponsored spots are labeled, and the Verified badge is
-            only given when our checks pass.{" "}
+            Rankings can&apos;t be bought: paying for Pro never changes your place, and the Verified
+            badge is only given when our checks pass.{" "}
             <Link href="/how-we-rank" className="font-semibold text-accent hover:underline">
               How we rank
             </Link>

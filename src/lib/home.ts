@@ -6,7 +6,7 @@ export type ComboCounts = Record<string, number>;
 
 /**
  * Finder target: the service × industry page when it's live (indexable), else the service page
- * filtered to that industry when it has agencies there, else Get matched prefilled with both.
+ * filtered to that industry when it has agencies there, else Request proposals prefilled with both.
  */
 export function finderHref(
   service: string,
@@ -18,7 +18,7 @@ export function finderHref(
   if (n >= minToIndex) return `/${service}/for-${industry}`;
   if (n > 0) return `/${service}?industry=${industry}`;
   const q = new URLSearchParams({ service, industry, ref: "home" });
-  return `/get-matched?${q}`;
+  return `/request-proposals?${q}`;
 }
 
 export type LiveCombo = { serviceSlug: string; segment: string; count: number };

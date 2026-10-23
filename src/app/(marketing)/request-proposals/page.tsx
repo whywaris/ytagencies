@@ -11,33 +11,36 @@ import { BRAND_NAME } from "@/lib/site";
 export const revalidate = 3600;
 
 export const metadata = buildMetadata({
-  title: `Get matched with YouTube agencies | ${BRAND_NAME}`,
+  title: `Request proposals from YouTube agencies | ${BRAND_NAME}`,
   description:
-    "Tell us what you need and we'll send your request to up to 3 YouTube agencies that fit your service, industry and budget. They reply to you directly. Free.",
-  path: "/get-matched",
+    "Tell us about your project and we'll pass your request to up to 3 YouTube agencies that fit your service, industry and budget. Interested agencies reply to you directly. Free.",
+  path: "/request-proposals",
 });
 
 const breadcrumbs = [
   { name: "Home", path: "/" },
-  { name: "Get matched", path: "/get-matched" },
+  { name: "Request proposals", path: "/request-proposals" },
 ];
 
 const NEXT = [
   {
-    title: "We pick up to 3 agencies",
+    title: "Up to 3 agencies get your request",
     body: "Ones that offer this service and work in your industry.",
   },
-  { title: "They email you directly", body: "With ideas and prices for your business." },
+  {
+    title: "Interested agencies email you",
+    body: "With their ideas and prices, directly. We're not part of the conversation.",
+  },
   { title: "You choose", body: "Reply to the ones you like. No obligation." },
 ];
 const TRUST = [
-  "Free for businesses",
+  "Free for businesses and creators",
   "3 agencies at most, no spam",
   "Your details go only to them",
   "We never take a cut",
 ];
 
-export default async function GetMatchedPage() {
+export default async function RequestProposalsPage() {
   const [services, industries] = await Promise.all([getServices(), getIndustries()]);
   return (
     <>
@@ -48,13 +51,13 @@ export default async function GetMatchedPage() {
           <div className="flex min-w-0 flex-col gap-8">
             <header className="flex flex-col gap-4">
               <h1 className="text-[clamp(34px,4.6vw,52px)] leading-[1.05] font-[680] tracking-[-0.035em]">
-                Tell us what you need.
+                Tell us about your project.
                 <br />
-                <span className="text-accent">We&apos;ll find who fits.</span>
+                <span className="text-accent">Get proposals from agencies that fit.</span>
               </h1>
               <p className="text-[18px] text-text-2">
-                Up to 3 agencies that do this work for your industry will reply to you directly.
-                Free, takes about a minute.
+                Up to 3 agencies that do this work in your niche get your request and can reply to
+                you directly. Free, takes about a minute.
               </p>
             </header>
             <GetMatchedForm

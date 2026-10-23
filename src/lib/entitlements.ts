@@ -24,7 +24,7 @@ export type Entitlements = {
   managed: boolean;
   /** "pro" while managed, otherwise "none". */
   plan: "pro" | "none";
-  /** Inquiries: the profile's contact form, Get matched routing, lead and reminder emails. */
+  /** Inquiries: the profile's contact form, project request routing, lead and reminder emails. */
   contactForm: boolean;
   websiteLink: boolean;
   utmLinks: boolean;
@@ -36,7 +36,10 @@ export type Entitlements = {
   caseStudies: number;
   /** Profile analytics history in the dashboard. */
   analyticsDays: number;
+  /** Sponsored slots (switched off unless SPONSORED_ENABLED, lib/ranking.ts). */
   canBuySponsored: boolean;
+  /** Calendly and WhatsApp buttons on the profile. */
+  bookingButtons: boolean;
   /** Owners can edit their listing only while managed. */
   canEdit: boolean;
   /** Earned by verification, managed or not. */
@@ -87,56 +90,51 @@ export function entitlementsFor({
     caseStudies: Infinity,
     analyticsDays: managed ? 365 : 30,
     canBuySponsored: managed,
+    bookingButtons: managed,
     canEdit: managed,
     verifiedBadge: verificationApproved,
   };
 }
 
 /**
- * What a listing includes, from its entitlements: the billing page shows every row with its
- * value, the pricing page lists Pro's `feature` lines. One list, so the two never disagree.
+ * What a listing includes, from its entitlements: the billing page and the upgrade dialog show
+ * every row with its value, /pricing and the paywall list Pro's `feature` lines. One list, so
+ * they never disagree. Never promise leads, rankings or results here.
  */
 export function planIncludes(e: Entitlements) {
   const yes = (b: boolean) => (b ? "Yes" : "No");
   return [
     {
-      label: "Edit your listing",
-      value: yes(e.canEdit),
-      feature: e.canEdit ? "Edit your profile any time" : null,
-    },
-    {
       label: "Contact form and inquiries",
       value: yes(e.contactForm),
-      feature: e.contactForm
-        ? "A contact form on your profile: inquiries go straight to you"
-        : null,
+      feature: e.contactForm ? "Contact form on your profile, inquiries to your inbox" : null,
     },
     {
-      label: "Requests from Get matched",
+      label: "Project requests",
       value: yes(e.managed),
-      feature: e.managed ? "Requests from Get matched that fit your services" : null,
-    },
-    {
-      label: "Link to your website",
-      value: e.websiteLink ? "Yes, tagged so you can track visits" : "No",
-      feature: e.websiteLink ? "A link to your website, tagged so you can track visits" : null,
-    },
-    {
-      label: "Your reply time on your profile",
-      value: yes(e.responseTime),
-      feature: e.responseTime ? "Your reply time on your profile" : null,
-    },
-    {
-      label: "Visitors can contact you from your profile",
-      value: yes(e.contactForm),
-      feature: e.contactForm
-        ? "Your profile can be contacted. Free listings send visitors to other agencies."
-        : null,
+      feature: e.managed ? "Project requests that fit your services" : null,
     },
     {
       label: "Other agencies suggested on your profile",
       value: yes(e.showSimilarAgencies),
       feature: e.showSimilarAgencies ? null : "No other agencies suggested on your profile",
+    },
+    {
+      label: "Booking buttons (Calendly, WhatsApp)",
+      value: yes(e.bookingButtons),
+      feature: e.bookingButtons
+        ? "Direct booking buttons (Calendly link and WhatsApp) on your profile"
+        : null,
+    },
+    {
+      label: "Edit your profile",
+      value: yes(e.canEdit),
+      feature: e.canEdit ? "Edit your profile any time: case studies, channels, prices" : null,
+    },
+    {
+      label: "Link to your website",
+      value: e.websiteLink ? "Yes, tagged so you can track visits" : "No",
+      feature: e.websiteLink ? "Website link tagged so you can track visits" : null,
     },
     {
       label: "Analytics history",
@@ -146,13 +144,28 @@ export function planIncludes(e: Entitlements) {
   ];
 }
 
-/** Pro's feature lines for the pricing page (a live Pro subscription's entitlements). */
+/** A live Pro listing's entitlements, and a free one's (for the plan tables). */
+export const PRO_ENTITLEMENTS = entitlementsFor({
+  subscriptions: [
+    { plan_id: "pro", status: "active", starts_at: "2000-01-01T00:00:00Z", ends_at: null },
+  ],
+  verificationApproved: false,
+});
+export const FREE_ENTITLEMENTS = entitlementsFor({
+  subscriptions: [],
+  verificationApproved: false,
+});
+
+/** Pro's feature lines: /pricing, billing and the paywall. */
 export const proFeatures = () =>
-  planIncludes(
-    entitlementsFor({
-      subscriptions: [
-        { plan_id: "pro", status: "active", starts_at: "2000-01-01T00:00:00Z", ends_at: null },
-      ],
-      verificationApproved: false,
-    }),
-  ).flatMap((r) => (r.feature ? [r.feature] : []));
+  planIncludes(PRO_ENTITLEMENTS).flatMap((r) => (r.feature ? [r.feature] : []));
+
+/** Free vs Pro, row by row (the dashboard's upgrade dialog). */
+export const planComparison = () => {
+  const free = planIncludes(FREE_ENTITLEMENTS);
+  return planIncludes(PRO_ENTITLEMENTS).map((pro, i) => ({
+    label: pro.label,
+    free: free[i].value,
+    pro: pro.value,
+  }));
+};

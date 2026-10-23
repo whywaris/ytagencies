@@ -53,7 +53,7 @@ export default async function LeadsPage({ params }: PageProps<"/dashboard/[slug]
       {leads.map((l) => {
         const need = [l.services?.name, l.industries?.name].filter(Boolean).join(" for ");
         const budget = budgetLabel(l.budget_range);
-        // Get matched answers (requests sent before the two-step form have none).
+        // Request proposals answers (requests sent before the two-step form have none).
         const answers: [string, string | null, "link"?][] = [
           ["Main goal", choiceLabel(GOALS, l.goal)],
           ["Wants to start", choiceLabel(START_TIMELINES, l.start_timeline)],

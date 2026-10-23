@@ -21,7 +21,13 @@ const pageViewSchema = z.object({
 
 const eventSchema = z.object({
   agencyId: z.uuid(),
-  type: z.enum(["profile_view", "website_click", "contact_open"]),
+  type: z.enum([
+    "profile_view",
+    "website_click",
+    "contact_open",
+    "calendly_click",
+    "whatsapp_click",
+  ]),
   // Profiles today; any site path, since website links may later sit on directory pages,
   // the home page and guides (lib/outbound.ts).
   path: z.string().regex(/^\/[a-z0-9/-]{0,300}$/),

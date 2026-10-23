@@ -30,7 +30,7 @@ import {
   type GetMatchedInput,
 } from "@/lib/validation/lead";
 
-// Get matched in two steps (the project, then the business's details) and a sent screen that
+// Request proposals in two steps (the project, then the business's details) and a sent screen that
 // replaces the form. Step 1 is validated on its own before Continue; the server re-validates all
 // of it (lib/actions/leads.ts).
 
@@ -153,8 +153,8 @@ export function GetMatchedForm({
           </h2>
           <p className="text-text-2">
             We&apos;ve emailed you a copy at <strong className="text-text">{sent.email}</strong>.
-            Agencies that fit will reply to you directly, as soon as possible. If no agency fits
-            your request, we&apos;ll tell you.
+            We&apos;ve passed it to agencies that fit; interested ones reply to you directly. If no
+            agency fits your request, we&apos;ll tell you.
           </p>
         </div>
         {(sent.page || sent.guide) && (
@@ -412,7 +412,7 @@ export function GetMatchedForm({
             Back
           </button>
         </div>
-        <PrivacyNotice sharedWith="the agencies we match you with (up to 3)" />
+        <PrivacyNotice sharedWith="the agencies that fit your request (up to 3)" />
       </div>
     </form>
   );

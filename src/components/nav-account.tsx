@@ -81,7 +81,7 @@ function closeOnSelect(e: React.MouseEvent<HTMLElement>) {
 
 /**
  * Right side of the nav at desktop widths. Signed out: theme toggle, Sign in. Agency-facing links
- * (List your agency, Pricing) live in the footer only: the header is for business owners.
+ * (List your agency, Pricing) live in the footer only: the header is for businesses and creators.
  * Signed in: the theme toggle right next to the avatar menu (the signed-out links are removed, not
  * just hidden, so they don't leave a gap). The server HTML is the signed-out state.
  */

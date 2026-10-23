@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps<"/authors/[slug]">)
     ),
     description:
       a.bio ||
-      `${n} ${n === 1 ? "guide" : "guides"} by ${a.name} on hiring and working with YouTube agencies.`,
+      `${n} ${n === 1 ? "guide" : "guides"} by ${a.name} on choosing and working with YouTube agencies.`,
     path: `/authors/${a.slug}`,
   });
 }

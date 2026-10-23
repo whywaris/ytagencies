@@ -1,12 +1,12 @@
 // The agency pricing page at /pricing: the old URL redirects, the period toggle sets the checkout
-// period, Pro's features come from the entitlements, and Sponsored has no public price.
+// period, Pro's features come from the entitlements, and there are two plans: Free and Pro.
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
 import { proFeatures } from "../src/lib/entitlements.ts";
-import { PRICING_REDIRECTS } from "../src/lib/pricing-redirects.ts";
+import { PRICING_REDIRECTS, PROPOSALS_REDIRECTS } from "../src/lib/moved-pages.ts";
 import { checkoutHref, perMonth } from "../src/lib/pricing.ts";
 
 test("/for-agencies/pricing and /for-agencies 301 to /pricing", () => {
@@ -25,16 +25,38 @@ test("the period toggle drives the checkout period", () => {
   assert.equal(perMonth(240), "$20");
 });
 
-test("Pro's features are the entitlements' list", () => {
-  const f = proFeatures();
-  assert.ok(f.includes("A contact form on your profile: inquiries go straight to you"));
-  assert.ok(
-    f.includes("Your profile can be contacted. Free listings send visitors to other agencies."),
-  );
-  // Pro doesn't change the order (lib/ranking.ts).
-  assert.ok(!f.some((x) => /above unmanaged|rank/i.test(x)));
-  assert.ok(f.includes("No other agencies suggested on your profile"));
-  assert.ok(f.includes("12 months of profile analytics"));
+test("Pro's features are the entitlements' list, in the model's order", () => {
+  assert.deepEqual(proFeatures(), [
+    "Contact form on your profile, inquiries to your inbox",
+    "Project requests that fit your services",
+    "No other agencies suggested on your profile",
+    "Direct booking buttons (Calendly link and WhatsApp) on your profile",
+    "Edit your profile any time: case studies, channels, prices",
+    "Website link tagged so you can track visits",
+    "12 months of profile analytics",
+  ]);
+  // Pro doesn't change the order (lib/ranking.ts), and nothing is guaranteed.
+  assert.ok(!proFeatures().some((x) => /above|rank|guarantee/i.test(x)));
+});
+
+test("/pricing shows two plans (Free, Pro) and no Sponsored or $49", () => {
+  const cards = readFileSync("src/components/pro-billing.tsx", "utf8");
+  const page = readFileSync("src/app/(marketing)/pricing/page.tsx", "utf8");
+  const plans = [...cards.matchAll(/aria-labelledby="(plan-[a-z]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(plans, ["plan-listing", "plan-pro"]);
+  for (const src of [cards, page]) {
+    assert.doesNotMatch(src, /sponsor/i);
+    assert.doesNotMatch(src, /\$\s?49\b/);
+  }
+});
+
+test("/get-matched 301s to /request-proposals, keeping the query", () => {
+  assert.deepEqual(PROPOSALS_REDIRECTS, [
+    { source: "/get-matched", destination: "/request-proposals", statusCode: 301 },
+  ]);
+  const sitemap = readFileSync("src/lib/sitemap.ts", "utf8");
+  assert.match(sitemap, /path: "\/request-proposals"/);
+  assert.doesNotMatch(sitemap, /get-matched/);
 });
 
 /** Every source file under a directory. */

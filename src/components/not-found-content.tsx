@@ -56,11 +56,11 @@ export async function NotFoundContent() {
 
   const cards = [
     {
-      href: "/get-matched?ref=notfound",
+      href: "/request-proposals?ref=notfound",
       tile: "bg-[#1F5EFF]",
       icon: UsersRound,
       tag: "Free",
-      title: "Get matched with agencies",
+      title: "Request proposals from agencies",
       text: "Share your goal and budget. We suggest who fits.",
     },
     {
@@ -75,7 +75,7 @@ export async function NotFoundContent() {
       tile: "bg-[#0B7A5A]",
       icon: BookOpen,
       title: "How to choose a YouTube agency",
-      text: "A guide for business owners hiring for the first time.",
+      text: "A guide for businesses and creators choosing an agency for the first time.",
     },
   ];
 
@@ -97,9 +97,9 @@ export async function NotFoundContent() {
             The page was moved, or the agency is no longer listed. Tell us what you need and
             we&apos;ll show you agencies that do it.
           </p>
-          {/* No site search: the text goes to Get matched, prefilled (?need=). */}
+          {/* No site search: the text goes to Request proposals, prefilled (?need=). */}
           <form
-            action="/get-matched"
+            action="/request-proposals"
             method="get"
             role="search"
             className="mx-auto mt-8 flex max-w-[640px] flex-col gap-2 rounded-[20px] border border-line bg-raised p-1.5 text-left shadow-[0_1px_2px_rgba(20,25,40,.05),0_12px_32px_-12px_rgba(20,25,40,.16)] focus-within:border-accent sm:flex-row sm:rounded-full"

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { cookies } from "next/headers";
 
 import { AdminShell, type Queue } from "@/components/admin/shell";
+import { sponsoredEnabled } from "@/lib/ranking";
 import { SIDEBAR_COOKIE, THEME_COOKIE, parseTheme } from "@/components/admin/shell-prefs";
 import { requireAdmin } from "@/lib/auth";
 import { BRAND_NAME } from "@/lib/site";
@@ -120,6 +121,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         }}
         initialTheme={theme}
         initialCollapsed={store.get(SIDEBAR_COOKIE)?.value === "1"}
+        sponsored={sponsoredEnabled()}
       >
         {children}
       </AdminShell>

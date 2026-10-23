@@ -12,7 +12,7 @@ import {
   oneLine,
   type Entry,
 } from "@/lib/sitemap-core";
-import { absoluteUrl, BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
+import { BRAND_NAME, INDEPENDENT_DIRECTORY, MIN_AGENCIES_TO_INDEX, absoluteUrl } from "@/lib/site";
 
 // Data for /sitemap.xml, /sitemaps/<file>.xml and /llms.txt (docs/SEO.md). Indexable pages only,
 // by the same rules the pages use for their robots meta (lib/sitemap-core.ts).
@@ -42,7 +42,7 @@ export async function sitemapEntries(file: SitemapFile): Promise<Entry[]> {
           path: "/guides",
           lastModified: newest(guides.map((g) => ({ path: "", lastModified: g.updatedAt }))),
         },
-        { path: "/get-matched" },
+        { path: "/request-proposals" },
         { path: "/list-your-agency" },
         { path: "/pricing" },
         { path: "/how-we-rank" },
@@ -52,8 +52,14 @@ export async function sitemapEntries(file: SitemapFile): Promise<Entry[]> {
       ];
     }
     case "services": {
-      const [{ hubs }, services] = await Promise.all([getDirectoryIndex(), getServices()]);
-      return services.map((s) => ({ path: `/${s.slug}`, lastModified: hubs.get(s.slug) }));
+      const [{ hubs, hubCounts }, services] = await Promise.all([
+        getDirectoryIndex(),
+        getServices(),
+      ]);
+      // Thin-page rule (docs/SEO.md): a hub is listed once it has enough published agencies.
+      return services
+        .filter((s) => (hubCounts.get(s.slug) ?? 0) >= MIN_AGENCIES_TO_INDEX)
+        .map((s) => ({ path: `/${s.slug}`, lastModified: hubs.get(s.slug) }));
     }
     case "combos":
     case "locations":
@@ -90,12 +96,14 @@ async function directoryPages() {
 
 /** /llms.txt: facts the site actually implements, and links to indexable pages only. */
 export async function buildLlmsTxt() {
-  const [services, industries, pages, guides] = await Promise.all([
+  const [allServices, industries, pages, guides, { hubCounts }] = await Promise.all([
     getServices(),
     getIndustries(),
     directoryPages(),
     getLiveGuides(),
+    getDirectoryIndex(),
   ]);
+  const services = allServices.filter((s) => (hubCounts.get(s.slug) ?? 0) >= MIN_AGENCIES_TO_INDEX);
   // Indexable service × industry pages, busiest first.
   const indexable = pages
     .filter((p) => p.count >= MIN_AGENCIES_TO_INDEX && p.segment.startsWith("for-"))
@@ -130,13 +138,13 @@ export async function buildLlmsTxt() {
   return llmsTxt({
     brand: BRAND_NAME,
     summary:
-      "An independent directory that helps businesses find and compare YouTube agencies by service, industry and location.",
+      "An independent directory that helps businesses and creators find and compare YouTube agencies by service, industry and location.",
     about: [
-      `Businesses use ${BRAND_NAME} for free: they browse agencies by service, industry and location, or describe what they need and get matched with up to three agencies.`,
+      `Businesses and creators use ${BRAND_NAME} for free: they browse agencies by service, industry and location, or describe their project and request proposals from up to three agencies that fit.`,
       "Listings are free and can be created by us from public information or submitted by agencies. Agencies can manage their profile, receive inquiries and link to their website with a paid Pro plan.",
-      "Directory order is sponsored placements first (always labelled Sponsored), then Verified agencies, then everyone else, each sorted by a quality score from profile completeness, reviews, verification and reply time. Paying for Pro doesn't change the order. The Verified badge can't be bought: it's given after we check an agency's YouTube channels, website and business.",
+      "Directory order is Verified agencies first, then everyone else, each sorted by a quality score from profile completeness, reviews, verification and reply time. Paying for Pro doesn't change the order. The Verified badge can't be bought: it's given after we check an agency's YouTube channels, website and business.",
       "Subscriber counts for the channels on a profile come from the YouTube Data API; a channel an agency adds shows as listed by the agency until the channel owner confirms the work to us.",
-      `${BRAND_NAME} is not affiliated with YouTube or Google.`,
+      `${INDEPENDENT_DIRECTORY} ${BRAND_NAME} doesn't charge per lead or take a commission, and is not affiliated with YouTube or Google.`,
     ].join(" "),
     services: services.map((s) => ({
       title: `${s.name} agencies`,

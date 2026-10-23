@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 import { finderHref, pickHomeAgencies, popularIndustryCombos } from "../src/lib/home.ts";
 
-test("finder: live page, else service page filtered, else Get matched prefilled", () => {
+test("finder: live page, else service page filtered, else Request proposals prefilled", () => {
   const counts = { "youtube-ads-agencies|for-saas": 4, "youtube-ads-agencies|for-law": 1 };
   assert.equal(
     finderHref("youtube-ads-agencies", "saas", counts, 3),
@@ -17,7 +17,7 @@ test("finder: live page, else service page filtered, else Get matched prefilled"
   );
   assert.equal(
     finderHref("youtube-ads-agencies", "crypto", counts, 3),
-    "/get-matched?service=youtube-ads-agencies&industry=crypto&ref=home",
+    "/request-proposals?service=youtube-ads-agencies&industry=crypto&ref=home",
   );
 });
 

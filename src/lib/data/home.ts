@@ -6,7 +6,7 @@ import { profileViews } from "@/lib/data/agency-stats";
 import { getPlacement } from "@/lib/data/placement";
 import { pickHomeAgencies } from "@/lib/home";
 
-// Home page "Agencies business owners are looking at": indexable profiles only (no thin, noindex
+// Home page "Agencies businesses and creators are looking at": indexable profiles only (no thin, noindex
 // or unpublished ones), at most one sponsored first, then by profile views, then merit (lib/home.ts).
 export const getHomeAgencies = cache(async () => {
   const [{ data, error }, slugs, placement, responses] = await Promise.all([

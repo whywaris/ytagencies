@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { applyProfile } from "@/lib/agency-profile";
+import { parseCalendly, parseWhatsApp } from "@/lib/booking";
 import { getOwnedAgency } from "@/lib/auth";
 import { removeCaseStudy, writeCaseStudy } from "@/lib/case-studies";
 import { getEntitlements } from "@/lib/data/entitlements";
@@ -50,6 +51,38 @@ export async function updateProfile(agencyId: string, raw: unknown): Promise<For
   const error = await applyProfile(owned.supabase, owned.agency.id, parsed.data);
   if (error) return { ok: false, error };
 
+  revalidateAgency(owned.agency.slug);
+  return { ok: true, data: undefined };
+}
+
+const bookingSchema = z.object({
+  calendlyUrl: z
+    .string()
+    .max(300)
+    .transform((v) => parseCalendly(v))
+    .refine((v) => v !== null, "Use a calendly.com link, like https://calendly.com/your-agency."),
+  whatsappNumber: z
+    .string()
+    .max(40)
+    .transform((v) => parseWhatsApp(v))
+    .refine((v) => v !== null, "Use a number with its country code, like +1 555 123 4567."),
+});
+
+/** Calendly link and WhatsApp number (Pro only; shown on the profile while on Pro). */
+export async function updateBooking(agencyId: string, raw: unknown): Promise<FormResult> {
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
+  const parsed = bookingSchema.safeParse(raw);
+  if (!parsed.success) return invalid(parsed.error);
+  const { error } = await owned.supabase
+    .from("agencies")
+    .update({
+      calendly_url: parsed.data.calendlyUrl || null,
+      whatsapp_number: parsed.data.whatsappNumber || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", owned.agency.id);
+  if (error) return { ok: false, error: SAVE_FAILED };
   revalidateAgency(owned.agency.slug);
   return { ok: true, data: undefined };
 }

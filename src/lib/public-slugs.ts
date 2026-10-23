@@ -65,6 +65,7 @@ async function getSlugs(): Promise<Slugs | null> {
 const STATIC_ROOTS = new Set([
   "guides",
   "get-matched",
+  "request-proposals",
   "list-your-agency",
   "for-agencies",
   "pricing",

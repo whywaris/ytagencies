@@ -62,6 +62,9 @@ export type AgencyProfile = AgencyListItem & {
   timezone: string | null;
   linkedinUrl: string | null;
   youtubeChannelUrl: string | null;
+  /** Pro booking buttons (lib/booking.ts); shown only while managed. */
+  calendlyUrl: string | null;
+  whatsappNumber: string | null;
   /** HQ as city + country names; a country-level HQ has city null. */
   hqCity: string | null;
   hqCountry: string | null;
@@ -309,6 +312,7 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
       `${LIST_SELECT},
       website, founded_year, is_claimed, updated_at, seo_title, seo_description,
       best_for, timezone, reporting_frequency, process, linkedin_url, youtube_channel_url,
+      calendly_url, whatsapp_number,
       service_details:agency_services(is_primary, focus_pct, included, starting_price, price_unit, services(slug, name)),
       industry_details:agency_industries(is_primary, focus_pct, industries(slug, name)),
       agency_channels(id, channel_url, title, subscriber_count, status, created_at, industries(name)),
@@ -349,6 +353,8 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     timezone: data.timezone,
     linkedinUrl: data.linkedin_url,
     youtubeChannelUrl: data.youtube_channel_url,
+    calendlyUrl: data.calendly_url,
+    whatsappNumber: data.whatsapp_number,
     hqCity: hqParent ? (hq?.name ?? null) : null,
     hqCountry: hqParent ? hqParent.name : (hq?.name ?? null),
     seoMissing: thinProfileMissing({
@@ -519,6 +525,7 @@ export const getDirectoryIndex = cache(async () => {
   const byId = new Map(locations.map((l) => [l.id, l]));
   const pages = new Map<string, { count: number; lastModified: string }>(); // "service|segment"
   const hubs = new Map<string, string>(); // service slug -> lastModified
+  const hubCounts = new Map<string, number>(); // service slug -> published agencies
   const newer = (a: string | undefined, b: string) => (a && a > b ? a : b);
   let siteLastModified: string | null = null;
 
@@ -535,6 +542,7 @@ export const getDirectoryIndex = cache(async () => {
     }
     for (const { services } of agency.agency_services) {
       hubs.set(services.slug, newer(hubs.get(services.slug), agency.updated_at));
+      hubCounts.set(services.slug, (hubCounts.get(services.slug) ?? 0) + 1);
       for (const segment of segments) {
         const key = `${services.slug}|${segment}`;
         const page = pages.get(key);
@@ -572,7 +580,7 @@ export const getDirectoryIndex = cache(async () => {
       return { serviceSlug, segment, count: p.count, lastModified };
     });
   // Every page with at least one agency (indexable or not), for the admin SEO pages report.
-  return { combos, hubs, siteLastModified, pages };
+  return { combos, hubs, hubCounts, siteLastModified, pages };
 });
 
 /** Indexable combination pages (sitemap + internal links). */

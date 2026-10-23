@@ -10,7 +10,7 @@ type Props = {
     budget?: string | null;
     need?: string | null;
     message?: string | null;
-    /** Get matched answers: goal, start, website, channel, customers, past agencies. */
+    /** Request proposals answers: goal, start, website, channel, customers, past agencies. */
     details?: [string, string | null][];
   };
   direct: boolean;
@@ -23,7 +23,7 @@ export function AgencyLeadEmail({ agencyName, lead, direct }: Props) {
       <p style={text}>
         {direct
           ? `${lead.name} sent ${agencyName} a message through your listing.`
-          : `${lead.name} is looking for an agency and matched with ${agencyName}.`}
+          : `${lead.name} sent a project request that fits ${agencyName}.`}
       </p>
       <Details
         rows={[
@@ -41,12 +41,12 @@ export function AgencyLeadEmail({ agencyName, lead, direct }: Props) {
         <a href={`mailto:${lead.email}`} style={link}>
           {lead.email}
         </a>
-        . {direct ? "" : "Other matched agencies may have received this request too."}
+        . {direct ? "" : "Other agencies that fit may have received this request too."}
       </p>
       <p style={muted}>
         {direct
           ? `This inquiry came from your ${BRAND_NAME} profile.`
-          : `This inquiry came from ${BRAND_NAME}, where the business was matched with your profile.`}{" "}
+          : `This inquiry came from ${BRAND_NAME}, where the request fit your profile.`}{" "}
         Please use these details only to respond to it.
       </p>
     </EmailLayout>

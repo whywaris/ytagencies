@@ -6,6 +6,7 @@ import {
   ChartColumn,
   Check,
   ChevronDown,
+  Clapperboard,
   Cloud,
   Dumbbell,
   Gamepad2,
@@ -13,9 +14,11 @@ import {
   Home,
   Landmark,
   Megaphone,
+  PenLine,
   MessageSquare,
   Play,
   Scale,
+  Scissors,
   Search,
   ShoppingCart,
   Smartphone,
@@ -37,10 +40,10 @@ import { getDirectoryIndex } from "@/lib/data/agencies";
 import { getLiveGuides } from "@/lib/data/guides";
 import { getHomeAgencies } from "@/lib/data/home";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
-import { formatUsd } from "@/lib/directory";
+import { firstSentence, formatUsd } from "@/lib/directory";
 import { popularIndustryCombos, type ComboCounts } from "@/lib/home";
 import { faqJsonLd } from "@/lib/seo/json-ld";
-import { BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
+import { BRAND_NAME, INDEPENDENT_DIRECTORY, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 // Home page sections. Server components with real data only: anything without data is left out,
@@ -172,6 +175,20 @@ const SERVICE_CARDS: {
     tone: "pink",
     Icon: Users,
   },
+  {
+    slug: "youtube-video-editing-agencies",
+    title: "Video editing",
+    description: "Raw footage turned into videos people watch to the end.",
+    tone: "blue",
+    Icon: Scissors,
+  },
+  {
+    slug: "youtube-scriptwriting-agencies",
+    title: "Scriptwriting",
+    description: "Hooks, outlines and scripts written for your audience.",
+    tone: "violet",
+    Icon: PenLine,
+  },
 ];
 
 const INDUSTRY_ICON: Record<string, LucideIcon> = {
@@ -183,6 +200,7 @@ const INDUSTRY_ICON: Record<string, LucideIcon> = {
   ecommerce: ShoppingCart,
   coaches: Target,
   "law-firms": Scale,
+  creators: Clapperboard,
   education: GraduationCap,
   finance: Landmark,
   fitness: Dumbbell,
@@ -206,7 +224,7 @@ async function homeData() {
 const TRUST = [
   "Starting prices on every profile",
   "Filter by your industry",
-  "Free for businesses, no middleman",
+  "Free for businesses and creators",
 ];
 
 export async function HomeHero() {
@@ -228,12 +246,12 @@ export async function HomeHero() {
           <span className="rounded-full bg-(--mint-soft) px-2.5 py-0.5 text-[13px] font-semibold text-(--mint)">
             Free
           </span>
-          For business owners
+          For businesses and creators
         </p>
         <h1 className="mt-6 max-w-[14em] text-[clamp(40px,6.2vw,76px)] leading-[1.02] font-[680] tracking-[-0.045em] text-balance">
-          Hire a YouTube agency that already{" "}
+          Compare YouTube agencies that already{" "}
           <span className="relative inline-block text-(--coral)">
-            knows your industry.
+            know your niche.
             <svg
               aria-hidden
               viewBox="0 0 300 16"
@@ -251,8 +269,8 @@ export async function HomeHero() {
           </span>
         </h1>
         <p className="mt-6 max-w-[36em] text-[clamp(17px,1.6vw,20px)] leading-normal text-text-2">
-          Compare specialists by service and starting price. Free, and you only talk to the ones you
-          choose.
+          Free for businesses and creators. Compare specialists by service and starting price, and
+          only talk to the ones you choose.
         </p>
 
         {services.length > 0 && industries.length > 0 && (
@@ -301,7 +319,19 @@ export async function HomeHero() {
 
 export async function ServicesSection() {
   const { services, index, industryBySegment } = await homeData();
-  const cards = SERVICE_CARDS.filter((c) => services.some((s) => s.slug === c.slug)).map((c) => ({
+  // Hand-written cards first (in their order); a service added in the database without one still
+  // gets a card, from its name and intro.
+  const known = SERVICE_CARDS.filter((c) => services.some((s) => s.slug === c.slug));
+  const added = services
+    .filter((s) => !SERVICE_CARDS.some((c) => c.slug === s.slug))
+    .map((s, i) => ({
+      slug: s.slug,
+      title: s.name,
+      description: firstSentence(s.intro) || `Compare ${s.name.toLowerCase()} specialists.`,
+      tone: TONE_ORDER[i % TONE_ORDER.length],
+      Icon: Video,
+    }));
+  const cards = [...known, ...added].map((c) => ({
     ...c,
     popular: popularIndustryCombos(index.combos, 3, c.slug).flatMap((combo) => {
       const industry = industryBySegment.get(combo.segment);
@@ -391,7 +421,7 @@ export async function AgenciesSection() {
         <SectionHeader
           id="agencies-heading"
           eyebrow="Agencies"
-          title="Agencies business owners are looking at"
+          title="Agencies businesses and creators are looking at"
           lede="Every profile shows the industries they work in and where their prices start."
         />
         <ul className="grid gap-4 min-[620px]:grid-cols-2 min-[960px]:grid-cols-3">
@@ -559,8 +589,8 @@ export function HowItWorksSection() {
         <SectionHeader
           id="how-heading"
           eyebrow="How it works"
-          title="From “who do I hire?” to a shortlist in minutes"
-          lede="Free for businesses. We don't take a cut of what you pay the agency."
+          title="From “which agency?” to a shortlist in minutes"
+          lede="Free for businesses and creators. We don't take a cut of what you pay the agency."
         />
         <ol className="grid gap-4 min-[860px]:grid-cols-3">
           {STEPS.map(({ title, body, tint, Art }, i) => (
@@ -714,8 +744,8 @@ export async function GuidesSection() {
         <SectionHeader
           id="guides-heading"
           eyebrow="Guides"
-          title="Before you hire"
-          lede="Plain answers to what business owners ask first."
+          title="Before you choose an agency"
+          lede="Plain answers to what businesses and creators ask first."
           link={{ href: "/guides", label: "All guides" }}
         />
         <ul className="grid gap-8 min-[640px]:grid-cols-2 min-[1000px]:grid-cols-3">
@@ -734,18 +764,18 @@ export async function GuidesSection() {
 
 const FAQS = [
   {
-    question: `Is ${BRAND_NAME} free for businesses?`,
+    question: `Is ${BRAND_NAME} free for businesses and creators?`,
     answer:
-      "Yes. Searching, comparing and contacting agencies is free. Agencies pay to manage their listing and for extra visibility, and paid placements are always labeled Sponsored.",
+      "Yes. Searching, comparing and contacting agencies is free. Agencies pay for Pro to manage their listing, and Pro never changes the ranking.",
   },
   {
     question: "Do you take a cut of what I pay the agency?",
     answer: "No. You agree prices and pay the agency directly.",
   },
   {
-    question: "What happens when I use Get matched?",
+    question: "What happens when I request proposals?",
     answer:
-      "You answer a few questions about your business and budget. We send your request to up to three matching agencies that manage their listing with us, and they contact you directly.",
+      "You answer a few questions about your project and budget. We pass your request to up to three agencies that fit and manage their listing with us, and they contact you directly if they're interested.",
   },
   {
     question: "I run an agency. How do I get listed?",
@@ -755,6 +785,10 @@ const FAQS = [
   {
     question: `Is ${BRAND_NAME} part of YouTube or Google?`,
     answer: "No. We are an independent directory and are not affiliated with YouTube or Google.",
+  },
+  {
+    question: "Do you take part in my agreement with an agency?",
+    answer: INDEPENDENT_DIRECTORY,
   },
 ];
 
@@ -767,7 +801,7 @@ export function FaqSection() {
         <div className="flex flex-col gap-3">
           <p className="text-[13px] font-semibold tracking-[0.08em] text-accent uppercase">FAQ</p>
           <h2 id="faq-heading" className={h2}>
-            Questions business owners ask
+            Questions businesses and creators ask
           </h2>
           <p className="text-[17px] text-text-2">
             Still unsure?{" "}
@@ -813,10 +847,10 @@ export function ClosingBand() {
       <div className="flex flex-col items-center gap-5 rounded-[28px] bg-[#16171a] px-6 py-14 text-center text-white md:py-20 site-dark:border site-dark:border-line site-dark:bg-raised">
         <MessageSquare className="size-7 [stroke-width:1.5] text-white/70" aria-hidden />
         <h2 id="closing-heading" className={cn(h2, "max-w-[18em]")}>
-          Hire an agency that&apos;s done your industry before.
+          Compare agencies that have worked in your niche before.
         </h2>
         <p className="text-[17px] text-white/75">
-          Free for businesses. Takes under a minute to start.
+          Free for businesses and creators. Takes under a minute to start.
         </p>
         <FindAgenciesButton className="mt-2" />
       </div>

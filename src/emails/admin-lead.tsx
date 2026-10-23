@@ -19,7 +19,7 @@ export function AdminLeadEmail({ leadId, kind, lead, routes }: Props) {
   const manual = routes.filter((r) => !r.notified);
   return (
     <EmailLayout preview={`New ${kind} lead from ${lead.name}`}>
-      <p style={text}>New {kind === "contact" ? "contact form" : "get matched"} lead.</p>
+      <p style={text}>New {kind === "contact" ? "contact form" : "proposal request"} lead.</p>
       <Details
         rows={[
           ["Lead ID", leadId],

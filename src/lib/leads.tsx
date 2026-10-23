@@ -93,7 +93,7 @@ function toRouted(a: {
 }
 
 type LeadRow = {
-  /** Where a Get matched request started, e.g. "profile:<slug>". */
+  /** Where a Request proposals request started, e.g. "profile:<slug>". */
   ref?: string | null;
   name: string;
   email: string;
@@ -136,7 +136,7 @@ type LeadEmailInput = {
     budget?: string | null;
     need?: string | null;
     message?: string | null;
-    /** Get matched answers, as [label, value] rows (empty values are left out). */
+    /** Request proposals answers, as [label, value] rows (empty values are left out). */
     details?: [string, string | null][];
   };
   agencies: RoutedAgency[];

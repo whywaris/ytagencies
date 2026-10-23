@@ -32,7 +32,7 @@ function Feature({ on = true, children }: { on?: boolean; children: React.ReactN
 }
 
 /**
- * Listing / Pro / Sponsored with the Monthly/Yearly toggle, which sets Pro's price and the
+ * Listing / Pro with the Monthly/Yearly toggle, which sets Pro's price and the
  * period "Get Pro" checks out with: always a Creem checkout created on the server
  * (app/dashboard/billing/checkout), or "temporarily unavailable" if Creem isn't set up.
  */
@@ -52,7 +52,7 @@ export function PlanCards({
   return (
     <div className="flex flex-col items-center gap-8">
       <BillingToggle value={period} onChange={setPeriod} saving={saving} className="self-center" />
-      <div className="grid w-full items-stretch gap-4 text-left lg:grid-cols-3">
+      <div className="mx-auto grid w-full max-w-[820px] items-stretch gap-4 text-left md:grid-cols-2">
         <section
           aria-labelledby="plan-listing"
           className={cn(card, "border border-line bg-raised")}
@@ -84,7 +84,7 @@ export function PlanCards({
           aria-labelledby="plan-pro"
           className={cn(
             card,
-            "relative border-2 border-accent bg-raised shadow-[0_1px_2px_rgba(20,25,40,.05),0_24px_48px_-20px_rgba(31,94,255,.35)] lg:-my-3 lg:py-10",
+            "relative border-2 border-accent bg-raised shadow-[0_1px_2px_rgba(20,25,40,.05),0_24px_48px_-20px_rgba(31,94,255,.35)] md:-my-3 md:py-10",
           )}
         >
           <p className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-[12.5px] font-semibold whitespace-nowrap text-on-accent">
@@ -127,47 +127,6 @@ export function PlanCards({
               Get Pro
             </a>
           </div>
-        </section>
-
-        <section
-          aria-labelledby="plan-sponsored"
-          className={cn(
-            card,
-            "bg-[#16171a] text-white site-dark:border site-dark:border-line site-dark:bg-[#202228]",
-          )}
-        >
-          <h3 id="plan-sponsored" className="text-[18px] font-[650]">
-            Sponsored
-          </h3>
-          <p className={priceCls}>Let&apos;s talk</p>
-          <p className="text-[14.5px] text-white/75">
-            A top spot on the pages your best clients search. For Pro agencies with the Verified
-            badge.
-          </p>
-          <ul className="my-5 grid gap-2.5 border-t border-white/15 pt-5 text-[15px]">
-            {[
-              "A top 3 spot on pages you choose",
-              "Always labelled Sponsored, so buyers trust it",
-              "Limited spots per page",
-            ].map((f) => (
-              <li key={f} className="flex items-start gap-2.5">
-                <Check
-                  className="mt-[3px] size-4 shrink-0 [stroke-width:2.5] text-[#3ccb9c]"
-                  aria-hidden
-                />
-                {f}
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/contact?topic=sponsored"
-            className={cn(
-              btn,
-              "mt-auto bg-white text-[#16171a] hover:bg-white/90 focus-visible:outline-white",
-            )}
-          >
-            Contact us
-          </Link>
         </section>
       </div>
     </div>

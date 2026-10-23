@@ -1,3 +1,4 @@
+import { BookingForm } from "@/components/dashboard/booking-form";
 import { LogoForm } from "@/components/dashboard/logo-form";
 import { Paywall } from "@/components/dashboard/paywall";
 import { ProfileForm } from "@/components/dashboard/profile-form";
@@ -33,6 +34,21 @@ export default async function ProfilePage({ params }: PageProps<"/dashboard/[slu
           Profile
         </h2>
         <ProfileForm save={updateProfile} agencyId={agency.id} {...form} />
+      </section>
+      <section aria-labelledby="booking" className="flex flex-col gap-6">
+        <div className="flex flex-col gap-1.5">
+          <h2 id="booking" className="text-h2">
+            Booking buttons
+          </h2>
+          <p className="text-text-2">
+            Let businesses and creators book a call or message you straight from your profile.
+          </p>
+        </div>
+        <BookingForm
+          agencyId={agency.id}
+          calendlyUrl={agency.calendly_url ?? ""}
+          whatsappNumber={agency.whatsapp_number ? `+${agency.whatsapp_number}` : ""}
+        />
       </section>
     </div>
   );

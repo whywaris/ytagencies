@@ -1,10 +1,11 @@
 // Directory ranking (ADMIN_V2_SPEC §6), explained publicly on /how-we-rank. Keep the two in sync.
 // No imports, so tests load this file directly.
 //
-// 1. Sponsored slots for the page, by position (max 3), labeled "Sponsored".
-// 2. Verified agencies (any plan, free included).
-// 3. Everyone else (Pro or free).
-// Within 2 and 3: quality score (0–100), then name. Pro (managed) is never part of the order.
+// 1. Verified agencies (any plan, free included).
+// 2. Everyone else (Pro or free).
+// Within each: quality score (0–100), then name. Pro (managed) is never part of the order.
+// Sponsored slots (labelled, before both groups) exist but are switched off unless
+// SPONSORED_ENABLED=true; their data and tables are kept.
 
 export type QualityInput = {
   hasLogo: boolean;
@@ -52,12 +53,16 @@ export function qualityScore(q: QualityInput) {
 
 export const MAX_SPONSORED = 3;
 
+/** Sponsored slots are off unless SPONSORED_ENABLED is exactly "true". */
+export const sponsoredEnabled = (env: Record<string, string | undefined> = process.env) =>
+  env.SPONSORED_ENABLED?.trim() === "true";
+
 /** When these rules last changed (yyyy-mm-dd): /how-we-rank "Last updated" and dateModified. */
-export const RANKING_UPDATED = "2026-10-14";
+export const RANKING_UPDATED = "2026-10-23";
 
 export type Rankable = { id: string; name: string; isVerified: boolean; quality: number };
 
-/** Groups 2 and 3: verified first, then quality score, then name. */
+/** Verified first, then quality score, then name. */
 export const byMerit = (a: Rankable, b: Rankable) =>
   Number(b.isVerified) - Number(a.isVerified) ||
   b.quality - a.quality ||
@@ -65,11 +70,15 @@ export const byMerit = (a: Rankable, b: Rankable) =>
 
 /**
  * Orders a page's agencies. `sponsoredIds` are the page's active slot holders in position order;
- * holders not on this page's list are skipped.
+ * holders not on this page's list are skipped, and all of them while Sponsored is off.
  */
-export function rankAgencies<T extends Rankable>(items: T[], sponsoredIds: string[]) {
+export function rankAgencies<T extends Rankable>(
+  items: T[],
+  sponsoredIds: string[],
+  sponsoredOn = sponsoredEnabled(),
+) {
   const byId = new Map(items.map((i) => [i.id, i]));
-  const sponsored = sponsoredIds
+  const sponsored = (sponsoredOn ? sponsoredIds : [])
     .filter((id, i, all) => byId.has(id) && all.indexOf(id) === i)
     .slice(0, MAX_SPONSORED)
     .map((id) => ({ ...byId.get(id)!, sponsored: true as const }));

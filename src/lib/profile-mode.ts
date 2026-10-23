@@ -2,7 +2,7 @@
 // imports: tested.
 //
 // Managed (live Pro): contact form, website link, reply time, no similar agencies.
-// Unmanaged: no way to reach the agency through us, so the call to action is Get matched with
+// Unmanaged: no way to reach the agency through us, so the call to action is Request proposals with
 // similar (managed) agencies, prefilled with this agency's main service and industry.
 
 export type ProfileMode =
@@ -30,8 +30,8 @@ export function profileMode(a: {
   q.set("ref", `profile:${a.slug}`);
   return {
     kind: "match",
-    ctaLabel: "Get matched with similar agencies",
-    ctaHref: `/get-matched?${q}`,
+    ctaLabel: "Request proposals from similar agencies",
+    ctaHref: `/request-proposals?${q}`,
     note: `${a.name} hasn't joined YT Agencies yet, so we can't pass messages to them. We'll match you with similar agencies that reply.`,
     similar: true,
   };

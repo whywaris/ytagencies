@@ -4,21 +4,22 @@ import { X } from "lucide-react";
 import { useRef } from "react";
 
 import { ChoosePro } from "@/components/forms/claim-form";
+import { planComparison } from "@/lib/entitlements";
 import { cn } from "@/lib/utils";
 
 // "Get Pro" in the dashboard header: Free listing vs Pro, then the same monthly/yearly choice as
 // the paywall. A native <dialog>: focus moves in and back, Escape closes it.
 
+// Free listing vs Pro from the entitlements (lib/entitlements.ts), as on /pricing and billing.
+// "Yes"/"No" become a tick or a dash; "Profile on directory pages" is true for both.
+const flag = (v: string) => (v === "Yes" ? true : v === "No" ? false : v);
 const ROWS: [string, string | boolean, string | boolean][] = [
   ["Profile on directory pages", true, true],
-  ["Edit your profile", false, true],
-  ["Inquiries from businesses", false, true],
-  ["Get matched requests", false, true],
-  ["Link to your website", false, true],
-  ["No other agencies on your profile", false, true],
-  ["Case studies and channels", "As we listed them", "Unlimited"],
-  ["Analytics history", "30 days", "12 months"],
-  ["Sponsored top spots", false, true],
+  ...planComparison().map((r): [string, string | boolean, string | boolean] => [
+    r.label,
+    flag(r.free),
+    flag(r.pro),
+  ]),
 ];
 
 type Props = React.ComponentProps<typeof ChoosePro> & {

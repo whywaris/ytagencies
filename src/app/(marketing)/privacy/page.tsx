@@ -66,7 +66,7 @@ const sections: LegalSection[] = [
           can&apos;t recognise you from one day to the next. We don&apos;t store your IP address or
           browser details.
         </p>
-        <h3>When you send an inquiry or get matched</h3>
+        <h3>When you send an inquiry or request proposals</h3>
         <ul>
           <li>Your name and email address</li>
           <li>Your company name, if you give it</li>

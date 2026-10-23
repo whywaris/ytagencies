@@ -2,9 +2,8 @@ import { PlanCards } from "@/components/pro-billing";
 import { getPlanPrices } from "@/lib/data/placement";
 import { proFeatures } from "@/lib/entitlements";
 
-// Listing / Pro / Sponsored, on /pricing and /list-your-agency. Pro's prices come from the plans
-// table and its features from the entitlements (the billing page's list). Sponsored has no
-// public price: it's arranged by email ("Contact us").
+// Listing / Pro, on /pricing and /list-your-agency. Pro's prices come from the plans table and
+// its features from the entitlements (the billing page's list).
 
 /** Fallbacks if the plans table can't be read: the launch prices. */
 const PRO_MONTHLY_USD = 29;

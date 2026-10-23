@@ -100,7 +100,7 @@ export function defaultHowToChoose(service: Service, segment?: Segment) {
 
 /** The directory pages' "How are these agencies ranked?" answer (lib/ranking.ts). */
 export const RANKING_ANSWER =
-  "Sponsored placements come first and are labelled. Then Verified agencies, then everyone else, each sorted by quality score. Paying for Pro doesn't change the order, and the Verified badge can't be bought.";
+  "Verified agencies come first, then everyone else, each sorted by quality score. Paying for Pro never changes the order, and the Verified badge can't be bought.";
 
 /** FAQs built from the agencies on the page, used when no hand-written FAQs exist. A sentence
  * only appears when its data exists: no zero counts. */
@@ -146,7 +146,7 @@ export function defaultFaqs(
   }
 
   faqs.push({
-    question: `What should I ask before hiring one?`,
+    question: `What should I ask before choosing one?`,
     answer: `Ask for case studies with real numbers, who will work on your account day to day, how they report results, and the minimum contract length. Compare at least three agencies before you decide.`,
   });
 
@@ -203,7 +203,7 @@ export function monthYear(dates: (string | null | undefined)[]) {
 
 export type Sort = "recommended" | "budget";
 
-/** Recommended keeps the ranking (sponsored → verified → everyone else); budget: lowest minimum first,
+/** Recommended keeps the ranking (verified → everyone else); budget: lowest minimum first,
  * agencies without one last. */
 export function sortAgencies<T extends Pick<AgencyListItem, "minBudgetUsd">>(
   list: T[],

@@ -5,6 +5,7 @@ import {
   Clock,
   Globe,
   MapPin,
+  MessageCircle,
   MessageSquare,
   Minus,
   Users,
@@ -25,6 +26,7 @@ import {
   getSimilarAgencies,
   type AgencyProfile,
 } from "@/lib/data/agencies";
+import { bookingLinks } from "@/lib/booking";
 import { agencyWebsiteLink } from "@/lib/outbound";
 import { contractLabel, responseLabel } from "@/lib/pricing";
 import { formatMetrics, safeExternalUrl } from "@/lib/profile";
@@ -157,6 +159,8 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   const website = safeExternalUrl(agency.website);
   // Managed (Pro) only: a website link, sponsored and UTM-tagged (lib/outbound.ts).
   const websiteLink = agencyWebsiteLink(agency.website, e.plan, "profile");
+  // Calendly and WhatsApp: Pro only, and only while it's active (lib/booking.ts).
+  const booking = bookingLinks(agency, e.managed);
 
   // Location facts: HQ (city, country) plus up to two other places they work.
   const { hqCity, hqCountry } = agency;
@@ -219,7 +223,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
     mainService: primary?.slug ?? null,
     mainIndustry: agency.industries[0]?.slug ?? null,
   });
-  // The Get matched click isn't an agency event (nothing reaches the agency): untracked.
+  // The Request proposals click isn't an agency event (nothing reaches the agency): untracked.
   const ctaTrack = mode.kind === "contact" ? "contact_open" : undefined;
 
   // Related directory pages: the main service for their industries and HQ country, if indexed.
@@ -345,6 +349,29 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
             )}
             {/* The one call to action is in the sidebar card (desktop) / bottom bar (mobile). */}
             {websiteLink && <WebsiteLink link={websiteLink} />}
+            {booking.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {booking.map((b) => (
+                  <li key={b.kind}>
+                    <a
+                      href={b.href}
+                      target="_blank"
+                      rel="noopener nofollow"
+                      data-track={`${b.kind}_click`}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line px-4 text-[14.5px] font-semibold hover:border-text-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    >
+                      {b.kind === "calendly" ? (
+                        <CalendarDays className="size-4" aria-hidden />
+                      ) : (
+                        <MessageCircle className="size-4" aria-hidden />
+                      )}
+                      {b.label}
+                      <span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
             {mode.note && <p className="mt-3 max-w-[40em] text-[14px] text-text-2">{mode.note}</p>}
           </div>
         </header>
@@ -771,7 +798,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
 
       {/* Contact bar (mobile): the price, the reply time and one button. */}
       <div
-        aria-label={mode.kind === "contact" ? "Contact bar" : "Get matched bar"}
+        aria-label={mode.kind === "contact" ? "Contact bar" : "Request proposals bar"}
         className="profile-mbar fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-bg/80 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] backdrop-blur-[20px] min-[980px]:hidden print:hidden"
       >
         <div className="min-w-0">
@@ -785,7 +812,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
           data-track={ctaTrack}
           className={cn(btnPrimary, "h-[38px] px-[18px] text-[14px]")}
         >
-          {mode.kind === "contact" ? mode.ctaLabel : "Get matched"}
+          {mode.kind === "contact" ? mode.ctaLabel : "Request proposals"}
         </a>
       </div>
     </>

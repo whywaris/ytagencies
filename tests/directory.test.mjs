@@ -77,8 +77,9 @@ test("ranking answer: merit order, Pro doesn't change it, the same text on every
     ).answer;
     assert.equal(answer, RANKING_ANSWER);
   }
-  assert.match(RANKING_ANSWER, /Then Verified agencies, then everyone else/);
-  assert.match(RANKING_ANSWER, /Paying for Pro doesn't change the order/);
+  assert.match(RANKING_ANSWER, /^Verified agencies come first, then everyone else/);
+  assert.match(RANKING_ANSWER, /Paying for Pro never changes the order/);
+  assert.doesNotMatch(RANKING_ANSWER, /sponsor/i);
 });
 
 test("Contact agency only for managed agencies; View profile always", () => {

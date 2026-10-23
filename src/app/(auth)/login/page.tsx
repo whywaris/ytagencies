@@ -67,7 +67,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           ))}
         </ul>
         <p className="border-t border-line pt-6 text-[15px] text-text-2">
-          Looking to hire an agency? You don&apos;t need an account.{" "}
+          Comparing agencies? You don&apos;t need an account.{" "}
           <Link href="/#services" className="font-medium text-accent hover:underline">
             Browse agencies
           </Link>

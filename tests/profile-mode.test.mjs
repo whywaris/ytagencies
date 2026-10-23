@@ -20,12 +20,12 @@ test("managed: contact the agency, no similar agencies", () => {
   assert.equal(m.similar, false);
 });
 
-test("unmanaged: Get matched, prefilled, with where it came from", () => {
+test("unmanaged: Request proposals, prefilled, with where it came from", () => {
   const m = profileMode({ ...base, managed: false });
   assert.equal(m.kind, "match");
-  assert.equal(m.ctaLabel, "Get matched with similar agencies");
+  assert.equal(m.ctaLabel, "Request proposals from similar agencies");
   const url = new URL(m.ctaHref, "https://ytagencies.com");
-  assert.equal(url.pathname, "/get-matched");
+  assert.equal(url.pathname, "/request-proposals");
   assert.equal(url.searchParams.get("service"), "youtube-ads-agencies");
   assert.equal(url.searchParams.get("industry"), "gaming");
   assert.equal(url.searchParams.get("ref"), "profile:goat-agency");

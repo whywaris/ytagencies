@@ -1,4 +1,5 @@
-import { absoluteUrl, BRAND_NAME } from "@/lib/site";
+import { BADGES, type BadgeKind } from "@/lib/badge-svg";
+import { absoluteUrl } from "@/lib/site";
 
 // Dashboard look (docs/mockups/agency-dashboard.html), on the public tokens.
 export const btn =
@@ -10,6 +11,8 @@ export const cardTitle = "text-[16.5px] font-[650] tracking-[-0.01em]";
 export const cardSub = "mt-1 text-[13.5px] text-text-2";
 export const linkCls = "font-semibold text-accent hover:underline";
 
-/** The embed code for the "Listed on" badge (/badge.svg), linking to the agency's profile. */
-export const badgeCode = (slug: string) =>
-  `<a href="${absoluteUrl(`/agency/${slug}`)}"><img src="${absoluteUrl("/badge.svg")}" alt="Listed on ${BRAND_NAME}" width="180" height="40"></a>`;
+/** The embed code for a badge (lib/badge-svg.ts), always linking to the agency's profile. */
+export const badgeCode = (slug: string, kind: BadgeKind = "listed") => {
+  const b = BADGES[kind];
+  return `<a href="${absoluteUrl(`/agency/${slug}`)}"><img src="${absoluteUrl(b.path)}" alt="${b.label}" width="${b.width}" height="40"></a>`;
+};

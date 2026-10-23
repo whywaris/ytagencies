@@ -31,13 +31,9 @@ const replyTimes = CONTACT_TOPICS.filter((t) => t.response);
 export default async function ContactPage({ searchParams }: PageProps<"/contact">) {
   const sp = await searchParams;
   const topicParam = typeof sp.topic === "string" ? sp.topic : "";
-  // ?topic=sponsored (the pricing page's Sponsored card): the agencies inbox, message started.
-  const sponsored = topicParam === "sponsored";
-  const topic = sponsored
-    ? "agencies"
-    : (TOPIC_IDS as readonly string[]).includes(topicParam)
-      ? (topicParam as ContactTopic)
-      : "general";
+  const topic = (TOPIC_IDS as readonly string[]).includes(topicParam)
+    ? (topicParam as ContactTopic)
+    : "general";
   const agency =
     typeof sp.agency === "string" && /^[a-z0-9-]{1,80}$/.test(sp.agency) ? sp.agency : "";
 
@@ -66,9 +62,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
             <ContactForm
               initialTopic={agency ? "report" : topic}
               initialAgencyUrl={agency ? absoluteUrl(`/agency/${agency}`) : ""}
-              initialMessage={
-                sponsored ? "I'd like a Sponsored spot. The pages I'm interested in: " : ""
-              }
+              initialMessage=""
             />
           </div>
 

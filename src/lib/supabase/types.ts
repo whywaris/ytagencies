@@ -45,6 +45,8 @@ export type Database = {
           timezone: string | null;
           youtube_channel_url: string | null;
           linkedin_url: string | null;
+          calendly_url: string | null;
+          whatsapp_number: string | null;
           reporting_frequency: string | null;
           process: Json;
           seo_title: string | null;
@@ -80,6 +82,8 @@ export type Database = {
           timezone?: string | null;
           youtube_channel_url?: string | null;
           linkedin_url?: string | null;
+          calendly_url?: string | null;
+          whatsapp_number?: string | null;
           reporting_frequency?: string | null;
           process?: Json;
           seo_title?: string | null;
@@ -115,6 +119,8 @@ export type Database = {
           timezone?: string | null;
           youtube_channel_url?: string | null;
           linkedin_url?: string | null;
+          calendly_url?: string | null;
+          whatsapp_number?: string | null;
           reporting_frequency?: string | null;
           process?: Json;
           seo_title?: string | null;

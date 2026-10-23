@@ -155,10 +155,10 @@ export default async function AboutPage() {
             How we make money
           </h2>
           <p className="text-[17px] leading-relaxed">
-            Businesses never pay us, and listing an agency is free. To manage its listing and
-            receive inquiries, an agency needs Pro; Pro doesn&apos;t change where it ranks. Agencies
-            on Pro can also sponsor a place at the top of a directory page. Sponsored places are
-            always labeled, and nothing else about the order can be bought.
+            Businesses and creators never pay us, and listing an agency is free. To manage its
+            listing and receive inquiries, an agency needs Pro; Pro doesn&apos;t change where it
+            ranks, and no place in the order can be bought. We don&apos;t charge per lead or take a
+            commission.
           </p>
           <p className="text-[17px]">
             <Link href="/disclosure" className="text-accent underline underline-offset-2">

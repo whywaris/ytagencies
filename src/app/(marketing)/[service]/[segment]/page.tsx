@@ -122,7 +122,7 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
       summary={oneLineSummary(content?.summary, intro)}
       updated={monthYear([content?.updatedAt, ...agencies.map((a) => a.updatedAt)])}
       highlight={service.slug}
-      matchHref={`/get-matched?${match}`}
+      matchHref={`/request-proposals?${match}`}
       aboutHeading={
         segment.kind === "industry"
           ? `${service.name} for ${segment.industry.name} brands`
@@ -142,7 +142,7 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
             all {service.name} agencies
           </Link>{" "}
           or{" "}
-          <Link href="/get-matched" className="text-accent hover:underline">
+          <Link href="/request-proposals" className="text-accent hover:underline">
             tell us what you need
           </Link>
           .

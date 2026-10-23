@@ -43,7 +43,7 @@ src/
     agency/[slug]/page.tsx           # agency profile
     guides/[slug]/page.tsx           # guides, from the Guides CMS (guides table, admin/guides)
     authors/[slug]/page.tsx          # guide authors (authors table, admin/authors)
-    get-matched/page.tsx             # lead form
+    request-proposals/page.tsx       # lead form (/get-matched 301s here)
     dashboard/...                    # agency dashboard (auth required, noindex)
     admin/...                        # admin (role required, noindex)
     sitemap.ts, robots.ts

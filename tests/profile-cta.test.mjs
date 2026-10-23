@@ -34,7 +34,7 @@ test("a managed profile has exactly one contact CTA: 'Contact agency'", () => {
   assert.match(page, /className="profile-mbar [^"]*min-\[980px\]:hidden/);
 });
 
-test("the header has no contact or Get matched button; the website is a plain link", () => {
+test("the header has no contact or Request proposals button; the website is a plain link", () => {
   assert.doesNotMatch(header, /mode\.ctaHref|#contact/);
   assert.match(header, /<WebsiteLink /);
   assert.doesNotMatch(page, /WebsiteButton/);

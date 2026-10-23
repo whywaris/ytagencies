@@ -5,7 +5,7 @@ import { getAgenciesForCombo, getAgenciesForService, getAgencyCount } from "@/li
 import { getPlacement } from "@/lib/data/placement";
 import { getServiceBySlug, resolveSegment } from "@/lib/data/taxonomy";
 import type { StrengthInput } from "@/lib/profile-strength";
-import { MAX_SPONSORED } from "@/lib/ranking";
+import { MAX_SPONSORED, sponsoredEnabled } from "@/lib/ranking";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Real numbers for the agency-facing pages (/list-your-agency, /claim, the dashboard). Analytics
@@ -74,7 +74,7 @@ export const getSiteNumbers = cache(async () => {
   };
 });
 
-/** Get matched requests this calendar month (UTC) for a service in an industry. */
+/** Request proposals requests this calendar month (UTC) for a service in an industry. */
 export async function requestsThisMonth(serviceId: number, industryId: number) {
   const now = new Date();
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
@@ -152,7 +152,7 @@ export async function demandFor(
           segment?.kind === "industry" && !ownIndustries.has(segment.slug)
             ? segment.industry.name
             : null,
-        openSlot: placement.sponsoredFor(page).length < MAX_SPONSORED,
+        openSlot: sponsoredEnabled() && placement.sponsoredFor(page).length < MAX_SPONSORED,
       };
     }),
   );

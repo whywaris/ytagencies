@@ -39,10 +39,10 @@ const sections: LegalSection[] = [
     title: "What YT Agencies is",
     body: (
       <p>
-        {BRAND_NAME} is a directory of YouTube agencies. We help businesses find and contact
-        agencies. We don&apos;t provide agency services ourselves and we aren&apos;t part of any
-        agreement you make with an agency. Check an agency&apos;s terms, pricing and references
-        before you hire them.
+        {BRAND_NAME} is an independent directory of YouTube agencies. We help businesses and
+        creators compare and contact agencies. We don&apos;t provide agency services ourselves, and
+        we don&apos;t broker, negotiate or take part in agreements between you and an agency. Check
+        an agency&apos;s terms, pricing and references before you agree to work together.
       </p>
     ),
   },
@@ -118,7 +118,7 @@ const sections: LegalSection[] = [
   },
   {
     id: "paid-plans",
-    title: "Pro and sponsored places",
+    title: "Pro",
     body: (
       <>
         <p>
@@ -126,10 +126,8 @@ const sections: LegalSection[] = [
           active Pro subscription, as described on the <Link href="/pricing">pricing page</Link>.
           Pro doesn&apos;t change an agency&apos;s position in the directory. When Pro ends, the
           listing stays public as unmanaged, we keep its details, editing is locked and inquiries
-          stop. Agencies on Pro with the Verified badge can sponsor a directory page. Sponsored
-          places are labeled &ldquo;Sponsored&rdquo; wherever they appear. How placement works is
-          explained in <Link href="/how-we-rank">How we rank</Link> and our{" "}
-          <Link href="/disclosure">disclosure</Link>.
+          stop. How the order is set is explained in <Link href="/how-we-rank">How we rank</Link>{" "}
+          and our <Link href="/disclosure">disclosure</Link>.
         </p>
         <p>
           Payments are handled by our payment provider. Cancellations and refunds follow our{" "}
@@ -238,9 +236,9 @@ export default function TermsPage() {
       updated={UPDATED}
       contactEmail={email}
       summary={[
-        "YT Agencies is a free directory. We help you find agencies; we don't do agency work ourselves.",
+        "YT Agencies is an independent directory. We help you compare agencies; we don't do agency work, broker or negotiate.",
         "Agencies must keep their listings accurate. We review listings and reviews and can remove ones that break these terms.",
-        "Listings are free. Pro and sponsored places are optional and always clearly labeled.",
+        "Listings are free. Pro is optional and never changes the ranking.",
         "We aren't responsible for the work agencies do for you.",
       ]}
       sections={sections}

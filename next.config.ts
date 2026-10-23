@@ -7,7 +7,7 @@ import { companyTodos } from "./src/lib/company";
 import { indexingAllowed, noindexHeaders } from "./src/lib/indexing";
 import { turnstileKeyProblems } from "./src/lib/turnstile-keys";
 import { mediaHosts } from "./src/lib/media";
-import { PRICING_REDIRECTS } from "./src/lib/pricing-redirects";
+import { PRICING_REDIRECTS, PROPOSALS_REDIRECTS } from "./src/lib/moved-pages";
 
 const isDev = process.env.NODE_ENV === "development";
 // Our Cloudflare image host(s) for pasted cover links (MEDIA_HOSTS, see src/lib/media.ts).
@@ -82,6 +82,7 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       ...PRICING_REDIRECTS,
+      ...PROPOSALS_REDIRECTS,
       // Short link for reports; agency profiles link to /contact?topic=report&agency=<slug>.
       { source: "/report-listing", destination: "/contact?topic=report", permanent: true },
       // Old child sitemap, split into services/combos/locations/pages under /sitemap.xml.

@@ -2,19 +2,15 @@ import { Check } from "lucide-react";
 
 import { ChoosePro } from "@/components/forms/claim-form";
 import type { DashboardContext } from "@/lib/data/dashboard";
+import { proFeatures } from "@/lib/entitlements";
 import { cn } from "@/lib/utils";
 
 // The one paywall (docs/mockups/agency-dashboard.html): the Overview's main card when the listing
 // isn't on Pro, and what Profile, Inquiries, Channels, Case studies and Verification show
 // instead of their content. Says what Pro unlocks; never a blurred or made-up number.
 
-export const PRO_BENEFITS = [
-  "Edit your profile, channels and case studies",
-  "A contact form: inquiries go straight to you",
-  "Get matched requests that fit your services",
-  "A link to your website, tagged so you can track visits",
-  "No other agencies suggested on your profile",
-];
+/** Pro's feature lines, the same as /pricing and billing (lib/entitlements.ts). */
+export const PRO_BENEFITS = proFeatures();
 
 export function Paywall({
   ctx,

@@ -636,7 +636,8 @@ select id, 'approved', '{"migrated": true}', now() from agencies where is_verifi
 create table agency_events (
   id bigint generated always as identity primary key,
   agency_id uuid not null references agencies(id) on delete cascade,
-  type text not null check (type in ('profile_view', 'website_click', 'contact_open', 'inquiry')),
+  type text not null check (type in ('profile_view', 'website_click', 'contact_open', 'inquiry',
+    'calendly_click', 'whatsapp_click')),
   page_path text check (char_length(page_path) <= 300),
   visitor_hash text not null check (char_length(visitor_hash) <= 128),
   -- Website clicks: where the link was (its utm_content). '' for other types.
@@ -649,7 +650,8 @@ create index agency_events_created_at_idx on agency_events (created_at);
 create table agency_event_daily (
   agency_id uuid not null references agencies(id) on delete cascade,
   day date not null,
-  type text not null check (type in ('profile_view', 'website_click', 'contact_open', 'inquiry')),
+  type text not null check (type in ('profile_view', 'website_click', 'contact_open', 'inquiry',
+    'calendly_click', 'whatsapp_click')),
   source text not null default '' check (source in ('', 'profile', 'directory', 'home_hero', 'guide')),
   count int not null default 0 check (count >= 0),
   primary key (agency_id, day, type, source)
@@ -978,6 +980,15 @@ grant update (best_for, timezone, youtube_channel_url, linkedin_url, reporting_f
   on agencies to authenticated;
 grant insert (best_for, timezone, youtube_channel_url, linkedin_url, reporting_frequency, process)
   on agencies to authenticated;
+
+-- Pro booking buttons (shown only while on Pro; the app checks that). WhatsApp: digits only,
+-- country code first (wa.me/<number>).
+alter table agencies
+  add column calendly_url text
+    check (calendly_url ~ '^https://(www\.)?calendly\.com/[A-Za-z0-9/_-]+$' and char_length(calendly_url) <= 300),
+  add column whatsapp_number text check (whatsapp_number ~ '^[1-9][0-9]{7,14}$');
+grant select (calendly_url, whatsapp_number) on agencies to anon;
+grant update (calendly_url, whatsapp_number) on agencies to authenticated;
 
 -- ───────── 2. services and industries ─────────
 alter table agency_services

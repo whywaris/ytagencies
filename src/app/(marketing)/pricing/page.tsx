@@ -11,14 +11,14 @@ import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
 
-// Agency pricing (was /for-agencies/pricing: 301 in next.config). Listing is free, Pro manages it
-// (lib/entitlements.ts), Sponsored is arranged by email. Prices come from the plans table.
+// Agency pricing (was /for-agencies/pricing: 301 in next.config). Two plans: a free listing, and
+// Pro to manage it (lib/entitlements.ts). Prices come from the plans table.
 
 export async function generateMetadata() {
   const { monthly } = await getProPrices();
   return buildMetadata({
     title: `Pricing for YouTube agencies · ${BRAND_NAME}`,
-    description: `List your agency free. Pro ($${monthly}/month) puts you in front of business owners on Google, in AI answers and in our directory. No commission.`,
+    description: `List your agency free. Pro ($${monthly}/month) puts you in front of businesses and creators on Google, in AI answers and in our directory. No commission.`,
     path: "/pricing",
   });
 }
@@ -79,7 +79,7 @@ function MatchRequest() {
   return (
     <div className={cn(mini, "flex flex-col gap-2.5 text-[12.5px]")}>
       <span className="flex items-center justify-between gap-2">
-        <span className="font-semibold">New match request</span>
+        <span className="font-semibold">New project request</span>
         <span className="rounded-full bg-(--mint-soft) px-2 py-0.5 text-[11px] font-semibold text-(--mint)">
           Fits you
         </span>
@@ -125,8 +125,8 @@ const CHANNELS = [
     Art: ChatAnswer,
   },
   {
-    title: "Matched to the right buyers",
-    body: "Businesses that don't want to browse tell us what they need. Requests go only to Pro agencies whose services and industries fit.",
+    title: "Project requests that fit",
+    body: "Businesses and creators who don't want to browse send a project request. It goes only to Pro agencies whose services and industries fit.",
     tint: "bg-(--mint-soft)",
     Art: MatchRequest,
   },
@@ -187,8 +187,8 @@ export default async function PricingPage() {
             Be the agency they <span className="text-accent">find first.</span>
           </h1>
           <p className="mt-6 max-w-[36em] text-[clamp(17px,1.6vw,20px)] leading-normal text-text-2">
-            Business owners come here looking for a YouTube agency in their industry. Pro puts you
-            in front of them on Google, in AI answers and in our directory.
+            Businesses and creators come here to compare YouTube agencies in their niche. Pro puts
+            you in front of them on Google, in AI answers and in our directory.
           </p>
           <div className="mt-8 flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
             <a
@@ -214,7 +214,7 @@ export default async function PricingPage() {
       <section aria-labelledby="clients-heading">
         <div className={cn(shell, "flex flex-col gap-10")}>
           <div className="flex max-w-[680px] flex-col gap-3">
-            <p className={eyebrow}>How we bring you clients</p>
+            <p className={eyebrow}>How buyers find you</p>
             <h2 id="clients-heading" className={h2}>
               Show up where buyers are already looking
             </h2>
@@ -304,9 +304,9 @@ export default async function PricingPage() {
           </div>
           <div className="flex flex-col gap-5 text-[16.5px] text-text-2">
             <p>
-              <strong className="text-text">Rankings can&apos;t be bought.</strong> Pro and
-              Sponsored change where you&apos;re shown, never your order among agencies on the same
-              plan.
+              <strong className="text-text">Rankings can&apos;t be bought.</strong> Verified
+              agencies come first, then everyone else, each by quality score. Paying for Pro never
+              changes your place.
             </p>
             <p>
               <strong className="text-text">The Verified badge is earned.</strong> Any agency can
@@ -318,10 +318,6 @@ export default async function PricingPage() {
               >
                 How we rank agencies
               </Link>
-            </p>
-            <p>
-              <strong className="text-text">Paid spots are always labelled.</strong> Sponsored
-              agencies carry a Sponsored label, so buyers know exactly what they&apos;re looking at.
             </p>
           </div>
         </div>

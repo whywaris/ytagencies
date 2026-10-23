@@ -201,11 +201,11 @@ export async function contactAgency(raw: unknown): Promise<FormResult<Contacted>
   try {
     const agency = await getPublishedAgency(input.agencySlug);
     if (!agency) return { ok: false, error: "This agency is no longer listed." };
-    // Unmanaged listings have nobody to pass messages to (the profile shows Get matched instead).
+    // Unmanaged listings have nobody to pass messages to (the profile shows Request proposals instead).
     if (!(await getEntitlements(agency.id)).contactForm)
       return {
         ok: false,
-        error: `${agency.name} hasn't joined YT Agencies yet, so we can't pass messages to them. Use Get matched to reach similar agencies.`,
+        error: `${agency.name} hasn't joined YT Agencies yet, so we can't pass messages to them. Request proposals to reach similar agencies.`,
       };
 
     const leadId = await saveLead(

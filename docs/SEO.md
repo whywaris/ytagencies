@@ -12,7 +12,7 @@
 | Page type                               | URL                                 | Indexed?                        |
 | --------------------------------------- | ----------------------------------- | ------------------------------- |
 | Home                                    | `/`                                 | Yes                             |
-| Service hub                             | `/youtube-ads-agencies`             | Yes                             |
+| Service hub                             | `/youtube-ads-agencies`             | If ≥ 3 published agencies       |
 | Service × industry                      | `/youtube-ads-agencies/for-doctors` | If ≥ 3 published agencies       |
 | Service × location                      | `/youtube-seo-agencies/in-usa`      | If ≥ 3 published agencies       |
 | Agency profile                          | `/agency/acme-media`                | Yes, if published               |
@@ -25,12 +25,12 @@
 | About, contact                          | `/about`, `/contact`                | Yes (`/contact?topic=` canonical to `/contact`) |
 | Policies                                | `/privacy`, `/terms`, `/refunds`, `/cookies`, `/disclosure`, `/editorial-policy` | Yes |
 | Filters (`?budget=`, `?size=`, `?lang=`, `?contract=`) | same path + params | No; canonical to the clean path |
-| Dashboard / admin / get-matched success | —                                   | No (`noindex`)                  |
+| Dashboard / admin / request-proposals success | —                             | No (`noindex`)                  |
 
 ## Programmatic SEO
 
 - Combination pages are generated from DB data: `services × industries` and `services × locations`.
-- **Thin-page rule:** a combination with fewer than 3 published agencies returns `robots: noindex, follow` and is left out of the sitemap. It flips to indexed automatically when it crosses the threshold.
+- **Thin-page rule:** a service hub or combination with fewer than 3 published agencies returns `robots: noindex, follow` and is left out of the sitemap. It flips to indexed automatically when it crosses the threshold.
 - Each combination page must have unique content, not just a list:
   - H1: `Best YouTube Ads Agencies for Doctors` (pattern: Best {Service} for {Industry} / in {Location})
   - A 120–200 word intro written per industry (stored in `industries.intro` / `service_industry_content`).
@@ -94,7 +94,7 @@ Builders: `src/lib/profile-seo.ts` (title, description, thin rule; unit-tested),
 ## Outbound links to agency websites
 
 - One helper builds every link to an agency's website: `agencyWebsiteLink()` in `src/lib/outbound.ts`. Don't hand-build these links.
-- Only managed (Pro) agencies get a website link. Unmanaged profiles have none (and no contact form: they offer Get matched instead).
+- Only managed (Pro) agencies get a website link. Unmanaged profiles have none (and no contact form or booking buttons: they offer Request proposals instead).
 - Paid links: `rel="sponsored noopener"`, `target="_blank"`. Never `noreferrer`: the site's `Referrer-Policy: strict-origin-when-cross-origin` lets the agency's analytics see ytagencies.com as the referrer.
 - Every link carries `utm_source=ytagencies&utm_medium=referral&utm_campaign=directory_listing&utm_content=<profile | directory | home_hero | guide>`. The agency's own query string is kept; our `utm_*` values replace theirs, never duplicate them.
 - The link has `data-track="website_click"` and `data-source=<same as utm_content>`, so the click is counted (beacon, deduped per visitor per day, bots ignored) and shown to the agency by source on its dashboard.

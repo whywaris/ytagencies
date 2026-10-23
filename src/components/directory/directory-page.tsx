@@ -24,7 +24,7 @@ type DirectoryPageProps = {
   emptyHint: React.ReactNode;
   /** This page's service slug, highlighted on the cards. */
   highlight: string;
-  /** Get matched, prefilled with this page's service (and industry). */
+  /** Request proposals, prefilled with this page's service (and industry). */
   matchHref: string;
   /** H2 over the long intro, e.g. "YouTube Ads for Doctors brands". */
   aboutHeading: string;
@@ -108,14 +108,14 @@ export function DirectoryPage({
                 <div className="flex flex-col gap-1">
                   <p className="font-medium">Not sure which one fits?</p>
                   <p className="text-text-2">
-                    Tell us what you need and we&apos;ll send it to up to 3 agencies that fit.
+                    Tell us about your project and we&apos;ll pass it to up to 3 agencies that fit.
                   </p>
                 </div>
                 <Link
                   href={matchHref}
                   className="inline-flex h-11 shrink-0 items-center rounded-full border border-line px-5 font-medium hover:border-text-2"
                 >
-                  Get matched
+                  Request proposals
                 </Link>
               </div>
             )}
@@ -124,17 +124,17 @@ export function DirectoryPage({
           <aside className="flex flex-col gap-4 lg:sticky lg:top-[76px] lg:self-start">
             <div className={card}>
               <Sparkles className="size-5 [stroke-width:1.5] text-accent" aria-hidden />
-              <h2 className="text-h3">Get matched in one step</h2>
+              <h2 className="text-h3">Request proposals in one step</h2>
               <p className="text-text-2">
-                Describe your project once; up to 3 agencies that fit reply to you.
+                Describe your project once; up to 3 agencies that fit get it and can reply to you.
               </p>
               <Link
                 href={matchHref}
                 className="inline-flex h-11 items-center justify-center rounded-full bg-accent px-6 font-medium text-on-accent hover:bg-(--accent-hover)"
               >
-                Get matched, free
+                Request proposals, free
               </Link>
-              <p className="text-small">No signup. Agencies reply by email.</p>
+              <p className="text-small">No signup. Interested agencies reply by email.</p>
             </div>
             {glance.length > 0 && (
               <div className={card}>

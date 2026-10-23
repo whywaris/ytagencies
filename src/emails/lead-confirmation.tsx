@@ -5,7 +5,7 @@ type Props = {
   agencies: { name: string; url: string }[];
   /** e.g. "YouTube Ads for Doctors & clinics"; omitted for a direct message to one agency */
   need?: string;
-  /** Get matched: their answers, so they have a copy. */
+  /** Request proposals: their answers, so they have a copy. */
   answers?: [string, string | null][];
 };
 
@@ -18,7 +18,7 @@ export function LeadConfirmationEmail({ name, agencies, need, answers }: Props) 
         direct
           ? "Your message was sent"
           : agencies.length > 0
-            ? "We've passed your request to matching agencies"
+            ? "We've passed your request to agencies that fit"
             : "We've saved your request"
       }
     >
@@ -42,14 +42,14 @@ export function LeadConfirmationEmail({ name, agencies, need, answers }: Props) 
             </ul>
           )}
           <p style={text}>
-            {direct ? "They'll" : "Each agency will"} reply to you directly at this email address.
-            You don&apos;t need to do anything else.
+            {direct ? "They can" : "Interested agencies can"} reply to you directly at this email
+            address. You don&apos;t need to do anything else.
           </p>
         </>
       ) : (
         <p style={text}>
-          We&apos;ve got your request for {need}. No agency on our list fits it yet, so we&apos;re
-          looking for one, and we&apos;ll tell you either way.
+          We&apos;ve got your request for {need}. No agency on our list fits it yet. We&apos;ll
+          email you if one does.
         </p>
       )}
       {answers && answers.some(([, v]) => v) && (

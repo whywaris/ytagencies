@@ -1,4 +1,4 @@
-// Get matched routing (src/lib/match.ts): Pro agencies offering the service in the industry,
+// Request proposals routing (src/lib/match.ts): Pro agencies offering the service in the industry,
 // budget fit first, then Verified, quality score and name; at most 3.
 import assert from "node:assert/strict";
 import { test } from "node:test";

@@ -428,7 +428,7 @@ export async function Overview({ ctx }: { ctx: DashboardContext }) {
                 Show it on your website
               </h2>
               <p className={cardSub}>Add the badge to your site so clients can see your profile.</p>
-              <BadgeCode code={badgeCode(agency.slug)} />
+              <BadgeCode code={badgeCode(agency.slug, verified ? "verified" : "listed")} />
             </section>
           )}
         </div>

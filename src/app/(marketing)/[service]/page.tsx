@@ -15,7 +15,7 @@ import {
   shortParagraphs,
 } from "@/lib/directory";
 import { buildMetadata } from "@/lib/seo/metadata";
-import { BRAND_NAME } from "@/lib/site";
+import { BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -37,6 +37,8 @@ export async function generateMetadata({ params }: PageProps<"/[service]">) {
     title: directoryTitle(BRAND_NAME, service),
     description: directoryDescription(service, agencies.length),
     path: `/${service.slug}`,
+    // docs/SEO.md thin-page rule: a new service stays noindex,follow until it has enough agencies.
+    noindex: agencies.length < MIN_AGENCIES_TO_INDEX,
   });
 }
 
@@ -69,7 +71,7 @@ export default async function ServiceHubPage({ params }: PageProps<"/[service]">
       summary={oneLineSummary(null, intro)}
       updated={monthYear(agencies.map((a) => a.updatedAt))}
       highlight={service.slug}
-      matchHref={`/get-matched?service=${service.slug}&ref=directory:${service.slug}`}
+      matchHref={`/request-proposals?service=${service.slug}&ref=directory:${service.slug}`}
       aboutHeading={`About ${service.name} agencies`}
       about={shortParagraphs(intro)}
       breadcrumbs={[
@@ -80,7 +82,7 @@ export default async function ServiceHubPage({ params }: PageProps<"/[service]">
       emptyHint={
         <p>
           No {service.name} agencies are listed yet.{" "}
-          <Link href="/get-matched" className="text-accent hover:underline">
+          <Link href="/request-proposals" className="text-accent hover:underline">
             Tell us what you need
           </Link>{" "}
           and we&apos;ll match you with agencies that fit.

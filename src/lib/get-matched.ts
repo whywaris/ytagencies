@@ -1,4 +1,4 @@
-// Get matched prefill: ?service=&industry= from the home finder, directory pages and profiles,
+// Request proposals prefill: ?service=&industry= from the home finder, directory pages and profiles,
 // ?ref= (where it started) and ?need= (the 404 page's search box). Unknown slugs are ignored.
 // Pure, no imports: tested.
 

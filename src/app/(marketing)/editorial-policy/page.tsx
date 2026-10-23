@@ -14,7 +14,7 @@ export const revalidate = 3600;
 const UPDATED = PAGE_UPDATED["/editorial-policy"];
 const TITLE = "Editorial policy";
 const DESCRIPTION =
-  "Who writes the YT Agencies guides, how facts are checked and corrected, where our agency data comes from, and why sponsors have no say in what we publish.";
+  "Who writes the YT Agencies guides, how facts are checked and corrected, where our agency data comes from, and why paying agencies have no say in what we publish.";
 
 export const metadata = buildMetadata({
   title: `Editorial policy | ${BRAND_NAME}`,
@@ -117,12 +117,12 @@ export default async function EditorialPolicyPage() {
     },
     {
       id: "independence",
-      title: "Independence from sponsors",
+      title: "Independence from paying agencies",
       body: (
         <p>
-          Pro and sponsored places affect where an agency appears in the directory, as our{" "}
-          <Link href="/disclosure">disclosure</Link> explains. They never affect what we write in
-          our guides.
+          Agencies on Pro pay us to manage their listing, as our{" "}
+          <Link href="/disclosure">disclosure</Link> explains. That never affects where they rank or
+          what we write in our guides.
         </p>
       ),
     },
@@ -149,7 +149,7 @@ export default async function EditorialPolicyPage() {
       summary={[
         "Every guide names its author and shows when it was last updated.",
         "We check facts against primary sources and our own directory data.",
-        "Agencies can't pay to be mentioned in a guide, and sponsors have no say in what we write.",
+        "Agencies can't pay to be mentioned in a guide, and paying agencies have no say in what we write.",
         "If you find a mistake, tell us and we'll fix it.",
       ]}
       sections={sections}

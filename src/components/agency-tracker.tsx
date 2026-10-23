@@ -4,11 +4,12 @@ import { useEffect } from "react";
 import { track } from "@/lib/track";
 
 // Profile analytics (ADMIN_V2_SPEC §7): a view on load, and clicks on elements marked
-// data-track="website_click" | "contact_open". Website clicks also send data-source (the link's
+// data-track="website_click" | "contact_open" | "calendly_click" | "whatsapp_click". Website clicks also send data-source (the link's
 // utm_content: profile, directory, home_hero, guide). navigator.sendBeacon keeps the page static
 // and never delays navigation. The server dedupes per visitor per day and ignores bots.
 
-type TrackedType = "profile_view" | "website_click" | "contact_open";
+type TrackedType =
+  "profile_view" | "website_click" | "contact_open" | "calendly_click" | "whatsapp_click";
 
 function send(agencyId: string, type: TrackedType, source?: string) {
   const body = JSON.stringify({ agencyId, type, path: location.pathname, source });
@@ -25,7 +26,12 @@ export function AgencyTracker({ agencyId, agencySlug }: { agencyId: string; agen
     const onClick = (e: MouseEvent) => {
       const el = (e.target as Element | null)?.closest<HTMLElement>("[data-track]");
       const type = el?.dataset.track;
-      if (type === "website_click" || type === "contact_open")
+      if (
+        type === "website_click" ||
+        type === "contact_open" ||
+        type === "calendly_click" ||
+        type === "whatsapp_click"
+      )
         send(agencyId, type, el?.dataset.source);
       if (type === "website_click")
         track("website_click", {

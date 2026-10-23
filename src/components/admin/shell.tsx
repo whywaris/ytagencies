@@ -121,6 +121,7 @@ export function AdminShell({
   newLeads,
   initialTheme,
   initialCollapsed,
+  sponsored,
   children,
 }: {
   email: string;
@@ -128,8 +129,15 @@ export function AdminShell({
   newLeads: NewLeads;
   initialTheme: Theme;
   initialCollapsed: boolean;
+  /** SPONSORED_ENABLED: off hides Sponsored from the nav and the palette. */
+  sponsored: boolean;
   children: React.ReactNode;
 }) {
+  const hidden = sponsored ? [] : ["/admin/sponsored"];
+  const groups = GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((i) => !hidden.includes(i.href)),
+  }));
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [theme, setTheme] = useState(initialTheme);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -170,6 +178,7 @@ export function AdminShell({
             )}
           >
             <SidebarContent
+              groups={groups}
               collapsed={collapsed}
               counts={counts}
               pathname={pathname}
@@ -189,7 +198,13 @@ export function AdminShell({
                     if ((e.target as HTMLElement).closest("a")) setSheetOpen(false);
                   }}
                 >
-                  <SidebarContent collapsed={false} counts={counts} pathname={pathname} touch />
+                  <SidebarContent
+                    groups={groups}
+                    collapsed={false}
+                    counts={counts}
+                    pathname={pathname}
+                    touch
+                  />
                 </div>
               </Dialog.Content>
             </Dialog.Portal>
@@ -234,7 +249,7 @@ export function AdminShell({
             </main>
           </div>
         </div>
-        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} hidden={hidden} />
         <Toaster
           theme={theme}
           position="bottom-right"
@@ -249,12 +264,14 @@ export function AdminShell({
 }
 
 function SidebarContent({
+  groups,
   collapsed,
   counts,
   pathname,
   onToggle,
   touch = false,
 }: {
+  groups: typeof GROUPS;
   collapsed: boolean;
   counts: Record<string, number>;
   pathname: string;
@@ -291,7 +308,7 @@ function SidebarContent({
         )}
       </div>
       <nav aria-label="Admin" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
-        {GROUPS.map((g) => (
+        {groups.map((g) => (
           <div key={g.heading} className="flex flex-col gap-0.5">
             <p
               className={cn(

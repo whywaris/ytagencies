@@ -1,4 +1,4 @@
-// Get matched: which agencies a request goes to. Pure, no imports: tested.
+// Request proposals: which agencies a request goes to. Pure, no imports: tested.
 //
 // Only managed agencies (live Pro) receive requests: an unmanaged listing has nobody to answer.
 // Candidates already offer the service; they must also work in the industry. Among those:

@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { TEAM_SIZES, type AgencyInput } from "@/lib/validation/admin";
 import { jsonToMetrics } from "@/lib/validation/dashboard";
 import type { StatsSnapshot } from "@/lib/youtube";
+import { sponsoredEnabled } from "@/lib/ranking";
 
 export const metadata = { title: "Edit agency" };
 
@@ -277,8 +278,11 @@ async function PlanTab({
     ["Website link on profile", yes(e.websiteLink)],
     ["Response time on profile", yes(e.responseTime)],
     ["Similar agencies on profile", e.showSimilarAgencies ? "Shown" : "Hidden"],
+    ["Booking buttons on profile", yes(e.bookingButtons)],
     ["Analytics history", e.analyticsDays >= 365 ? "12 months" : "30 days"],
-    ["Can buy Sponsored slots", yes(e.canBuySponsored)],
+    ...(sponsoredEnabled()
+      ? [["Can buy Sponsored slots", yes(e.canBuySponsored)] as [string, string]]
+      : []),
   ];
   return (
     <div className="grid gap-10 lg:grid-cols-2">

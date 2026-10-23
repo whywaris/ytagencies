@@ -9,9 +9,9 @@ export function ProStartedEmail({ agencyName, billingUrl }: Props) {
   return (
     <EmailLayout preview={`${agencyName} is on Pro`}>
       <p style={text}>
-        You&apos;re on Pro. {agencyName}&apos;s listing is now managed: businesses can contact you
-        from your profile, Get matched sends you requests that fit, and you can edit your listing
-        any time.
+        You&apos;re on Pro. {agencyName}&apos;s listing is now managed: businesses and creators can
+        contact you from your profile, project requests that fit come to you, and you can edit your
+        listing any time.
       </p>
       <p style={text}>
         Your receipt comes from Creem, our payment provider, in a separate email. Your plan, renewal

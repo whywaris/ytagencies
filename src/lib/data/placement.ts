@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 
 import { entitlementsFor, type Entitlements, type Subscription } from "@/lib/entitlements";
+import { sponsoredEnabled } from "@/lib/ranking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ChannelStats, StatsSnapshot } from "@/lib/youtube";
 
@@ -67,10 +68,11 @@ export const getPlacement = cache(async (now = new Date()) => {
     /** The agency's channels from its latest approved stats check (empty without one). */
     channels: (agencyId: string) => channels.get(agencyId) ?? [],
     /**
-     * Active slot holders for a page, by position. Holders must still be eligible (Pro and
+     * Active slot holders for a page, by position (none while SPONSORED_ENABLED is off). Holders must still be eligible (Pro and
      * the Verified badge, §5.8); a slot whose agency lapsed is skipped rather than shown.
      */
     sponsoredFor(page: { serviceId: number; industryId?: number; locationId?: number }) {
+      if (!sponsoredEnabled()) return [];
       return slots.data
         .filter(
           (s) =>
@@ -86,6 +88,7 @@ export const getPlacement = cache(async (now = new Date()) => {
     },
     /** Every eligible active slot holder, by position (the home page shows at most one). */
     sponsoredAnywhere() {
+      if (!sponsoredEnabled()) return [];
       return slots.data
         .filter((s) => {
           const e = entitlements(s.agency_id);
