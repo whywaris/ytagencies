@@ -35,6 +35,7 @@ export async function sitemapEntries(file: SitemapFile): Promise<Entry[]> {
           path: "/guides",
           lastModified: newest(guides.map((g) => ({ path: "", lastModified: g.updatedAt }))),
         },
+        { path: "/agencies", lastModified: siteLastModified },
         { path: "/request-proposals" },
         { path: "/list-your-agency" },
         { path: "/pricing" },

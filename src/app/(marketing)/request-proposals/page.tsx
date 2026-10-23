@@ -106,7 +106,7 @@ export default async function RequestProposalsPage() {
             </section>
             <p className="px-1 text-text-2">
               Prefer to choose yourself?{" "}
-              <Link href="/#services" className="font-medium text-accent hover:underline">
+              <Link href="/agencies" className="font-medium text-accent hover:underline">
                 Browse agencies
               </Link>
             </p>

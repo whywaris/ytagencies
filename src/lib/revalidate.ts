@@ -12,6 +12,7 @@ export function revalidateAgency(slug: string) {
   revalidateSitemap("agencies", "combos", "locations", "services", "pages");
   revalidatePath("/(marketing)/[service]", "page");
   revalidatePath("/(marketing)/[service]/[segment]", "page");
+  revalidatePath("/agencies");
   revalidatePath("/");
 }
 

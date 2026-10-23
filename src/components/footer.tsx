@@ -12,6 +12,7 @@ const GROUPS = [
   {
     heading: "Find agencies",
     links: [
+      { href: "/agencies", label: "All agencies" },
       { href: "/#services", label: "Services" },
       { href: "/#industries", label: "Industries" },
       { href: "/request-proposals", label: "Request proposals" },

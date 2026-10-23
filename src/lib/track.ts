@@ -27,6 +27,8 @@ type Events = {
   claim_start: { agency_slug: string };
   checkout_start: { interval: "month" | "year" };
   list_agency_search: { has_results: boolean };
+  /** /agencies after filtering: which filters (keys only, never the search text) and how many. */
+  agency_search: { filters: string; results: number };
   /** The 404 page: the path only, never the query string. */
   page_not_found: { path: string };
 };

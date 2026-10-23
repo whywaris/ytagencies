@@ -64,7 +64,7 @@ export async function NotFoundContent() {
       text: "Share your goal and budget. We suggest who fits.",
     },
     {
-      href: "/#services",
+      href: "/agencies",
       tile: "bg-[#C2410C]",
       icon: Video,
       title: "Browse all YouTube agencies",

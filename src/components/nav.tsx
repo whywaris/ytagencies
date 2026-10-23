@@ -5,6 +5,7 @@ import { MobileAccount, MobileMenu, NavAccount } from "@/components/nav-account"
 import { BRAND_NAME } from "@/lib/site";
 
 const links = [
+  { href: "/agencies", label: "Agencies" },
   { href: "/#services", label: "Services" },
   { href: "/#industries", label: "Industries" },
   { href: "/guides", label: "Guides" },

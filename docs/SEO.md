@@ -12,6 +12,8 @@
 | Page type                               | URL                                 | Indexed?                        |
 | --------------------------------------- | ----------------------------------- | ------------------------------- |
 | Home                                    | `/`                                 | Yes                             |
+| All agencies                            | `/agencies`, `/agencies?page=N`     | Yes, self-canonical (`/agencies` in the sitemap) |
+| All agencies, filtered / searched / sorted | `/agencies?service=…&q=…&sort=…` | No (`noindex, follow`), canonical `/agencies` |
 | Service hub                             | `/youtube-ads-agencies`             | If ≥ 3 published agencies       |
 | Service × industry                      | `/youtube-ads-agencies/for-doctors` | If ≥ 3 published agencies       |
 | Service × location                      | `/youtube-seo-agencies/in-usa`      | If ≥ 3 published agencies       |

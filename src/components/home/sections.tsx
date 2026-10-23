@@ -423,6 +423,7 @@ export async function AgenciesSection() {
           eyebrow="Agencies"
           title="Agencies businesses and creators are looking at"
           lede="Every profile shows the industries they work in and where their prices start."
+          link={{ href: "/agencies", label: "Browse all agencies" }}
         />
         <ul className="grid gap-4 min-[620px]:grid-cols-2 min-[960px]:grid-cols-3">
           {agencies.map((a) => {

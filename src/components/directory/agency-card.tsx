@@ -23,9 +23,9 @@ export function AgencyCard({
   const services = [
     ...a.services.filter((s) => s.slug === highlight),
     ...a.services.filter((s) => s.slug !== highlight),
-  ].slice(0, 3);
+  ].slice(0, 2);
   const industries = a.industries
-    .slice(0, 3)
+    .slice(0, 2)
     .map((i) => i.name)
     .join(", ");
   const terms = [pricingName(a.pricingModel), contractLabel(a.minContract)].filter(Boolean);
@@ -100,7 +100,7 @@ export function AgencyCard({
       <div className="flex flex-col gap-3 border-t border-line pt-4 md:w-52 md:shrink-0 md:items-end md:border-0 md:pt-0 md:text-right">
         {a.minBudgetUsd !== null && (
           <div className="flex flex-col md:items-end">
-            <span className="text-small">Min. project</span>
+            <span className="text-small">Starting at</span>
             <span className="text-h3 font-semibold num">
               {formatUsd(a.minBudgetUsd)}
               <span className="text-[15px] font-normal text-text-2">
