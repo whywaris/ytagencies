@@ -37,7 +37,7 @@ import { GuideCard } from "@/components/guides/guide-parts";
 import { FindAgenciesButton, Finder } from "@/components/home/finder";
 import { JsonLd } from "@/components/json-ld";
 import { getDirectoryIndex } from "@/lib/data/agencies";
-import { getLiveGuides } from "@/lib/data/guides";
+import { getGuideCategories, getLiveGuides } from "@/lib/data/guides";
 import { getHomeAgencies } from "@/lib/data/home";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { firstSentence, formatUsd } from "@/lib/directory";
@@ -757,6 +757,7 @@ export async function GuidesSection() {
   const live = [...(await getLiveGuides())].sort((a, b) => a.slug.localeCompare(b.slug));
   const guides = dailyPick(live, utcDay(new Date()), 3);
   if (!guides.length) return null;
+  const categories = await getGuideCategories();
   return (
     <section aria-labelledby="guides-heading">
       <div className={cn(shell, "flex flex-col gap-10")}>
@@ -770,7 +771,10 @@ export async function GuidesSection() {
         <ul className="grid gap-8 min-[640px]:grid-cols-2 min-[1000px]:grid-cols-3">
           {guides.map((g) => (
             <li key={g.slug}>
-              <GuideCard guide={g} />
+              <GuideCard
+                guide={g}
+                category={categories.find((c) => c.id === g.categoryId) ?? null}
+              />
             </li>
           ))}
         </ul>

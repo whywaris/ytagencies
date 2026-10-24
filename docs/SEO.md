@@ -22,7 +22,8 @@
 | Service × industry × country            | `/youtube-ads-agencies/for-saas/in-usa` | Only exists with ≥ 3 (404 below) |
 | Agency profile                          | `/agency/acme-media`                | Yes, if published               |
 | Guide                                   | `/guides/youtube-ads-agency-cost`   | Yes                             |
-| Guides index                            | `/guides`, `/guides?page=2`         | Yes (`?service=` filters: no)   |
+| Guides index                            | `/guides`, `/guides?page=2`         | Yes (`?q=` search: no, canonical `/guides`) |
+| Guide category                          | `/guides/category/pricing`          | From 3 live guides, else `noindex,follow`; 404 with none; old slugs 301 |
 | Author                                  | `/authors/jane-doe`                 | Yes, if they have a live guide  |
 | List your agency                        | `/list-your-agency`                 | Yes                             |
 | Pricing for agencies                    | `/pricing`                          | Yes                             |
@@ -59,7 +60,7 @@
 - All pages: `BreadcrumbList`; home: `WebSite` + `Organization`. Policy pages: `WebPage` with `dateModified`; `/about`: `AboutPage` + `Organization` (founder as `Person` once filled in); `/contact`: `ContactPage`.
 - Directory pages: `ItemList` of agencies (url + position).
 - Profile: `ProfessionalService` (see "Agency profiles" below), `FAQPage` from the profile's generated FAQ, `BreadcrumbList`.
-- Guides: `Article` with dates and `author` as a `Person` linking to their author page. `/guides`: `CollectionPage` with an `ItemList` of the guides shown. Author pages: `Person` (name, job title, bio, photo, `sameAs` profiles).
+- Guides: `Article` with dates and `author` as a `Person` linking to their author page. `/guides` and `/guides/category/[slug]`: `CollectionPage` with an `ItemList` of the guides shown, plus `BreadcrumbList` (Home / Guides / Category). A guide's `BreadcrumbList` includes its category. Author pages: `Person` (name, job title, bio, photo, `sameAs` profiles).
 - FAQ blocks may use `FAQPage` markup, but don't expect rich results from it.
 
 ## Technical

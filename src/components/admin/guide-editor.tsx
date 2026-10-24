@@ -17,6 +17,7 @@ import {
   deleteGuide,
   discardGuideDraft,
   saveGuide,
+  setGuideFeatured,
   setGuideStatus,
   uploadGuideImage,
   type GuideInput,
@@ -31,6 +32,7 @@ import { cn } from "@/lib/utils";
 export type Combo = { service_id: number; industry_id?: number; location_id?: number };
 export type ComboOption = { key: string; label: string; combo: Combo };
 export type AuthorOption = { id: string; name: string };
+export type CategoryOption = { id: string; name: string };
 
 export type EditorGuide = {
   id: string | null;
@@ -42,6 +44,9 @@ export type EditorGuide = {
   seoTitle: string;
   seoDescription: string;
   authorId: string | null;
+  categoryId: string | null;
+  /** The featured guide on /guides (at most one; saved straight away, not drafted). */
+  isFeatured: boolean;
   related: Combo[];
   keyTakeaways: string[];
   numberedSections: boolean;
@@ -73,16 +78,50 @@ const primary =
 const secondary =
   "h-9 rounded-lg border border-line px-3 font-medium transition-colors duration-150 hover:bg-surface-2 disabled:opacity-50";
 
+/** "Featured on /guides": saved straight away; turning it on turns the previous one off. */
+function FeaturedToggle({ id, initial }: { id: string; initial: boolean }) {
+  const [on, setOn] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  return (
+    <label className="mt-2 flex items-start gap-2">
+      <input
+        type="checkbox"
+        checked={on}
+        disabled={pending}
+        onChange={(e) => {
+          const next = e.target.checked;
+          setError(null);
+          startTransition(async () => {
+            const res = await setGuideFeatured(id, next);
+            if (res.ok) setOn(next);
+            else setError(res.error);
+          });
+        }}
+        className="mt-1 size-4 accent-(--accent)"
+      />
+      <span className="flex flex-col gap-0.5">
+        <span>Featured on /guides</span>
+        <span className="text-admin-meta">
+          {error ?? "One guide at a time; turning this on unfeatures the current one."}
+        </span>
+      </span>
+    </label>
+  );
+}
+
 export function GuideEditor({
   guide,
   comboOptions,
   authors,
+  categories,
   siteHost,
   services,
 }: {
   guide: EditorGuide;
   comboOptions: ComboOption[];
   authors: AuthorOption[];
+  categories: CategoryOption[];
   siteHost: string;
   /** For the budget range block. */
   services: ServiceOption[];
@@ -101,6 +140,7 @@ export function GuideEditor({
     seoTitle: guide.seoTitle,
     seoDescription: guide.seoDescription,
     authorId: guide.authorId,
+    categoryId: guide.categoryId,
     related: guide.related,
     keyTakeaways: guide.keyTakeaways,
     numberedSections: guide.numberedSections,
@@ -433,6 +473,36 @@ export function GuideEditor({
               className="w-full rounded-lg border border-line bg-bg px-3 py-2"
             />
           </Counted>
+        </Group>
+
+        <Group title="Category">
+          <label className={label}>
+            <span className="sr-only">Category</span>
+            <select
+              value={values.categoryId ?? ""}
+              onChange={(e) => set("categoryId", e.target.value || null)}
+              className={input}
+            >
+              <option value="">Choose a category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <span className="text-admin-meta">
+              Needed to publish. The guide shows under it on /guides.{" "}
+              <Link
+                href="/admin/guides/categories"
+                target="_blank"
+                rel="noopener"
+                className="text-accent hover:underline"
+              >
+                Manage categories
+              </Link>
+            </span>
+          </label>
+          {id && <FeaturedToggle id={id} initial={guide.isFeatured} />}
         </Group>
 
         <Group title="Author">

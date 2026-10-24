@@ -509,14 +509,17 @@ export type Database = {
         Row: {
           id: boolean;
           updated_at: string;
+          guide_tabs_max: number;
         };
         Insert: {
           id?: boolean;
           updated_at?: string;
+          guide_tabs_max?: number;
         };
         Update: {
           id?: boolean;
           updated_at?: string;
+          guide_tabs_max?: number;
         };
         Relationships: [];
       };
@@ -744,6 +747,56 @@ export type Database = {
           },
         ];
       };
+      guide_categories: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          description: string | null;
+          color: string;
+          sort_order: number;
+          show_in_tabs: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          description?: string | null;
+          color?: string;
+          sort_order?: number;
+          show_in_tabs?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string;
+          description?: string | null;
+          color?: string;
+          sort_order?: number;
+          show_in_tabs?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      guide_category_redirects: {
+        Row: { from_slug: string; category_id: string; created_at: string };
+        Insert: { from_slug: string; category_id: string; created_at?: string };
+        Update: { from_slug?: string; category_id?: string; created_at?: string };
+        Relationships: [
+          {
+            foreignKeyName: "guide_category_redirects_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "guide_categories";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       guide_redirects: {
         Row: {
           created_at: string;
@@ -773,6 +826,8 @@ export type Database = {
       guides: {
         Row: {
           author_id: string | null;
+          category_id: string | null;
+          is_featured: boolean;
           body_md: string;
           body_json: Json | null;
           body_html: string | null;
@@ -798,6 +853,8 @@ export type Database = {
         };
         Insert: {
           author_id?: string | null;
+          category_id?: string | null;
+          is_featured?: boolean;
           body_md?: string;
           body_json?: Json | null;
           body_html?: string | null;
@@ -823,6 +880,8 @@ export type Database = {
         };
         Update: {
           author_id?: string | null;
+          category_id?: string | null;
+          is_featured?: boolean;
           body_md?: string;
           body_json?: Json | null;
           body_html?: string | null;

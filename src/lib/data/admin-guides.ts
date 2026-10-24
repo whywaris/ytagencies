@@ -59,6 +59,8 @@ type Row = {
   seo_title: string | null;
   seo_description: string | null;
   author_id: string | null;
+  category_id: string | null;
+  is_featured: boolean;
   related_combos: unknown;
   key_takeaways: string[];
   numbered_sections: boolean;
@@ -80,6 +82,8 @@ export function toEditorGuide(row: Row): EditorGuide {
     seoTitle: g.seo_title ?? "",
     seoDescription: g.seo_description ?? "",
     authorId: g.author_id,
+    categoryId: g.category_id,
+    isFeatured: row.is_featured,
     related: Array.isArray(g.related_combos) ? (g.related_combos as EditorGuide["related"]) : [],
     keyTakeaways: g.key_takeaways,
     numberedSections: g.numbered_sections,
@@ -102,6 +106,8 @@ export const NEW_GUIDE: EditorGuide = {
   seoTitle: "",
   seoDescription: "",
   authorId: null,
+  categoryId: null,
+  isFeatured: false,
   related: [],
   keyTakeaways: [],
   numberedSections: false,
@@ -110,3 +116,15 @@ export const NEW_GUIDE: EditorGuide = {
   slugLocked: false,
   hasDraft: false,
 };
+
+
+/** Guide categories for the editor's Category select, in order. */
+export async function categoryOptions(): Promise<{ id: string; name: string }[]> {
+  const { data, error } = await createAdminClient()
+    .from("guide_categories")
+    .select("id, name")
+    .order("sort_order")
+    .order("name");
+  if (error) throw new Error("Couldn't load categories");
+  return data;
+}

@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 
+import { guideMatches } from "@/lib/guide-categories";
 import { docReadMinutes, guideDoc, type Doc } from "@/lib/guide-content";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { createStaticClient } from "@/lib/supabase/server";
@@ -12,7 +13,7 @@ import { createStaticClient } from "@/lib/supabase/server";
 const LIVE_STATUSES = ["published", "scheduled"];
 export const AUTHOR_COLUMNS =
   "slug, name, role, bio, avatar_path, linkedin_url, x_url, website_url";
-const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, published_at, updated_at, content_updated_at, cover_path, body_md, body_json, related_combos, author:authors(${AUTHOR_COLUMNS})`;
+const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, category_id, is_featured, published_at, updated_at, content_updated_at, cover_path, body_md, body_json, related_combos, author:authors(${AUTHOR_COLUMNS})`;
 
 /**
  * Public URL of an image: a pasted https link (covers hosted on Cloudflare, see lib/media.ts) as
@@ -77,10 +78,14 @@ export type GuideSummary = {
   serviceIds: number[];
   /** Its related directory pages: directory pages link back to it. */
   combos: RelatedCombo[];
+  categoryId: string | null;
+  isFeatured: boolean;
 };
 
 type SummaryRow = {
   slug: string;
+  category_id: string | null;
+  is_featured: boolean;
   title: string;
   excerpt: string | null;
   seo_description: string | null;
@@ -108,6 +113,8 @@ function summary(g: SummaryRow): GuideSummary {
     author: toAuthor(g.author),
     serviceIds: [...new Set(combosOf(g.related_combos).map((c) => c.service_id))],
     combos: combosOf(g.related_combos),
+    categoryId: g.category_id,
+    isFeatured: g.is_featured,
   };
 }
 
@@ -243,3 +250,51 @@ export async function resolveCombos(raw: unknown) {
     return [{ href: `/${s.slug}`, label: `Compare ${s.name} agencies`, service }];
   });
 }
+
+export type GuideCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  color: string;
+  sort_order: number;
+  show_in_tabs: boolean;
+};
+
+/** Every guide category (public read), in order. */
+export const getGuideCategories = cache(async (): Promise<GuideCategory[]> => {
+  const { data, error } = await createStaticClient()
+    .from("guide_categories")
+    .select("id, name, slug, description, color, sort_order, show_in_tabs")
+    .order("sort_order")
+    .order("name");
+  if (error) throw error;
+  return data;
+});
+
+/** The category a slug moved away from (Admin → Guides → Categories, slug change). */
+export const getCategoryRedirect = cache(async (slug: string) => {
+  const { data } = await createStaticClient()
+    .from("guide_category_redirects")
+    .select("guide_categories(slug)")
+    .eq("from_slug", slug)
+    .maybeSingle();
+  return (data?.guide_categories as { slug: string } | null)?.slug ?? null;
+});
+
+/** Slugs of live guides whose title, excerpt or body text match the search (cleanGuideQuery). */
+export const searchLiveGuides = cache(async (q: string) => {
+  const { data, error } = await createStaticClient()
+    .from("guides")
+    .select("slug, title, excerpt, body_html")
+    .in("status", LIVE_STATUSES)
+    .lte("published_at", new Date().toISOString());
+  if (error) throw error;
+  const text = (html: string | null) =>
+    (html ?? "").replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/gi, " ");
+  return new Set(
+    data
+      .filter((g) => guideMatches({ title: g.title, excerpt: g.excerpt, text: text(g.body_html) }, q))
+      .map((g) => g.slug),
+  );
+});

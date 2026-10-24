@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { GuideTabsSetting } from "@/components/admin/guide-tabs-setting";
 import { RefreshSitemap } from "@/components/admin/refresh-sitemap";
 import { requireAdmin } from "@/lib/auth";
 import { lsConfig, paymentsEnabled } from "@/lib/billing";
 import { envValue } from "@/lib/billing/events";
 import { lsEnvProblems } from "@/lib/billing/lemonsqueezy-events";
+import { getGuideTabsMax } from "@/lib/data/settings";
 import { sitemapEntries, SITEMAP_FILES } from "@/lib/sitemap";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +40,7 @@ export default async function AdminSettingsPage() {
   const payments = paymentsEnabled() && !!ls;
   // Variable names only, never values (SECURITY.md).
   const problems = lsEnvProblems(process.env);
+  const guideTabsMax = await getGuideTabsMax();
   const sitemapCounts = Object.fromEntries(
     await Promise.all(
       SITEMAP_FILES.map(async (f) => [f, (await sitemapEntries(f)).length] as const),
@@ -99,6 +102,13 @@ export default async function AdminSettingsPage() {
               : "LEMONSQUEEZY_WEBHOOK_SECRET missing, so payments won't update plans"}
             .
           </p>
+        </Section>
+
+        <Section
+          title="Guides"
+          description="How many category tabs /guides shows; the other categories with guides go under More."
+        >
+          <GuideTabsSetting value={guideTabsMax} />
         </Section>
 
         <Section

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { mediaUrl, type Author, type GuideSummary } from "@/lib/data/guides";
+import { colorHex } from "@/lib/guide-categories";
 import { COVER_SIZE } from "@/lib/seo/og";
 import { cn } from "@/lib/utils";
 
@@ -166,7 +167,7 @@ export function AuthorBox({ author }: { author: Author }) {
   );
 }
 
-/** Author name and read time under a card title. */
+/** "{n} min read · {author}" under a card title. */
 export function GuideMeta({
   guide,
   showAuthor = true,
@@ -175,19 +176,67 @@ export function GuideMeta({
   showAuthor?: boolean;
 }) {
   return (
-    <p className="flex flex-wrap gap-x-4 gap-y-1 text-small">
+    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-small">
+      <span>{guide.readMinutes} min read</span>
       {/* Above the card's full-size link (GuideCard), so the author link stays clickable. Author
           pages exist for every author with a live guide. */}
       {showAuthor && guide.author && (
-        <Link
-          href={`/authors/${guide.author.slug}`}
-          className="relative z-10 rounded hover:text-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {guide.author.name}
-        </Link>
+        <>
+          <span aria-hidden>·</span>
+          <Link
+            href={`/authors/${guide.author.slug}`}
+            className="relative z-10 rounded hover:text-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {guide.author.name}
+          </Link>
+        </>
       )}
-      <span>{guide.readMinutes} min read</span>
     </p>
+  );
+}
+
+export type CardCategory = { name: string; slug: string; color: string };
+
+/**
+ * The cover for a guide without an uploaded one: its category colour (AA with white text) with
+ * the category name and the title. Decorative; the title is also the card's heading.
+ */
+export function CategoryCover({
+  category,
+  title,
+  label,
+  large = false,
+  className,
+}: {
+  category: CardCategory;
+  title: string;
+  /** e.g. "Featured", shown before the category. */
+  label?: string;
+  large?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "relative flex aspect-video flex-col justify-between overflow-hidden rounded-2xl p-[6%] text-white",
+        className,
+      )}
+      style={{ background: colorHex(category.color) }}
+    >
+      <p className="flex flex-wrap gap-2 text-[12.5px] font-semibold tracking-[0.06em] uppercase">
+        {label && <span className="rounded-full bg-white/20 px-2.5 py-1">{label}</span>}
+        <span className="rounded-full bg-white/20 px-2.5 py-1">{category.name}</span>
+      </p>
+      <p
+        className={cn(
+          "line-clamp-3 font-[650] leading-tight tracking-[-0.02em]",
+          large ? "text-[clamp(24px,3vw,38px)]" : "text-[clamp(18px,2vw,22px)]",
+        )}
+      >
+        {title}
+      </p>
+    </div>
   );
 }
 
@@ -197,23 +246,30 @@ export function GuideCard({
   excerpt = false,
   showAuthor = true,
   as: Heading = "h3",
+  category,
 }: {
   guide: GuideSummary;
   excerpt?: boolean;
   showAuthor?: boolean;
   as?: "h2" | "h3";
+  /** Without an uploaded cover, the card uses the category colour cover. */
+  category?: CardCategory | null;
 }) {
   return (
-    <article className="group relative flex flex-col gap-3">
-      <GuideCover
-        slug={guide.slug}
-        coverPath={guide.coverPath}
-        sizes="(min-width: 1100px) 340px, (min-width: 640px) 50vw, 100vw"
-      />
+    <article className="group relative flex flex-col gap-3 transition-transform duration-200 ease-out motion-safe:hover:-translate-y-1">
+      {!guide.coverPath && category ? (
+        <CategoryCover category={category} title={guide.title} />
+      ) : (
+        <GuideCover
+          slug={guide.slug}
+          coverPath={guide.coverPath}
+          sizes="(min-width: 1100px) 340px, (min-width: 640px) 50vw, 100vw"
+        />
+      )}
       <Heading className="text-[19px] leading-snug font-semibold">
         <Link
           href={`/guides/${guide.slug}`}
-          className="group-hover:underline after:absolute after:inset-0 after:rounded-2xl"
+          className="transition-colors duration-150 group-hover:text-accent after:absolute after:inset-0 after:rounded-2xl"
         >
           {guide.title}
         </Link>

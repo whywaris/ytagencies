@@ -65,6 +65,7 @@ const guideSchema = z.object({
   seoTitle: z.string().trim().max(70, "Keep the SEO title under 70 characters."),
   seoDescription: z.string().trim().max(200, "Keep the SEO description under 200 characters."),
   authorId: uuid.nullable(),
+  categoryId: uuid.nullable(),
   related: z.array(comboSchema).max(10, "Pick up to 10 related pages."),
   // One per line in the editor; blank lines are dropped.
   keyTakeaways: z
@@ -122,6 +123,7 @@ export async function saveGuide(id: string | null, raw: unknown): Promise<FormRe
     seo_title: v.seoTitle || null,
     seo_description: v.seoDescription || null,
     author_id: v.authorId,
+    category_id: v.categoryId,
     related_combos: v.related as Json,
     key_takeaways: v.keyTakeaways,
     numbered_sections: v.numberedSections,
@@ -228,7 +230,9 @@ export async function setGuideStatus(
 
   const { data: g } = await ctx.db
     .from("guides")
-    .select("slug, title, body_md, body_json, published_at, draft_json, draft_html, draft_meta")
+    .select(
+      "slug, title, body_md, body_json, published_at, draft_json, draft_html, draft_meta, category_id",
+    )
     .eq("id", id)
     .maybeSingle();
   if (!g) return { ok: false, error: "This guide was deleted." };
@@ -237,6 +241,10 @@ export async function setGuideStatus(
     // What goes live: the unpublished changes if there are any.
     const doc = guideDoc(g.draft_json ?? g.body_json, g.body_md);
     if (!docText(doc)) return { ok: false, error: "Write the guide before publishing it." };
+    // Every live guide has a category (the unpublished changes' one if they set it).
+    const meta = (g.draft_meta ?? {}) as { category_id?: string | null };
+    if (!(meta.category_id !== undefined ? meta.category_id : g.category_id))
+      return { ok: false, error: "Choose a category before publishing." };
     const noAlt = imagesWithoutAlt(doc);
     if (noAlt)
       return {
@@ -462,4 +470,34 @@ export async function checkCoverLink(url: string): Promise<FormResult<{ url: str
   const link = typeof url === "string" ? url.trim() : "";
   const problem = await checkLinkedImage(link);
   return problem ? { ok: false, error: problem } : { ok: true, data: { url: link } };
+}
+
+/**
+ * "Featured on /guides": at most one guide (a unique index backs this up). Turning one on turns
+ * the previous one off first. Not drafted: it applies straight away.
+ */
+export async function setGuideFeatured(id: string, on: boolean): Promise<FormResult<null>> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  if (!uuid.safeParse(id).success || typeof on !== "boolean")
+    return { ok: false, error: "Unknown guide." };
+  if (on) {
+    const off = await ctx.db
+      .from("guides")
+      .update({ is_featured: false })
+      .eq("is_featured", true)
+      .neq("id", id);
+    if (off.error) return { ok: false, error: SAVE_FAILED };
+  }
+  const { data, error } = await ctx.db
+    .from("guides")
+    .update({ is_featured: on })
+    .eq("id", id)
+    .select("slug")
+    .maybeSingle();
+  if (error || !data) return { ok: false, error: SAVE_FAILED };
+  await ctx.log(on ? "guide.feature" : "guide.unfeature", "guide", id);
+  revalidatePath("/guides");
+  revalidatePath("/admin/guides");
+  return { ok: true, data: null };
 }

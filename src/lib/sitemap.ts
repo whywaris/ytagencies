@@ -1,7 +1,8 @@
 import "server-only";
 
 import { getAgencySlugs, getDirectoryIndex } from "@/lib/data/agencies";
-import { getLiveAuthors, getLiveGuides } from "@/lib/data/guides";
+import { getGuideCategories, getLiveAuthors, getLiveGuides } from "@/lib/data/guides";
+import { categoryIndexable } from "@/lib/guide-categories";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { PAGE_UPDATED } from "@/lib/page-dates";
 import {
@@ -78,11 +79,20 @@ export async function sitemapEntries(file: SitemapFile): Promise<Entry[]> {
       );
     case "agencies":
       return agencyEntries(await getAgencySlugs());
-    case "guides":
-      return (await getLiveGuides()).map((g) => ({
-        path: `/guides/${g.slug}`,
-        lastModified: g.updatedAt,
-      }));
+    case "guides": {
+      const [guides, categories] = await Promise.all([getLiveGuides(), getGuideCategories()]);
+      // Category pages only once they're indexable (3+ live guides).
+      const cats = categories.flatMap((c) => {
+        const inIt = guides.filter((g) => g.categoryId === c.id);
+        return categoryIndexable(inIt.length)
+          ? [{ path: `/guides/category/${c.slug}`, lastModified: newest(inIt.map((g) => ({ path: "", lastModified: g.updatedAt }))) }]
+          : [];
+      });
+      return [
+        ...guides.map((g) => ({ path: `/guides/${g.slug}`, lastModified: g.updatedAt })),
+        ...cats,
+      ];
+    }
     case "authors":
       // Author pages only exist for authors with live guides.
       return (await getLiveAuthors()).map((a) => ({

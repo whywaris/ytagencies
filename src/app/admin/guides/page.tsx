@@ -66,9 +66,14 @@ export default async function AdminGuidesPage({ searchParams }: PageProps<"/admi
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-admin-title">Guides</h1>
-        <Button asChild className="h-9 px-4 text-[14px]">
-          <Link href="/admin/guides/new">New guide</Link>
-        </Button>
+        <div className="flex items-center gap-4">
+          <Link href="/admin/guides/categories" className="text-accent hover:underline">
+            Categories
+          </Link>
+          <Button asChild className="h-9 px-4 text-[14px]">
+            <Link href="/admin/guides/new">New guide</Link>
+          </Button>
+        </div>
       </div>
 
       <form method="get" role="search" className="relative max-w-md">

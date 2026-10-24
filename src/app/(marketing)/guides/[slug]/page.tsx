@@ -3,7 +3,13 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { BudgetRange } from "@/components/guides/budget-range";
 import { GuideArticle } from "@/components/guides/guide-article";
 import { JsonLd } from "@/components/json-ld";
-import { getGuideBySlug, getGuideRedirect, getLiveGuides, relatedGuides } from "@/lib/data/guides";
+import {
+  getGuideBySlug,
+  getGuideCategories,
+  getGuideRedirect,
+  getLiveGuides,
+  relatedGuides,
+} from "@/lib/data/guides";
 import { firstThatFits } from "@/lib/directory";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -44,11 +50,13 @@ export async function generateMetadata({ params }: PageProps<"/guides/[slug]">) 
 export default async function GuidePage({ params }: PageProps<"/guides/[slug]">) {
   const g = await load(params);
   const path = `/guides/${g.slug}`;
-  const [more, live, pool] = await Promise.all([
+  const [more, live, pool, categories] = await Promise.all([
     relatedGuides(g.slug, g.serviceIds),
     getLivePaths(),
     getBrowsePool(),
+    getGuideCategories(),
   ]);
+  const category = categories.find((c) => c.id === g.categoryId);
   // Links out only to live, indexable pages (the sitemap's set).
   const related = liveOnly(g.related, live);
   const mentioned = agencySlugsIn(g.doc, SITE_DOMAIN)
@@ -62,6 +70,9 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
         data={breadcrumbJsonLd([
           { name: "Home", path: "/" },
           { name: "Guides", path: "/guides" },
+          ...(category
+            ? [{ name: category.name, path: `/guides/category/${category.slug}` }]
+            : []),
           { name: g.title, path },
         ])}
       />
@@ -84,6 +95,7 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
         agencies={mentioned}
         shareUrl={absoluteUrl(path)}
         budgetRange={(service) => <BudgetRange service={service} />}
+        categories={categories}
       />
     </>
   );

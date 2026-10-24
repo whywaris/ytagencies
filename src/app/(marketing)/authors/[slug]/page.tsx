@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { AuthorAvatar, AuthorLinks, GuideCard } from "@/components/guides/guide-parts";
 import { JsonLd } from "@/components/json-ld";
-import { getAuthorBySlug, getLiveAuthors, mediaUrl } from "@/lib/data/guides";
+import {
+  getAuthorBySlug,
+  getGuideCategories,
+  getLiveAuthors,
+  mediaUrl,
+} from "@/lib/data/guides";
 import { firstThatFits } from "@/lib/directory";
 import { breadcrumbJsonLd, personJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
@@ -42,7 +47,7 @@ export async function generateMetadata({ params }: PageProps<"/authors/[slug]">)
 }
 
 export default async function AuthorPage({ params }: PageProps<"/authors/[slug]">) {
-  const a = await load(params);
+  const [a, categories] = await Promise.all([load(params), getGuideCategories()]);
   const crumbs = [
     { name: "Home", path: "/" },
     { name: "Guides", path: "/guides" },
@@ -82,7 +87,13 @@ export default async function AuthorPage({ params }: PageProps<"/authors/[slug]"
           </h2>
           <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {a.guides.map((g) => (
-              <GuideCard key={g.slug} guide={g} excerpt showAuthor={false} />
+              <GuideCard
+                key={g.slug}
+                guide={g}
+                excerpt
+                showAuthor={false}
+                category={categories.find((c) => c.id === g.categoryId) ?? null}
+              />
             ))}
           </div>
         </section>

@@ -4,6 +4,7 @@ import { GuideEditor } from "@/components/admin/guide-editor";
 import { requireAdmin } from "@/lib/auth";
 import {
   authorOptions,
+  categoryOptions,
   comboOptions,
   serviceOptions,
   toEditorGuide,
@@ -19,10 +20,11 @@ export default async function EditGuidePage({ params }: PageProps<"/admin/guides
   const { id } = await params;
   await requireAdmin(`/admin/guides/${id}`);
   if (!UUID.test(id)) notFound();
-  const [{ data: guide }, options, authors, services] = await Promise.all([
+  const [{ data: guide }, options, authors, categories, services] = await Promise.all([
     createAdminClient().from("guides").select("*").eq("id", id).maybeSingle(),
     comboOptions(),
     authorOptions(),
+    categoryOptions(),
     serviceOptions(),
   ]);
   if (!guide) notFound();
@@ -34,6 +36,7 @@ export default async function EditGuidePage({ params }: PageProps<"/admin/guides
       guide={toEditorGuide(guide)}
       comboOptions={options}
       authors={authors}
+      categories={categories}
       siteHost={SITE_DOMAIN}
       services={services}
     />

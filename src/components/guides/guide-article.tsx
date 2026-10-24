@@ -2,7 +2,14 @@ import Link from "next/link";
 
 import { AgencyCard } from "@/components/directory/agency-card";
 import { GuideBody } from "@/components/guide-body";
-import { AuthorAvatar, AuthorBox, GuideCard, GuideCover } from "@/components/guides/guide-parts";
+import {
+  AuthorAvatar,
+  AuthorBox,
+  GuideCard,
+  GuideCover,
+  type CardCategory,
+} from "@/components/guides/guide-parts";
+import { colorHex } from "@/lib/guide-categories";
 import { ShareBar } from "@/components/guides/share-bar";
 import { TableOfContents } from "@/components/guides/toc";
 import { TocPanel } from "@/components/toc-panel";
@@ -27,6 +34,7 @@ export type ArticleGuide = {
   author: Author | null;
   keyTakeaways: string[];
   numberedSections: boolean;
+  categoryId?: string | null;
 };
 
 const dateText = (d: string) =>
@@ -46,6 +54,7 @@ export function GuideArticle({
   shareUrl,
   budgetRange,
   generatedCover = true,
+  categories = [],
 }: {
   guide: ArticleGuide;
   /** First related directory page's service: the second breadcrumb step. */
@@ -58,7 +67,11 @@ export function GuideArticle({
   budgetRange: (service: string) => React.ReactNode;
   /** false: draw the no-cover fallback in HTML instead of loading the generated image. */
   generatedCover?: boolean;
+  /** Guide categories: the chip above the H1 and the "More guides" covers. */
+  categories?: (CardCategory & { id: string })[];
 }) {
+  const categoryOf = (id?: string | null) => (id ? categories.find((c) => c.id === id) : null) ?? null;
+  const category = categoryOf(guide.categoryId);
   const groups = groupOutline(guideBlocks(guide.doc, guideImageAllowed).outline);
   const numbered = guide.numberedSections;
 
@@ -85,6 +98,15 @@ export function GuideArticle({
             )}
           </ol>
         </nav>
+        {category && (
+          <Link
+            href={`/guides/category/${category.slug}`}
+            className="-mb-2 self-start rounded-full px-3 py-1 text-[13px] font-semibold tracking-[0.06em] text-white uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            style={{ background: colorHex(category.color) }}
+          >
+            {category.name}
+          </Link>
+        )}
         <h1 className="text-display">{guide.title}</h1>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px] text-text-2">
           {guide.author && (
@@ -219,7 +241,7 @@ export function GuideArticle({
           </h2>
           <div className="grid gap-x-8 gap-y-10 min-[1100px]:grid-cols-3 sm:grid-cols-2">
             {relatedGuides.map((g) => (
-              <GuideCard key={g.slug} guide={g} />
+              <GuideCard key={g.slug} guide={g} category={categoryOf(g.categoryId)} />
             ))}
           </div>
         </section>
