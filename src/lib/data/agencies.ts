@@ -6,6 +6,7 @@ import { getIndustries, getLocations, getServices, type Segment } from "@/lib/da
 import type { Entitlements } from "@/lib/entitlements";
 import { thinProfileMissing } from "@/lib/profile-seo";
 import { qualityScore, rankAgencies } from "@/lib/ranking";
+import { countInChunks, inChunks } from "@/lib/supabase/in-chunks";
 import { visibleSamples } from "@/lib/work-samples";
 import { countDirectoryPages, newer } from "@/lib/sitemap-core";
 import { MIN_AGENCIES_TO_INDEX } from "@/lib/site";
@@ -276,7 +277,8 @@ async function rankedList(
 ) {
   if (ids.length === 0) return [];
   const [{ data, error }, placement, responses] = await Promise.all([
-    listQuery().in("id", ids),
+    // Batched: a busy service has hundreds of agencies, too many ids for one URL.
+    inChunks(ids, (batch) => listQuery().in("id", batch)),
     getPlacement(),
     getResponseTimes(),
   ]);
@@ -331,13 +333,15 @@ export const getAgenciesForCombo = cache(async (serviceId: number, segment: Segm
 export const getComboCount = cache(async (serviceId: number, segment: Segment) => {
   const ids = await idsFor(serviceId, segment);
   if (ids.length === 0) return 0;
-  const { count, error } = await createStaticClient()
-    .from("agencies")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "published")
-    .in("id", ids);
+  const { count, error } = await countInChunks(ids, (batch) =>
+    createStaticClient()
+      .from("agencies")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published")
+      .in("id", batch),
+  );
   if (error) throw error;
-  return count ?? 0;
+  return count;
 });
 
 export async function isComboIndexable(serviceId: number, segment: Segment) {

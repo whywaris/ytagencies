@@ -7,6 +7,7 @@ import { getServiceBySlug, resolveSegment } from "@/lib/data/taxonomy";
 import type { StrengthInput } from "@/lib/profile-strength";
 import { MAX_SPONSORED, sponsoredEnabled } from "@/lib/ranking";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inChunks } from "@/lib/supabase/in-chunks";
 
 // Real numbers for the agency-facing pages (/list-your-agency, /claim, the dashboard). Analytics
 // tables are admin-read only, so this reads with the service role; callers decide who may see
@@ -21,12 +22,14 @@ const daysAgo = (n: number) => new Date(Date.now() - n * DAY).toISOString().slic
 export async function profileViews(agencyIds: string[], days = 30) {
   const views = new Map<string, number>();
   if (agencyIds.length === 0) return views;
-  const { data, error } = await createAdminClient()
-    .from("agency_event_daily")
-    .select("agency_id, count")
-    .in("agency_id", agencyIds)
-    .eq("type", "profile_view")
-    .gte("day", daysAgo(days));
+  const { data, error } = await inChunks(agencyIds, (batch) =>
+    createAdminClient()
+      .from("agency_event_daily")
+      .select("agency_id, count")
+      .in("agency_id", batch)
+      .eq("type", "profile_view")
+      .gte("day", daysAgo(days)),
+  );
   if (error) throw error;
   for (const r of data) views.set(r.agency_id, (views.get(r.agency_id) ?? 0) + r.count);
   return views;

@@ -13,6 +13,7 @@ import { pickMatches } from "@/lib/match";
 import { sendOutreach } from "@/lib/outreach";
 import { absoluteUrl, BRAND_NAME } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inChunks } from "@/lib/supabase/in-chunks";
 
 // Lead storage, routing and notification. Call only after every form check has passed:
 // these use the service-role client, which bypasses RLS.
@@ -54,8 +55,10 @@ export async function matchAgencies(serviceId: number, industryId: number, budge
   // Published agencies with their quality score (the directory's own list and scoring), plus
   // who owns them, for the emails.
   const [list, owners, placement, responses] = await Promise.all([
-    listQuery().in("id", serviceIds),
-    admin.from("agencies").select("id, is_claimed, owner_id").in("id", serviceIds),
+    inChunks(serviceIds, (batch) => listQuery().in("id", batch)),
+    inChunks(serviceIds, (batch) =>
+      admin.from("agencies").select("id, is_claimed, owner_id").in("id", batch),
+    ),
     getPlacement(),
     getResponseTimes(),
   ]);
