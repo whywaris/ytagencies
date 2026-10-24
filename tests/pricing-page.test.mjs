@@ -29,6 +29,7 @@ test("Pro's features are the entitlements' list, leading with client details", (
   assert.deepEqual(proFeatures(), [
     "See client details and reply to every request",
     "Unlimited case studies",
+    "Up to 12 work samples (YouTube videos you worked on)",
     "Pro badge, and shown before free listings in the directory",
     "No other agencies suggested on your profile",
     "Direct booking buttons (Calendly link and WhatsApp) on your profile",
@@ -45,6 +46,7 @@ test("Free's features: editing, request previews and 3 case studies", () => {
     "Preview of every request sent to you (service, niche, budget, timeline)",
     "Edit logo, description, prices, services, industries and locations",
     "Up to 3 case studies",
+    "Up to 3 work samples (YouTube videos you worked on)",
   ]);
 });
 

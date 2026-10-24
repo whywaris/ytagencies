@@ -19,6 +19,7 @@ import { AgencyTracker } from "@/components/agency-tracker";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LazyContactForm } from "@/components/forms/lazy-contact-form";
 import { ProBadge } from "@/components/pro-badge";
+import { WorkSamplesGrid } from "@/components/agency/work-samples-grid";
 import { JsonLd } from "@/components/json-ld";
 import {
   getAgencyBySlug,
@@ -408,6 +409,19 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
             <PricingSection agency={agency} />
             <FocusSection agency={agency} primarySlug={primary?.slug ?? null} />
             <ServicesSection agency={agency} />
+
+            {agency.workSamples.length > 0 && (
+              <section id="work" aria-labelledby="work-h" className={sectionCls}>
+                <h2 id="work-h" className={h2}>
+                  Work samples
+                </h2>
+                <p className={lede}>Shared by the agency.</p>
+                <WorkSamplesGrid
+                  samples={agency.workSamples}
+                  reportHref={`/contact?topic=report&agency=${agency.slug}`}
+                />
+              </section>
+            )}
 
             {agency.channels.length > 0 && (
               <section id="channels" aria-labelledby="channels-h" className={sectionCls}>

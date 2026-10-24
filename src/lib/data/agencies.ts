@@ -6,6 +6,7 @@ import { getIndustries, getLocations, getServices, type Segment } from "@/lib/da
 import type { Entitlements } from "@/lib/entitlements";
 import { thinProfileMissing } from "@/lib/profile-seo";
 import { qualityScore, rankAgencies } from "@/lib/ranking";
+import { visibleSamples } from "@/lib/work-samples";
 import { countDirectoryPages, newer } from "@/lib/sitemap-core";
 import { MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -99,6 +100,15 @@ export type AgencyProfile = AgencyListItem & {
     subscribers: number | null;
     industry: string | null;
     confirmed: boolean;
+  }[];
+  /** YouTube videos the agency worked on: not hidden, in its order, up to its plan's limit. */
+  workSamples: {
+    id: string;
+    videoId: string;
+    title: string;
+    format: "long" | "short";
+    note: string | null;
+    service: Tag;
   }[];
   caseStudies: {
     id: string;
@@ -335,6 +345,7 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
       agency_channels(id, channel_url, title, subscriber_count, status, created_at, industries(name)),
       agency_locations(locations(slug, name, type)),
       case_studies(id, title, summary, channel_url, metrics, created_at, industries(slug, name), services(slug, name)),
+      work_samples(id, youtube_video_id, title, format, note, sort_order, created_at, services(slug, name)),
       published_reviews:reviews(id, author_name, author_company, rating, body, created_at, budget_range,
         project_start, project_end, score_quality, score_schedule, score_cost, score_refer, overall,
         reviewer_title, reviewer_company_size, reviewer_country, verified_client,
@@ -418,6 +429,18 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     locations: data.agency_locations
       .map((r) => r.locations)
       .filter((l): l is Tag & { type: string } => l !== null),
+    // RLS already leaves out hidden samples (anon can't read hidden_at at all).
+    workSamples: visibleSamples(
+      data.work_samples.map((w) => ({ ...w, hidden_at: null })),
+      placement.entitlements(data.id).workSamples,
+    ).map((w) => ({
+      id: w.id,
+      videoId: w.youtube_video_id,
+      title: w.title,
+      format: w.format === "short" ? ("short" as const) : ("long" as const),
+      note: w.note,
+      service: w.services,
+    })),
     caseStudies: [...data.case_studies]
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .map((c) => ({

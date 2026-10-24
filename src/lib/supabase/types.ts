@@ -783,6 +783,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      work_samples: {
+        Row: {
+          id: string;
+          agency_id: string;
+          youtube_video_id: string;
+          title: string;
+          format: string;
+          service_id: number;
+          note: string | null;
+          sort_order: number;
+          hidden_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          agency_id: string;
+          youtube_video_id: string;
+          title: string;
+          format: string;
+          service_id: number;
+          note?: string | null;
+          sort_order?: number;
+          hidden_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          agency_id?: string;
+          youtube_video_id?: string;
+          title?: string;
+          format?: string;
+          service_id?: number;
+          note?: string | null;
+          sort_order?: number;
+          hidden_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "work_samples_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "work_samples_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       agency_outreach_contacts: {
         Row: {
           agency_id: string;

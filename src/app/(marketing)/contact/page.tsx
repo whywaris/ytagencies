@@ -36,6 +36,11 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
     : "general";
   const agency =
     typeof sp.agency === "string" && /^[a-z0-9-]{1,80}$/.test(sp.agency) ? sp.agency : "";
+  // A work sample's Report link adds its video id (lib/work-samples.ts VIDEO_ID).
+  const sample =
+    agency && typeof sp.sample === "string" && /^[A-Za-z0-9_-]{11}$/.test(sp.sample)
+      ? sp.sample
+      : "";
 
   return (
     <>
@@ -62,7 +67,11 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
             <ContactForm
               initialTopic={agency ? "report" : topic}
               initialAgencyUrl={agency ? absoluteUrl(`/agency/${agency}`) : ""}
-              initialMessage=""
+              initialMessage={
+                sample
+                  ? `About the work sample https://www.youtube.com/watch?v=${sample} on this profile: `
+                  : ""
+              }
             />
           </div>
 

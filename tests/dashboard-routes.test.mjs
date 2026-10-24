@@ -29,6 +29,7 @@ test("the nav lists the dashboard sections", () => {
     "/inquiries",
     "/profile",
     "/channels",
+    "/work-samples",
     "/case-studies",
     "/verification",
     "/analytics",

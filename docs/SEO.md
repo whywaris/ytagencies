@@ -60,6 +60,7 @@
 - All pages: `BreadcrumbList`; home: `WebSite` + `Organization`. Policy pages: `WebPage` with `dateModified`; `/about`: `AboutPage` + `Organization` (founder as `Person` once filled in); `/contact`: `ContactPage`.
 - Directory pages: `ItemList` of agencies (url + position).
 - Profile: `ProfessionalService` (see "Agency profiles" below), `FAQPage` from the profile's generated FAQ, `BreadcrumbList`.
+- Agency work samples (YouTube videos on profiles): no `VideoObject` (they aren't the page's main content) and no view counts. Thumbnails are plain images; the player loads only after a click (youtube-nocookie.com).
 - Guides: `Article` with dates and `author` as a `Person` linking to their author page. `/guides` and `/guides/category/[slug]`: `CollectionPage` with an `ItemList` of the guides shown, plus `BreadcrumbList` (Home / Guides / Category). A guide's `BreadcrumbList` includes its category. Author pages: `Person` (name, job title, bio, photo, `sameAs` profiles).
 - FAQ blocks may use `FAQPage` markup, but don't expect rich results from it.
 

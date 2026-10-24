@@ -35,6 +35,8 @@ export type Entitlements = {
   showSimilarAgencies: boolean;
   /** Case studies an owner can add and the profile shows: 3 on Free, unlimited on Pro. */
   caseStudies: number;
+  /** Work samples (YouTube videos) the profile shows and the owner can add: 3 on Free, 12 on Pro. */
+  workSamples: number;
   /** Profile analytics history in the dashboard (Pro only). */
   analyticsDays: number;
   /** Calendly and WhatsApp buttons on the profile. */
@@ -51,6 +53,9 @@ export type Entitlements = {
 
 /** Case studies on Free. */
 export const FREE_CASE_STUDIES = 3;
+/** Work samples on Free and on Pro. */
+export const FREE_WORK_SAMPLES = 3;
+export const PRO_WORK_SAMPLES = 12;
 
 /** The live Pro subscription at `now`, if any (see isManaged). */
 export function liveSubscription<T extends Subscription>(subscriptions: T[], now = new Date()) {
@@ -93,6 +98,7 @@ export function entitlementsFor({
     responseTime: managed,
     showSimilarAgencies: !managed,
     caseStudies: managed ? Infinity : FREE_CASE_STUDIES,
+    workSamples: managed ? PRO_WORK_SAMPLES : FREE_WORK_SAMPLES,
     analyticsDays: managed ? 365 : 0,
     bookingButtons: managed,
     channels: managed,
@@ -128,6 +134,11 @@ export function planIncludes(e: Entitlements) {
       label: "Case studies",
       value: e.caseStudies === Infinity ? "Unlimited" : `Up to ${e.caseStudies}`,
       feature: e.caseStudies === Infinity ? "Unlimited case studies" : `Up to ${e.caseStudies} case studies`,
+    },
+    {
+      label: "Work samples (YouTube videos)",
+      value: `Up to ${e.workSamples}`,
+      feature: `Up to ${e.workSamples} work samples (YouTube videos you worked on)`,
     },
     {
       label: "Pro badge and placement",

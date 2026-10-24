@@ -1639,5 +1639,64 @@ for (const [role, uid] of [
   });
 }
 
+console.log("— work samples —");
+// MINE (Saltmere) is OWNER's published agency; PINE is someone else's; a draft agency too.
+const DRAFT_AG = "dddddddd-0000-4000-8000-000000000001";
+await db.exec(`reset role;
+  update agencies set status = 'published' where id = '${MINE}';
+  insert into agencies (id, slug, name, status) values ('${DRAFT_AG}', 'draft-samples', 'Draft Samples', 'draft');
+  insert into work_samples (agency_id, youtube_video_id, title, format, service_id, sort_order, hidden_at) values
+    ('${MINE}', 'aaaaaaaaaa1', 'Shown', 'long', 1, 0, null),
+    ('${MINE}', 'aaaaaaaaaa2', 'Hidden by admin', 'short', 1, 1, now()),
+    ('${DRAFT_AG}', 'aaaaaaaaaa3', 'Draft agency', 'long', 1, 0, null);`);
+await as("anon", null, async () => {
+  const titles = (await rows("select title from work_samples")).map((r) => r.title);
+  ok(titles.includes("Shown"), "work_samples: anon sees a published agency's samples");
+  ok(!titles.includes("Hidden by admin"), "work_samples: anon can't see hidden samples");
+  ok(!titles.includes("Draft agency"), "work_samples: anon can't see a draft agency's samples");
+  ok(await fails("select hidden_at from work_samples"), "work_samples: anon can't read hidden_at");
+  ok(
+    await fails(
+      `insert into work_samples (agency_id, youtube_video_id, title, format, service_id) values ('${MINE}', 'aaaaaaaaaa4', 'x', 'long', 1)`,
+    ),
+    "work_samples: anon can't add",
+  );
+});
+await as("authenticated", OWNER, async () => {
+  ok(
+    (await rows(`select title from work_samples where agency_id = '${MINE}'`)).length === 2,
+    "work_samples: owner sees their own, hidden ones included",
+  );
+  ok(
+    !(await fails(
+      `insert into work_samples (agency_id, youtube_video_id, title, format, service_id, sort_order) values ('${MINE}', 'aaaaaaaaaa5', 'Mine', 'long', 1, 2)`,
+    )),
+    "work_samples: owner adds to their own agency",
+  );
+  ok(
+    await fails(
+      `insert into work_samples (agency_id, youtube_video_id, title, format, service_id) values ('${PINE}', 'aaaaaaaaaa6', 'Not mine', 'long', 1)`,
+    ),
+    "work_samples: owner can't add to someone else's agency",
+  );
+  ok(
+    await fails(`update work_samples set hidden_at = null where agency_id = '${MINE}'`),
+    "work_samples: owner can't unhide (no hidden_at grant)",
+  );
+  ok(
+    await fails(`insert into work_samples (agency_id, youtube_video_id, title, format, service_id) values ('${MINE}', 'bad', 'x', 'long', 1)`),
+    "work_samples: video id must be 11 characters",
+  );
+});
+await db.exec(`reset role; delete from work_samples where agency_id = '${MINE}';
+  insert into work_samples (agency_id, youtube_video_id, title, format, service_id)
+    select '${MINE}', lpad(n::text, 11, 'x'), 'n' || n, 'long', 1 from generate_series(1, 12) n;`);
+ok(
+  await fails(
+    `insert into work_samples (agency_id, youtube_video_id, title, format, service_id) values ('${MINE}', 'zzzzzzzzzzz', 'thirteenth', 'long', 1)`,
+  ),
+  "work_samples: at most 12 per agency",
+);
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

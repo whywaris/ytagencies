@@ -24,6 +24,9 @@ const supabaseHost = supabaseUrl?.host ?? "*.supabase.co";
 // Google Analytics 4 (components/analytics.tsx): the gtag script, and where it sends hits.
 // Google profile photos in the account menu (lib/account.ts AVATAR_HOST).
 const AVATAR_HOST = "https://lh3.googleusercontent.com";
+// Work samples (lib/work-samples.ts): thumbnails, and the click-to-play player (no-cookie domain).
+const YT_THUMBS = "https://i.ytimg.com";
+const YT_PLAYER = "https://www.youtube-nocookie.com";
 const GA_SCRIPT = "https://www.googletagmanager.com";
 const GA_HITS =
   "https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com";
@@ -31,10 +34,10 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com ${GA_SCRIPT}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${supabaseHost}${media.map((h) => ` https://${h}`).join("")} ${GA_HITS} ${AVATAR_HOST}`,
+  `img-src 'self' data: blob: https://${supabaseHost}${media.map((h) => ` https://${h}`).join("")} ${GA_HITS} ${AVATAR_HOST} ${YT_THUMBS}`,
   "font-src 'self'",
   `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} ${GA_HITS}${isDev ? " https://va.vercel-scripts.com" : ""}`,
-  "frame-src https://challenges.cloudflare.com",
+  `frame-src https://challenges.cloudflare.com ${YT_PLAYER}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -70,6 +73,8 @@ const nextConfig: NextConfig = {
       ...media.map((hostname) => ({ protocol: "https" as const, hostname })),
       // Google profile photos (the account menu avatar).
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      // Work sample thumbnails (lib/work-samples.ts thumbnailUrl).
+      { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },
       {
         protocol: supabaseUrl?.protocol === "http:" ? "http" : "https",
         hostname: supabaseUrl?.hostname ?? "*.supabase.co",

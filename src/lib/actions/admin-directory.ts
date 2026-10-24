@@ -628,3 +628,27 @@ export async function saveOutreachEmail(agencyId: string, raw: unknown): Promise
   revalidatePath(`/admin/agencies/${agencyId}`);
   return { ok: true, data: undefined };
 }
+
+// ───────── Work samples: moderation ─────────
+
+/** Hides a work sample from the profile (hidden_at), or shows it again. Never deletes it. */
+export async function setWorkSampleHidden(id: string, hidden: boolean): Promise<FormResult> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  if (!uuid.safeParse(id).success || typeof hidden !== "boolean")
+    return { ok: false, error: "Unknown work sample." };
+  const { data, error } = await ctx.db
+    .from("work_samples")
+    .update({ hidden_at: hidden ? new Date().toISOString() : null })
+    .eq("id", id)
+    .select("agency_id, youtube_video_id, agencies(slug)")
+    .maybeSingle();
+  if (error || !data) return { ok: false, error: SAVE_FAILED };
+  await ctx.log(hidden ? "work_sample.hide" : "work_sample.unhide", "agency", data.agency_id, {
+    video: data.youtube_video_id,
+  });
+  const slug = (data.agencies as { slug: string } | null)?.slug;
+  if (slug) revalidateAgency(slug);
+  revalidatePath(`/admin/agencies/${data.agency_id}`);
+  return { ok: true, data: undefined };
+}

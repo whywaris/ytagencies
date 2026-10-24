@@ -11,6 +11,7 @@ import { logoSrc } from "@/lib/logo";
 import { CaseStudies } from "@/components/dashboard/case-studies";
 import { ProfileForm } from "@/components/dashboard/profile-form";
 import { OutreachEmailForm } from "@/components/admin/outreach-email-form";
+import { WorkSampleModeration } from "@/components/admin/work-sample-moderation";
 import { SeoHiddenNotice } from "@/components/seo-hidden-notice";
 import { adminUpdateProfile } from "@/lib/actions/admin";
 import { adminDeleteCaseStudy, adminSaveCaseStudy } from "@/lib/actions/admin-directory";
@@ -34,6 +35,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TABS = [
   { id: "profile", label: "Profile" },
   { id: "case-studies", label: "Case studies" },
+  { id: "work-samples", label: "Work samples" },
   { id: "plan", label: "Plan & billing" },
   { id: "verification", label: "Verification" },
   { id: "leads", label: "Leads" },
@@ -128,6 +130,7 @@ export default async function AdminAgencyPage({
 
       {tab === "profile" && <ProfileTab agency={agency} />}
       {tab === "case-studies" && <CaseStudiesTab agencyId={id} />}
+      {tab === "work-samples" && <WorkSamplesTab agencyId={id} />}
       {tab === "plan" && <PlanTab agencyId={id} subs={subs.data} plan={plan} />}
       {tab === "verification" && <VerificationTab agencyId={id} />}
       {tab === "leads" && <LeadsTab agencyId={id} />}
@@ -249,6 +252,48 @@ async function CaseStudiesTab({ agencyId }: { agencyId: string }) {
         metrics: jsonToMetrics(c.metrics),
       }))}
     />
+  );
+}
+
+async function WorkSamplesTab({ agencyId }: { agencyId: string }) {
+  const { data, error } = await createAdminClient()
+    .from("work_samples")
+    .select("id, youtube_video_id, title, format, note, hidden_at, services(name)")
+    .eq("agency_id", agencyId)
+    .order("sort_order")
+    .order("created_at");
+  if (error) throw new Error("Couldn't load work samples");
+  if (data.length === 0) return <p className="text-text-2">No work samples.</p>;
+  return (
+    <div className="flex max-w-3xl flex-col gap-3">
+      <p className="text-admin-meta">
+        Shared by the agency. Hiding takes a sample off the profile without deleting it; visitors
+        report samples through Contact → Report a listing.
+      </p>
+      <ul className="divide-y divide-line rounded-xl border border-line">
+        {data.map((s) => (
+          <li key={s.id} className="flex flex-wrap items-center gap-3 p-3">
+            <span className="min-w-0 flex-1">
+              <a
+                href={`https://www.youtube.com/watch?v=${s.youtube_video_id}`}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="font-medium hover:underline"
+              >
+                {s.title}
+              </a>
+              <span className="block text-admin-meta">
+                {[s.format === "short" ? "Short" : "Video", s.services?.name, s.note]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {s.hidden_at && ` · Hidden ${formatDate(s.hidden_at)}`}
+              </span>
+            </span>
+            <WorkSampleModeration id={s.id} title={s.title} hidden={!!s.hidden_at} />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
