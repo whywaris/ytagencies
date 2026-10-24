@@ -1,5 +1,4 @@
 import { AgencyForm } from "@/components/admin/agency-form";
-import { hqLocationOptions } from "@/lib/admin-locations";
 import { requireAdmin } from "@/lib/auth";
 
 export const metadata = { title: "New agency" };
@@ -16,7 +15,6 @@ export default async function NewAgencyPage() {
       <AgencyForm
         id={null}
         slugLocked={false}
-        locations={await hqLocationOptions()}
         defaults={{
           name: "",
           slug: "",
@@ -27,7 +25,6 @@ export default async function NewAgencyPage() {
           languages: "",
           seoTitle: "",
           seoDescription: "",
-          hqLocation: "",
           logo: "",
         }}
       />

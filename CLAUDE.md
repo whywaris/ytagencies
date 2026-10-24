@@ -40,6 +40,9 @@ src/
     (marketing)/page.tsx             # home
     [service]/page.tsx               # /youtube-ads-agencies
     [service]/[segment]/page.tsx     # /youtube-ads-agencies/for-doctors | /in-usa
+    [service]/[segment]/[location]/  # /youtube-ads-agencies/for-saas/in-usa (only with 3+ agencies)
+    industries/[industry]/page.tsx   # industry hub
+    locations/[country]/[city]/      # country and city hubs (404 with no agencies)
     agency/[slug]/page.tsx           # agency profile
     guides/[slug]/page.tsx           # guides, from the Guides CMS (guides table, admin/guides)
     authors/[slug]/page.tsx          # guide authors (authors table, admin/authors)

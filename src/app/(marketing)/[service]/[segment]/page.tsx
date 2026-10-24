@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { DirectoryPage } from "@/components/directory/directory-page";
 import { getAgenciesForCombo, getIndexableCombos } from "@/lib/data/agencies";
 import { guidesForPage } from "@/lib/data/guides";
+import { agenciesForPlace, getPageContent, getPlaceBySlug } from "@/lib/data/places";
+import { dataIntro, pageFacts } from "@/lib/locations";
 import {
   getComboContent,
   getIndustries,
@@ -43,27 +45,47 @@ async function load(params: PageProps<"/[service]/[segment]">["params"]) {
     resolveSegment(segmentSlug), // null for anything but for-<industry> / in-<location>
   ]);
   if (!service || !segment) notFound();
+  if (segment.kind === "location") {
+    // Based there first; agencies based elsewhere that name the place are listed apart. A place
+    // with none at all has no page (never an empty city page).
+    const place = await getPlaceBySlug(segment.slug);
+    if (!place) notFound();
+    const path = `/${service.slug}/${segmentSlug}`;
+    const [{ based, remote }, page] = await Promise.all([
+      agenciesForPlace(place, { service: service.slug }),
+      getPageContent(path),
+    ]);
+    if (based.length + remote.length === 0) notFound();
+    const content = page && {
+      summary: page.summary,
+      intro: page.intro,
+      howToChoose: null,
+      faqs: [],
+      updatedAt: page.updatedAt,
+    };
+    return { service, segment, segmentSlug, agencies: based, remote, content };
+  }
   const [agencies, content] = await Promise.all([
     getAgenciesForCombo(service.id, segment),
-    segment.kind === "industry" ? getComboContent(service.id, segment.industry.id) : null,
+    getComboContent(service.id, segment.industry.id),
   ]);
-  return { service, segment, segmentSlug, agencies, content };
+  return { service, segment, segmentSlug, agencies, remote: [], content };
 }
 
 export async function generateMetadata({ params }: PageProps<"/[service]/[segment]">) {
-  const { service, segment, segmentSlug, agencies } = await load(params);
+  const { service, segment, segmentSlug, agencies, remote } = await load(params);
   return buildMetadata({
     image: `/og/service/${service.slug}/${segmentSlug}`,
     title: directoryTitle(BRAND_NAME, service, segment),
-    description: directoryDescription(service, agencies.length, segment),
+    description: directoryDescription(service, agencies.length + remote.length, segment),
     path: `/${service.slug}/${segmentSlug}`,
     // docs/SEO.md thin-page rule: noindex,follow until the combo has enough published agencies.
-    noindex: agencies.length < MIN_AGENCIES_TO_INDEX,
+    noindex: agencies.length + remote.length < MIN_AGENCIES_TO_INDEX,
   });
 }
 
 export default async function ComboPage({ params }: PageProps<"/[service]/[segment]">) {
-  const { service, segment, segmentSlug, agencies, content } = await load(params);
+  const { service, segment, segmentSlug, agencies, remote, content } = await load(params);
   const [combos, services, industries, locations, guides] = await Promise.all([
     getIndexableCombos(),
     getServices(),
@@ -123,7 +145,14 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
   const fallbackIntro =
     segment.kind === "industry"
       ? segment.industry.intro
-      : `These ${service.name} agencies are based ${segmentPhrase(segment)} or work with businesses there. Compare minimum budgets, team sizes, languages and reviews, then contact the ones that fit.`;
+      : // Until an admin writes one: only what the listed agencies' data says.
+        dataIntro(
+          `${service.name} ${segmentPhrase(segment)}`,
+          pageFacts([...agencies, ...remote]),
+          {
+            services: true,
+          },
+        );
   const intro = content?.intro ?? fallbackIntro;
   const howToChoose = (content?.howToChoose ?? "").split(/\n\s*\n/).filter(Boolean);
 
@@ -150,6 +179,14 @@ export default async function ComboPage({ params }: PageProps<"/[service]/[segme
         { name: segmentName(segment), path: `/${service.slug}/${segmentSlug}` },
       ]}
       agencies={agencies}
+      remote={
+        segment.kind === "location"
+          ? {
+              heading: `${service.name} agencies that serve ${segment.location.name} remotely`,
+              agencies: remote,
+            }
+          : undefined
+      }
       emptyHint={
         <p>
           No {service.name} agencies {segmentPhrase(segment)} are listed yet. See{" "}

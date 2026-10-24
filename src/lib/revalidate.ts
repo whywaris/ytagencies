@@ -9,10 +9,15 @@ export function revalidateAgency(slug: string) {
   revalidatePath(`/og/agency/${slug}`);
   // Publishing, unpublishing or fixing a thin profile changes the profile list, the directory
   // pages' counts (a combo can reach or drop below 3) and the home page's lastmod.
-  revalidateSitemap("agencies", "combos", "locations", "services", "pages");
+  // Every directory page type can gain or lose the agency (all of them, then).
+  revalidateSitemap();
   revalidatePath("/(marketing)/[service]", "page");
   revalidatePath("/(marketing)/[service]/[segment]", "page");
   revalidatePath("/agencies");
+  revalidatePath("/(marketing)/industries/[industry]", "page");
+  revalidatePath("/(marketing)/locations/[country]", "page");
+  revalidatePath("/(marketing)/locations/[country]/[city]", "page");
+  revalidatePath("/(marketing)/[service]/[segment]/[location]", "page");
   revalidatePath("/");
 }
 

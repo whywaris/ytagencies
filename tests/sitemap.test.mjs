@@ -112,7 +112,7 @@ test("the index lists each child sitemap with its newest date", () => {
   );
 });
 
-test("llms.txt: H1, one-line summary, and a Services section", () => {
+test("llms.txt: H1, one-line summary, hub sections only (no combinations)", () => {
   const txt = llmsTxt({
     brand: "YT Agencies",
     summary: "An independent directory.",
@@ -121,7 +121,7 @@ test("llms.txt: H1, one-line summary, and a Services section", () => {
       { title: "YouTube Ads agencies", url: absolute("/youtube-ads-agencies"), note: "Ads." },
     ],
     industries: [],
-    comparisons: [],
+    locations: [{ title: "YouTube agencies in United States", url: absolute("/locations/usa") }],
     guides: [],
     pages: [{ title: "About", url: absolute("/about") }],
   });
@@ -132,6 +132,8 @@ test("llms.txt: H1, one-line summary, and a Services section", () => {
     /\n## Services\n\n- \[YouTube Ads agencies\]\(https:\/\/ytagencies\.com\/youtube-ads-agencies\): Ads\.\n/,
   );
   assert.doesNotMatch(txt, /## Industries/); // empty sections are left out
+  assert.match(txt, /\n## Locations\n\n- \[YouTube agencies in United States\]/);
+  assert.doesNotMatch(txt, /comparisons/i);
   assert.match(txt, /## About/);
 });
 

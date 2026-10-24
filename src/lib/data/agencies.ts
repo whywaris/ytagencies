@@ -50,6 +50,10 @@ export type AgencyListItem = {
   createdAt: string;
   /** The HQ and every listed location (/agencies country filter). */
   locationIds: number[];
+  /** The HQ's location id: "based in" a place, as opposed to serving it. */
+  hqLocationId: number | null;
+  /** "Serves clients worldwide / remotely" (shown on the profile). */
+  servesWorldwide: boolean;
 };
 
 export type AgencyProfile = AgencyListItem & {
@@ -136,7 +140,7 @@ export type AgencyProfile = AgencyListItem & {
 
 const LIST_SELECT = `
   id, slug, name, tagline, description, logo_path, min_budget_usd, team_size, pricing_model, languages, is_verified,
-  min_contract, ad_spend, setup_fee_usd, updated_at, created_at, hq_location_id,
+  min_contract, ad_spend, setup_fee_usd, updated_at, created_at, hq_location_id, serves_worldwide,
   hq:locations!agencies_hq_location_id_fkey(slug, name),
   listed_locations:agency_locations(location_id),
   case_study_count:case_studies(count),
@@ -213,6 +217,8 @@ export function toListItem(
     setupFeeUsd: row.setup_fee_usd,
     updatedAt: row.updated_at,
     createdAt: row.created_at,
+    hqLocationId: row.hq_location_id,
+    servesWorldwide: row.serves_worldwide,
     locationIds: [
       ...(row.hq_location_id !== null ? [row.hq_location_id] : []),
       ...row.listed_locations.map((l) => l.location_id),
@@ -519,7 +525,7 @@ export const getDirectoryIndex = cache(async () => {
     supabase
       .from("agencies")
       .select(
-        "updated_at, agency_services(services(slug)), agency_industries(industries(slug)), agency_locations(location_id)",
+        "updated_at, hq_location_id, agency_services(services(slug)), agency_industries(industries(slug)), agency_locations(location_id)",
       )
       .eq("status", "published"),
     getLocations(),
@@ -538,11 +544,15 @@ export const getDirectoryIndex = cache(async () => {
       updatedAt: a.updated_at,
       services: a.agency_services.map((s) => s.services.slug),
       industries: a.agency_industries.map((i) => i.industries.slug),
-      locationIds: a.agency_locations.map((l) => l.location_id),
+      // The HQ counts as a place they're on, as well as the places they list.
+      locationIds: [
+        ...(a.hq_location_id !== null ? [a.hq_location_id] : []),
+        ...a.agency_locations.map((l) => l.location_id),
+      ],
     })),
     locations,
   );
-  const { pages, hubs, hubCounts } = counted;
+  const { pages, paths, hubs, hubCounts } = counted;
   let { siteLastModified } = counted;
 
   // Hubs show the service intro; industry pages show the industry intro or their own copy.
@@ -570,7 +580,7 @@ export const getDirectoryIndex = cache(async () => {
       return { serviceSlug, segment, count: p.count, lastModified };
     });
   // Every page with at least one agency (indexable or not), for the admin SEO pages report.
-  return { combos, hubs, hubCounts, siteLastModified, pages };
+  return { combos, hubs, hubCounts, siteLastModified, pages, paths };
 });
 
 /** Indexable combination pages (sitemap + internal links). */

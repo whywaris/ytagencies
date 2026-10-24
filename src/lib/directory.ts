@@ -109,7 +109,14 @@ export function defaultFaqs(
   agencies: AgencyListItem[],
   segment?: Segment,
 ): Faq[] {
-  const what = `${service.name} agencies${segment ? ` ${segmentPhrase(segment)}` : ""}`;
+  return faqsFor(
+    `${service.name} agencies${segment ? ` ${segmentPhrase(segment)}` : ""}`,
+    agencies,
+  );
+}
+
+/** Data-built FAQs for any directory page ("YouTube agencies for SaaS"): no zero counts. */
+export function faqsFor(what: string, agencies: AgencyListItem[]): Faq[] {
   const faqs: Faq[] = [];
 
   const budgets = agencies.flatMap((a) => (a.minBudgetUsd === null ? [] : [a.minBudgetUsd]));
@@ -298,3 +305,12 @@ export const guideGroup = (guides: { slug: string; title: string }[]) =>
         })),
       }
     : null;
+
+/** "How to choose" for pages without one service (industry and location hubs). */
+export function hubHowToChoose(who: string) {
+  return [
+    `Start with fit. Ask each agency for case studies from ${who}, with real numbers such as cost per lead, return on ad spend or subscriber growth, and links to the channels.`,
+    `Check the starting price against what you can spend each month for at least three months. Most YouTube work needs time to test and improve before results settle.`,
+    `Ask how they report results and how often. Good agencies agree on one or two numbers that matter to your business before they start, and report on those rather than views alone.`,
+  ];
+}

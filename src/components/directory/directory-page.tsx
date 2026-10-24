@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Breadcrumbs, type Crumb } from "@/components/breadcrumbs";
+import { AgencyCard } from "@/components/directory/agency-card";
 import { Results, ResultsView } from "@/components/directory/results";
 import { JsonLd } from "@/components/json-ld";
 import { PageTracker } from "@/components/page-tracker";
@@ -20,8 +21,15 @@ type DirectoryPageProps = {
   breadcrumbs: Crumb[]; // from Home to this page
   agencies: AgencyListItem[];
   emptyHint: React.ReactNode;
-  /** This page's service slug, highlighted on the cards. */
-  highlight: string;
+  /** This page's service slug, highlighted on the cards (none on industry and location hubs). */
+  highlight?: string;
+  /**
+   * Agencies based elsewhere that name this place: listed apart, under their own heading, so a
+   * remote agency never reads as local (location pages).
+   */
+  remote?: { heading: string; agencies: AgencyListItem[] };
+  /** "At a glance" rows from the page's facts; default: from the listed agencies. */
+  glance?: { label: string; value: string }[];
   /** Request proposals, prefilled with this page's service (and industry). */
   matchHref: string;
   /** H2 over the long intro, e.g. "YouTube Ads for Doctors brands". */
@@ -54,19 +62,22 @@ export function DirectoryPage({
   faqs,
   related,
   guides,
+  remote,
+  glance: glanceRows,
 }: DirectoryPageProps) {
   const groups = [
     ...related.filter((g): g is RelatedGroup => g !== null).slice(0, 3),
     guides,
   ].filter((g): g is RelatedGroup => g !== null);
-  const glance = atAGlance(agencies);
-  const n = agencies.length;
+  const glance = glanceRows ?? atAGlance(agencies);
+  const others = remote?.agencies ?? [];
+  const n = agencies.length + others.length;
 
   return (
     <>
       <PageTracker />
       <JsonLd data={breadcrumbJsonLd(breadcrumbs)} />
-      <JsonLd data={itemListJsonLd(agencies.map((a) => `/agency/${a.slug}`))} />
+      <JsonLd data={itemListJsonLd([...agencies, ...others].map((a) => `/agency/${a.slug}`))} />
       {/* Same text as the visible answers below. */}
       {faqs.length > 0 && <JsonLd data={faqJsonLd(faqs)} />}
 
@@ -108,6 +119,25 @@ export function DirectoryPage({
             >
               <Results agencies={agencies} emptyHint={emptyHint} highlight={highlight} />
             </Suspense>
+            {remote && others.length > 0 && (
+              <section aria-labelledby="remote-agencies" className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <h2 id="remote-agencies" className="text-h3">
+                    {remote.heading}
+                  </h2>
+                  <p className="text-text-2">
+                    Based elsewhere; they list this place as one they work with remotely.
+                  </p>
+                </div>
+                <ul className="flex flex-col gap-4">
+                  {others.map((a) => (
+                    <li key={a.id}>
+                      <AgencyCard agency={a} highlight={highlight} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             {n > 0 && (
               <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-line p-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col gap-1">

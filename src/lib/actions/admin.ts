@@ -40,21 +40,6 @@ export async function saveAgency(
   if (!parsed.success) return invalid(parsed.error);
   const input = parsed.data;
 
-  let hqLocationId: number | null = null;
-  if (input.hqLocation) {
-    const { data } = await db
-      .from("locations")
-      .select("id")
-      .eq("slug", input.hqLocation)
-      .maybeSingle();
-    if (!data)
-      return {
-        ok: false,
-        error: "Check the highlighted fields.",
-        fieldErrors: { hqLocation: "Unknown location." },
-      };
-    hqLocationId = data.id;
-  }
   const row = {
     name: input.name,
     slug: input.slug,
@@ -68,7 +53,6 @@ export async function saveAgency(
           .map((l) => l.trim())
           .filter(Boolean)
       : [],
-    hq_location_id: hqLocationId,
     seo_title: input.seoTitle || null,
     seo_description: input.seoDescription || null,
     updated_at: new Date().toISOString(),
@@ -195,7 +179,7 @@ export async function saveIntro(kind: string, id: number, raw: unknown): Promise
   await log("taxonomy.intro_update", k.data === "services" ? "service" : "industry", id);
   revalidateDirectory();
   // Hub and industry-page lastmod come from the service / industry updated_at.
-  revalidateSitemap("services", "combos", "pages");
+  revalidateSitemap("services", "industries", "combos", "pages");
   revalidatePath("/admin/taxonomy");
   return { ok: true, data: undefined };
 }

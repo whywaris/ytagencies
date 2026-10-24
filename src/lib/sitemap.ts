@@ -2,11 +2,12 @@ import "server-only";
 
 import { getAgencySlugs, getDirectoryIndex } from "@/lib/data/agencies";
 import { getLiveAuthors, getLiveGuides } from "@/lib/data/guides";
-import { getIndustries, getServices } from "@/lib/data/taxonomy";
+import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { PAGE_UPDATED } from "@/lib/page-dates";
 import {
   agencyEntries,
   directoryEntries,
+  livePagesOf,
   llmsTxt,
   newest,
   oneLine,
@@ -55,8 +56,21 @@ export async function sitemapEntries(file: SitemapFile): Promise<Entry[]> {
         .filter((s) => (hubCounts.get(s.slug) ?? 0) >= MIN_AGENCIES_TO_INDEX)
         .map((s) => ({ path: `/${s.slug}`, lastModified: hubs.get(s.slug) }));
     }
-    case "combos":
+    case "industries":
     case "locations":
+    case "service-industry-locations":
+      // Industry hubs, country and city hubs, service × industry × country: the 3-agency rule.
+      return livePagesOf(
+        (await getDirectoryIndex()).paths,
+        file === "industries"
+          ? "industry"
+          : file === "locations"
+            ? "location"
+            : "service-industry-location",
+        MIN_AGENCIES_TO_INDEX,
+      );
+    case "combos":
+    case "service-locations":
       return directoryEntries(
         await directoryPages(),
         MIN_AGENCIES_TO_INDEX,
@@ -88,46 +102,30 @@ async function directoryPages() {
   });
 }
 
-/** /llms.txt: facts the site actually implements, and links to indexable pages only. */
+/** /llms.txt: facts the site actually implements, and links to its live hub pages only. */
 export async function buildLlmsTxt() {
-  const [allServices, industries, pages, guides, { hubCounts }] = await Promise.all([
+  const [allServices, industries, locations, guides, { hubCounts, paths }] = await Promise.all([
     getServices(),
     getIndustries(),
-    directoryPages(),
+    getLocations(),
     getLiveGuides(),
     getDirectoryIndex(),
   ]);
+  const live = (path: string) => (paths.get(path)?.count ?? 0) >= MIN_AGENCIES_TO_INDEX;
   const services = allServices.filter((s) => (hubCounts.get(s.slug) ?? 0) >= MIN_AGENCIES_TO_INDEX);
-  // Indexable service × industry pages, busiest first.
-  const indexable = pages
-    .filter((p) => p.count >= MIN_AGENCIES_TO_INDEX && p.segment.startsWith("for-"))
-    .sort((a, b) => b.count - a.count || a.serviceSlug.localeCompare(b.serviceSlug));
-  const combos = directoryEntries(indexable, MIN_AGENCIES_TO_INDEX, "for");
-  const byPath = new Map(indexable.map((p) => [`/${p.serviceSlug}/${p.segment}`, p.count]));
-  combos.sort((a, b) => (byPath.get(b.path) ?? 0) - (byPath.get(a.path) ?? 0));
-  const serviceName = new Map(services.map((s) => [s.slug, s.name]));
-  const industryName = new Map(industries.map((i) => [i.slug, i.name]));
-  // Industries have no page of their own: each links to its best indexable service page.
-  const industryLinks = industries.flatMap((i) => {
-    const best = indexable.find((p) => p.segment === `for-${i.slug}`);
-    return best
-      ? [
-          {
-            title: i.name,
-            url: absoluteUrl(`/${best.serviceSlug}/${best.segment}`),
-            note: oneLine(i.intro) || null,
-          },
-        ]
-      : [];
-  });
-  const comparisons = combos.slice(0, 30).map((c) => {
-    const [, service, segment] = c.path.split("/");
-    const industry = industryName.get(segment.replace(/^for-/, "")) ?? segment;
-    return {
-      title: `${serviceName.get(service) ?? service} agencies for ${industry}`,
-      url: absoluteUrl(c.path),
-    };
-  });
+  const industryLinks = industries
+    .filter((i) => live(`/industries/${i.slug}`))
+    .map((i) => ({
+      title: `YouTube agencies for ${i.name}`,
+      url: absoluteUrl(`/industries/${i.slug}`),
+      note: oneLine(i.intro) || null,
+    }));
+  const countryLinks = locations
+    .filter((l) => l.type === "country" && live(`/locations/${l.slug}`))
+    .map((l) => ({
+      title: `YouTube agencies in ${l.name}`,
+      url: absoluteUrl(`/locations/${l.slug}`),
+    }));
 
   return llmsTxt({
     brand: BRAND_NAME,
@@ -146,7 +144,7 @@ export async function buildLlmsTxt() {
       note: oneLine(s.intro) || `Compare agencies that offer ${s.name}.`,
     })),
     industries: industryLinks,
-    comparisons,
+    locations: countryLinks,
     guides: guides.map((g) => ({
       title: g.title,
       url: absoluteUrl(`/guides/${g.slug}`),

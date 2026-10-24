@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/lib/supabase/types";
+import { resolvePlaces } from "@/lib/data/cities";
 import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { AD_SPENDS, MIN_CONTRACTS } from "@/lib/pricing";
 import {
@@ -23,12 +24,14 @@ export async function applyProfile(
   agencyId: string,
   input: ProfileInput,
 ): Promise<string | null> {
-  const [services, industries, locations] = await Promise.all([
+  const [services, industries, places] = await Promise.all([
     supabase.from("services").select("id, slug"),
     supabase.from("industries").select("id, slug"),
-    supabase.from("locations").select("id, slug"),
+    // HQ country + city (created on demand) and the countries served remotely.
+    resolvePlaces(input),
   ]);
-  if (services.error || industries.error || locations.error) return SAVE_FAILED;
+  if (services.error || industries.error) return SAVE_FAILED;
+  if (!places.ok) return places.error;
   const idsFor = (rows: { id: number; slug: string }[], slugs: string[]) => {
     const map = new Map(rows.map((r) => [r.slug, r.id]));
     const ids = slugs.map((s) => map.get(s));
@@ -36,9 +39,7 @@ export async function applyProfile(
   };
   const serviceIds = idsFor(services.data, input.services);
   const industryIds = idsFor(industries.data, input.industries);
-  const locationIds = idsFor(locations.data, input.locations);
-  if (!serviceIds || !industryIds || !locationIds)
-    return "Some options no longer exist. Reload the page.";
+  if (!serviceIds || !industryIds) return "Some options no longer exist. Reload the page.";
   const primaryServiceId = idsFor(services.data, [input.primaryService || input.services[0]])![0];
   const primaryIndustryId = input.primaryIndustry
     ? idsFor(industries.data, [input.primaryIndustry])![0]
@@ -53,6 +54,8 @@ export async function applyProfile(
       min_contract: input.minContract || null,
       ad_spend: input.adSpend || null,
       setup_fee_usd: input.setupFee === "" ? null : Number(input.setupFee),
+      hq_location_id: places.hqLocationId,
+      serves_worldwide: input.servesWorldwide,
       ...detailsColumns(input),
       updated_at: new Date().toISOString(),
     })
@@ -68,7 +71,7 @@ export async function applyProfile(
     syncIndustries(supabase, agencyId, industryIds, primaryIndustryId, (id) =>
       industryColumns(input, industries.data.find((i) => i.id === id)!.slug),
     ),
-    syncLocations(supabase, agencyId, locationIds),
+    syncLocations(supabase, agencyId, places.servedIds),
   ]);
   if (results.some(Boolean)) return SAVE_FAILED;
   return null;
@@ -159,7 +162,7 @@ export async function profileFormProps(
     supabase
       .from("agencies")
       .select(
-        "best_for, timezone, youtube_channel_url, linkedin_url, reporting_frequency, process, agency_services(is_primary, focus_pct, included, starting_price, price_unit, services(slug)), agency_industries(is_primary, focus_pct, industries(slug)), agency_locations(locations(slug))",
+        "best_for, timezone, youtube_channel_url, linkedin_url, reporting_frequency, process, hq_location_id, serves_worldwide, agency_services(is_primary, focus_pct, included, starting_price, price_unit, services(slug)), agency_industries(is_primary, focus_pct, industries(slug)), agency_locations(location_id)",
       )
       .eq("id", agency.id)
       .single(),
@@ -185,7 +188,8 @@ export async function profileFormProps(
     primaryService: svc.find((r) => r.is_primary)?.services.slug ?? "",
     industries: ind.map((r) => r.industries.slug),
     primaryIndustry: ind.find((r) => r.is_primary)?.industries.slug ?? "",
-    locations: links.data.agency_locations.map((r) => r.locations.slug),
+    ...placeDefaults(locations, links.data.hq_location_id, links.data.agency_locations),
+    servesWorldwide: links.data.serves_worldwide,
     ...detailsDefaults(
       links.data,
       svc.map((r) => ({ ...r, slug: r.services.slug })),
@@ -205,5 +209,30 @@ export async function profileFormProps(
     services: services.map(option),
     industries: industries.map(option),
     countries,
+  };
+}
+
+/**
+ * HQ as country + city name, and the countries served (a city listed before is shown as its
+ * country: the form serves whole countries).
+ */
+function placeDefaults(
+  locations: { id: number; slug: string; name: string; type: string; parentId: number | null }[],
+  hqId: number | null,
+  served: { location_id: number }[],
+) {
+  const byId = new Map(locations.map((l) => [l.id, l]));
+  const countryOf = (id: number) => {
+    const l = byId.get(id);
+    return l?.parentId ? byId.get(l.parentId) : l;
+  };
+  const hq = hqId === null ? undefined : byId.get(hqId);
+  const hqCountry = hqId === null ? undefined : countryOf(hqId);
+  return {
+    hqCountry: hqCountry?.slug ?? "",
+    hqCity: hq?.type === "city" ? hq.name : "",
+    serves: [...new Set(served.flatMap((r) => countryOf(r.location_id)?.slug ?? []))].filter(
+      (slug) => slug !== hqCountry?.slug,
+    ),
   };
 }

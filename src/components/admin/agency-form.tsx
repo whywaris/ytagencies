@@ -12,8 +12,6 @@ import { Input } from "@/components/ui/input";
 import { saveAgency } from "@/lib/actions/admin";
 import { agencySchema, TEAM_SIZES, type AgencyInput } from "@/lib/validation/admin";
 
-type LocationOption = { slug: string; name: string; group: string };
-
 const slugify = (s: string) =>
   s
     .toLowerCase()
@@ -25,12 +23,10 @@ const slugify = (s: string) =>
 export function AgencyForm({
   id,
   defaults,
-  locations,
   slugLocked,
 }: {
   id: string | null;
   defaults: AgencyInput;
-  locations: LocationOption[];
   slugLocked: boolean;
 }) {
   const router = useRouter();
@@ -61,8 +57,6 @@ export function AgencyForm({
     for (const [k, m] of Object.entries(res.fieldErrors ?? {}))
       setError(k as keyof AgencyInput, { message: m });
   });
-
-  const groups = [...new Set(locations.map((l) => l.group))];
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
@@ -107,7 +101,7 @@ export function AgencyForm({
         name={name}
         onRemove={() => setValue("logo", "", { shouldDirty: true })}
       />
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6">
         <Field id="a-website" label="Website" optional error={errors.website?.message}>
           <Input
             type="url"
@@ -115,26 +109,6 @@ export function AgencyForm({
             {...register("website")}
             {...a11yProps("a-website", errors.website?.message)}
           />
-        </Field>
-        <Field id="a-hq" label="Headquarters" optional error={errors.hqLocation?.message}>
-          <select
-            {...register("hqLocation")}
-            {...a11yProps("a-hq", errors.hqLocation?.message)}
-            className={selectClasses}
-          >
-            <option value="">Not set</option>
-            {groups.map((g) => (
-              <optgroup key={g} label={g}>
-                {locations
-                  .filter((l) => l.group === g)
-                  .map((l) => (
-                    <option key={l.slug} value={l.slug}>
-                      {l.name}
-                    </option>
-                  ))}
-              </optgroup>
-            ))}
-          </select>
         </Field>
       </div>
       <div className="grid gap-6 sm:grid-cols-3">

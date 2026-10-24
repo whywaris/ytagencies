@@ -35,9 +35,10 @@ export default async function AdminSeoPagesPage({ searchParams }: PageProps<"/ad
       <div className="flex max-w-reading flex-col gap-1">
         <h1 className="text-admin-title">SEO pages</h1>
         <p className="text-text-2">
-          Every service × industry and service × location page. A page is indexed once it has{" "}
-          {MIN_AGENCIES_TO_INDEX} published agencies; until then it&apos;s noindex and left out of
-          the sitemap.
+          Every directory page with agencies (hubs, countries and cities, and their combinations),
+          busiest first. A page is indexed once it has {MIN_AGENCIES_TO_INDEX} published agencies;
+          until then it&apos;s noindex and left out of the sitemap. Until you write an intro, a page
+          shows a short one built from its agencies&apos; data.
         </p>
       </div>
 
@@ -59,12 +60,6 @@ export default async function AdminSeoPagesPage({ searchParams }: PageProps<"/ad
           </Link>
         ))}
       </nav>
-
-      {filter.id === "missing" && (
-        <p className="text-admin-meta">
-          Industry pages only: location pages share one template and have no copy of their own yet.
-        </p>
-      )}
 
       {shown.length === 0 ? (
         <Empty>
@@ -99,9 +94,7 @@ export default async function AdminSeoPagesPage({ searchParams }: PageProps<"/ad
             {shown.map((p) => (
               <tr key={p.key}>
                 <td className="min-w-56">
-                  <span className="font-medium">
-                    {p.service} {p.kind === "industry" ? "for" : "in"} {p.segment}
-                  </span>
+                  <span className="font-medium">{p.label}</span>
                   <div className="text-admin-meta">{p.path}</div>
                 </td>
                 <td className={cn("text-right num", p.agencies === 0 && "text-text-2")}>
@@ -112,18 +105,16 @@ export default async function AdminSeoPagesPage({ searchParams }: PageProps<"/ad
                 </td>
                 <td className="whitespace-nowrap">
                   {p.copy === "complete" ? (
-                    "Complete"
-                  ) : p.copy === "missing" ? (
-                    <span className="text-warning">Missing</span>
+                    "Written"
                   ) : (
-                    <span className="text-text-2">Shared template</span>
+                    <span className="text-warning">From data</span>
                   )}
                 </td>
                 <td
                   className={cn("text-right whitespace-nowrap num", !p.leads30d && "text-text-2")}
                 >
                   {p.leads30d === null ? (
-                    <span title="Leads don't record a location">Not tracked</span>
+                    <span title="Leads record only a service and an industry">Not tracked</span>
                   ) : (
                     formatCount(p.leads30d)
                   )}
@@ -135,11 +126,8 @@ export default async function AdminSeoPagesPage({ searchParams }: PageProps<"/ad
                   <div className="flex items-center justify-end gap-4 whitespace-nowrap">
                     {p.editHref && (
                       <Link href={p.editHref} className="text-accent hover:underline">
-                        Edit copy
-                        <span className="sr-only">
-                          {" "}
-                          for {p.service} {p.segment}
-                        </span>
+                        {p.copy === "complete" ? "Edit copy" : "Write intro"}
+                        <span className="sr-only"> for {p.label}</span>
                       </Link>
                     )}
                     <a

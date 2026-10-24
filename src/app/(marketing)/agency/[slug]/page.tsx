@@ -333,6 +333,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                       ` + ${otherPlaces.slice(0, 2).join(", ")}${otherPlaces.length > 2 ? ` and ${otherPlaces.length - 2} more` : ""}`}
                   </Fact>
                 )}
+                {agency.servesWorldwide && <Fact icon={Globe}>Serves clients worldwide</Fact>}
                 {agency.teamSize && (
                   <Fact icon={Users}>
                     <b className="font-semibold text-text">{agency.teamSize.replace("-", "–")}</b>{" "}

@@ -39,8 +39,13 @@ create table locations (
   slug text unique not null,            -- usa, london
   name text not null,
   type text not null check (type in ('country','city')),
-  parent_id int references locations(id)
+  parent_id int references locations(id),
+  -- Countries: ISO 3166-1 alpha-2 (every country is seeded). Cities are created on demand when an
+  -- agency's HQ is saved, never pre-generated.
+  iso_code text check (iso_code ~ '^[A-Z]{2}$')
 );
+create unique index locations_iso_code on locations (iso_code) where iso_code is not null;
+create unique index locations_city_name on locations (parent_id, lower(name)) where type = 'city';
 
 -- Unique copy for programmatic combination pages
 create table service_industry_content (
@@ -1224,3 +1229,27 @@ alter table page_view_daily enable row level security;
 revoke all on page_view_events, page_view_daily from anon, authenticated;
 grant select on page_view_daily to authenticated;
 create policy "admin read" on page_view_daily for select to authenticated using (is_admin());
+
+-- ───────── Worldwide locations: remote service flag, per-page copy ─────────
+-- "Serves clients worldwide / remotely", shown on the profile. A location page lists only agencies
+-- based there or that name that place; this flag never makes an agency look local.
+alter table agencies add column serves_worldwide boolean not null default false;
+grant select (serves_worldwide) on agencies to anon;
+grant update (serves_worldwide) on agencies to authenticated;
+grant insert (serves_worldwide) on agencies to authenticated;
+
+-- Admin-written summary and intro for any directory page, by path (industry and location hubs,
+-- service × location, service × industry × country). Until one is written the page uses a short
+-- intro from its own data. Service × industry pages keep service_industry_content.
+create table page_content (
+  path text primary key check (path ~ '^/[a-z0-9-]+(/[a-z0-9-]+){0,3}$' and char_length(path) <= 200),
+  summary text check (char_length(summary) <= 300),
+  intro text check (char_length(intro) <= 4000),
+  updated_at timestamptz not null default now()
+);
+alter table page_content enable row level security;
+create policy "public read" on page_content for select using (true);
+create policy "admin write" on page_content for all using (is_admin()) with check (is_admin());
+grant select on page_content to anon, authenticated;
+grant insert, update, delete on page_content to authenticated;
+create trigger set_updated_at before update on page_content for each row execute function set_updated_at();

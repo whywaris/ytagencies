@@ -15,8 +15,11 @@ export const SITEMAP_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalida
 export const SITEMAP_FILES = [
   "pages",
   "services",
-  "combos",
+  "industries",
   "locations",
+  "combos",
+  "service-locations",
+  "service-industry-locations",
   "agencies",
   "guides",
   "authors",
@@ -58,6 +61,15 @@ export function countDirectoryPages(
 ) {
   const byId = new Map(locations.map((l) => [l.id, l]));
   const pages = new Map<string, { count: number; lastModified: string }>();
+  // Every directory page by path (all page types), for the sitemaps, links and Admin → SEO pages.
+  const paths = new Map<string, { count: number; lastModified: string }>();
+  const bump = (path: string, at: string) => {
+    const page = paths.get(path);
+    paths.set(path, {
+      count: (page?.count ?? 0) + 1,
+      lastModified: newer(page?.lastModified ?? null, at),
+    });
+  };
   const hubs = new Map<string, string>(); // service slug -> lastModified
   const hubCounts = new Map<string, number>(); // service slug -> published agencies
   let siteLastModified: string | null = null;
@@ -65,14 +77,32 @@ export function countDirectoryPages(
   for (const agency of agencies) {
     siteLastModified = newer(siteLastModified, agency.updatedAt);
     const segments = new Set(agency.industries.map((i) => `for-${i}`));
+    // Location hubs (/locations/<country>[/<city>]) and countries, for the triple pages.
+    const places = new Set<string>();
+    const countries = new Set<string>();
     for (const id of agency.locationIds) {
       const loc = byId.get(id);
       if (!loc) continue;
       segments.add(`in-${loc.slug}`);
       const parent = loc.parentId ? byId.get(loc.parentId) : undefined;
-      if (parent) segments.add(`in-${parent.slug}`);
+      if (parent) {
+        segments.add(`in-${parent.slug}`);
+        places.add(`/locations/${parent.slug}`);
+        places.add(`/locations/${parent.slug}/${loc.slug}`);
+        countries.add(parent.slug);
+      } else {
+        places.add(`/locations/${loc.slug}`);
+        countries.add(loc.slug);
+      }
     }
+    for (const industry of agency.industries) bump(`/industries/${industry}`, agency.updatedAt);
+    for (const place of places) bump(place, agency.updatedAt);
     for (const service of agency.services) {
+      bump(`/${service}`, agency.updatedAt);
+      for (const segment of segments) bump(`/${service}/${segment}`, agency.updatedAt);
+      for (const industry of agency.industries)
+        for (const country of countries)
+          bump(`/${service}/for-${industry}/in-${country}`, agency.updatedAt);
       hubs.set(service, newer(hubs.get(service) ?? null, agency.updatedAt));
       hubCounts.set(service, (hubCounts.get(service) ?? 0) + 1);
       for (const segment of segments) {
@@ -85,8 +115,42 @@ export function countDirectoryPages(
       }
     }
   }
-  return { pages, hubs, hubCounts, siteLastModified };
+  return { pages, paths, hubs, hubCounts, siteLastModified };
 }
+
+/** What kind of directory page a path is (the sitemap files and Admin → SEO pages). */
+export type PageType =
+  | "service"
+  | "industry"
+  | "location"
+  | "service-industry"
+  | "service-location"
+  | "service-industry-location";
+
+export function pageTypeOf(path: string): PageType {
+  if (path.startsWith("/industries/")) return "industry";
+  if (path.startsWith("/locations/")) return "location";
+  const parts = path.split("/").filter(Boolean);
+  if (parts.length === 1) return "service";
+  if (parts.length === 3) return "service-industry-location";
+  return parts[1].startsWith("for-") ? "service-industry" : "service-location";
+}
+
+/** Live pages of one type: the 3-agency rule, sorted by path, with their real lastmod. */
+export function livePagesOf(
+  paths: Map<string, { count: number; lastModified: string }>,
+  type: PageType,
+  minAgencies: number,
+): Entry[] {
+  return [...paths]
+    .filter(([path, p]) => p.count >= minAgencies && pageTypeOf(path) === type && sitemapSafe(path))
+    .map(([path, p]) => ({ path, lastModified: p.lastModified }))
+    .sort((a, b) => a.path.localeCompare(b.path));
+}
+
+/** Sitemaps hold at most 50,000 URLs: a file with more is split into numbered parts. */
+export const SITEMAP_MAX_URLS = 50_000;
+export const sitemapParts = (count: number) => Math.max(1, Math.ceil(count / SITEMAP_MAX_URLS));
 
 /** The later of two ISO dates. */
 export const newer = (a: string | null | undefined, b: string) => (a && a > b ? a : b);
@@ -148,7 +212,7 @@ export function llmsTxt(d: {
   about: string;
   services: Link[];
   industries: Link[];
-  comparisons: Link[];
+  locations: Link[];
   guides: Link[];
   pages: Link[];
 }) {
@@ -162,7 +226,7 @@ export function llmsTxt(d: {
     `${d.about}\n`,
     section("Services", d.services),
     section("Industries", d.industries),
-    section("Popular comparisons", d.comparisons),
+    section("Locations", d.locations),
     section("Guides", d.guides),
     section("About", d.pages),
   ]
@@ -179,3 +243,19 @@ const pathOf = (href: string) => href.replace(/[?#].*$/, "");
  */
 export const liveOnly = <T extends { href: string }>(links: T[], live: ReadonlySet<string>) =>
   links.filter((l) => live.has(pathOf(l.href)));
+
+/**
+ * "Explore more" chips from the page index: live pages only (the 3-agency rule, as in the
+ * sitemap), each with its agency count. `pick` names the paths to link (null skips one).
+ */
+export function liveLinks(
+  paths: Map<string, { count: number }>,
+  minAgencies: number,
+  pick: (path: string) => { label: string; title: string } | null,
+) {
+  return [...paths].flatMap(([href, p]) => {
+    if (p.count < minAgencies) return [];
+    const named = pick(href);
+    return named ? [{ href, ...named, count: p.count }] : [];
+  });
+}

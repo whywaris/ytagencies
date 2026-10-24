@@ -43,7 +43,12 @@ export const profileSchema = z
     primaryService: slug.or(z.literal("")),
     industries: z.array(slug).max(12, "Choose up to 12 industries."),
     primaryIndustry: slug.or(z.literal("")),
-    locations: z.array(slug).max(40, "Choose up to 40 locations."),
+    // Where they're based (a country, optionally a city typed by name: created on save if new)
+    // and the countries they serve remotely (lib/data/cities.ts).
+    hqCountry: slug.or(z.literal("")),
+    hqCity: z.string().trim().max(80, "Use 80 characters or fewer."),
+    serves: z.array(slug).max(60, "Choose up to 60 countries."),
+    servesWorldwide: z.boolean(),
     ...profileDetailsFields,
   })
   .superRefine(checkFocusTotals)

@@ -46,6 +46,7 @@ export type Database = {
           youtube_channel_url: string | null;
           linkedin_url: string | null;
           calendly_url: string | null;
+          serves_worldwide: boolean;
           whatsapp_number: string | null;
           reporting_frequency: string | null;
           process: Json;
@@ -83,6 +84,7 @@ export type Database = {
           youtube_channel_url?: string | null;
           linkedin_url?: string | null;
           calendly_url?: string | null;
+          serves_worldwide?: boolean;
           whatsapp_number?: string | null;
           reporting_frequency?: string | null;
           process?: Json;
@@ -120,6 +122,7 @@ export type Database = {
           youtube_channel_url?: string | null;
           linkedin_url?: string | null;
           calendly_url?: string | null;
+          serves_worldwide?: boolean;
           whatsapp_number?: string | null;
           reporting_frequency?: string | null;
           process?: Json;
@@ -996,6 +999,7 @@ export type Database = {
           id: number;
           name: string;
           parent_id: number | null;
+          iso_code: string | null;
           slug: string;
           type: string;
         };
@@ -1003,6 +1007,7 @@ export type Database = {
           id?: number;
           name: string;
           parent_id?: number | null;
+          iso_code?: string | null;
           slug: string;
           type: string;
         };
@@ -1010,6 +1015,7 @@ export type Database = {
           id?: number;
           name?: string;
           parent_id?: number | null;
+          iso_code?: string | null;
           slug?: string;
           type?: string;
         };
@@ -1203,6 +1209,27 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      page_content: {
+        Row: {
+          path: string;
+          summary: string | null;
+          intro: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          path: string;
+          summary?: string | null;
+          intro?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          path?: string;
+          summary?: string | null;
+          intro?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
       service_industry_content: {
         Row: {

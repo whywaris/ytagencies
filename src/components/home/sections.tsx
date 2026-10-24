@@ -691,9 +691,13 @@ export function WhySection() {
 
 export async function IndustriesSection() {
   const { industries, index } = await homeData();
-  // Industries have no page of their own: each tile links to its live service × industry page
-  // with the most agencies. Industries without one aren't listed.
+  // Each tile links to the industry's own hub when it's live (3+ agencies), else to its live
+  // service × industry page with the most agencies. Industries with neither aren't listed.
   const best = new Map<string, { href: string; count: number }>();
+  for (const [path, p] of index.paths) {
+    const slug = path.match(/^\/industries\/([a-z0-9-]+)$/)?.[1];
+    if (slug && p.count >= MIN_AGENCIES_TO_INDEX) best.set(slug, { href: path, count: p.count });
+  }
   for (const c of popularIndustryCombos(index.combos, Infinity)) {
     const slug = c.segment.slice(4);
     if (!best.has(slug)) best.set(slug, { href: `/${c.serviceSlug}/${c.segment}`, count: c.count });

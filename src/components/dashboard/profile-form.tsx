@@ -12,6 +12,9 @@ import {
   selectClasses,
   textareaClasses,
 } from "@/components/forms/field";
+import { LocationFields } from "@/components/forms/location-fields";
+
+type PlaceForm = Pick<ProfileInput, "hqCountry" | "hqCity" | "serves" | "servesWorldwide">;
 import { ProfileDetailsFields, type DetailsForm } from "@/components/forms/profile-details-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -208,27 +211,11 @@ export function ProfileForm({
         </CheckboxGroup>
       </div>
 
-      <CheckboxGroup legend="Where you're based or work" error={errors.locations?.message}>
-        <p className="-mt-1 mb-2 text-small">
-          Choosing a country lists you on its page, including its cities&apos; pages.
-        </p>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {countries.map((c) => (
-            <div key={c.slug} className="flex flex-col">
-              <label className={`${checkboxRow} font-medium`}>
-                <input type="checkbox" value={c.slug} {...register("locations")} />
-                {c.name}
-              </label>
-              {c.cities.map((city) => (
-                <label key={city.slug} className={`${checkboxRow} pl-8`}>
-                  <input type="checkbox" value={city.slug} {...register("locations")} />
-                  {city.name}
-                </label>
-              ))}
-            </div>
-          ))}
-        </div>
-      </CheckboxGroup>
+      <LocationFields
+        form={form as unknown as UseFormReturn<PlaceForm>}
+        countries={countries}
+        idPrefix="p"
+      />
 
       <ProfileDetailsFields
         form={form as unknown as UseFormReturn<DetailsForm>}

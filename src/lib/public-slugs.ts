@@ -64,6 +64,8 @@ async function getSlugs(): Promise<Slugs | null> {
 // First path segments that are real routes, not a [service] slug.
 const STATIC_ROOTS = new Set([
   "agencies",
+  "industries",
+  "locations",
   "guides",
   "get-matched",
   "request-proposals",

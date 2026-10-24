@@ -13,7 +13,6 @@ import { ProfileForm } from "@/components/dashboard/profile-form";
 import { SeoHiddenNotice } from "@/components/seo-hidden-notice";
 import { adminUpdateProfile } from "@/lib/actions/admin";
 import { adminDeleteCaseStudy, adminSaveCaseStudy } from "@/lib/actions/admin-directory";
-import { hqLocationOptions } from "@/lib/admin-locations";
 import { profileFormProps } from "@/lib/agency-profile";
 import { requireAdmin } from "@/lib/auth";
 import { getEntitlements } from "@/lib/data/entitlements";
@@ -163,7 +162,7 @@ async function ProfileTab({
   };
 }) {
   const db = createAdminClient();
-  const [locations, form] = await Promise.all([hqLocationOptions(), profileFormProps(db, agency)]);
+  const form = await profileFormProps(db, agency);
   const defaults: AgencyInput = {
     name: agency.name,
     slug: agency.slug,
@@ -176,7 +175,6 @@ async function ProfileTab({
     languages: (agency.languages ?? []).join(", "),
     seoTitle: agency.seo_title ?? "",
     seoDescription: agency.seo_description ?? "",
-    hqLocation: agency.locations?.slug ?? "",
     logo: logoSrc(agency.logo_path) ?? "",
   };
   return (
@@ -199,12 +197,7 @@ async function ProfileTab({
         <h2 id="details" className="text-admin-section">
           Details
         </h2>
-        <AgencyForm
-          id={agency.id}
-          defaults={defaults}
-          locations={locations}
-          slugLocked={agency.status === "published"}
-        />
+        <AgencyForm id={agency.id} defaults={defaults} slugLocked={agency.status === "published"} />
       </section>
       <section aria-labelledby="profile" className="flex flex-col gap-6">
         <h2 id="profile" className="text-admin-section">

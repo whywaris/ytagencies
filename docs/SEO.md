@@ -15,8 +15,11 @@
 | All agencies                            | `/agencies`, `/agencies?page=N`     | Yes, self-canonical (`/agencies` in the sitemap) |
 | All agencies, filtered / searched / sorted | `/agencies?service=…&q=…&sort=…` | No (`noindex, follow`), canonical `/agencies` |
 | Service hub                             | `/youtube-ads-agencies`             | If ≥ 3 published agencies       |
+| Industry hub                            | `/industries/saas`                  | If ≥ 3 published agencies       |
+| Country / city hub                      | `/locations/usa`, `/locations/usa/new-york` | If ≥ 3 agencies; 404 with none |
 | Service × industry                      | `/youtube-ads-agencies/for-doctors` | If ≥ 3 published agencies       |
-| Service × location                      | `/youtube-seo-agencies/in-usa`      | If ≥ 3 published agencies       |
+| Service × location (country or city)    | `/youtube-seo-agencies/in-usa`, `/…/in-new-york` | If ≥ 3 agencies; 404 with none |
+| Service × industry × country            | `/youtube-ads-agencies/for-saas/in-usa` | Only exists with ≥ 3 (404 below) |
 | Agency profile                          | `/agency/acme-media`                | Yes, if published               |
 | Guide                                   | `/guides/youtube-ads-agency-cost`   | Yes                             |
 | Guides index                            | `/guides`, `/guides?page=2`         | Yes (`?service=` filters: no)   |
@@ -31,8 +34,11 @@
 
 ## Programmatic SEO
 
-- Combination pages are generated from DB data: `services × industries` and `services × locations`.
-- **Thin-page rule:** a service hub or combination with fewer than 3 published agencies returns `robots: noindex, follow` and is left out of the sitemap. It flips to indexed automatically when it crosses the threshold.
+- Every directory page is generated from DB data: service, industry, country and city hubs, `services × industries`, `services × locations` and `services × industries × countries`. One index (`countDirectoryPages`, lib/sitemap-core.ts) counts the agencies on each path; the sitemaps, "Explore more" links and Admin → SEO pages all read it.
+- **Thin-page rule:** a page with fewer than 3 published agencies returns `robots: noindex, follow` and is left out of the sitemap. It flips to indexed automatically when it crosses the threshold. A place (country or city) with no agencies has no page at all (404), and service × industry × country pages only exist from 3.
+- **Places.** Every ISO country is in `locations`; cities are created on demand when an owner or admin saves an HQ city, never pre-generated. A place page lists agencies **based** there (HQ in it) first, then, under their own heading, agencies based elsewhere that name it as a place they serve remotely. "Serves clients worldwide" alone never puts an agency on a place's page.
+- **Copy.** Until an admin writes an intro (page_content, Admin → SEO pages → Write intro), a page shows a short intro built only from its agencies' data (count, starting-price range, most common pricing, top services or industries, verified count, newest listing). No filler, no zero counts.
+- **Sitemaps** are split by page type (`/sitemaps/<type>.xml`), each split again into `-2`, `-3`… above 50,000 URLs. `llms.txt` lists hubs only (services, industries, countries).
 - Each combination page must have unique content, not just a list:
   - H1: `Best YouTube Ads Agencies for Doctors` (pattern: Best {Service} for {Industry} / in {Location})
   - A 120–200 word intro written per industry (stored in `industries.intro` / `service_industry_content`).
