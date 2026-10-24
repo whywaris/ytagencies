@@ -92,7 +92,7 @@ Light is the default for everyone, whatever the OS or browser says. Dark only af
 - **Buttons:** primary = `--accent` fill, accent-ink text, `--accent-hover` on hover, fully rounded (pill), 44px tall. Secondary = text link in `--accent`. Labels say exactly what happens ("Find agencies", "Send inquiry", "Claim this listing").
 - **Agency row:** white on `--bg`, 1px `--line` border, 16px radius, no shadow. Hover: border darkens only.
 - **Inputs:** 44px, 12px radius, `--surface` fill, no border until focus.
-- **Badges:** small text pills: "Verified" (green), "Sponsored" (neutral outline, only on sponsored slots).
+- **Badges:** small text pills: "Verified" (green, earned), "Pro" (gold: `--amber-soft` background, `--amber-on-soft` text, crown icon, tooltip "Pro member: paid plan"; active Pro only), "Sponsored" (neutral outline, only on sponsored slots). Verified and Pro are always two separate badges, never merged, and Pro is never called verified.
 - **"No lock-in" chip:** a small neutral chip (`--surface` fill, `--text-2`, 12px, pill) on directory rows (under the price) and home hero cards (next to Verified) when an agency's minimum contract is none or one month. Nothing for longer contracts. Component: `components/lock-in-chip.tsx`.
 - **Response time:** "Usually replies within a few hours / a day / 2 days" in body text, with "Based on <n> inquiries in the last 90 days." in small `--text-2` text. Only from real data (`agency_response_times`); otherwise nothing is shown.
 - Radius hierarchy: pills for buttons/badges, 16px for rows/cards, 12px for inputs, 8px for logos.

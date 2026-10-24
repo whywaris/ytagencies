@@ -76,9 +76,6 @@ const optionalUrl = (message: string, host?: RegExp) =>
       return url;
     });
 
-const budget = z.enum(BUDGET_RANGES.map((b) => b.value) as [string, ...string[]], {
-  error: "Choose a budget range.",
-});
 const slug = (message: string) => z.string().regex(/^[a-z0-9-]{1,80}$/, message);
 const name = z.string().trim().min(1, "Enter your name.").max(100, "Use 100 characters or fewer.");
 // Trim and lowercase before the format check, so " Ana@X.com " passes and is stored normalized.
@@ -122,7 +119,7 @@ export const getMatchedStep2 = z.object({
   customerLocation: z.string().trim().max(120, "Use 120 characters or fewer."),
   priorAgency: z.enum(["", ...values(PRIOR_AGENCY)]),
   message: z.string().trim().max(2000, "Use 2,000 characters or fewer."),
-  /** Where the request started, e.g. "profile:<slug>" from an unmanaged profile. */
+  /** Where the request started, e.g. "profile:<slug>". */
   ref: z
     .string()
     .regex(/^[a-z]+(:[a-z0-9-]{1,80})?$/)
@@ -135,17 +132,31 @@ export const getMatchedSchema = getMatchedStep1.extend(getMatchedStep2.shape);
 export type GetMatchedInput = z.input<typeof getMatchedSchema>;
 export type GetMatchedData = z.output<typeof getMatchedSchema>;
 
+/**
+ * "Request a quote from {Agency}" on every profile. Service and niche let the request go to
+ * similar agencies if this one doesn't reply within 48 hours, which the visitor agrees to.
+ */
 export const contactAgencySchema = z.object({
   agencySlug: slug("This agency is no longer listed."),
   name,
   email,
   company,
-  budget: budget.optional().or(z.literal("")),
+  service: slug("Choose a service."),
+  industry: slug("Choose your niche."),
+  goal: z.enum(values(GOALS), { error: "Choose your main goal." }),
+  budget: z.enum(values(BUDGET_RANGES), { error: "Choose a budget range." }),
+  start: z.enum(values(START_TIMELINES), { error: "Choose when you want to start." }),
+  customerLocation: z
+    .string()
+    .trim()
+    .min(2, "Enter your country.")
+    .max(120, "Use 120 characters or fewer."),
   message: z
     .string()
     .trim()
     .min(20, "Tell the agency a bit more (at least 20 characters).")
     .max(2000, "Use 2,000 characters or fewer."),
+  consent: z.boolean().refine((v) => v, "Tick the box to send your request."),
   ...botFields,
 });
 export type ContactAgencyInput = z.infer<typeof contactAgencySchema>;

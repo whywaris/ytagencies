@@ -1,0 +1,306 @@
+<title>YT Agencies List Your Agency</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&display=swap">
+<script>
+(function(){var t='light';try{t=localStorage.getItem('yta-theme')||'light'}catch(e){}document.documentElement.setAttribute('data-site-theme',t)})();
+</script>
+<style>
+/* Layout: sales page for agencies. Centered hero with claim search over the soft glow, a real-numbers strip, three steps, a profile preview beside its benefits, Free vs Pro, FAQ, closing CTA. Public tokens; light by default. */
+:root{
+  --bg:#FBFBFD; --raised:#FFFFFF; --surface:#F3F4F7; --text:#16171A; --text-2:#5E626B; --line:#E2E3E8; --line-2:#EEEFF2;
+  --accent:#1F5EFF; --accent-ink:#FFFFFF; --accent-soft:#EAF0FF;
+  --violet:#7C5CFF; --violet-soft:#F0ECFF; --coral:#D1462A; --coral-soft:#FFEFEA; --mint:#0B7A5A; --mint-soft:#E5F7F0; --amber:#B26F00; --amber-soft:#FFF5E0; --pink:#C8326A; --pink-soft:#FDEAF1;
+  --g1:rgba(79,139,255,.28); --g2:rgba(167,139,250,.26); --g3:rgba(255,166,120,.22); --g4:rgba(80,220,170,.18);
+  --nav:rgba(251,251,253,.8);
+  --shadow:0 1px 2px rgba(20,25,40,.05),0 12px 32px -12px rgba(20,25,40,.16);
+  color-scheme:light;
+  --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+:root[data-site-theme="dark"]{
+  --bg:#0B0C10; --raised:#15161B; --surface:#1C1E24; --text:#F3F4F6; --text-2:#A0A4AD; --line:#2A2D35; --line-2:#20222A;
+  --accent:#6B9BFF; --accent-ink:#071026; --accent-soft:#17213A;
+  --violet:#A28BFF; --violet-soft:#221B3D; --coral:#FF8A6E; --coral-soft:#3A1E17; --mint:#3CCB9C; --mint-soft:#11302A; --amber:#F2B53A; --amber-soft:#33270E; --pink:#FF7AA5; --pink-soft:#3A1626;
+  --g1:rgba(79,139,255,.2); --g2:rgba(140,110,250,.18); --g3:rgba(255,140,100,.12); --g4:rgba(60,200,150,.1);
+  --nav:rgba(11,12,16,.75);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 16px 40px -12px rgba(0,0,0,.7);
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
+svg{flex:none}
+.mock{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;padding:8px 16px;background:var(--surface);font-size:12.5px;color:var(--text-2)}
+.mock button{border:1px solid var(--line);background:var(--raised);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:12.5px}
+.mock button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--nav);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line-2)}
+.nav-in{max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:36px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:-.02em;font-size:17px}
+.logo-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+.logo-mark svg{width:16px;height:16px;color:#fff}
+.links{display:flex;gap:28px;font-size:14.5px;color:var(--text-2)}
+.right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:14.5px}
+.icon-btn{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);background:var(--raised);border-radius:999px;cursor:pointer;color:var(--text-2)}
+.icon-btn svg{width:18px;height:18px}
+@media (max-width:880px){.links,.signin{display:none}.nav-in{padding:0 16px}}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 24px;border-radius:999px;font-size:15.5px;font-weight:600;border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:transform .15s,border-color .15s}
+.btn svg{width:16px;height:16px}
+.btn-sm{height:38px;padding:0 16px;font-size:14px}
+.btn-primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 1px 2px rgba(31,94,255,.3),0 8px 20px -6px rgba(31,94,255,.45)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-light{background:var(--raised);color:var(--text);border-color:var(--line)}
+.btn-light:hover{border-color:var(--text-2)}
+
+.wrap{max-width:1120px;margin:0 auto;padding-inline:24px}
+.sec{padding-block:88px}
+.tint{background:var(--surface)}
+h2{margin:0;font-size:clamp(28px,3.4vw,40px);font-weight:650;font-stretch:92%;letter-spacing:-.03em;line-height:1.08;text-wrap:balance}
+.sec-lede{font-size:17px;color:var(--text-2);margin:12px 0 0;max-width:36em}
+.center{text-align:center}
+.center .sec-lede{margin-inline:auto}
+
+/* hero */
+.hero{position:relative;isolation:isolate;overflow:hidden;padding:64px 24px 72px;text-align:center}
+.glow{position:absolute;inset:-10% -10% 10% -10%;z-index:-1;filter:blur(60px);pointer-events:none;background:radial-gradient(35% 50% at 22% 30%,var(--g1),transparent 70%),radial-gradient(35% 45% at 78% 22%,var(--g2),transparent 70%),radial-gradient(30% 40% at 62% 70%,var(--g3),transparent 70%),radial-gradient(30% 35% at 30% 75%,var(--g4),transparent 70%)}
+.offer{display:inline-flex;align-items:center;gap:10px;padding:6px 14px 6px 6px;border-radius:999px;background:var(--raised);border:1px solid var(--line);font-size:14px;color:var(--text-2)}
+.offer b{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:var(--amber-soft);color:var(--amber);font-size:12.5px;font-weight:650}
+h1{font-size:clamp(34px,5vw,58px);font-weight:650;font-stretch:90%;letter-spacing:-.035em;line-height:1.04;margin:24px auto 0;max-width:14em;text-wrap:balance}
+.hero .lede{font-size:18px;color:var(--text-2);margin:16px auto 0;max-width:34em}
+.search{display:flex;gap:8px;max-width:560px;margin:32px auto 0;padding:6px;border:1px solid var(--line);border-radius:999px;background:var(--raised);box-shadow:var(--shadow)}
+.search input{flex:1;min-width:0;border:0;background:transparent;padding:0 18px;font-size:16px}
+.search input:focus{outline:none}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft),var(--shadow)}
+.hint{margin:14px 0 0;font-size:14.5px;color:var(--text-2)}
+.hint a{color:var(--accent);font-weight:600}
+
+.results{max-width:560px;margin:16px auto 0;text-align:left;display:grid;gap:8px}
+.res{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--raised)}
+.res .av{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:650;font-size:14px}
+.res b{display:block;font-size:15px}
+.res span{font-size:13px;color:var(--text-2)}
+.res .act{margin-left:auto;text-align:right}
+.waiting{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--coral-soft);color:var(--coral);font-size:12px;font-weight:650;margin-bottom:6px}
+.req{font-size:13.5px;color:var(--text-2)}
+.req a{color:var(--accent);font-weight:600}
+
+/* numbers */
+.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:20px;background:var(--raised);overflow:hidden;margin-top:-24px;position:relative}
+.nums div{padding:22px 24px;border-right:1px solid var(--line-2);text-align:center}
+.nums div:last-child{border-right:0}
+.nums b{display:block;font-size:30px;font-weight:650;letter-spacing:-.025em}
+.nums span{font-size:13.5px;color:var(--text-2)}
+.nums-note{text-align:center;font-size:12.5px;color:var(--text-2);margin-top:10px}
+@media (max-width:640px){.nums{grid-template-columns:1fr}.nums div{border-right:0;border-bottom:1px solid var(--line-2)}}
+
+/* steps */
+.steps{list-style:none;margin:44px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px}
+.steps .n{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-weight:700;font-size:17px}
+.steps h3{margin:16px 0 6px;font-size:19px;font-weight:650;letter-spacing:-.01em}
+.steps p{margin:0;color:var(--text-2);font-size:15px}
+@media (max-width:820px){.steps{grid-template-columns:1fr;gap:24px}}
+
+/* preview */
+.prev-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center}
+.perks{list-style:none;margin:28px 0 0;padding:0;display:grid;gap:18px}
+.perks li{display:flex;gap:14px}
+.perks .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.perks .ic svg{width:20px;height:20px}
+.perks b{display:block;font-size:16px}
+.perks span{font-size:14.5px;color:var(--text-2)}
+.pcard{background:var(--raised);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:24px;transform:rotate(-1deg)}
+.p-head{display:flex;gap:14px;align-items:center}
+.p-logo{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,#4B3F6E,#7C5CFF);color:#fff;display:grid;place-items:center;font-weight:700}
+.p-head b{display:flex;align-items:center;gap:8px;font-size:20px;letter-spacing:-.02em}
+.vbadge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;background:var(--mint-soft);color:var(--mint);font-size:11.5px;font-weight:650}
+.p-head span{font-size:13px;color:var(--text-2)}
+.p-best{margin:14px 0 0;font-size:14.5px;color:var(--text-2)}
+.p-price{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px;border:1px solid var(--line-2);border-radius:14px;overflow:hidden}
+.p-price div{padding:12px;border-right:1px solid var(--line-2)}
+.p-price div:last-child{border-right:0}
+.p-price span{display:block;font-size:11.5px;color:var(--text-2)}
+.p-price b{font-size:15px}
+.p-chans{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.p-chans span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:5px 10px 5px 5px;border-radius:999px;background:var(--surface)}
+.p-chans i{width:20px;height:20px;border-radius:50%;display:inline-block}
+.p-cta{margin-top:16px;display:flex;gap:8px}
+.p-cta span{flex:1;height:38px;border-radius:999px;display:grid;place-items:center;font-size:13.5px;font-weight:600}
+@media (max-width:900px){.prev-grid{grid-template-columns:1fr;gap:40px}.pcard{transform:none}}
+
+/* plans */
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:44px;align-items:start}
+.plan{background:var(--raised);border:1px solid var(--line);border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:6px}
+.plan.feat{border:2px solid var(--accent);box-shadow:var(--shadow)}
+.plan h3{margin:0;font-size:18px;font-weight:650;display:flex;align-items:center;gap:8px}
+.plan .tag{font-size:11.5px;font-weight:650;color:var(--amber);background:var(--amber-soft);padding:2px 8px;border-radius:999px}
+.plan .price{font-size:34px;font-weight:650;letter-spacing:-.03em;margin-top:6px}
+.plan .price small{font-size:15px;color:var(--text-2);font-weight:500}
+.plan .was{font-size:13.5px;color:var(--text-2)}
+.plan ul{list-style:none;margin:16px 0 20px;padding:16px 0 0;border-top:1px solid var(--line-2);display:grid;gap:10px;font-size:14.5px}
+.plan li{display:flex;gap:10px;align-items:flex-start}
+.plan li svg{width:16px;height:16px;color:var(--mint);margin-top:3px}
+.plan .btn{margin-top:auto;width:100%}
+.plans-note{text-align:center;font-size:14px;color:var(--text-2);margin:22px 0 0}
+@media (max-width:900px){.plans{grid-template-columns:1fr}}
+
+/* faq */
+.faq{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:64px}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 0;font-size:17px;font-weight:600}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary i{width:28px;height:28px;border-radius:50%;background:var(--surface);display:grid;place-items:center;flex:none;transition:transform .2s}
+.faq summary i::before{content:"";width:8px;height:8px;border-right:2px solid var(--text-2);border-bottom:2px solid var(--text-2);transform:translateY(-2px) rotate(45deg)}
+.faq details[open] summary i{transform:rotate(180deg)}
+.faq details p{margin:0 0 20px;color:var(--text-2);font-size:15.5px;max-width:42em}
+@media (max-width:900px){.faq{grid-template-columns:1fr;gap:24px}}
+
+.final{border-radius:32px;padding:56px 32px;text-align:center;background:linear-gradient(120deg,var(--violet-soft),var(--accent-soft) 45%,var(--coral-soft))}
+.final .ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+@media (max-width:560px){.wrap,.hero{padding-inline:16px}.sec{padding-block:64px}.search{border-radius:20px;flex-direction:column}.search input{height:46px}.search .btn{width:100%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="mock" role="group" aria-label="Mockup state">
+  <span>Mockup, sample data. Search result shows:</span>
+  <button type="button" data-r="none" aria-pressed="true">Nothing yet</button>
+  <button type="button" data-r="found" aria-pressed="false">Unclaimed</button>
+  <button type="button" data-r="taken" aria-pressed="false">Claimed by someone else</button>
+</div>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="logo" href="#"><span class="logo-mark"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 5h8M4 8h8M4 11h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>YT Agencies</a>
+    <nav class="links" aria-label="Main"><a href="#">Services</a><a href="#">Industries</a><a href="#">Guides</a><a href="#">How it works</a></nav>
+    <div class="right">
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch to dark mode"></button>
+      <a class="signin" href="#">Sign in</a>
+      <a class="btn btn-primary btn-sm" href="#">List your agency</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="glow" aria-hidden="true"></div>
+  <span class="offer"><b>Founding offer</b><span class="num">Pro free for 6 months. 37 of 50 spots left.</span></span>
+  <h1>Get found by businesses looking for YouTube help</h1>
+  <p class="lede">Business owners compare agencies here by industry, price and the channels you've worked on. Listing is free.</p>
+  <form class="search" id="sform" role="search">
+    <label for="q" class="sr" hidden>Agency name or website</label>
+    <input id="q" placeholder="Your agency name or website" aria-label="Your agency name or website" autocomplete="organization">
+    <button class="btn btn-primary" type="submit">Find my agency</button>
+  </form>
+  <p class="hint" id="hint">We may have listed you already. Not listed? <a href="#">Add your agency</a></p>
+  <div class="results" id="results" aria-live="polite"></div>
+</section>
+
+<div class="wrap">
+  <div class="nums num">
+    <div><b>1,240</b><span>business visitors this month</span></div>
+    <div><b>38</b><span>inquiries sent to agencies</span></div>
+    <div><b>64</b><span>agencies listed</span></div>
+  </div>
+  <p class="nums-note">Live numbers from the last 30 days. This strip is hidden until there are enough to show.</p>
+</div>
+
+<section class="sec">
+  <div class="wrap center">
+    <h2>Up and running in a few minutes</h2>
+    <p class="sec-lede">No sales calls, no setup fees.</p>
+    <ol class="steps" style="text-align:left">
+      <li><span class="n" style="background:var(--accent-soft);color:var(--accent)">1</span><h3>Claim or add your agency</h3><p>Find your listing and confirm it with an email on your website's domain, or add a new one.</p></li>
+      <li><span class="n" style="background:var(--violet-soft);color:var(--violet)">2</span><h3>Complete your profile</h3><p>Add your pricing, the industries you work in and the channels you've grown. Complete profiles rank higher.</p></li>
+      <li><span class="n" style="background:var(--mint-soft);color:var(--mint)">3</span><h3>Get inquiries</h3><p>Businesses contact you directly. Inquiries land in your inbox and your dashboard.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec tint">
+  <div class="wrap prev-grid">
+    <div>
+      <h2>A profile that shows your real work</h2>
+      <p class="sec-lede">Not another logo in a long list. Your profile shows what businesses actually need to decide.</p>
+      <ul class="perks">
+        <li><span class="ic" style="background:var(--accent-soft);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="m10.5 9.5 4 2.5-4 2.5v-5Z" fill="currentColor"/></svg></span><div><b>Channels you've worked on</b><span>With subscriber counts from YouTube. Clients can confirm them for you.</span></div></li>
+        <li><span class="ic" style="background:var(--amber-soft);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.3 4.5 3-2 3-4.5 3-4.5-1.3-4.5-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><div><b>Pricing up front</b><span>Businesses that contact you already know your starting price, so fewer calls go nowhere.</span></div></li>
+        <li><span class="ic" style="background:var(--mint-soft);color:var(--mint)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>A Verified badge you earn</b><span>Pass our checks and get a badge that can't be bought.</span></div></li>
+      </ul>
+    </div>
+    <div class="pcard" aria-hidden="true">
+      <div class="p-head"><span class="p-logo">NM</span><div><b>Northwake Media <span class="vbadge">✓ Verified</span></b><span>London, UK · 11–50 people · Since 2019</span></div></div>
+      <p class="p-best">Best for ecommerce and gaming brands with a $3k+ monthly budget.</p>
+      <div class="p-price num"><div><span>Starting price</span><b>$3,000/mo</b></div><div><span>Contract</span><b>3 months</b></div><div><span>Ad spend</span><b>Separate</b></div></div>
+      <div class="p-chans"><span><i style="background:#C8326A"></i>FitBox · 212K</span><span><i style="background:#7C5CFF"></i>Pixel Loot · 86K</span></div>
+      <div class="p-cta"><span style="background:var(--accent);color:var(--accent-ink)">Contact</span><span style="border:1px solid var(--line)">Visit website</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap center">
+    <h2>Start free. Upgrade when it's working.</h2>
+    <p class="sec-lede">Every listing is free. Pro puts you higher and keeps businesses on your profile.</p>
+    <div class="plans" style="text-align:left">
+      <div class="plan"><h3>Free</h3><div class="price">$0</div><div class="was">Forever</div>
+        <ul><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Full profile with pricing</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Inquiries from businesses</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>2 case studies</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>30 days of analytics</li></ul>
+        <a class="btn btn-light" href="#">Add your agency</a></div>
+      <div class="plan feat"><h3>Pro <span class="tag">Founding offer</span></h3><div class="price">$0<small> for 6 months</small></div><div class="was num">Then $29/mo or $249/yr. No card needed now.</div>
+        <ul><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Everything in Free</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Link to your website</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>No other agencies on your profile</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Listed above Free agencies</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Unlimited case studies, 12 months of analytics</li></ul>
+        <a class="btn btn-primary" href="#">Claim a Founding spot</a></div>
+      <div class="plan"><h3>Sponsored</h3><div class="price">$49<small>+/mo</small></div><div class="was">Per directory page</div>
+        <ul><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Top 3 spot on a page you choose</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Always labeled Sponsored</li><li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>For Pro agencies with the Verified badge</li></ul>
+        <a class="btn btn-light" href="#">Contact us</a></div>
+    </div>
+    <p class="plans-note">Rankings can't be bought. Sponsored spots are labeled, and the Verified badge is only given when our checks pass. <a href="#" style="color:var(--accent);font-weight:600">How we rank</a></p>
+  </div>
+</section>
+
+<section class="sec tint">
+  <div class="wrap faq">
+    <div><h2>Questions agencies ask</h2><p class="sec-lede">Anything else? Email help@ytagencies.com.</p></div>
+    <div>
+      <details open><summary>Is listing really free?<i aria-hidden="true"></i></summary><p>Yes. A full profile and inquiries from businesses are free for as long as you like. Pro is optional.</p></details>
+      <details><summary>You already listed my agency. Why?<i aria-hidden="true"></i></summary><p>We list agencies from public information so businesses can compare them. Claim your listing to correct anything, add your work and receive inquiries. You can also ask us to remove it.</p></details>
+      <details><summary>Can I pay to rank higher?<i aria-hidden="true"></i></summary><p>Pro agencies are listed above Free ones, and Sponsored spots sit at the top of a page with a clear label. Inside each group, the order depends on verification, profile completeness, reviews and reply time.</p></details>
+      <details><summary>How do I get the Verified badge?<i aria-hidden="true"></i></summary><p>Confirm a work email on your website's domain, and we review your business details. Add the channels you've worked on and we ask the channel owners to confirm. The badge is free and can't be bought.</p></details>
+      <details><summary>What happens after the 6 Founding months?<i aria-hidden="true"></i></summary><p>We email you before it ends. If you don't choose Pro, your listing moves to Free and stays live. Nothing is charged automatically.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap"><div class="final">
+    <h2>Your next client may already be looking</h2>
+    <p class="sec-lede" style="margin-inline:auto">Find your listing or add your agency. It takes about five minutes.</p>
+    <div class="ctas"><a class="btn btn-primary" href="#q">Find my agency</a><a class="btn btn-light" href="#">Add your agency</a></div>
+  </div></div>
+</section>
+
+<script>
+(function(){
+  var root=document.documentElement,btn=document.getElementById('theme');
+  var sun='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  var moon='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  function dark(){return root.getAttribute('data-site-theme')==='dark'}
+  function paint(){var d=dark();btn.innerHTML=d?sun:moon;btn.setAttribute('aria-label',d?'Switch to light mode':'Switch to dark mode')}
+  btn.addEventListener('click',function(){var t=dark()?'light':'dark';root.setAttribute('data-site-theme',t);try{localStorage.setItem('yta-theme',t)}catch(e){}paint()});
+  paint();
+
+  var res=document.getElementById('results'),hint=document.getElementById('hint');
+  var views={
+    none:'',
+    found:'<div class="res"><span class="av" style="background:#4B3F6E">NM</span><div><b>Northwake Media</b><span>northwakemedia.com · Influencer marketing</span></div><div class="act"><span class="waiting num">2 inquiries waiting</span><br><a class="btn btn-primary btn-sm" href="#">Claim this listing</a></div></div>',
+    taken:'<div class="res"><span class="av" style="background:#0B7A5A">GA</span><div><b>Goat Agency</b><span>goatagency.com · Influencer marketing</span></div><div class="act req">Already claimed<br><a href="#">Is this your agency? Request access</a></div></div>'
+  };
+  function show(k){
+    document.querySelectorAll('.mock button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.r===k))});
+    res.innerHTML=views[k];
+    hint.innerHTML=k==='none'?'We may have listed you already. Not listed? <a href="#">Add your agency</a>':'Not the right one? <a href="#">Add your agency</a>';
+  }
+  document.querySelectorAll('.mock button').forEach(function(b){b.addEventListener('click',function(){show(b.dataset.r)})});
+  document.getElementById('sform').addEventListener('submit',function(e){e.preventDefault();show('found')});
+  document.addEventListener('click',function(e){var a=e.target.closest('a[href="#"]');if(a)e.preventDefault()});
+})();
+</script>

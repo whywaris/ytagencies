@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { qualityScore, rankAgencies, sponsoredEnabled } from "../src/lib/ranking.ts";
+import { qualityScore, rankAgencies, rankGroup, sponsoredEnabled } from "../src/lib/ranking.ts";
 
 const empty = {
   hasLogo: false,
@@ -69,7 +69,13 @@ test("quality score: without reply data the other 90 points are scaled to 100", 
   assert.equal(qualityScore({ ...empty, verification: "withStats", responseMinutes: 60 }), 37);
 });
 
-const a = (id, isVerified, quality, name = id) => ({ id, name, isVerified, quality });
+const a = (id, isVerified, quality, name = id) => ({
+  id,
+  name,
+  isVerified,
+  quality,
+  managed: false,
+});
 
 const mixed = [
   { ...a("free-hi", false, 90), managed: false },
@@ -79,21 +85,31 @@ const mixed = [
   { ...a("spon", false, 1), managed: true },
 ];
 
-test("order: verified, then everyone else, each by quality then name; Pro has no effect", () => {
+test("order: Verified + Pro, Pro, Verified, everyone else; each by quality then name", () => {
   const ranked = rankAgencies(mixed, [], false);
   assert.deepEqual(
     ranked.map((r) => r.id),
-    ["ver-pro", "ver-lo", "free-hi", "pro-lo", "spon"],
-  );
-  // Flipping every agency's plan changes nothing.
-  const flipped = rankAgencies(
-    mixed.map((m) => ({ ...m, managed: !m.managed })),
-    [],
-    false,
+    ["ver-pro", "pro-lo", "spon", "ver-lo", "free-hi"],
   );
   assert.deepEqual(
-    flipped.map((r) => r.id),
+    ranked.map((r) => rankGroup(r)),
+    [0, 1, 1, 2, 3],
+  );
+});
+
+test("the four groups, whatever the scores", () => {
+  const ranked = rankAgencies(
+    [
+      { ...a("rest", false, 100), managed: false },
+      { ...a("verified", true, 99), managed: false },
+      { ...a("pro", false, 1), managed: true },
+      { ...a("both", true, 0), managed: true },
+    ],
+    [],
+  );
+  assert.deepEqual(
     ranked.map((r) => r.id),
+    ["both", "pro", "verified", "rest"],
   );
 });
 
@@ -104,16 +120,17 @@ test("Sponsored off (the default): slot holders get no group and no label", () =
   assert.equal(sponsoredEnabled({ SPONSORED_ENABLED: " true " }), true);
   const ranked = rankAgencies(mixed, ["spon"], false);
   assert.ok(ranked.every((r) => !r.sponsored));
-  assert.equal(ranked.at(-1).id, "spon");
+  // Just a Pro agency in its group, behind the better-scored one.
+  assert.equal(ranked[2].id, "spon");
   // And the default reads SPONSORED_ENABLED, which tests don't set.
   assert.ok(rankAgencies(mixed, ["spon"]).every((r) => !r.sponsored));
 });
 
-test("Sponsored on: slot holders first, then verified, then everyone else", () => {
+test("Sponsored on: slot holders first, then the four groups", () => {
   const ranked = rankAgencies(mixed, ["spon"], true);
   assert.deepEqual(
     ranked.map((r) => r.id),
-    ["spon", "ver-pro", "ver-lo", "free-hi", "pro-lo"],
+    ["spon", "ver-pro", "pro-lo", "ver-lo", "free-hi"],
   );
   assert.deepEqual(
     ranked.map((r) => r.sponsored),
@@ -121,7 +138,7 @@ test("Sponsored on: slot holders first, then verified, then everyone else", () =
   );
 });
 
-test("Pro doesn't change the order: a free, complete profile outranks a thin Pro one", () => {
+test("Pro comes before free: a thin Pro profile is shown before a complete free one", () => {
   const free = {
     ...empty,
     hasLogo: true,
@@ -141,11 +158,11 @@ test("Pro doesn't change the order: a free, complete profile outranks a thin Pro
   );
   assert.deepEqual(
     ranked.map((r) => r.id),
-    ["free", "pro"],
+    ["pro", "free"],
   );
 });
 
-test("verified always above unverified, whatever the scores", () => {
+test("on the same plan, verified always above unverified, whatever the scores", () => {
   const ranked = rankAgencies([a("top", false, 100), a("low", true, 1)], []);
   assert.deepEqual(
     ranked.map((r) => r.id),

@@ -2,6 +2,7 @@ import { BadgeCheck, MapPin, Shapes, Users } from "lucide-react";
 import Link from "next/link";
 
 import { AgencyLogo } from "@/components/agency-logo";
+import { ProBadge } from "@/components/pro-badge";
 import { Badge } from "@/components/ui/badge";
 import type { AgencyListItem } from "@/lib/data/agencies";
 import { cardActions, formatUsd, priceSuffix, pricingName } from "@/lib/directory";
@@ -52,6 +53,7 @@ export function AgencyCard({
                 Verified
               </Badge>
             )}
+            {a.managed && <ProBadge />}
             {a.sponsored && <Badge variant="sponsored">Sponsored</Badge>}
           </div>
           {a.tagline && <p className="line-clamp-1 text-text-2">{a.tagline}</p>}

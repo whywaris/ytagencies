@@ -39,15 +39,22 @@ test("popular combos: industry pages only, most agencies first; none when no liv
   assert.deepEqual(popularIndustryCombos([], 4), []);
 });
 
-const ag = (id, isVerified = false, quality = 0) => ({ id, name: id, isVerified, quality });
+const ag = (id, isVerified = false, quality = 0, managed = false) => ({
+  id,
+  name: id,
+  isVerified,
+  managed,
+  quality,
+});
 
-test("agencies: one sponsored first, then views, then merit (verified, score, name)", () => {
+test("agencies: one sponsored first, then the ranking groups, then views, score, name", () => {
   const list = [
     ag("plain", false, 50),
     ag("ver", true, 10),
     ag("viewed"),
     ag("s1", true),
     ag("s2", true, 5),
+    ag("pro", false, 0, true),
   ];
   const picked = pickHomeAgencies(list, {
     sponsoredIds: ["missing", "s1", "s2"],
@@ -57,12 +64,26 @@ test("agencies: one sponsored first, then views, then merit (verified, score, na
     picked.map((a) => [a.id, a.sponsored]),
     [
       ["s1", true],
-      ["viewed", false],
+      ["pro", false],
       ["ver", false],
       ["s2", false],
+      ["viewed", false],
       ["plain", false],
     ],
   );
+});
+
+test("home picks use the same groups as lib/ranking.ts", async () => {
+  const { rankGroup } = await import("../src/lib/ranking.ts");
+  for (const managed of [true, false])
+    for (const isVerified of [true, false]) {
+      const first = pickHomeAgencies(
+        [ag("x", isVerified, 0, managed), ag("a", false, 0, false), ag("b", false, 0, false)],
+        { sponsoredIds: [], views: { a: 99, b: 98 } },
+      );
+      const expectFirst = rankGroup({ managed, isVerified }) < 3 ? "x" : "a";
+      assert.equal(first[0].id, expectFirst);
+    }
 });
 
 test("agencies: max 6", () => {

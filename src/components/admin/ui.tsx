@@ -80,8 +80,8 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export const PLAN_LABEL: Record<string, string> = {
-  // No live Pro subscription: listed, but nobody manages it.
-  free: "Unmanaged",
+  // No live Pro subscription.
+  free: "Free",
   // Old plan ids, still in older audit log entries.
   founding: "Founding (now Pro)",
   pro: "Pro",

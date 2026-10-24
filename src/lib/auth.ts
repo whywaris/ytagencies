@@ -48,7 +48,7 @@ async function ownedBy(column: "id" | "slug", value: string) {
   const { data, error } = await supabase
     .from("agencies")
     .select(
-      "id, slug, name, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, logo_path, status, calendly_url, whatsapp_number",
+      "id, slug, name, tagline, website, founded_year, team_size, languages, description, min_budget_usd, pricing_model, min_contract, ad_spend, setup_fee_usd, logo_path, status, calendly_url, whatsapp_number",
     )
     .eq(column, value)
     .eq("owner_id", user.id)

@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata = { title: "Plans" };
 
-// "free" = unmanaged: listed, no live Pro subscription.
+// "free" = no live Pro subscription.
 const TABS = ["pro", "free"] as const;
 const SOURCE: Record<string, string> = {
   manual: "Manual",
@@ -88,10 +88,10 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
       <div className="flex max-w-reading flex-col gap-1">
         <h1 className="text-admin-title">Plans</h1>
         <p className="text-text-2">
-          Listings are free; managing one needs Pro. Agencies buy Pro through Lemon Squeezy (source Payment)
+          Listings are free and owners edit them on Free; client details, the Pro badge and placement need Pro. Agencies buy Pro through Lemon Squeezy (source Payment)
           once payments are on; you can still grant it by hand (Change plan, source Manual), e.g.
-          after a Pro request in the Inbox. When Pro ends, the listing stays public but unmanaged:
-          no contact form, editing locked. Ending a paid plan here doesn&apos;t cancel it in Lemon Squeezy:
+          after a Pro request in the Inbox. When Pro ends, the listing goes back to Free: request
+          previews only, no Pro badge. Ending a paid plan here doesn&apos;t cancel it in Lemon Squeezy:
           cancel or refund it in the Lemon Squeezy dashboard too.
         </p>
       </div>
@@ -154,7 +154,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
 
         {tab === "free" ? (
           rows.data.length === 0 ? (
-            <Empty>No unmanaged agencies.</Empty>
+            <Empty>No agencies on Free.</Empty>
           ) : (
             <>
               <Table>
@@ -193,7 +193,7 @@ export default async function AdminPlansPage({ searchParams }: PageProps<"/admin
           )
         ) : rows.data.length === 0 ? (
           <Empty
-            action={{ href: "/admin/plans?plan=free", label: "Grant Pro to an unmanaged agency" }}
+            action={{ href: "/admin/plans?plan=free", label: "Grant Pro to an agency on Free" }}
           >
             No agencies on {PLAN_LABEL[tab]} yet.
           </Empty>

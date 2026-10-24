@@ -5,7 +5,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { proFeatures } from "../src/lib/entitlements.ts";
+import { freeFeatures, proFeatures } from "../src/lib/entitlements.ts";
 import { PRICING_REDIRECTS, PROPOSALS_REDIRECTS } from "../src/lib/moved-pages.ts";
 import { checkoutHref, perMonth } from "../src/lib/pricing.ts";
 
@@ -25,18 +25,27 @@ test("the period toggle drives the checkout period", () => {
   assert.equal(perMonth(240), "$20");
 });
 
-test("Pro's features are the entitlements' list, in the model's order", () => {
+test("Pro's features are the entitlements' list, leading with client details", () => {
   assert.deepEqual(proFeatures(), [
-    "Contact form on your profile, inquiries to your inbox",
-    "Project requests that fit your services",
+    "See client details and reply to every request",
+    "Unlimited case studies",
+    "Pro badge, and shown before free listings in the directory",
     "No other agencies suggested on your profile",
     "Direct booking buttons (Calendly link and WhatsApp) on your profile",
-    "Edit your profile any time: case studies, channels, prices",
-    "Website link tagged so you can track visits",
+    "YouTube channels you work on, with live stats",
     "12 months of profile analytics",
   ]);
-  // Pro doesn't change the order (lib/ranking.ts), and nothing is guaranteed.
-  assert.ok(!proFeatures().some((x) => /above|rank|guarantee/i.test(x)));
+  // Nothing is guaranteed, and nothing Free already has is sold again.
+  assert.ok(!proFeatures().some((x) => /guarantee|leads per/i.test(x)));
+  assert.ok(!proFeatures().some((x) => freeFeatures().includes(x)));
+});
+
+test("Free's features: editing, request previews and 3 case studies", () => {
+  assert.deepEqual(freeFeatures(), [
+    "Preview of every request sent to you (service, niche, budget, timeline)",
+    "Edit logo, description, prices, services, industries and locations",
+    "Up to 3 case studies",
+  ]);
 });
 
 test("/pricing shows two plans (Free, Pro) and no Sponsored or $49", () => {

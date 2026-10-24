@@ -5,6 +5,6 @@ export const PAGE_UPDATED = {
   "/terms": "2026-10-24",
   "/cookies": "2026-10-13",
   "/refunds": "2026-10-24",
-  "/disclosure": "2026-10-23",
-  "/editorial-policy": "2026-10-23",
+  "/disclosure": "2026-10-24",
+  "/editorial-policy": "2026-10-24",
 } as const;

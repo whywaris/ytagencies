@@ -67,7 +67,7 @@ test("FAQs with many agencies: ranges, counts only when they exist", () => {
   assert.doesNotMatch(none, /\b0\b/);
 });
 
-test("ranking answer: merit order, Pro doesn't change it, the same text on every page", () => {
+test("ranking answer: four groups, Pro labelled, the same text on every page", () => {
   for (const list of [
     [],
     [agency()],
@@ -78,22 +78,19 @@ test("ranking answer: merit order, Pro doesn't change it, the same text on every
     ).answer;
     assert.equal(answer, RANKING_ANSWER);
   }
-  assert.match(RANKING_ANSWER, /^Verified agencies come first, then everyone else/);
-  assert.match(RANKING_ANSWER, /Paying for Pro never changes the order/);
+  assert.match(RANKING_ANSWER, /^Pro agencies are shown first and always carry a Pro badge/);
+  assert.match(RANKING_ANSWER, /Verified and Pro, then Pro, then Verified, then everyone else/);
+  assert.match(RANKING_ANSWER, /Verified is earned and can't be bought/);
   assert.doesNotMatch(RANKING_ANSWER, /sponsor/i);
 });
 
-test("Contact agency only for managed agencies; View profile always", () => {
+test("every card: Request a quote and View profile, Pro or not", () => {
   assert.deepEqual(
-    cardActions({ slug: "acme", managed: true }).map((a) => [a.label, a.href, a.primary]),
+    cardActions({ slug: "acme" }).map((a) => [a.label, a.href, a.primary]),
     [
-      ["Contact agency", "/agency/acme#contact", true],
+      ["Request a quote", "/agency/acme#contact", true],
       ["View profile", "/agency/acme", false],
     ],
-  );
-  assert.deepEqual(
-    cardActions({ slug: "acme", managed: false }).map((a) => a.label),
-    ["View profile"],
   );
 });
 

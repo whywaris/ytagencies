@@ -1,5 +1,4 @@
 import { CaseStudies } from "@/components/dashboard/case-studies";
-import { Paywall } from "@/components/dashboard/paywall";
 import { deleteCaseStudy, saveCaseStudy } from "@/lib/actions/dashboard";
 import { dashboardContext } from "@/lib/data/dashboard";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
@@ -11,8 +10,6 @@ export default async function CaseStudiesPage({
   params,
 }: PageProps<"/dashboard/[slug]/case-studies">) {
   const ctx = await dashboardContext((await params).slug);
-  if (!ctx.e.canEdit)
-    return <Paywall ctx={ctx} unlocks="With Pro you can add case studies with real numbers." />;
   const { agency, supabase } = ctx;
   const [caseStudies, industries, services] = await Promise.all([
     supabase
@@ -29,9 +26,16 @@ export default async function CaseStudiesPage({
 
   return (
     <section aria-labelledby="case-studies" className="flex flex-col gap-6">
-      <h2 id="case-studies" className="text-h2">
-        Case studies
-      </h2>
+      <div className="flex flex-col gap-1.5">
+        <h2 id="case-studies" className="text-h2">
+          Case studies
+        </h2>
+        {ctx.e.caseStudies !== Infinity && (
+          <p className="text-text-2">
+            Free includes up to {ctx.e.caseStudies} case studies on your profile. Pro has no limit.
+          </p>
+        )}
+      </div>
       <CaseStudies
         actions={{ save: saveCaseStudy, remove: deleteCaseStudy }}
         agencyId={agency.id}

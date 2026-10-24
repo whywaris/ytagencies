@@ -1,9 +1,10 @@
 // Who manages a listing, and what that unlocks. Pure rules with no imports, so tests load this
 // file directly; getEntitlements() in lib/data/entitlements.ts feeds it from the database.
 //
-// Listings are free and can exist without an owner. Managing one needs Pro ($29/month or
-// $279/year). There's no free managed plan: everything without a live Pro subscription is
-// "unmanaged" (still public, with the data we hold, but nobody to contact).
+// Listings are free and can exist without an owner. A claimed listing's owner edits the basics on
+// Free; Pro ($29/month or $279/year) adds client details and replies, booking buttons, no similar
+// agencies, unlimited case studies, analytics, the Pro badge and Pro placement. "Managed" means a
+// live Pro subscription.
 
 export type Subscription = {
   plan_id: string;
@@ -20,31 +21,36 @@ export type Subscription = {
 export const PAST_DUE_GRACE_DAYS = 7;
 
 export type Entitlements = {
-  /** A live Pro subscription: someone at the agency manages the listing. */
+  /** A live Pro subscription. */
   managed: boolean;
   /** "pro" while managed, otherwise "none". */
   plan: "pro" | "none";
-  /** Inquiries: the profile's contact form, project request routing, lead and reminder emails. */
-  contactForm: boolean;
-  websiteLink: boolean;
-  utmLinks: boolean;
-  /** "Usually replies within …" and Mark as contacted. */
+  /** Owners edit the basics (logo, copy, prices, services, industries, locations, website…) on any plan. */
+  canEdit: boolean;
+  /** Pro: a lead's contact details (name, email, website, channel, message) and replying. Free owners see a preview. */
+  leadDetails: boolean;
+  /** "Usually replies within …" and Mark as contacted (needs the contact details). */
   responseTime: boolean;
-  /** Unmanaged profiles point visitors to similar (managed) agencies instead. */
+  /** Profiles not on Pro suggest similar agencies; Pro profiles don't. */
   showSimilarAgencies: boolean;
-  /** Case studies shown; all of them either way (what an admin entered still shows). */
+  /** Case studies an owner can add and the profile shows: 3 on Free, unlimited on Pro. */
   caseStudies: number;
-  /** Profile analytics history in the dashboard. */
+  /** Profile analytics history in the dashboard (Pro only). */
   analyticsDays: number;
-  /** Sponsored slots (switched off unless SPONSORED_ENABLED, lib/ranking.ts). */
-  canBuySponsored: boolean;
   /** Calendly and WhatsApp buttons on the profile. */
   bookingButtons: boolean;
-  /** Owners can edit their listing only while managed. */
-  canEdit: boolean;
-  /** Earned by verification, managed or not. */
+  /** YouTube channels on the profile (Pro only). */
+  channels: boolean;
+  /** The gold Pro badge and Pro placement in the directory (lib/ranking.ts). */
+  proBadge: boolean;
+  /** Sponsored slots (switched off unless SPONSORED_ENABLED, lib/ranking.ts). */
+  canBuySponsored: boolean;
+  /** Earned by verification, on any plan. Never bought, never combined with the Pro badge. */
   verifiedBadge: boolean;
 };
+
+/** Case studies on Free. */
+export const FREE_CASE_STUDIES = 3;
 
 /** The live Pro subscription at `now`, if any (see isManaged). */
 export function liveSubscription<T extends Subscription>(subscriptions: T[], now = new Date()) {
@@ -82,37 +88,51 @@ export function entitlementsFor({
   return {
     managed,
     plan: managed ? "pro" : "none",
-    contactForm: managed,
-    websiteLink: managed,
-    utmLinks: managed,
+    canEdit: true,
+    leadDetails: managed,
     responseTime: managed,
     showSimilarAgencies: !managed,
-    caseStudies: Infinity,
-    analyticsDays: managed ? 365 : 30,
-    canBuySponsored: managed,
+    caseStudies: managed ? Infinity : FREE_CASE_STUDIES,
+    analyticsDays: managed ? 365 : 0,
     bookingButtons: managed,
-    canEdit: managed,
+    channels: managed,
+    proBadge: managed,
+    canBuySponsored: managed,
     verifiedBadge: verificationApproved,
   };
 }
 
 /**
  * What a listing includes, from its entitlements: the billing page and the upgrade dialog show
- * every row with its value, /pricing and the paywall list Pro's `feature` lines. One list, so
- * they never disagree. Never promise leads, rankings or results here.
+ * every row with its value, /pricing lists each plan's `feature` lines. One list, so they never
+ * disagree. Never promise leads, rankings or results here. Pro's first line leads.
  */
 export function planIncludes(e: Entitlements) {
   const yes = (b: boolean) => (b ? "Yes" : "No");
   return [
     {
-      label: "Contact form and inquiries",
-      value: yes(e.contactForm),
-      feature: e.contactForm ? "Contact form on your profile, inquiries to your inbox" : null,
+      label: "Client details on requests",
+      value: e.leadDetails ? "Name, email and message; reply directly" : "Preview only",
+      feature: e.leadDetails
+        ? "See client details and reply to every request"
+        : "Preview of every request sent to you (service, niche, budget, timeline)",
     },
     {
-      label: "Project requests",
-      value: yes(e.managed),
-      feature: e.managed ? "Project requests that fit your services" : null,
+      label: "Edit your profile",
+      value: yes(e.canEdit),
+      feature: e.canEdit
+        ? "Edit logo, description, prices, services, industries and locations"
+        : null,
+    },
+    {
+      label: "Case studies",
+      value: e.caseStudies === Infinity ? "Unlimited" : `Up to ${e.caseStudies}`,
+      feature: e.caseStudies === Infinity ? "Unlimited case studies" : `Up to ${e.caseStudies} case studies`,
+    },
+    {
+      label: "Pro badge and placement",
+      value: e.proBadge ? "Gold Pro badge, shown first in its group" : "No",
+      feature: e.proBadge ? "Pro badge, and shown before free listings in the directory" : null,
     },
     {
       label: "Other agencies suggested on your profile",
@@ -127,18 +147,13 @@ export function planIncludes(e: Entitlements) {
         : null,
     },
     {
-      label: "Edit your profile",
-      value: yes(e.canEdit),
-      feature: e.canEdit ? "Edit your profile any time: case studies, channels, prices" : null,
+      label: "YouTube channels on your profile",
+      value: yes(e.channels),
+      feature: e.channels ? "YouTube channels you work on, with live stats" : null,
     },
     {
-      label: "Link to your website",
-      value: e.websiteLink ? "Yes, tagged so you can track visits" : "No",
-      feature: e.websiteLink ? "Website link tagged so you can track visits" : null,
-    },
-    {
-      label: "Analytics history",
-      value: e.analyticsDays >= 365 ? "12 months" : "30 days",
+      label: "Analytics",
+      value: e.analyticsDays >= 365 ? "12 months" : "No",
       feature: e.analyticsDays >= 365 ? "12 months of profile analytics" : null,
     },
   ];
@@ -156,9 +171,14 @@ export const FREE_ENTITLEMENTS = entitlementsFor({
   verificationApproved: false,
 });
 
-/** Pro's feature lines: /pricing, billing and the paywall. */
-export const proFeatures = () =>
-  planIncludes(PRO_ENTITLEMENTS).flatMap((r) => (r.feature ? [r.feature] : []));
+const features = (e: Entitlements) => planIncludes(e).flatMap((r) => (r.feature ? [r.feature] : []));
+/** What Pro adds on top of Free (lines Free also has are left out): /pricing, billing, paywall. */
+export const proFeatures = () => {
+  const free = new Set(features(FREE_ENTITLEMENTS));
+  return features(PRO_ENTITLEMENTS).filter((f) => !free.has(f));
+};
+/** Free's feature lines: /pricing. */
+export const freeFeatures = () => features(FREE_ENTITLEMENTS);
 
 /** Free vs Pro, row by row (the dashboard's upgrade dialog). */
 export const planComparison = () => {

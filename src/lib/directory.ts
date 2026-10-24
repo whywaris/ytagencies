@@ -100,7 +100,7 @@ export function defaultHowToChoose(service: Service, segment?: Segment) {
 
 /** The directory pages' "How are these agencies ranked?" answer (lib/ranking.ts). */
 export const RANKING_ANSWER =
-  "Verified agencies come first, then everyone else, each sorted by quality score. Paying for Pro never changes the order, and the Verified badge can't be bought.";
+  "Pro agencies are shown first and always carry a Pro badge: Verified and Pro, then Pro, then Verified, then everyone else. Within each group, agencies are sorted by the same quality score. Verified is earned and can't be bought.";
 
 /** FAQs built from the agencies on the page, used when no hand-written FAQs exist. A sentence
  * only appears when its data exists: no zero counts. */
@@ -210,7 +210,7 @@ export function monthYear(dates: (string | null | undefined)[]) {
 
 export type Sort = "recommended" | "budget";
 
-/** Recommended keeps the ranking (verified → everyone else); budget: lowest minimum first,
+/** Recommended keeps the ranking (lib/ranking.ts groups); budget: lowest minimum first,
  * agencies without one last. */
 export function sortAgencies<T extends Pick<AgencyListItem, "minBudgetUsd">>(
   list: T[],
@@ -220,11 +220,11 @@ export function sortAgencies<T extends Pick<AgencyListItem, "minBudgetUsd">>(
   return [...list].sort((a, b) => (a.minBudgetUsd ?? Infinity) - (b.minBudgetUsd ?? Infinity));
 }
 
-/** Card buttons: Contact only for managed (Pro) agencies, which answer inquiries. */
-export function cardActions(a: Pick<AgencyListItem, "slug" | "managed">) {
+/** Card buttons: every profile takes quote requests (lib/profile-mode.ts). */
+export function cardActions(a: Pick<AgencyListItem, "slug">) {
   const profile = `/agency/${a.slug}`;
   return [
-    ...(a.managed ? [{ label: "Contact agency", href: `${profile}#contact`, primary: true }] : []),
+    { label: "Request a quote", href: `${profile}#contact`, primary: true },
     { label: "View profile", href: profile, primary: false },
   ];
 }

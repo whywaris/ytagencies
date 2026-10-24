@@ -31,7 +31,7 @@ export async function sendLeadReminders() {
   let sent = 0;
   for (const r of data) {
     const ownerId = r.agencies?.owner_id;
-    // Managed agencies only: an unmanaged (lapsed) listing gets no more inquiry emails.
+    // Pro only: free owners get a preview without the business's name, so nothing to remind.
     if (!ownerId || !r.leads || !placement.entitlements(r.agency_id).managed) continue;
     const { data: owner } = await db.auth.admin.getUserById(ownerId);
     const to = owner.user?.email;

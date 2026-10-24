@@ -33,7 +33,7 @@ const sections: LegalSection[] = [
       <p>
         You can cancel monthly Pro at any time. You keep Pro until the end of the month you&apos;ve
         paid for, and it doesn&apos;t renew after that. We don&apos;t refund part of a month. When
-        Pro ends, your listing stays public but unmanaged, and we keep your details.
+        Pro ends, your listing goes back to the free plan, and we keep your details.
       </p>
     ),
   },

@@ -7,7 +7,7 @@ export const metadata = { title: "Channels" };
 
 export default async function ChannelsPage({ params }: PageProps<"/dashboard/[slug]/channels">) {
   const ctx = await dashboardContext((await params).slug);
-  if (!ctx.e.canEdit)
+  if (!ctx.e.channels)
     return <Paywall ctx={ctx} unlocks="With Pro you can list the channels you've worked on." />;
   const { agency, supabase } = ctx;
   const [channels, industries] = await Promise.all([

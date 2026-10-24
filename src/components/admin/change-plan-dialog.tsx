@@ -16,7 +16,7 @@ const PLANS = [
   },
   {
     id: "free",
-    hint: "Ends the subscription. The listing stays public but unmanaged: no contact form, editing locked.",
+    hint: "Ends the subscription. The listing goes back to Free: request previews only, no Pro badge.",
   },
 ] as const;
 

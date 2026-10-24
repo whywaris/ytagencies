@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
-import { getEntitlements } from "@/lib/data/entitlements";
+import { previewCountry, redactSummary } from "@/lib/lead-preview";
 import { getPublishedAgency, matchAgencies, queueLeadEmails, saveLead } from "@/lib/leads";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getIndexableCombos } from "@/lib/data/agencies";
@@ -130,8 +130,10 @@ export async function submitGetMatched(raw: unknown): Promise<FormResult<Matched
         channel_url: input.channelUrl || null,
         customer_location: input.customerLocation || null,
         prior_agency: input.priorAgency || null,
+        summary: redactSummary(input.message, { name: input.name }) || null,
       },
       agencies,
+      "match",
     );
 
     queueLeadEmails({
@@ -151,6 +153,15 @@ export async function submitGetMatched(raw: unknown): Promise<FormResult<Matched
           ["Customers in", input.customerLocation || null],
           ["Worked with an agency before", choiceLabel(PRIOR_AGENCY, input.priorAgency)],
         ],
+      },
+      preview: {
+        service: service.data.name,
+        industry: industry.data.name,
+        budget: budgetLabel(input.budget),
+        timeline: choiceLabel(START_TIMELINES, input.start),
+        goal: choiceLabel(GOALS, input.goal),
+        country: previewCountry(input.customerLocation),
+        summary: redactSummary(input.message, { name: input.name }) || null,
       },
       agencies,
     });
@@ -199,28 +210,48 @@ export async function contactAgency(raw: unknown): Promise<FormResult<Contacted>
   if (blocked) return blocked;
 
   try {
-    const agency = await getPublishedAgency(input.agencySlug);
+    const admin = createAdminClient();
+    const [agency, service, industry] = await Promise.all([
+      getPublishedAgency(input.agencySlug),
+      admin.from("services").select("id, name").eq("slug", input.service).maybeSingle(),
+      admin.from("industries").select("id, name").eq("slug", input.industry).maybeSingle(),
+    ]);
     if (!agency) return { ok: false, error: "This agency is no longer listed." };
-    // Unmanaged listings have nobody to pass messages to (the profile shows Request proposals instead).
-    if (!(await getEntitlements(agency.id)).contactForm)
+    if (!service.data || !industry.data)
       return {
         ok: false,
-        error: `${agency.name} hasn't joined YT Agencies yet, so we can't pass messages to them. Request proposals to reach similar agencies.`,
+        error: "Check the highlighted fields.",
+        fieldErrors: {
+          ...(!service.data && { service: "Choose a service." }),
+          ...(!industry.data && { industry: "Choose your niche." }),
+        },
       };
 
+    // Every profile takes requests (claimed or not, Pro or not); lib/leads.tsx decides who sees
+    // what, and lib/lead-fallback.tsx moves it on after 48 hours.
+    const summary = redactSummary(input.message, { name: input.name, company: input.company }) || null;
     const leadId = await saveLead(
       {
+        ref: `profile:${agency.slug}`,
+        agency_id: agency.id,
+        consent_fallback: input.consent,
         name: input.name,
         email: input.email,
         company: input.company || null,
-        service_id: null,
-        industry_id: null,
-        budget_range: input.budget || null,
+        service_id: service.data.id,
+        industry_id: industry.data.id,
+        budget_range: input.budget,
+        goal: input.goal,
+        start_timeline: input.start,
+        customer_location: input.customerLocation,
         message: input.message,
+        summary,
       },
       [agency],
+      "direct",
     );
 
+    const need = `${service.data.name} for ${industry.data.name}`;
     queueLeadEmails({
       leadId,
       kind: "contact",
@@ -228,8 +259,23 @@ export async function contactAgency(raw: unknown): Promise<FormResult<Contacted>
         name: input.name,
         email: input.email,
         company: input.company || null,
-        budget: budgetLabel(input.budget || undefined),
+        budget: budgetLabel(input.budget),
+        need,
         message: input.message,
+        details: [
+          ["Main goal", choiceLabel(GOALS, input.goal)],
+          ["Wants to start", choiceLabel(START_TIMELINES, input.start)],
+          ["Country", input.customerLocation],
+        ],
+      },
+      preview: {
+        service: service.data.name,
+        industry: industry.data.name,
+        budget: budgetLabel(input.budget),
+        timeline: choiceLabel(START_TIMELINES, input.start),
+        goal: choiceLabel(GOALS, input.goal),
+        country: previewCountry(input.customerLocation),
+        summary,
       },
       agencies: [agency],
     });

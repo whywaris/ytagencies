@@ -94,9 +94,13 @@ export async function Overview({ ctx }: { ctx: DashboardContext }) {
             value={count.format(activity.views)}
             delta={viewsDelta}
           />
+          <Stat
+            label="Requests"
+            value={count.format(activity.inquiries)}
+            note="Previews only: Pro shows who sent them"
+          />
           {[
             ["Visitors sent to your site", "Pro adds a link to your website."],
-            ["Inquiries", "Pro turns on your contact form."],
             ["Reply time", "Shown on your profile with Pro."],
           ].map(([label, note]) => (
             <div

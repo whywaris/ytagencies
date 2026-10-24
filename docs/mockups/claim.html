@@ -1,0 +1,265 @@
+<title>YT Agencies Claim Listing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&display=swap">
+<script>
+(function(){var t='light';try{t=localStorage.getItem('yta-theme')||'light'}catch(e){}document.documentElement.setAttribute('data-site-theme',t)})();
+</script>
+<style>
+/* Layout: the listing being claimed on the left, the claim steps in a card on the right, over the soft glow; alternate states for email sent, manual proof, request access and the welcome screen. Public tokens; light by default. */
+:root{
+  --bg:#FBFBFD; --raised:#FFFFFF; --surface:#F3F4F7; --text:#16171A; --text-2:#5E626B; --line:#E2E3E8; --line-2:#EEEFF2;
+  --accent:#1F5EFF; --accent-ink:#FFFFFF; --accent-soft:#EAF0FF;
+  --violet:#7C5CFF; --violet-soft:#F0ECFF; --coral:#D1462A; --coral-soft:#FFEFEA; --mint:#0B7A5A; --mint-soft:#E5F7F0; --amber:#B26F00; --amber-soft:#FFF5E0;
+  --g1:rgba(79,139,255,.26); --g2:rgba(167,139,250,.24); --g3:rgba(255,166,120,.2); --g4:rgba(80,220,170,.16);
+  --nav:rgba(251,251,253,.8);
+  --shadow:0 1px 2px rgba(20,25,40,.05),0 12px 32px -12px rgba(20,25,40,.16);
+  color-scheme:light;
+  --sans:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+:root[data-site-theme="dark"]{
+  --bg:#0B0C10; --raised:#15161B; --surface:#1C1E24; --text:#F3F4F6; --text-2:#A0A4AD; --line:#2A2D35; --line-2:#20222A;
+  --accent:#6B9BFF; --accent-ink:#071026; --accent-soft:#17213A;
+  --violet:#A28BFF; --violet-soft:#221B3D; --coral:#FF8A6E; --coral-soft:#3A1E17; --mint:#3CCB9C; --mint-soft:#11302A; --amber:#F2B53A; --amber-soft:#33270E;
+  --g1:rgba(79,139,255,.2); --g2:rgba(140,110,250,.18); --g3:rgba(255,140,100,.12); --g4:rgba(60,200,150,.1);
+  --nav:rgba(11,12,16,.75);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 16px 40px -12px rgba(0,0,0,.7);
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
+svg{flex:none}
+.mock{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;padding:8px 16px;background:var(--surface);font-size:12.5px;color:var(--text-2)}
+.mock button{border:1px solid var(--line);background:var(--raised);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:12.5px}
+.mock button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--nav);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line-2)}
+.nav-in{max-width:1200px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:36px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:-.02em;font-size:17px}
+.logo-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+.logo-mark svg{width:16px;height:16px;color:#fff}
+.right{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:14.5px}
+.icon-btn{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--line);background:var(--raised);border-radius:999px;cursor:pointer;color:var(--text-2)}
+.icon-btn svg{width:18px;height:18px}
+.me{width:38px;height:38px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:650;font-size:14px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 22px;border-radius:999px;font-size:15px;font-weight:600;border:1px solid transparent;cursor:pointer;white-space:nowrap;transition:transform .15s,border-color .15s}
+.btn-primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 1px 2px rgba(31,94,255,.3),0 8px 20px -6px rgba(31,94,255,.45)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-light{background:var(--raised);color:var(--text);border-color:var(--line)}
+.btn-light:hover{border-color:var(--text-2)}
+.btn-block{width:100%}
+
+main{position:relative;isolation:isolate;overflow:hidden;min-height:calc(100vh - 100px)}
+.glow{position:absolute;inset:-20% -10% 0 -10%;z-index:-1;filter:blur(60px);pointer-events:none;background:radial-gradient(35% 45% at 20% 35%,var(--g1),transparent 70%),radial-gradient(35% 45% at 80% 25%,var(--g2),transparent 70%),radial-gradient(30% 40% at 70% 75%,var(--g3),transparent 70%),radial-gradient(30% 35% at 25% 80%,var(--g4),transparent 70%)}
+.stage{max-width:1040px;margin:0 auto;padding:56px 24px 88px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,460px);gap:56px;align-items:start}
+@media (max-width:920px){.stage{grid-template-columns:1fr;gap:28px;max-width:560px;padding:32px 16px 64px}}
+
+.back{font-size:14px;color:var(--text-2);display:inline-flex;gap:6px;align-items:center;margin-bottom:18px}
+.back:hover{color:var(--text)}
+.listing{background:var(--raised);border:1px solid var(--line);border-radius:22px;padding:22px}
+.l-head{display:flex;gap:14px;align-items:center}
+.l-logo{width:56px;height:56px;border-radius:15px;background:linear-gradient(135deg,#4B3F6E,#7C5CFF);color:#fff;display:grid;place-items:center;font-weight:700}
+.l-head b{display:block;font-size:20px;letter-spacing:-.02em}
+.l-head span{font-size:13.5px;color:var(--text-2)}
+.l-rows{margin:18px 0 0;display:grid;gap:0}
+.l-rows div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line-2);font-size:14px}
+.l-rows span{color:var(--text-2)}
+.waiting{display:flex;gap:12px;align-items:center;margin-top:16px;padding:14px 16px;border-radius:16px;background:var(--coral-soft)}
+.waiting svg{width:20px;height:20px;color:var(--coral)}
+.waiting b{display:block;font-size:15px}
+.waiting span{font-size:13.5px;color:var(--text-2)}
+.after{margin-top:22px}
+.after h3{margin:0 0 10px;font-size:15px;font-weight:650}
+.after ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:14.5px;color:var(--text-2)}
+.after li{display:flex;gap:10px}
+.after svg{width:16px;height:16px;color:var(--mint);margin-top:4px}
+
+.card{background:var(--raised);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:30px}
+.card h1{margin:0;font-size:26px;font-weight:650;letter-spacing:-.03em;font-stretch:92%}
+.card .sub{margin:6px 0 0;font-size:15px;color:var(--text-2)}
+.steps{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:4px}
+.step{display:flex;gap:12px;align-items:flex-start;padding:10px 0}
+.step .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:650;background:var(--surface);flex:none}
+.step .n.done{background:var(--mint);color:#fff}
+.step b{display:block;font-size:15px}
+.step span{font-size:13.5px;color:var(--text-2)}
+label{display:block;font-size:14px;font-weight:600;margin:16px 0 8px}
+.in{width:100%;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:0 14px;font-size:16px}
+textarea.in{height:96px;padding:12px 14px;resize:vertical}
+.in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.hint{font-size:13px;color:var(--text-2);margin-top:8px}
+.ok{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mint);font-weight:600;margin-top:8px}
+.ok svg{width:14px;height:14px}
+.or{display:flex;align-items:center;gap:12px;margin:22px 0 4px;font-size:13px;color:var(--text-2)}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.alt{font-size:14.5px;color:var(--text-2)}
+.alt button{border:0;background:none;padding:0;color:var(--accent);font-weight:600;cursor:pointer}
+.mt{margin-top:18px}
+.ic-big{width:60px;height:60px;border-radius:18px;display:grid;place-items:center;margin-bottom:18px}
+.ic-big svg{width:28px;height:28px}
+.center{text-align:center}
+.box{margin-top:18px;padding:16px 18px;border-radius:16px;background:var(--surface);font-size:14px;color:var(--text-2)}
+.box b{color:var(--text)}
+
+/* welcome */
+.welcome{max-width:720px;margin:0 auto;padding:56px 24px 88px}
+.welcome h1{font-size:clamp(30px,4vw,40px);font-weight:650;letter-spacing:-.035em;font-stretch:90%;margin:0}
+.welcome .sub{font-size:17px;color:var(--text-2);margin:10px 0 0}
+.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+.wcard{background:var(--raised);border:1px solid var(--line);border-radius:20px;padding:22px}
+.wcard h2{margin:0;font-size:17px;font-weight:650}
+.meter{height:10px;border-radius:99px;background:var(--surface);overflow:hidden;margin:12px 0 8px}
+.meter i{display:block;height:100%;width:40%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--violet))}
+.todo{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px;font-size:14px}
+.todo li{display:flex;justify-content:space-between;gap:10px}
+.todo span{color:var(--mint);font-weight:600;font-size:13px}
+.found{background:linear-gradient(135deg,var(--amber-soft),var(--coral-soft));border-color:transparent}
+.found .price{font-size:30px;font-weight:650;letter-spacing:-.025em;margin-top:8px}
+.found .price small{font-size:14px;color:var(--text-2);font-weight:500}
+.found p{font-size:13.5px;color:var(--text-2);margin:6px 0 16px}
+@media (max-width:700px){.wgrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="mock" role="group" aria-label="Mockup state">
+  <span>Mockup, sample data. Show:</span>
+  <button type="button" data-s="claim" aria-pressed="true">Claim</button>
+  <button type="button" data-s="sent" aria-pressed="false">Email sent</button>
+  <button type="button" data-s="proof" aria-pressed="false">Other email</button>
+  <button type="button" data-s="request" aria-pressed="false">Request access</button>
+  <button type="button" data-s="welcome" aria-pressed="false">Welcome</button>
+</div>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="logo" href="#"><span class="logo-mark"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 5h8M4 8h8M4 11h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>YT Agencies</a>
+    <div class="right">
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch to dark mode"></button>
+      <span class="me" aria-label="Signed in">AK</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="glow" aria-hidden="true"></div>
+
+  <div class="stage" id="v-stage">
+    <div>
+      <a class="back" href="#">← Back to search</a>
+      <div class="listing">
+        <div class="l-head"><span class="l-logo" aria-hidden="true">NM</span><div><b>Northwake Media</b><span>northwakemedia.com</span></div></div>
+        <div class="l-rows">
+          <div><span>Services</span><b>Influencer marketing, Shorts</b></div>
+          <div><span>Industries</span><b>Ecommerce, Gaming</b></div>
+          <div><span>Location</span><b>London, UK</b></div>
+        </div>
+        <div class="waiting" id="waiting"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6.5h16v11H9l-5 4v-15Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><div><b class="num">2 inquiries are waiting</b><span>Claim the listing to read and answer them.</span></div></div>
+      </div>
+      <div class="after">
+        <h3>Once it's yours, you can</h3>
+        <ul>
+          <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Fix anything we got wrong</li>
+          <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Add your pricing, channels and case studies</li>
+          <li><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Receive inquiries and see who views your profile</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" aria-live="polite">
+      <div id="s-claim">
+        <h1>Claim Northwake Media</h1>
+        <p class="sub">Confirm you work there. It takes a minute.</p>
+        <ol class="steps">
+          <li class="step"><span class="n done" aria-hidden="true">✓</span><div><b>Signed in</b><span>akbar@northwakemedia.com</span></div></li>
+          <li class="step"><span class="n" aria-hidden="true">2</span><div><b>Confirm your work email</b><span>We'll send a link to an address on northwakemedia.com.</span></div></li>
+        </ol>
+        <label for="em">Work email</label>
+        <input class="in" id="em" type="email" value="akbar@northwakemedia.com" autocomplete="email">
+        <div class="ok"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Matches the agency's website. You'll get access straight away.</div>
+        <button class="btn btn-primary btn-block mt" type="button" data-go="sent">Send confirmation link</button>
+        <div class="or">or</div>
+        <p class="alt">No email on that domain? <button type="button" data-go="proof">Send proof instead</button>. We check it by hand within 2 business days.</p>
+      </div>
+
+      <div id="s-sent" hidden class="center">
+        <div class="ic-big" style="background:var(--accent-soft);color:var(--accent);margin-inline:auto"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="m4 7 8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+        <h1>Check your inbox</h1>
+        <p class="sub">We sent a link to <b style="color:var(--text)">akbar@northwakemedia.com</b>. Open it to finish claiming Northwake Media. The link works for 24 hours.</p>
+        <button class="btn btn-light btn-block mt" type="button" data-go="claim">Use a different email</button>
+      </div>
+
+      <div id="s-proof" hidden>
+        <h1>Send proof</h1>
+        <p class="sub">Tell us who you are at Northwake Media. We'll review it within 2 business days and email you.</p>
+        <label for="role">Your role</label>
+        <input class="in" id="role" placeholder="Founder, Head of Growth…">
+        <label for="li">Your LinkedIn profile</label>
+        <input class="in" id="li" placeholder="https://linkedin.com/in/…">
+        <label for="note">Anything else that helps <span style="font-weight:400;color:var(--text-2)">(optional)</span></label>
+        <textarea class="in" id="note" placeholder="For example, why your email is on a different domain"></textarea>
+        <button class="btn btn-primary btn-block mt" type="button">Send for review</button>
+        <p class="alt mt"><button type="button" data-go="claim">Back to email confirmation</button></p>
+      </div>
+
+      <div id="s-request" hidden>
+        <h1>This listing is already managed</h1>
+        <p class="sub">Someone confirmed they work at Northwake Media. If you work there too, ask for access.</p>
+        <div class="box">We'll contact the current manager and the agency. If they don't reply within 5 business days, we review your request ourselves.</div>
+        <label for="r-role">Your role at the agency</label>
+        <input class="in" id="r-role" placeholder="Founder, Head of Growth…">
+        <label for="r-why">Why you need access</label>
+        <textarea class="in" id="r-why" placeholder="For example, the person who claimed it has left the agency"></textarea>
+        <button class="btn btn-primary btn-block mt" type="button">Request access</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="welcome" id="v-welcome" hidden>
+    <div class="ic-big" style="background:var(--mint-soft);color:var(--mint)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h1>Northwake Media is yours</h1>
+    <p class="sub">You can now edit the profile and answer the 2 inquiries that were waiting.</p>
+    <div class="wgrid">
+      <div class="wcard">
+        <h2>Finish your profile</h2>
+        <div class="meter" aria-hidden="true"><i></i></div>
+        <p class="hint" style="margin:0">40% complete. Complete profiles rank higher.</p>
+        <ul class="todo"><li>Pricing and contract<span>+20%</span></li><li>Channels you've worked on<span>+20%</span></li><li>Description and best for<span>+20%</span></li></ul>
+        <a class="btn btn-primary btn-block mt" href="#">Complete profile</a>
+      </div>
+      <div class="wcard found">
+        <h2>Founding offer</h2>
+        <div class="price">Pro free<small> for 6 months</small></div>
+        <p class="num">Website link, no other agencies on your profile, listed above Free agencies. 37 of 50 spots left. No card needed.</p>
+        <a class="btn btn-primary btn-block" href="#">Claim a Founding spot</a>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:22px"><a href="#" style="color:var(--accent);font-weight:600">Go to your dashboard</a> · <a href="#" style="color:var(--accent);font-weight:600">Read the 2 inquiries</a></p>
+  </div>
+</main>
+
+<script>
+(function(){
+  var root=document.documentElement,btn=document.getElementById('theme');
+  var sun='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  var moon='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  function dark(){return root.getAttribute('data-site-theme')==='dark'}
+  function paint(){var d=dark();btn.innerHTML=d?sun:moon;btn.setAttribute('aria-label',d?'Switch to light mode':'Switch to dark mode')}
+  btn.addEventListener('click',function(){var t=dark()?'light':'dark';root.setAttribute('data-site-theme',t);try{localStorage.setItem('yta-theme',t)}catch(e){}paint()});
+  paint();
+  var states=['claim','sent','proof','request'];
+  function show(s){
+    document.querySelectorAll('.mock button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.s===s))});
+    var w=s==='welcome';
+    document.getElementById('v-stage').hidden=w;document.getElementById('v-welcome').hidden=!w;
+    states.forEach(function(k){document.getElementById('s-'+k).hidden=k!==s});
+    document.getElementById('waiting').hidden=s==='request';
+  }
+  document.querySelectorAll('.mock button').forEach(function(b){b.addEventListener('click',function(){show(b.dataset.s)})});
+  document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){show(b.dataset.go)})});
+  document.addEventListener('click',function(e){var a=e.target.closest('a[href="#"]');if(a)e.preventDefault()});
+})();
+</script>

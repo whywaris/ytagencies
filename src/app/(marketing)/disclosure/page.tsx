@@ -42,9 +42,10 @@ const sections: LegalSection[] = [
         </p>
         <ul>
           <li>
-            <strong>Pro for agencies.</strong> To manage a listing and receive inquiries an agency
-            needs Pro. Pro also adds a link to the agency&apos;s website and booking buttons; it
-            doesn&apos;t change where the agency ranks. See <Link href="/pricing">pricing</Link>.
+            <strong>Pro for agencies.</strong> Agencies edit their listing for free. Pro lets an
+            agency see who sent a request and reply, and adds a link to its website and booking
+            buttons. Pro agencies are shown before free listings and always carry a gold Pro badge.
+            See <Link href="/pricing">pricing</Link>.
           </li>
         </ul>
         <p>
@@ -66,9 +67,12 @@ const sections: LegalSection[] = [
           agency see the visits came from {BRAND_NAME}.
         </li>
         <li>
-          Profiles of agencies that haven&apos;t joined say so, and offer to send your project
-          request to agencies that have. Their details come from public sources and stay on the
-          directory.
+          Agencies on Pro show a gold Pro badge on cards and profiles. It means a paid plan, never
+          that we checked the agency: that&apos;s the separate green Verified badge.
+        </li>
+        <li>
+          Every profile takes quote requests. If the agency doesn&apos;t reply within 48 hours, we
+          send the request to up to 3 similar Pro agencies, as the business agreed when sending it.
         </li>
       </ul>
     ),
@@ -79,14 +83,14 @@ const sections: LegalSection[] = [
     body: (
       <ul>
         <li>
-          A higher place in the rankings. Verified agencies come first, then everyone else, each
-          ordered by the same quality score, paid or not.
-        </li>
-        <li>
           The Verified badge. It&apos;s given only after we check the agency&apos;s YouTube channels
           and details, on any plan.
         </li>
-        <li>The removal of a genuine review.</li>
+        <li>Reviews: neither more of them nor the removal of a genuine one.</li>
+        <li>
+          The quality score that orders agencies within each group. Pro places an agency ahead of
+          free listings, always with a Pro badge; it never adds points.
+        </li>
         <li>A mention in our guides.</li>
       </ul>
     ),
@@ -96,7 +100,7 @@ const sections: LegalSection[] = [
     title: "How we rank agencies",
     body: (
       <p>
-        The full order, from the Verified group to the quality score, is explained on{" "}
+        The full order, from the four groups to the quality score, is explained on{" "}
         <Link href="/how-we-rank">How we rank</Link>.
       </p>
     ),
@@ -114,7 +118,7 @@ export default function DisclosurePage() {
       summary={[
         "We're independent and not affiliated with YouTube or Google.",
         "Businesses and creators never pay. Agencies list for free, or pay for Pro.",
-        "Pro never changes the ranking, and the Verified badge can't be bought.",
+        "Pro agencies are shown first and always marked with a Pro badge. The Verified badge can't be bought.",
       ]}
       sections={sections}
     />

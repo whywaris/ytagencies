@@ -18,6 +18,7 @@ import { logoSrc } from "@/lib/logo";
 import { AgencyTracker } from "@/components/agency-tracker";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { LazyContactForm } from "@/components/forms/lazy-contact-form";
+import { ProBadge } from "@/components/pro-badge";
 import { JsonLd } from "@/components/json-ld";
 import {
   getAgencyBySlug,
@@ -27,6 +28,7 @@ import {
 } from "@/lib/data/agencies";
 import { bookingLinks } from "@/lib/booking";
 import { getLivePaths } from "@/lib/data/live-pages";
+import { getIndustries } from "@/lib/data/taxonomy";
 import { liveOnly } from "@/lib/sitemap-core";
 import { agencyWebsiteLink } from "@/lib/outbound";
 import { contractLabel, responseLabel } from "@/lib/pricing";
@@ -150,10 +152,11 @@ const btnLight = `${btn} border border-line bg-raised text-text hover:border-tex
 export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">) {
   const agency = await load(params);
   const e = agency.entitlements;
-  const [similar, live] = await Promise.all([
-    // Unmanaged profiles only: managed agencies a visitor can actually reach.
+  const [similar, live, industries] = await Promise.all([
+    // Profiles not on Pro only.
     e.showSimilarAgencies ? getSimilarAgencies(agency, 3) : [],
     getLivePaths(),
+    getIndustries(),
   ]);
 
   const primary = agency.services[0];
@@ -217,15 +220,8 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   const domain = website?.hostname.replace(/^www\./, "");
   const price = agency.minBudgetUsd;
   const suffix = unitSuffix(agency.pricingModel);
-  const mode = profileMode({
-    managed: e.managed,
-    name: agency.name,
-    slug: agency.slug,
-    mainService: primary?.slug ?? null,
-    mainIndustry: agency.industries[0]?.slug ?? null,
-  });
-  // The Request proposals click isn't an agency event (nothing reaches the agency): untracked.
-  const ctaTrack = mode.kind === "contact" ? "contact_open" : undefined;
+  const mode = profileMode({ managed: e.managed, name: agency.name });
+  const ctaTrack = "contact_open";
 
   // "Listed in": the live directory pages this agency appears on (its services, each with its
   // industries and locations), only those in the sitemap. Short chip text, the full phrase as
@@ -311,6 +307,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                   Verified
                 </span>
               )}
+              {e.proBadge && <ProBadge />}
             </div>
             {agency.bestFor && (
               <p className="mt-2.5 max-w-[40em] text-[18px] text-text-2">
@@ -377,7 +374,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 ))}
               </ul>
             )}
-            {mode.note && <p className="mt-3 max-w-[40em] text-[14px] text-text-2">{mode.note}</p>}
           </div>
         </header>
 
@@ -385,7 +381,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
         {showClaimBar({ status: "published", isClaimed: agency.isClaimed }) && (
           <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-line bg-surface px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[15px] text-text">
-              Is this your agency? Claim it to update your profile and receive inquiries.
+              Is this your agency? Claim it for free to edit your profile and see requests.
             </p>
             <Link
               href={`/claim/${agency.slug}`}
@@ -741,18 +737,24 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               </section>
             )}
 
-            {mode.kind === "contact" && (
-              <section id="contact" aria-labelledby="contact-h" className={sectionCls}>
-                <h2 id="contact-h" className={h2}>
-                  Contact {agency.name}
-                </h2>
-                <p className={lede}>
-                  Your message goes straight to the agency.
-                  {replies && ` They ${replies.replace(/^Usually replies/, "usually reply")}.`}
-                </p>
-                <LazyContactForm agencySlug={agency.slug} agencyName={agency.name} />
-              </section>
-            )}
+            <section id="contact" aria-labelledby="contact-h" className={sectionCls}>
+              <h2 id="contact-h" className={h2}>
+                {mode.ctaLabel}
+              </h2>
+              <p className={lede}>
+                Free, and no obligation.
+                {replies && ` They ${replies.replace(/^Usually replies/, "usually reply")}.`}
+              </p>
+              <LazyContactForm
+                agencySlug={agency.slug}
+                agencyName={agency.name}
+                services={agency.services.map((s) => ({ value: s.slug, label: s.name }))}
+                industries={[
+                  ...agency.industries,
+                  ...industries.filter((i) => !agency.industries.some((a) => a.slug === i.slug)),
+                ].map((i) => ({ value: i.slug, label: i.name }))}
+              />
+            </section>
 
             <div className="flex flex-wrap justify-between gap-2 pt-7 text-[13px] text-text-2">
               <span>Last updated {longDate(agency.updatedAt)}</span>
@@ -788,7 +790,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               <a href={mode.ctaHref} data-track={ctaTrack} className={cn(btnPrimary, "w-full")}>
                 {mode.ctaLabel}
               </a>
-              {mode.note && <p className="mt-3 text-[13px] text-text-2">{mode.note}</p>}
               {replies && (
                 <div className="mt-4 flex gap-2.5 border-t border-line-2 pt-4 text-[14px]">
                   <MessageSquare className="mt-0.5 size-[18px] shrink-0 text-accent" aria-hidden />
@@ -808,7 +809,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
 
       {/* Contact bar (mobile): the price, the reply time and one button. */}
       <div
-        aria-label={mode.kind === "contact" ? "Contact bar" : "Request proposals bar"}
+        aria-label="Quote bar"
         className="profile-mbar fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-bg/80 px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] backdrop-blur-[20px] min-[980px]:hidden print:hidden"
       >
         <div className="min-w-0">
@@ -822,7 +823,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
           data-track={ctaTrack}
           className={cn(btnPrimary, "h-[38px] px-[18px] text-[14px]")}
         >
-          {mode.kind === "contact" ? mode.ctaLabel : "Request proposals"}
+          Request a quote
         </a>
       </div>
     </>

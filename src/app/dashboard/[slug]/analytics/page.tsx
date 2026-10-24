@@ -14,7 +14,7 @@ function daysAgo(n: number) {
 export default async function AnalyticsPage({ params }: PageProps<"/dashboard/[slug]/analytics">) {
   // Owner only (404 otherwise); never a 404 for a listing that isn't on Pro.
   const { agency, supabase, e, pro } = await dashboardContext((await params).slug);
-  if (!e.managed)
+  if (e.analyticsDays === 0)
     return (
       <section aria-labelledby="analytics-h" className={`${card} max-w-reading`}>
         <h2 id="analytics-h" className={cardTitle}>
@@ -48,7 +48,7 @@ export default async function AnalyticsPage({ params }: PageProps<"/dashboard/[s
     if (r.type === "website_click" && r.source in bySource)
       bySource[r.source as keyof typeof bySource] += r.count;
   }
-  const window = e.analyticsDays >= 365 ? "12 months" : "30 days";
+  const window = "12 months";
 
   return (
     <div className="flex flex-col gap-16">
@@ -73,7 +73,7 @@ export default async function AnalyticsPage({ params }: PageProps<"/dashboard/[s
             </div>
           ))}
         </dl>
-        {e.websiteLink ? (
+        {e.managed ? (
           <div className="flex max-w-reading flex-col gap-3">
             <h3 className="text-h3">Visitors sent to your website</h3>
             <dl className="flex flex-col divide-y divide-line rounded-lg border border-line">

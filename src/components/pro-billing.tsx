@@ -39,11 +39,14 @@ function Feature({ on = true, children }: { on?: boolean; children: React.ReactN
 export function PlanCards({
   monthly,
   yearly,
+  freeFeatures,
   proFeatures,
 }: {
   monthly: number;
   yearly: number;
-  /** lib/entitlements.ts proFeatures(): the same list the billing page shows. */
+  /** lib/entitlements.ts freeFeatures(). */
+  freeFeatures: string[];
+  /** lib/entitlements.ts proFeatures(): what Pro adds, the same list the billing page shows. */
   proFeatures: string[];
 }) {
   const [period, setPeriod] = useState<Period>("monthly");
@@ -58,16 +61,19 @@ export function PlanCards({
           className={cn(card, "border border-line bg-raised")}
         >
           <h3 id="plan-listing" className="text-[18px] font-[650]">
-            Listing
+            Free
           </h3>
-          <p className={priceCls}>Free</p>
+          <p className={priceCls}>$0</p>
           <p className="text-[14.5px] text-text-2">
-            Your agency on the pages that fit it, listed by us or by you.
+            Your agency on the pages that fit it. Claim it to edit your profile.
           </p>
           <ul className="my-5 grid gap-2.5 border-t border-line pt-5 text-[15px]">
             <Feature>Profile on matching service, industry and location pages</Feature>
             <Feature>Can earn the Verified badge</Feature>
-            <Feature on={false}>No contact form: visitors are offered other agencies</Feature>
+            {freeFeatures.map((f) => (
+              <Feature key={f}>{f}</Feature>
+            ))}
+            <Feature on={false}>Client contact details and replies</Feature>
           </ul>
           <Link
             href="/list-your-agency#claim"
@@ -105,7 +111,7 @@ export function PlanCards({
               : `Works out to ${perMonth(yearly)} a month. Billed yearly.`}
           </p>
           <p className="mt-5 border-t border-line pt-5 text-[14px] font-semibold">
-            Everything in Listing, plus
+            Everything in Free, plus
           </p>
           <ul className="mt-2 mb-5 grid gap-2.5 text-[15px]">
             {proFeatures.map((f) => (

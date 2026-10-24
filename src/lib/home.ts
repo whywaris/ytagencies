@@ -31,12 +31,21 @@ export function popularIndustryCombos(combos: LiveCombo[], limit: number, servic
     .slice(0, limit);
 }
 
-type Pickable = { id: string; name: string; isVerified: boolean; quality: number };
+type Pickable = {
+  id: string;
+  name: string;
+  isVerified: boolean;
+  managed: boolean;
+  quality: number;
+};
+
+/** lib/ranking.ts rankGroup, repeated here to keep this file import-free (tested to match). */
+const group = (a: Pickable) => (a.managed ? (a.isVerified ? 0 : 1) : a.isVerified ? 2 : 3);
 
 /**
- * Agencies for the home page: at most one sponsored card first, then by profile views (last 30
- * days), then the directory's merit order (lib/ranking.ts byMerit: verified, quality score, name;
- * Pro plays no part). Fewer than `min` means the section is hidden: [].
+ * Agencies for the home page: at most one sponsored card first, then the directory's groups
+ * (lib/ranking.ts: Verified + Pro, Pro, Verified, everyone else), within each by profile views
+ * (last 30 days), then quality score and name. Fewer than `min` means the section is hidden: [].
  */
 export function pickHomeAgencies<T extends Pickable>(
   agencies: T[],
@@ -59,8 +68,8 @@ export function pickHomeAgencies<T extends Pickable>(
     .filter((a) => a.id !== sponsored?.id)
     .sort(
       (a, b) =>
+        group(a) - group(b) ||
         (views[b.id] ?? 0) - (views[a.id] ?? 0) ||
-        Number(b.isVerified) - Number(a.isVerified) ||
         b.quality - a.quality ||
         a.name.localeCompare(b.name),
     );

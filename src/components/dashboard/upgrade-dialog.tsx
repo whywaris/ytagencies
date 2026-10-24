@@ -60,10 +60,11 @@ export function UpgradeDialog({ label = "Get Pro", className, refundDays, ...pro
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="upgrade-title" className="text-[24px] font-[650] tracking-[-0.025em]">
-              Manage your listing with Pro
+              See every client and reply with Pro
             </h2>
             <p className="mt-1.5 text-[15px] text-text-2">
-              A free listing can be found. Pro lets businesses reach you.
+              Free lets you edit your profile and see a preview of every request. Pro shows who sent
+              it, so you can reply.
             </p>
           </div>
           <button
@@ -82,7 +83,7 @@ export function UpgradeDialog({ label = "Get Pro", className, refundDays, ...pro
                 <span className="sr-only">Feature</span>
               </th>
               <th scope="col" className="w-[110px] py-2.5">
-                Free listing
+                Free
               </th>
               <th scope="col" className="w-[110px] bg-(--accent-soft) py-2.5">
                 Pro

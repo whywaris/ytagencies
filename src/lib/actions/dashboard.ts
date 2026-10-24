@@ -14,7 +14,7 @@ import { getEntitlements } from "@/lib/data/entitlements";
 import { imageInfo } from "@/lib/image-info";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidateAgency } from "@/lib/revalidate";
-import { caseStudySchema, profileSchema } from "@/lib/validation/dashboard";
+import { basicsSchema, caseStudySchema, profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
 import { fetchChannel } from "@/lib/youtube";
 import { caseStudyChannelRef, parseChannelUrl } from "@/lib/youtube-url";
@@ -30,16 +30,23 @@ const SEND_FAILED = "We couldn't send the confirmation email. Please try again i
 const LOGO_BUCKET = "agency-media";
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
-const LOCKED = "Editing is locked because your Pro plan has ended. Renew Pro to edit your listing.";
+const PRO_ONLY = "This is part of Pro. Upgrade to Pro to use it.";
 
-/** Owner check plus the Pro lock: only managed listings can be edited (lib/entitlements.ts). */
-// ponytail: the lock lives here, not in RLS; an owner calling PostgREST directly with their own
-// session can still edit their own row. Add a can_manage(agency_id) check to the owner write
-// policies if that ever matters.
+/** Owner check: owners edit the basics on any plan (lib/entitlements.ts canEdit). */
 async function editableAgency(agencyId: string) {
   const owned = await getOwnedAgency(agencyId);
   if (!owned) return { error: NOT_OWNER };
-  if (!(await getEntitlements(owned.agency.id)).canEdit) return { error: LOCKED };
+  return owned;
+}
+
+/** Owner check plus a Pro feature (booking buttons, channels, contact details). */
+// ponytail: the Pro lock lives here, not in RLS (except lead contact details, which RLS guards);
+// an owner calling PostgREST directly with their own session could still write the booking or
+// channel columns. Add agency_managed() to those grants' policies if that ever matters.
+async function proAgency(agencyId: string, feature: "bookingButtons" | "channels" | "leadDetails") {
+  const owned = await getOwnedAgency(agencyId);
+  if (!owned) return { error: NOT_OWNER };
+  if (!(await getEntitlements(owned.agency.id))[feature]) return { error: PRO_ONLY };
   return owned;
 }
 
@@ -61,6 +68,33 @@ export async function updateProfile(agencyId: string, raw: unknown): Promise<For
   return { ok: true, data: undefined };
 }
 
+/** Tagline, website, founded year, team size and languages (any plan). */
+export async function updateBasics(agencyId: string, raw: unknown): Promise<FormResult> {
+  const owned = await editableAgency(agencyId);
+  if ("error" in owned) return { ok: false, error: owned.error };
+  const parsed = basicsSchema.safeParse(raw);
+  if (!parsed.success) return invalid(parsed.error);
+  const v = parsed.data;
+  const { error } = await owned.supabase
+    .from("agencies")
+    .update({
+      tagline: v.tagline || null,
+      website: v.website || null,
+      founded_year: v.foundedYear ? Number(v.foundedYear) : null,
+      team_size: v.teamSize || null,
+      languages: v.languages
+        .split(",")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .slice(0, 12),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", owned.agency.id);
+  if (error) return { ok: false, error: SAVE_FAILED };
+  revalidateAgency(owned.agency.slug);
+  return { ok: true, data: undefined };
+}
+
 const bookingSchema = z.object({
   calendlyUrl: z
     .string()
@@ -76,7 +110,7 @@ const bookingSchema = z.object({
 
 /** Calendly link and WhatsApp number (Pro only; shown on the profile while on Pro). */
 export async function updateBooking(agencyId: string, raw: unknown): Promise<FormResult> {
-  const owned = await editableAgency(agencyId);
+  const owned = await proAgency(agencyId, "bookingButtons");
   if ("error" in owned) return { ok: false, error: owned.error };
   const parsed = bookingSchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
@@ -141,7 +175,7 @@ export async function saveCaseStudy(
   const parsed = caseStudySchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
   if (!parsed.data.id) {
-    // Unlimited on Pro (Infinity); kept as a guard in case a limit comes back.
+    // 3 on Free, unlimited on Pro (Infinity).
     const { caseStudies: limit } = await getEntitlements(owned.agency.id);
     const { count } = await owned.supabase
       .from("case_studies")
@@ -150,7 +184,7 @@ export async function saveCaseStudy(
     if ((count ?? 0) >= limit) {
       return {
         ok: false,
-        error: `Your plan includes up to ${limit} case studies. Edit an existing one, or upgrade for unlimited case studies.`,
+        error: `Free includes up to ${limit} case studies. Edit an existing one, or upgrade to Pro for unlimited case studies.`,
       };
     }
   }
@@ -170,11 +204,6 @@ export async function deleteCaseStudy(agencyId: string, caseStudyId: string): Pr
 }
 
 /**
- * Asks for the Verified badge (§5.4, §6). Managed (Pro) listings only.
- * Owners can't write verifications under RLS, so this inserts with the service role after the
- * ownership check. One open request per agency (unique index).
- */
-/**
  * Asks for the Verified badge. The owner gives a work email on the agency's own website domain;
  * we email it a one-time link (24 hours), and only once it's clicked does the request reach the
  * admin queue (app/api/verification/confirm). Asking again replaces a request still waiting for
@@ -185,7 +214,7 @@ export async function requestVerification(
   urls: string[],
   workEmail: string,
 ): Promise<FormResult<{ domain: string }>> {
-  // Verification is part of managing a listing: Pro only, like editing.
+  // Earned, on any plan: never bought with Pro.
   const owned = await editableAgency(agencyId);
   if ("error" in owned) return { ok: false, error: owned.error };
   const list = Array.isArray(urls)
@@ -277,7 +306,7 @@ export async function requestVerification(
  * routes: ownership is checked here, and RLS + the contacted_at column grant check it again.
  */
 export async function markLeadContacted(agencyId: string, leadId: string): Promise<FormResult> {
-  const owned = await editableAgency(agencyId);
+  const owned = await proAgency(agencyId, "leadDetails");
   if ("error" in owned) return { ok: false, error: owned.error };
   if (!/^[0-9a-f-]{36}$/i.test(leadId)) return { ok: false, error: "Unknown lead." };
   const { error } = await owned.supabase
@@ -345,7 +374,7 @@ async function industryIdFor(
 
 /** Adds a channel the agency worked on (max 6; the database enforces it too). */
 export async function addChannel(agencyId: string, raw: unknown): Promise<FormResult> {
-  const owned = await editableAgency(agencyId);
+  const owned = await proAgency(agencyId, "channels");
   if ("error" in owned) return { ok: false, error: owned.error };
   const parsed = channelSchema.safeParse(raw);
   if (!parsed.success) return invalid(parsed.error);
@@ -377,7 +406,7 @@ export async function updateChannel(
   channelId: string,
   raw: unknown,
 ): Promise<FormResult> {
-  const owned = await editableAgency(agencyId);
+  const owned = await proAgency(agencyId, "channels");
   if ("error" in owned) return { ok: false, error: owned.error };
   const parsed = channelSchema.safeParse(raw);
   if (!parsed.success || !/^[0-9a-f-]{36}$/i.test(channelId))
@@ -403,7 +432,7 @@ export async function updateChannel(
 }
 
 export async function removeChannel(agencyId: string, channelId: string): Promise<FormResult> {
-  const owned = await editableAgency(agencyId);
+  const owned = await proAgency(agencyId, "channels");
   if ("error" in owned) return { ok: false, error: owned.error };
   const { error } = await owned.supabase
     .from("agency_channels")

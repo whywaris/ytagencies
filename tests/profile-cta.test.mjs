@@ -14,15 +14,11 @@ const page = readFileSync(
 );
 const header = page.slice(page.indexOf("{/* Header */}"), page.indexOf("</header>"));
 
-test("a managed profile has exactly one contact CTA: 'Contact agency'", () => {
-  const m = profileMode({
-    managed: true,
-    name: "Goat Agency",
-    slug: "goat-agency",
-    mainService: null,
-    mainIndustry: null,
-  });
-  assert.equal(m.ctaLabel, "Contact agency");
+test("every profile has exactly one quote CTA: 'Request a quote from {Agency}'", () => {
+  for (const managed of [true, false]) {
+    const m = profileMode({ managed, name: "Goat Agency" });
+    assert.equal(m.ctaLabel, "Request a quote from Goat Agency");
+  }
   // Two placements in the markup, one per breakpoint: the sidebar card (hidden below 980px)…
   const ctas = [...page.matchAll(/href=\{mode\.ctaHref\}/g)];
   assert.equal(ctas.length, 2);

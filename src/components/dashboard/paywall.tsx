@@ -6,8 +6,8 @@ import { proFeatures } from "@/lib/entitlements";
 import { cn } from "@/lib/utils";
 
 // The one paywall (docs/mockups/agency-dashboard.html): the Overview's main card when the listing
-// isn't on Pro, and what Profile, Inquiries, Channels, Case studies and Verification show
-// instead of their content. Says what Pro unlocks; never a blurred or made-up number.
+// isn't on Pro, and what Pro-only sections (Channels, Analytics) show instead of their content.
+// Says what Pro unlocks; never a blurred or made-up number.
 
 /** Pro's feature lines, the same as /pricing and billing (lib/entitlements.ts). */
 export const PRO_BENEFITS = proFeatures();
@@ -32,14 +32,14 @@ export function Paywall({
       )}
     >
       <h2 id="paywall-h" className="text-[22px] font-[650] tracking-[-0.02em]">
-        Manage {agency.name} with Pro
+        Get Pro for {agency.name}
       </h2>
       <p className="mt-1.5 max-w-[40em] text-[15px] text-text-2">
         {[
           unlocks,
           lapsed
-            ? "Your Pro plan has ended, so your listing is unmanaged. We've kept your details; renew to pick up where you left off."
-            : "Your listing is public, but businesses can't contact you and editing is locked.",
+            ? "Your Pro plan has ended. You can still edit your profile and see request previews; renew to see client details and reply."
+            : "On Free you edit your profile and see a preview of every request. Pro shows who sent it, so you can reply.",
         ]
           .filter(Boolean)
           .join(" ")}

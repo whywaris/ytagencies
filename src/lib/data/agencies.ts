@@ -34,7 +34,7 @@ export type AgencyListItem = {
   response: { medianMinutes: number; contacted: number } | null;
   languages: string[];
   isVerified: boolean;
-  /** Live Pro subscription (lib/entitlements.ts): contactable. Not part of the ranking. */
+  /** Live Pro subscription (lib/entitlements.ts): the Pro badge and Pro placement (lib/ranking.ts). */
   managed: boolean;
   /** 0–100, orders agencies within their group (lib/ranking.ts, /how-we-rank). */
   quality: number;
@@ -201,7 +201,7 @@ export function toListItem(
 ): AgencyListItem {
   const e = placement.entitlements(row.id);
   const rating = ratingOf(row.reviews);
-  // Unmanaged listings get no inquiries, so no reply time either.
+  // Only Pro agencies can mark requests contacted, so only they have a reply time.
   const response = e.responseTime ? (responses.get(row.id) ?? null) : null;
   return {
     id: row.id,

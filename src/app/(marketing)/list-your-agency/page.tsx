@@ -25,7 +25,7 @@ export const revalidate = 3600;
 export const metadata = buildMetadata({
   title: `List your YouTube agency for free | ${BRAND_NAME}`,
   description:
-    "Get your YouTube agency in front of businesses and creators comparing agencies. Listings are free; Pro lets you manage yours, receive inquiries and link your website.",
+    "Get your YouTube agency in front of businesses and creators comparing agencies. Listing and editing are free; Pro shows who sent each request so you can reply.",
   path: "/list-your-agency",
 });
 
@@ -41,27 +41,27 @@ const FAQS = [
   {
     question: "Is listing free?",
     answer:
-      "Yes. A listing is free for as long as you like, and businesses can find it. Managing it, receiving inquiries and linking your website need Pro.",
+      "Yes. A listing is free for as long as you like. Claim it to edit your profile and see a preview of every request. Seeing who sent a request and replying needs Pro.",
   },
   {
     question: "You listed my agency. Why?",
     answer:
-      "We list agencies from public information so businesses can compare them. Manage your listing to correct anything, add your work and receive inquiries. You can also ask us to remove it.",
+      "We list agencies from public information so businesses can compare them. Claim your listing for free to correct anything and add your work. You can also ask us to remove it.",
   },
   {
     question: "What do I get with Pro?",
     answer:
-      "Businesses and creators can contact you from your profile, and project requests that fit your services come to you. You can edit your profile any time, add Calendly and WhatsApp buttons and link your website, and no other agencies are suggested on your profile. Pro doesn't change where you rank.",
+      "You see who sent each request and reply directly, and project requests that fit your services come to you. You get a gold Pro badge and are shown before free listings, Calendly and WhatsApp buttons, a website link, unlimited case studies, analytics, and no other agencies are suggested on your profile.",
   },
   {
     question: "What happens if I cancel?",
     answer:
-      "Your profile stays up as a free listing and we keep your details. Editing and inquiries stop until you subscribe again. Monthly plans run to the end of the month you've paid for.",
+      "You're back on Free: you can still edit your profile, and new requests show as a preview. Monthly plans run to the end of the month you've paid for.",
   },
   {
-    question: "Can I pay to rank higher?",
+    question: "Does Pro change where I rank?",
     answer:
-      "No. Verified agencies come first, then everyone else, each sorted by a quality score from profile completeness, reviews, verification and reply time. Paying for Pro doesn't change the order, and none of the score can be bought.",
+      "Pro agencies are shown before free listings and always carry a Pro badge. Within each group, agencies are sorted by a quality score from profile completeness, reviews, verification and reply time, and none of that score can be bought. Neither can the Verified badge.",
   },
   {
     question: "How do I get Verified?",
@@ -118,7 +118,7 @@ export default async function ListYourAgencyPage() {
           <Breadcrumbs items={breadcrumbs} />
         </div>
         <p className="mt-10 inline-flex items-center rounded-full border border-line bg-raised px-4 py-1.5 text-[14px] text-text-2">
-          Listings are free. Pro lets you manage yours.
+          Listing and editing are free. Pro lets you reply.
         </p>
         <h1 className="mx-auto mt-6 max-w-[14em] text-[clamp(34px,5vw,58px)] leading-[1.04] font-[650] tracking-[-0.035em] text-balance">
           Get found by businesses looking for YouTube help
@@ -175,13 +175,13 @@ export default async function ListYourAgencyPage() {
                 "bg-(--accent-soft) text-(--accent-on-soft)",
               ],
               [
-                "Get Pro",
-                "Monthly or yearly. Pro turns on your contact form and project requests, and lets you edit your profile.",
+                "Edit for free, or get Pro",
+                "Edit your profile and see request previews for free. Pro shows who sent each request.",
                 "bg-(--violet-soft) text-(--violet-on-soft)",
               ],
               [
-                "Get inquiries",
-                "Businesses and creators contact you directly. Inquiries land in your inbox and your dashboard.",
+                "Reply to requests",
+                "Businesses and creators request a quote from your profile. Requests land in your inbox and your dashboard.",
                 "bg-(--mint-soft) text-(--mint)",
               ],
             ].map(([title, body, tone], i) => (
@@ -329,15 +329,15 @@ export default async function ListYourAgencyPage() {
       <section aria-labelledby="plans-h" className={sec}>
         <div className={cn(wrap, "text-center")}>
           <h2 id="plans-h" className={h2}>
-            Listing is free. Pro is how you hear from businesses.
+            Free to edit. Pro to reply.
           </h2>
           <p className={cn(lede, "mx-auto mb-11")}>
-            Every listing is free. Pro lets you manage yours and receive inquiries.
+            Every listing is free to claim and edit. Pro shows who sent each request.
           </p>
           <PlanColumns />
           <p className="mt-[22px] text-[14px] text-text-2">
-            Rankings can&apos;t be bought: paying for Pro never changes your place, and the Verified
-            badge is only given when our checks pass.{" "}
+            Pro agencies are shown first and always carry a Pro badge. The quality score and the
+            Verified badge can&apos;t be bought.{" "}
             <Link href="/how-we-rank" className="font-semibold text-accent hover:underline">
               How we rank
             </Link>

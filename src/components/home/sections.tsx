@@ -789,7 +789,7 @@ const FAQS = [
   {
     question: `Is ${BRAND_NAME} free for businesses and creators?`,
     answer:
-      "Yes. Searching, comparing and contacting agencies is free. Agencies pay for Pro to manage their listing, and Pro never changes the ranking.",
+      "Yes. Searching, comparing and contacting agencies is free. Agencies can pay for Pro: Pro agencies are shown first and always carry a Pro badge, and the Verified badge can't be bought.",
   },
   {
     question: "Do you take a cut of what I pay the agency?",
@@ -798,12 +798,12 @@ const FAQS = [
   {
     question: "What happens when I request proposals?",
     answer:
-      "You answer a few questions about your project and budget. We pass your request to up to three agencies that fit and manage their listing with us, and they contact you directly if they're interested.",
+      "You answer a few questions about your project and budget. We pass your request to up to three Pro agencies that fit, and they contact you directly if they're interested.",
   },
   {
     question: "I run an agency. How do I get listed?",
     answer:
-      "Listing is free: create a profile from List your agency and we review it before it goes live. To manage your listing and receive inquiries, you need Pro.",
+      "Listing is free: create a profile from List your agency and we review it before it goes live, then edit it any time for free. To see who sent a request and reply, you need Pro.",
   },
   {
     question: `Is ${BRAND_NAME} part of YouTube or Google?`,

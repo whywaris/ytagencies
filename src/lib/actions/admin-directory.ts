@@ -582,3 +582,49 @@ export async function adminDeleteCaseStudy(
   revalidateAgency(agency.slug);
   return { ok: true, data: undefined };
 }
+
+// ───────── Unclaimed outreach address ─────────
+
+/**
+ * The address "You have a project request" goes to while the listing is unclaimed
+ * (lib/outreach.tsx). "" removes it. Saving a new address clears an earlier unsubscribe only when
+ * the address changes.
+ */
+export async function saveOutreachEmail(agencyId: string, raw: unknown): Promise<FormResult> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  if (!uuid.safeParse(agencyId).success) return { ok: false, error: "Unknown agency." };
+  const email = z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(254)
+    .pipe(z.email().or(z.literal("")))
+    .safeParse(raw);
+  if (!email.success)
+    return {
+      ok: false,
+      error: "Check the highlighted fields.",
+      fieldErrors: { email: "Enter a valid email address, or leave it empty." },
+    };
+  if (!email.data) {
+    const { error } = await ctx.db.from("agency_outreach_contacts").delete().eq("agency_id", agencyId);
+    if (error) return { ok: false, error: SAVE_FAILED };
+  } else {
+    const { data: before } = await ctx.db
+      .from("agency_outreach_contacts")
+      .select("email, opted_out_at")
+      .eq("agency_id", agencyId)
+      .maybeSingle();
+    const { error } = await ctx.db.from("agency_outreach_contacts").upsert({
+      agency_id: agencyId,
+      email: email.data,
+      opted_out_at: before?.email === email.data ? before.opted_out_at : null,
+    });
+    if (error) return { ok: false, error: SAVE_FAILED };
+  }
+  // The address itself stays out of the log (SECURITY.md).
+  await ctx.log("agency.outreach_email", "agency", agencyId, { set: !!email.data });
+  revalidatePath(`/admin/agencies/${agencyId}`);
+  return { ok: true, data: undefined };
+}

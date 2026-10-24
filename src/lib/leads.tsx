@@ -3,16 +3,25 @@ import { after } from "next/server";
 
 import { AdminLeadEmail } from "@/emails/admin-lead";
 import { AgencyLeadEmail } from "@/emails/agency-lead";
+import { AgencyLeadPreviewEmail } from "@/emails/agency-lead-preview";
 import { LeadConfirmationEmail } from "@/emails/lead-confirmation";
 import { getMailer, oneLine } from "@/lib/email";
 import { getResponseTimes, listQuery, toListItem } from "@/lib/data/agencies";
 import { getPlacement } from "@/lib/data/placement";
+import type { LeadPreview } from "@/lib/lead-preview";
 import { pickMatches } from "@/lib/match";
+import { sendOutreach } from "@/lib/outreach";
 import { absoluteUrl, BRAND_NAME } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Lead storage, routing and notification. Call only after every form check has passed:
 // these use the service-role client, which bypasses RLS.
+//
+// Who gets what: an agency on Pro gets the full request (contact details, reply-to). A claimed
+// agency not on Pro gets a preview without contact details (lib/lead-preview.ts) and an upgrade
+// link. An unclaimed agency gets "you have a project request" at its address on file
+// (lib/outreach.tsx). Profile requests fall back to similar Pro agencies after 48 hours
+// (lib/lead-fallback.tsx).
 
 export type RoutedAgency = {
   id: string;
@@ -23,12 +32,12 @@ export type RoutedAgency = {
 };
 
 /**
- * Up to 3 published, managed agencies for a service + industry (lib/match.ts). Unmanaged
- * listings have nobody to answer, so they never receive a request; none at all leaves the lead
- * unrouted for the admin to follow up by hand.
+ * Up to 3 published Pro agencies for a service + industry (lib/match.ts): matched requests go
+ * only to agencies that can see who sent them and reply. None leaves the lead unrouted for the
+ * admin to follow up by hand.
  */
 // ponytail: deterministic ranking sends every lead for a combo to the same top 3; add rotation
-// (least recently routed first) once agencies pay per lead.
+// (least recently routed first) if that ever crowds out other Pro agencies.
 export async function matchAgencies(serviceId: number, industryId: number, budgetMax: number) {
   const admin = createAdminClient();
   const [byService, byIndustry] = await Promise.all([
@@ -108,17 +117,25 @@ type LeadRow = {
   channel_url?: string | null;
   customer_location?: string | null;
   prior_agency?: string | null;
+  /** The profile a quote request was sent from, the visitor's consent and its redacted preview. */
+  agency_id?: string | null;
+  consent_fallback?: boolean;
+  summary?: string | null;
 };
 
 /** Inserts the lead and its routes. Returns the lead id. */
-export async function saveLead(lead: LeadRow, agencies: RoutedAgency[]) {
+export async function saveLead(
+  lead: LeadRow,
+  agencies: RoutedAgency[],
+  via: "direct" | "match" | "fallback",
+) {
   const admin = createAdminClient();
   const { data, error } = await admin.from("leads").insert(lead).select("id").single();
   if (error) throw error;
   if (agencies.length > 0) {
     const routes = await admin
       .from("lead_routes")
-      .insert(agencies.map((a) => ({ lead_id: data.id, agency_id: a.id })));
+      .insert(agencies.map((a) => ({ lead_id: data.id, agency_id: a.id, via })));
     // ponytail: lead + routes aren't one transaction; a failed routes insert leaves the lead unrouted.
     // The admin email still lists the intended agencies. Move into an RPC if it ever happens.
     if (routes.error) console.error("lead_routes insert failed", { leadId: data.id });
@@ -139,6 +156,8 @@ type LeadEmailInput = {
     /** Request proposals answers, as [label, value] rows (empty values are left out). */
     details?: [string, string | null][];
   };
+  /** What agencies not on Pro see (no contact details). */
+  preview: LeadPreview;
   agencies: RoutedAgency[];
 };
 
@@ -151,40 +170,32 @@ export function queueLeadEmails(input: LeadEmailInput) {
   );
 }
 
-async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) {
+async function sendLeadEmails({ leadId, kind, lead, preview, agencies }: LeadEmailInput) {
   const mailer = getMailer();
   if (!mailer) {
     console.warn("Email not configured (RESEND_API_KEY); skipped", { leadId });
     return;
   }
   const { send, from } = mailer;
-  const admin = createAdminClient();
   const direct = kind === "contact";
+  const placement = await getPlacement();
 
-  // Agencies: only claimed listings have an owner to email. Others are flagged to the admin.
   const notified = await Promise.all(
-    agencies.map(async (agency) => {
-      if (!agency.isClaimed || !agency.ownerId) return false;
-      const { data } = await admin.auth.admin.getUserById(agency.ownerId);
-      const to = data.user?.email;
-      if (!to) return false;
-      const { error } = await send({
-        from,
-        to,
-        replyTo: lead.email,
-        subject: oneLine(`New inquiry via ${BRAND_NAME}: ${lead.company || lead.name}`),
-        react: <AgencyLeadEmail agencyName={agency.name} lead={lead} direct={direct} />,
-      });
-      if (error) console.error("agency lead email failed", { leadId, agencyId: agency.id });
-      return !error;
-    }),
+    agencies.map((agency) =>
+      notifyAgency(mailer, agency, placement.entitlements(agency.id).managed, {
+        leadId,
+        lead,
+        preview,
+        direct,
+      }),
+    ),
   );
 
   const confirmation = send({
     from,
     to: lead.email,
     subject: direct
-      ? oneLine(`Your message to ${agencies[0]?.name ?? "the agency"}`)
+      ? oneLine(`Your request to ${agencies[0]?.name ?? "the agency"}`)
       : "We've passed on your request",
     react: (
       <LeadConfirmationEmail
@@ -225,4 +236,51 @@ async function sendLeadEmails({ leadId, kind, lead, agencies }: LeadEmailInput) 
   const [c, a] = await Promise.all([confirmation, adminNote]);
   if (c.error) console.error("confirmation email failed", { leadId });
   if (a?.error) console.error("admin lead email failed", { leadId });
+}
+
+/**
+ * One routed agency: the full request on Pro, a preview to a free owner, outreach to an unclaimed
+ * listing. Returns whether an email went out (the admin email lists it).
+ */
+export async function notifyAgency(
+  mailer: NonNullable<ReturnType<typeof getMailer>>,
+  agency: RoutedAgency,
+  managed: boolean,
+  {
+    leadId,
+    lead,
+    preview,
+    direct,
+  }: { leadId: string; lead: LeadEmailInput["lead"]; preview: LeadPreview; direct: boolean },
+) {
+  const { send, from } = mailer;
+  if (!agency.isClaimed || !agency.ownerId) {
+    return direct ? sendOutreach(mailer, agency, leadId) : false;
+  }
+  const { data } = await createAdminClient().auth.admin.getUserById(agency.ownerId);
+  const to = data.user?.email;
+  if (!to) return false;
+  const { error } = managed
+    ? await send({
+        from,
+        to,
+        replyTo: lead.email,
+        subject: oneLine(`New inquiry via ${BRAND_NAME}: ${lead.company || lead.name}`),
+        react: <AgencyLeadEmail agencyName={agency.name} lead={lead} direct={direct} />,
+      })
+    : await send({
+        from,
+        to,
+        subject: oneLine(`New project request for ${agency.name}`),
+        react: (
+          <AgencyLeadPreviewEmail
+            agencyName={agency.name}
+            preview={preview}
+            direct={direct}
+            url={absoluteUrl(`/dashboard/${agency.slug}/inquiries#lead-${leadId}`)}
+          />
+        ),
+      });
+  if (error) console.error("agency lead email failed", { leadId, agencyId: agency.id });
+  return !error;
 }

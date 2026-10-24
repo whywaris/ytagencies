@@ -1,9 +1,9 @@
 import { PlanCards } from "@/components/pro-billing";
 import { getPlanPrices } from "@/lib/data/placement";
-import { proFeatures } from "@/lib/entitlements";
+import { freeFeatures, proFeatures } from "@/lib/entitlements";
 
-// Listing / Pro, on /pricing and /list-your-agency. Pro's prices come from the plans table and
-// its features from the entitlements (the billing page's list).
+// Free / Pro, on /pricing and /list-your-agency. Pro's prices come from the plans table and both
+// feature lists from the entitlements (the billing page's list).
 
 /** Fallbacks if the plans table can't be read: the launch prices. */
 const PRO_MONTHLY_USD = 29;
@@ -19,5 +19,12 @@ export async function getProPrices() {
 
 export async function PlanColumns() {
   const prices = await getProPrices();
-  return <PlanCards monthly={prices.monthly} yearly={prices.yearly} proFeatures={proFeatures()} />;
+  return (
+    <PlanCards
+      monthly={prices.monthly}
+      yearly={prices.yearly}
+      freeFeatures={freeFeatures()}
+      proFeatures={proFeatures()}
+    />
+  );
 }

@@ -25,7 +25,7 @@ export const revalidate = 3600;
 
 const TITLE = `How we rank agencies | ${BRAND_NAME}`;
 const DESCRIPTION =
-  "How YT Agencies orders agencies on directory pages: Verified agencies first, then everyone else, each sorted by profile quality, reviews, verification and reply time. Paying for Pro never changes the order.";
+  "How YT Agencies orders agencies: Verified and Pro, then Pro, then Verified, then everyone else. Pro agencies always carry a Pro badge; Verified is earned. Within each group, the same quality score.";
 
 export const metadata = buildMetadata({
   title: TITLE,
@@ -51,9 +51,10 @@ const pill = cn(
 // ───────── Hero illustration (decorative) ─────────
 
 const ROWS = [
-  { i: "NV", name: "Northvale Media", score: 92 },
-  { i: "BK", name: "Brightkey Studio", score: 81 },
-  { i: "LR", name: "Loop & Reel", score: 67 },
+  { i: "NV", name: "Northvale Media", score: 88, pro: true, verified: true },
+  { i: "BK", name: "Brightkey Studio", score: 74, pro: true, verified: false },
+  { i: "LR", name: "Loop & Reel", score: 91, pro: false, verified: true },
+  { i: "CS", name: "Clearshot Co.", score: 63, pro: false, verified: false },
 ];
 
 function RankCard() {
@@ -63,7 +64,7 @@ function RankCard() {
       className="w-full max-w-[460px] rounded-[22px] border border-line bg-raised p-5 shadow-[0_24px_48px_-24px_rgba(20,25,40,.25)]"
     >
       <p className="text-[15px] font-semibold">YouTube Ads agencies for Dentists</p>
-      <p className="text-[13px] text-text-2">Sorted by quality score</p>
+      <p className="text-[13px] text-text-2">By group, then quality score</p>
       <ol className="mt-4 flex flex-col gap-3">
         {ROWS.map((r, n) => (
           <li key={r.i} className="flex items-center gap-3">
@@ -72,7 +73,19 @@ function RankCard() {
               {r.i}
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <span className="truncate text-[14px] font-medium">{r.name}</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate text-[14px] font-medium">{r.name}</span>
+                {r.verified && (
+                  <span className="rounded-full border border-verified px-1.5 text-[11px] text-verified">
+                    Verified
+                  </span>
+                )}
+                {r.pro && (
+                  <span className="rounded-full border border-(--amber)/50 bg-(--amber-soft) px-1.5 text-[11px] text-(--amber-on-soft)">
+                    Pro
+                  </span>
+                )}
+              </span>
               <span className="h-1.5 rounded-full bg-surface">
                 <span
                   className="grow-x block h-full rounded-full bg-accent"
@@ -93,15 +106,29 @@ function RankCard() {
 const GROUPS = [
   {
     n: 1,
-    title: "Verified agencies",
-    body: "Agencies that proved their own domain with a work email and passed our checks, on any plan. Sorted by quality score.",
+    title: "Verified and Pro",
+    body: "Agencies that earned the Verified badge and pay for Pro. They show both badges.",
+    tone: "border-(--amber)/40 bg-(--amber-soft)",
+    num: "bg-(--amber-on-soft) text-bg",
+  },
+  {
+    n: 2,
+    title: "Pro",
+    body: "Agencies on the paid Pro plan, always marked with a Pro badge.",
+    tone: "border-(--amber)/40 bg-(--amber-soft)",
+    num: "bg-(--amber-on-soft) text-bg",
+  },
+  {
+    n: 3,
+    title: "Verified",
+    body: "Agencies on the free plan that proved their own domain with a work email and passed our checks.",
     tone: "border-verified/40 bg-(--mint-soft)",
     num: "bg-verified text-bg",
   },
   {
-    n: 2,
+    n: 4,
     title: "Everyone else",
-    body: "All other agencies, Pro or free, sorted by quality score. Ties are listed alphabetically.",
+    body: "All other agencies. Ties in any group are listed alphabetically.",
     tone: "border-line bg-surface",
     num: "bg-text text-bg",
   },
@@ -180,16 +207,15 @@ const SCORE_CARDS: {
 ];
 
 const NOT_FOR_SALE = [
-  "A higher place by paying for Pro",
   "The Verified badge",
   "Reviews, or which reviews are shown",
-  "A better score for claiming a listing or getting more inquiries",
+  "Your quality score",
 ];
 
 const OWNERS = [
-  "The order reflects how complete, reviewed and verified an agency is, not what it pays us.",
-  "No agency can pay for a higher place, on any plan.",
-  "Verified badges mean the agency confirmed a work email on its own website domain, and we've checked its website, business and YouTube channels.",
+  "Agencies that pay for Pro are shown before free listings, and always carry a gold Pro badge, so you can tell.",
+  "Verified is a separate green badge. It's earned with checks and can't be bought, on any plan.",
+  "Within each group, the order comes from the same quality score: profile, checked reviews, verification and reply time.",
 ];
 
 const STEPS = [
@@ -206,7 +232,7 @@ const STEPS = [
   {
     n: "03",
     title: "Apply for Verified",
-    body: "Confirm a work email at your agency's own domain (not Gmail or Outlook), then we check your website, channels and business. Verified agencies are listed above everyone else. It's free.",
+    body: "Confirm a work email at your agency's own domain (not Gmail or Outlook), then we check your website, channels and business. Verified agencies come before unverified ones on the same plan. It's free.",
   },
   {
     n: "04",
@@ -241,13 +267,12 @@ export default function HowWeRankPage() {
           <div className="flex flex-col gap-6">
             <Breadcrumbs items={breadcrumbs} />
             <h1 className="text-[clamp(40px,5.6vw,68px)] leading-[1.02] font-[680] tracking-[-0.045em]">
-              Ranked on merit.
-              <br />
-              <span className="text-accent">Not money.</span>
+              How we rank agencies
             </h1>
             <p className="max-w-[34em] text-[clamp(17px,1.6vw,19px)] leading-normal text-text-2">
-              Agencies earn their place with a complete profile, checked reviews, verification and
-              fast replies. Paying for Pro never changes your place.
+              Pro agencies are shown first and always marked with a Pro badge. Verified is earned
+              and can&apos;t be bought. Within each group, agencies are sorted by the same quality
+              score.
             </p>
             <div className="flex flex-wrap gap-3">
               <a href="#owners" className={pill}>
@@ -270,10 +295,10 @@ export default function HowWeRankPage() {
           <div className="flex max-w-[680px] flex-col gap-3">
             <p className={eyebrow}>The order on every page</p>
             <h2 id="order-heading" className={h2}>
-              Two groups. Same on every page.
+              Four groups. Same on every page.
             </h2>
           </div>
-          <ol className="grid gap-4 md:grid-cols-2">
+          <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {GROUPS.map((g) => (
               <li key={g.n} className={cn("flex flex-col gap-3 rounded-[22px] border p-6", g.tone)}>
                 <span
@@ -291,8 +316,8 @@ export default function HowWeRankPage() {
             ))}
           </ol>
           <p className="max-w-[60ch] text-[15.5px] text-text-2">
-            Paying for Pro doesn&apos;t change the order. Pro is how an agency manages its profile
-            and receives inquiries.
+            Pro is a paid plan: it lets an agency see who sent a request and reply, and it places
+            the agency ahead of free listings. Sponsored placements are switched off.
           </p>
         </div>
       </section>
@@ -306,7 +331,8 @@ export default function HowWeRankPage() {
               100 points, all of them earned
             </h2>
             <p className="text-[17px] text-text-2">
-              Four things decide an agency&apos;s place. None of them can be bought.
+              Within each group, four things decide an agency&apos;s place. None of them can be
+              bought.
             </p>
           </div>
           <div className="flex flex-col gap-3">
@@ -353,9 +379,9 @@ export default function HowWeRankPage() {
           <p className="max-w-[70ch] text-[15px] text-text-2">
             The profile, review and verification points above are scaled by 0.9, so together they
             make up 90. Response time needs at least 3 contacted inquiries in 90 days. Agencies
-            without that data (free listings can&apos;t receive inquiries, so it&apos;s always true
-            for them) are scored on the other 90 points, scaled to 100, so nobody loses out for a
-            number they can&apos;t have. Scores are rounded to a whole number.
+            without that data (only Pro agencies can mark requests as contacted, so it&apos;s always
+            true for free listings) are scored on the other 90 points, scaled to 100, so nobody
+            loses out for a number they can&apos;t have. Scores are rounded to a whole number.
           </p>
         </div>
       </section>
@@ -377,7 +403,10 @@ export default function HowWeRankPage() {
               </li>
             ))}
           </ul>
-          <p className="text-[17px] text-white/75">Paying for Pro never changes your place.</p>
+          <p className="text-[17px] text-white/75">
+            Pro places an agency ahead of free listings, always marked with a Pro
+            badge. It never buys these.
+          </p>
         </div>
       </section>
 

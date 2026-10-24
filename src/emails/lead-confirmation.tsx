@@ -16,7 +16,7 @@ export function LeadConfirmationEmail({ name, agencies, need, answers }: Props) 
     <EmailLayout
       preview={
         direct
-          ? "Your message was sent"
+          ? "Your request was sent"
           : agencies.length > 0
             ? "We've passed your request to agencies that fit"
             : "We've saved your request"
@@ -27,7 +27,7 @@ export function LeadConfirmationEmail({ name, agencies, need, answers }: Props) 
         <>
           <p style={text}>
             {direct
-              ? `We've sent your message to ${agencies[0].name}.`
+              ? `We've sent your request to ${agencies[0].name}. If they don't reply within 48 hours, we'll send it to up to 3 similar agencies and tell you who.`
               : `We've passed your request for ${need} to ${agencies.length === 1 ? "this agency" : `these ${agencies.length} agencies`}:`}
           </p>
           {!direct && (

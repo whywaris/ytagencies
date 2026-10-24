@@ -1,4 +1,3 @@
-import { Paywall } from "@/components/dashboard/paywall";
 import { RequestVerification } from "@/components/dashboard/request-verification";
 import { dashboardContext } from "@/lib/data/dashboard";
 import { NO_OWN_DOMAIN, ownDomain } from "@/lib/work-email";
@@ -9,13 +8,8 @@ export default async function VerificationPage({
   params,
   searchParams,
 }: PageProps<"/dashboard/[slug]/verification">) {
-  const ctx = await dashboardContext((await params).slug);
-  const { agency, supabase, e } = ctx;
+  const { agency, supabase } = await dashboardContext((await params).slug);
   const confirmed = (await searchParams).status === "email-confirmed";
-  if (!e.managed && !e.verifiedBadge)
-    return (
-      <Paywall ctx={ctx} unlocks="With Pro you can ask us to verify your agency for the badge." />
-    );
   const [{ data, error }, { data: site }] = await Promise.all([
     supabase
       .from("verifications")

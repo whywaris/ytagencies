@@ -120,9 +120,9 @@ export default async function EditorialPolicyPage() {
       title: "Independence from paying agencies",
       body: (
         <p>
-          Agencies on Pro pay us to manage their listing, as our{" "}
-          <Link href="/disclosure">disclosure</Link> explains. That never affects where they rank or
-          what we write in our guides.
+          Agencies on Pro pay us for client details and placement ahead of free listings, always
+          marked with a Pro badge, as our <Link href="/disclosure">disclosure</Link> explains. That
+          never affects what we write in our guides.
         </p>
       ),
     },

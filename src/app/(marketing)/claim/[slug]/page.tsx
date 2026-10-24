@@ -182,7 +182,11 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
         ? `A link to an address on ${hostOf(agency.website)}, or proof we check by hand.`
         : "Proof we check by hand.",
     },
-    { n: 3, title: "Choose Pro", detail: "Monthly or yearly. Pro turns on inquiries and editing." },
+    {
+      n: 3,
+      title: "Edit for free, or choose Pro",
+      detail: "Edit your profile on Free. Pro shows who sent each request, so you can reply.",
+    },
   ];
 
   let card: React.ReactNode;
@@ -199,7 +203,7 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
         <h1 className={h1}>{mine ? `Manage ${agency.name} with Pro` : `Claim ${agency.name}`}</h1>
         <p className={sub}>
           {mine
-            ? "The listing is yours. Choose Pro to receive inquiries and edit it."
+            ? "The listing is yours. Edit it for free from your dashboard, or choose Pro to see who sent each request and reply."
             : "Confirm you work there. It takes a minute."}
         </p>
         <ol className="mt-[22px] grid gap-1">
@@ -345,12 +349,12 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
             )}
           </div>
           <div className="mt-[22px]">
-            <h2 className="mb-2.5 text-[15px] font-[650]">With Pro, you can</h2>
+            <h2 className="mb-2.5 text-[15px] font-[650]">Once it&apos;s yours</h2>
             <ul className="grid gap-2 text-[14.5px] text-text-2">
               {[
-                "Fix anything we got wrong",
-                "Add your pricing, channels and case studies",
-                "Receive inquiries and see who views your profile",
+                "Fix anything we got wrong, for free",
+                "Add your pricing and up to 3 case studies, for free",
+                "With Pro: see who sent each request, reply and see your analytics",
               ].map((t) => (
                 <li key={t} className="flex gap-2.5">
                   <Check

@@ -10,6 +10,7 @@ import { AgencyLogo } from "@/components/agency-logo";
 import { logoSrc } from "@/lib/logo";
 import { CaseStudies } from "@/components/dashboard/case-studies";
 import { ProfileForm } from "@/components/dashboard/profile-form";
+import { OutreachEmailForm } from "@/components/admin/outreach-email-form";
 import { SeoHiddenNotice } from "@/components/seo-hidden-notice";
 import { adminUpdateProfile } from "@/lib/actions/admin";
 import { adminDeleteCaseStudy, adminSaveCaseStudy } from "@/lib/actions/admin-directory";
@@ -69,7 +70,7 @@ export default async function AdminAgencyPage({
   ]);
   if (!agency) notFound();
   if (subs.error) throw new Error("Couldn't load the plan");
-  // "pro" while managed, "free" (shown as Unmanaged) otherwise.
+  // "pro" while managed, "free" otherwise.
   const plan = isManaged(subs.data) ? "pro" : "free";
   const owner = agency.owner_id ? await db.auth.admin.getUserById(agency.owner_id) : null;
 
@@ -162,7 +163,14 @@ async function ProfileTab({
   };
 }) {
   const db = createAdminClient();
-  const form = await profileFormProps(db, agency);
+  const [form, { data: outreach }] = await Promise.all([
+    profileFormProps(db, agency),
+    db
+      .from("agency_outreach_contacts")
+      .select("email, opted_out_at")
+      .eq("agency_id", agency.id)
+      .maybeSingle(),
+  ]);
   const defaults: AgencyInput = {
     name: agency.name,
     slug: agency.slug,
@@ -198,6 +206,11 @@ async function ProfileTab({
           Details
         </h2>
         <AgencyForm id={agency.id} defaults={defaults} slugLocked={agency.status === "published"} />
+        <OutreachEmailForm
+          agencyId={agency.id}
+          email={outreach?.email ?? ""}
+          optedOut={!!outreach?.opted_out_at}
+        />
       </section>
       <section aria-labelledby="profile" className="flex flex-col gap-6">
         <h2 id="profile" className="text-admin-section">
@@ -265,14 +278,16 @@ async function PlanTab({
   const active = subs.find((s) => s.status === "active" || s.status === "past_due");
   const yes = (v: boolean) => (v ? "Yes" : "No");
   const rows: [string, string][] = [
-    ["Managed", e.managed ? "Yes (Pro)" : "No (unmanaged)"],
-    ["Contact form and inquiries", yes(e.contactForm)],
-    ["Owner can edit", yes(e.canEdit)],
-    ["Website link on profile", yes(e.websiteLink)],
+    ["Plan", e.managed ? "Pro" : "Free"],
+    ["Lead contact details", e.leadDetails ? "Yes" : "Preview only"],
+    ["Owner can edit basics", yes(e.canEdit)],
+    ["Pro badge and placement", yes(e.proBadge)],
     ["Response time on profile", yes(e.responseTime)],
     ["Similar agencies on profile", e.showSimilarAgencies ? "Shown" : "Hidden"],
     ["Booking buttons on profile", yes(e.bookingButtons)],
-    ["Analytics history", e.analyticsDays >= 365 ? "12 months" : "30 days"],
+    ["Channels on profile", yes(e.channels)],
+    ["Case studies", e.caseStudies === Infinity ? "Unlimited" : `Up to ${e.caseStudies}`],
+    ["Analytics", e.analyticsDays >= 365 ? "12 months" : "No"],
     ...(sponsoredEnabled()
       ? [["Can buy Sponsored slots", yes(e.canBuySponsored)] as [string, string]]
       : []),
@@ -290,7 +305,7 @@ async function PlanTab({
               ? active.ends_at
                 ? `Since ${formatDate(active.starts_at)}, ends ${formatDate(active.ends_at)}`
                 : `Since ${formatDate(active.starts_at)}, no end date`
-              : "Unmanaged: no live Pro subscription. Payments are off, so Pro is granted by hand."}
+              : "Free: no live Pro subscription. Payments are off, so Pro is granted by hand."}
           </p>
         </div>
         <dl className="divide-y divide-line rounded-xl border border-line">

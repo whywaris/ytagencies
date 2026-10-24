@@ -52,9 +52,11 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          Browsing, comparing and contacting agencies is free. When you send an inquiry or ask to be
-          matched, we pass it to the agencies concerned, as described in our{" "}
-          <Link href="/privacy">privacy policy</Link>.
+          Browsing, comparing and contacting agencies is free. When you request a quote from an
+          agency or ask to be matched, we pass it to the agencies concerned, as described in our{" "}
+          <Link href="/privacy">privacy policy</Link>. A quote request goes to the agency you chose;
+          if it doesn&apos;t reply within 48 hours, we send it to up to 3 similar agencies, which you
+          agree to when you send it.
         </p>
         <p>
           Matching depends on which agencies are listed and what they offer. We can&apos;t promise
@@ -122,12 +124,14 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          Listings are free. Managing a listing (editing it and receiving inquiries) requires an
-          active Pro subscription, as described on the <Link href="/pricing">pricing page</Link>.
-          Pro doesn&apos;t change an agency&apos;s position in the directory. When Pro ends, the
-          listing stays public as unmanaged, we keep its details, editing is locked and inquiries
-          stop. How the order is set is explained in <Link href="/how-we-rank">How we rank</Link>{" "}
-          and our <Link href="/disclosure">disclosure</Link>.
+          Listings are free, and the owner of a claimed listing can edit it on the free plan. Seeing
+          a request&apos;s contact details and replying, booking buttons, unlimited case studies,
+          analytics, the Pro badge and Pro placement require an active Pro subscription, as
+          described on the <Link href="/pricing">pricing page</Link>. Pro agencies are shown before
+          free listings and always marked with a Pro badge. When Pro ends, the listing goes back to
+          the free plan. How the order is set is explained in{" "}
+          <Link href="/how-we-rank">How we rank</Link> and our{" "}
+          <Link href="/disclosure">disclosure</Link>.
         </p>
         <p>
           Pro is sold by Lemon Squeezy as merchant of record: it takes the payment, handles tax
@@ -239,7 +243,7 @@ export default function TermsPage() {
       summary={[
         "YT Agencies is an independent directory. We help you compare agencies; we don't do agency work, broker or negotiate.",
         "Agencies must keep their listings accurate. We review listings and reviews and can remove ones that break these terms.",
-        "Listings are free. Pro is optional and never changes the ranking.",
+        "Listings are free. Pro is optional: Pro agencies are shown first and always marked with a Pro badge.",
         "We aren't responsible for the work agencies do for you.",
       ]}
       sections={sections}

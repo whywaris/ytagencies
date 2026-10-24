@@ -1595,5 +1595,49 @@ await as("authenticated", OTHER, async () =>
     "guides: signed-in non-admins can't read drafts either",
   ),
 );
+console.log("— gated leads: contact details only on Pro —");
+// OWNER's agency here is MINE (Saltmere, see response time above), with routed leads.
+await db.exec(`reset role;
+  update agency_subscriptions set status = 'expired', ends_at = now() - interval '1 day'
+    where agency_id = '${MINE}' and status in ('active', 'past_due');`);
+await as("authenticated", OWNER, async () => {
+  ok((await rows("select * from leads")).length === 0, "leads: free owner reads no contact details");
+  const previews = await rows(`select * from lead_previews('${MINE}')`);
+  ok(previews.length >= 1, "lead_previews: free owner sees their requests");
+  ok(
+    previews.every((p) => !("name" in p) && !("email" in p) && !("company" in p) && !("message" in p)),
+    "lead_previews: no name, email, company or message",
+  );
+  ok(
+    (await rows(`select * from lead_previews('${PINE}')`)).length === 0,
+    "lead_previews: nothing for someone else's agency",
+  );
+});
+await as("anon", null, async () =>
+  ok(await fails(`select * from lead_previews('${MINE}')`), "lead_previews: anon can't call it"),
+);
+await db.exec(`reset role;
+  insert into agency_subscriptions (agency_id, plan_id, source) values ('${MINE}', 'pro', 'manual');`);
+await as("authenticated", OWNER, async () =>
+  ok((await rows("select email from leads")).length >= 1, "leads: Pro owner reads contact details"),
+);
+for (const [role, uid] of [
+  ["anon", null],
+  ["authenticated", OWNER],
+]) {
+  await as(role, uid, async () => {
+    ok(
+      (await fails("select email from agency_outreach_contacts")) ||
+        (await rows("select email from agency_outreach_contacts")).length === 0,
+      `agency_outreach_contacts: ${role} can't read addresses`,
+    );
+    ok(
+      (await fails("select * from agency_outreach")) ||
+        (await rows("select * from agency_outreach")).length === 0,
+      `agency_outreach: ${role} can't read the log`,
+    );
+  });
+}
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

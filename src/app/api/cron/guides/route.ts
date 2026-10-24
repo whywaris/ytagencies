@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { type NextRequest } from "next/server";
 
 import { sendEndingNotices } from "@/lib/billing/notices";
+import { runLeadFallbacks } from "@/lib/lead-fallback";
 import { sendLeadReminders } from "@/lib/lead-reminders";
 import { purgeExpiredData } from "@/lib/retention";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -13,7 +14,8 @@ import { revalidateSitemap } from "@/lib/revalidate";
 // guides that went live since yesterday, the /guides index, the home page (its daily guides) and
 // the sitemap. On Vercel Pro, change the
 // schedule to every 15 minutes ("*/15 * * * *") as the spec intends.
-// The same daily run sends lead reminders (lib/lead-reminders.ts), "Pro ends in 3 days" emails
+// The same daily run sends lead reminders (lib/lead-reminders.ts), moves profile requests on to
+// similar agencies after 48 hours (lib/lead-fallback.tsx), "Pro ends in 3 days" emails
 // (lib/billing/notices.tsx) and deletes data past its
 // retention period (lib/retention.ts): Vercel Hobby allows two crons.
 
@@ -53,6 +55,13 @@ export async function GET(request: NextRequest) {
   } catch {
     reminders = { error: "Couldn't send lead reminders" };
   }
+  let fallbacks: unknown;
+  try {
+    fallbacks = await runLeadFallbacks(now);
+  } catch {
+    fallbacks = { error: "Couldn't run lead fallbacks" };
+    console.error("lead fallbacks failed");
+  }
   let endingNotices: unknown;
   try {
     endingNotices = await sendEndingNotices();
@@ -67,5 +76,5 @@ export async function GET(request: NextRequest) {
     purged = { error: "Couldn't purge expired data" };
     console.error("retention purge failed");
   }
-  return Response.json({ revalidated: data.length, reminders, endingNotices, purged });
+  return Response.json({ revalidated: data.length, reminders, fallbacks, endingNotices, purged });
 }

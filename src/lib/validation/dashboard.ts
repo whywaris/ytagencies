@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { AD_SPENDS, MIN_CONTRACTS, PRICING_MODELS } from "@/lib/pricing";
+import { agencySchema } from "@/lib/validation/admin";
 import { checkFocusTotals, profileDetailsFields } from "@/lib/validation/profile-details";
 
 // Dashboard forms. Shared by client and server; the server always re-validates.
@@ -97,3 +98,13 @@ export function jsonToMetrics(json: unknown): CaseStudyInput["metrics"] {
       : [],
   );
 }
+
+/** The basics owners edit on any plan (the admin form's rules for the same fields). */
+export const basicsSchema = agencySchema.pick({
+  tagline: true,
+  website: true,
+  foundedYear: true,
+  teamSize: true,
+  languages: true,
+});
+export type BasicsInput = z.infer<typeof basicsSchema>;

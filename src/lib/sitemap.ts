@@ -143,8 +143,9 @@ export async function buildLlmsTxt() {
       "An independent directory that helps businesses and creators find and compare YouTube agencies by service, industry and location.",
     about: [
       `Businesses and creators use ${BRAND_NAME} for free: they browse agencies by service, industry and location, or describe their project and request proposals from up to three agencies that fit.`,
-      "Listings are free and can be created by us from public information or submitted by agencies. Agencies can manage their profile, receive inquiries and link to their website with a paid Pro plan.",
-      "Directory order is Verified agencies first, then everyone else, each sorted by a quality score from profile completeness, reviews, verification and reply time. Paying for Pro doesn't change the order. The Verified badge can't be bought: it's given after we check an agency's YouTube channels, website and business.",
+      "Listings are free and can be created by us from public information or submitted by agencies. Agencies edit their profile for free; a paid Pro plan shows who sent each request so they can reply, and adds a website link and booking buttons.",
+      "Every profile takes quote requests; if the agency doesn't reply within 48 hours, the request goes to up to 3 similar Pro agencies, with the business's consent.",
+      "Directory order is Verified and Pro, then Pro, then Verified, then everyone else, each group sorted by a quality score from profile completeness, reviews, verification and reply time. Pro agencies always carry a Pro badge. The Verified badge can't be bought: it's given after we check an agency's YouTube channels, website and business.",
       "Subscriber counts for the channels on a profile come from the YouTube Data API; a channel an agency adds shows as listed by the agency until the channel owner confirms the work to us.",
       `${INDEPENDENT_DIRECTORY} ${BRAND_NAME} doesn't charge per lead or take a commission, and is not affiliated with YouTube or Google.`,
     ].join(" "),

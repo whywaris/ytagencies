@@ -18,18 +18,15 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 // The dashboard's section list (docs/mockups/agency-dashboard.html): a slim sidebar on desktop,
-// a scrolling row on small screens. Sections that need Pro carry a lock and show the paywall.
+// a scrolling row on small screens. Sections that need Pro (Channels, Analytics) carry a lock.
 
 export function DashboardTabs({
   slug,
   managed,
-  lapsed,
   waiting,
 }: {
   slug: string;
   managed: boolean;
-  /** Had Pro before: past inquiries stay readable. */
-  lapsed: boolean;
   /** Inquiries not marked as contacted yet. */
   waiting: number;
 }) {
@@ -42,13 +39,12 @@ export function DashboardTabs({
         href: `${base}/inquiries`,
         label: "Inquiries",
         icon: MessageSquare,
-        pro: true,
         count: waiting,
       },
-      { href: `${base}/profile`, label: "Profile", icon: UserRound, pro: true },
+      { href: `${base}/profile`, label: "Profile", icon: UserRound },
       { href: `${base}/channels`, label: "Channels", icon: Clapperboard, pro: true },
-      { href: `${base}/case-studies`, label: "Case studies", icon: FileText, pro: true },
-      { href: `${base}/verification`, label: "Verification", icon: ShieldCheck, pro: true },
+      { href: `${base}/case-studies`, label: "Case studies", icon: FileText },
+      { href: `${base}/verification`, label: "Verification", icon: ShieldCheck },
     ],
     [
       { href: `${base}/analytics`, label: "Analytics", icon: BarChart3, pro: true },
@@ -73,7 +69,7 @@ export function DashboardTabs({
           {group.map(({ href, label, icon: Icon, pro, count }) => {
             // The overview is also /dashboard itself for owners of one agency.
             const current = pathname === href || (href === base && pathname === "/dashboard");
-            const locked = pro && !managed && !(lapsed && href === `${base}/inquiries`);
+            const locked = pro && !managed;
             return (
               <Link
                 key={href}

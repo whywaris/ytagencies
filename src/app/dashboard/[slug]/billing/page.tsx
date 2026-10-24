@@ -66,8 +66,8 @@ export default async function BillingPage({
   let summary: string;
   if (!live)
     summary = lapsed
-      ? "Your Pro plan has ended. Your profile stays public with the details we hold, but businesses can't contact you and editing is locked."
-      : "Your listing is unmanaged: your profile is public, but businesses can't contact you and editing is locked.";
+      ? "Your Pro plan has ended, so you're on Free. You can still edit your profile; new requests show as a preview without contact details."
+      : "You're on Free. You can edit your profile and see a preview of every request. Pro shows who sent it, so you can reply.";
   else if (live.status === "past_due")
     summary = `Your last payment didn't go through. Pro stays on until ${fmt(new Date(Date.parse(live.past_due_since!) + 7 * 86_400_000).toISOString())} while Lemon Squeezy retries it. Update your card in Manage subscription.`;
   else if (live.cancel_at_period_end && live.ends_at) summary = `Ends on ${fmt(live.ends_at)}.`;

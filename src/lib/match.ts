@@ -1,9 +1,9 @@
 // Request proposals: which agencies a request goes to. Pure, no imports: tested.
 //
-// Only managed agencies (live Pro) receive requests: an unmanaged listing has nobody to answer.
+// Only Pro agencies receive matched requests: they're the ones who can see who sent it and reply.
 // Candidates already offer the service; they must also work in the industry. Among those:
-// minimum project fits the budget first ("Not sure yet" skips this), then the directory's merit
-// order (Verified, quality score, name; Sponsored doesn't apply). At most 3. None leaves the
+// minimum project fits the budget first ("Not sure yet" skips this), then the directory's order
+// (lib/ranking.ts byMerit; Sponsored doesn't apply). At most 3. None leaves the
 // request unrouted: it's saved, the admin is emailed and follows up by hand (lib/leads.tsx).
 
 export const MAX_MATCHES = 3;

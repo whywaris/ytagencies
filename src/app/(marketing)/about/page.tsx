@@ -63,8 +63,8 @@ const PROBLEMS: { title: string; body: string; Icon: LucideIcon; tint: string }[
 
 const RULES = [
   {
-    title: "Ranked on merit",
-    body: "Verified agencies first, then everyone else by quality score. Paying for Pro never changes the order.",
+    title: "Pro is always labelled",
+    body: "Pro agencies are shown first, always with a Pro badge. Then the same quality score decides the order in each group.",
     link: { href: "/how-we-rank", label: "How we rank" },
   },
   {
@@ -273,8 +273,8 @@ export default async function AboutPage() {
               Get found by people already looking for you
             </h2>
             <p className="text-[16px] text-white/75">
-              Listing is free. Pro (${prices.monthly}/month) lets you manage your profile and
-              receive inquiries, with no commission on the work you win.
+              Listing and editing are free. Pro (${prices.monthly}/month) shows who sent each request
+              so you can reply, with no commission on the work you win.
             </p>
             <Link
               href="/pricing"

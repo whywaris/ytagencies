@@ -1,4 +1,5 @@
-// Managed vs unmanaged listings (src/lib/entitlements.ts): Pro-only management, no Founding.
+// Free vs Pro listings (src/lib/entitlements.ts): owners edit the basics on Free; client details,
+// booking, channels, unlimited case studies, analytics, the Pro badge and placement are Pro.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
@@ -15,41 +16,48 @@ const pro = (extra = {}) => ({
   ...extra,
 });
 
-test("no subscription: unmanaged", () => {
+test("no subscription: Free edits the basics but can't see lead contact details", () => {
   const e = entitlementsFor({ subscriptions: [], verificationApproved: false, now });
   assert.deepEqual(
     {
       managed: e.managed,
       plan: e.plan,
-      contactForm: e.contactForm,
-      websiteLink: e.websiteLink,
+      canEdit: e.canEdit,
+      leadDetails: e.leadDetails,
       responseTime: e.responseTime,
       showSimilarAgencies: e.showSimilarAgencies,
-      canEdit: e.canEdit,
+      caseStudies: e.caseStudies,
+      analyticsDays: e.analyticsDays,
+      bookingButtons: e.bookingButtons,
+      channels: e.channels,
+      proBadge: e.proBadge,
       canBuySponsored: e.canBuySponsored,
     },
     {
       managed: false,
       plan: "none",
-      contactForm: false,
-      websiteLink: false,
+      canEdit: true,
+      leadDetails: false,
       responseTime: false,
       showSimilarAgencies: true,
-      canEdit: false,
+      caseStudies: 3,
+      analyticsDays: 0,
+      bookingButtons: false,
+      channels: false,
+      proBadge: false,
       canBuySponsored: false,
     },
   );
-  // What an admin entered still shows: every case study.
-  assert.equal(e.caseStudies, Infinity);
 });
 
 test("active Pro: managed, with the Pro entitlements", () => {
   const e = entitlementsFor({ subscriptions: [pro()], verificationApproved: false, now });
   assert.equal(e.managed, true);
   assert.equal(e.plan, "pro");
-  assert.equal(e.contactForm, true);
-  assert.equal(e.websiteLink, true);
-  assert.equal(e.utmLinks, true);
+  assert.equal(e.leadDetails, true);
+  assert.equal(e.proBadge, true);
+  assert.equal(e.bookingButtons, true);
+  assert.equal(e.channels, true);
   assert.equal(e.responseTime, true);
   assert.equal(e.showSimilarAgencies, false);
   assert.equal(e.analyticsDays, 365);

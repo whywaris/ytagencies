@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
 
-// Agency pricing (was /for-agencies/pricing: 301 in next.config). Two plans: a free listing, and
-// Pro to manage it (lib/entitlements.ts). Prices come from the plans table.
+// Agency pricing (was /for-agencies/pricing: 301 in next.config). Two plans: Free (edit your
+// profile, request previews) and Pro (client details and replies, and more; lib/entitlements.ts).
+// Prices come from the plans table.
 
 export async function generateMetadata() {
   const { monthly } = await getProPrices();
@@ -99,7 +100,7 @@ function Inquiry() {
   return (
     <div className={cn(mini, "flex flex-col gap-2 text-[12.5px]")}>
       <span className="flex items-center justify-between gap-2">
-        <span className="font-semibold">New inquiry from your profile</span>
+        <span className="font-semibold">New request from your profile</span>
         <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-(--accent-on-soft)">
           0% fee
         </span>
@@ -126,13 +127,13 @@ const CHANNELS = [
   },
   {
     title: "Project requests that fit",
-    body: "Businesses and creators who don't want to browse send a project request. It goes only to Pro agencies whose services and industries fit.",
+    body: "Businesses and creators who don't want to browse send a project request. It goes to Pro agencies whose services and industries fit, and so do profile requests nobody answers within 48 hours.",
     tint: "bg-(--mint-soft)",
     Art: MatchRequest,
   },
   {
-    title: "Inquiries straight to your inbox",
-    body: "Buyers contact you from your profile. No middleman, no bidding against other agencies, no commission on the work you win.",
+    title: "Requests from your profile",
+    body: "Buyers request a quote from your profile. On Free you see a preview; on Pro you see who sent it and reply directly. No bidding, no commission on the work you win.",
     tint: "bg-(--amber-soft)",
     Art: Inquiry,
   },
@@ -146,16 +147,16 @@ const FAQS = [
   },
   {
     question: "Do you take a commission?",
-    answer: "No. Inquiries come straight to you and the work you win is yours.",
+    answer: "No, and we don't charge per lead either. Requests come straight to you and the work you win is yours.",
   },
   {
     question: "My agency is already listed. What do I do?",
     answer:
-      "Find it and claim it with an email at your agency's domain. Then choose Pro to manage it.",
+      "Find it and claim it with an email at your agency's domain. Then edit it for free, or choose Pro to see client details and reply.",
   },
   {
     question: "What happens if I cancel Pro?",
-    answer: `Monthly plans run to the end of the month you've paid for; yearly plans get a full refund if you ask within ${COMPANY.refunds.yearlyFullRefundDays} days of paying. When Pro ends, your listing stays public but unmanaged: businesses can't contact you and editing is locked. Past inquiries stay readable in your dashboard, and we keep your details for when you come back.`,
+    answer: `Monthly plans run to the end of the month you've paid for; yearly plans get a full refund if you ask within ${COMPANY.refunds.yearlyFullRefundDays} days of paying. When Pro ends, you're back on Free: you can still edit your profile, new requests show as a preview without contact details, and the Pro badge and placement stop.`,
   },
   {
     question: "Can I pay to get the Verified badge?",
@@ -247,11 +248,11 @@ export default async function PricingPage() {
           <div className="flex max-w-[680px] flex-col items-center gap-3">
             <p className={eyebrow}>Plans</p>
             <h2 id="plans-heading" className={h2}>
-              One plan. Every lead is yours.
+              Free to edit. Pro to reply.
             </h2>
             <p className="text-[17px] text-text-2">
-              Listing is free. Pro is how you manage your profile and hear from the businesses that
-              find you.
+              Listing and editing are free. Pro shows who sent each request, so you can reply to every
+              one.
             </p>
           </div>
           <PlanColumns />
@@ -304,9 +305,9 @@ export default async function PricingPage() {
           </div>
           <div className="flex flex-col gap-5 text-[16.5px] text-text-2">
             <p>
-              <strong className="text-text">Rankings can&apos;t be bought.</strong> Verified
-              agencies come first, then everyone else, each by quality score. Paying for Pro never
-              changes your place.
+              <strong className="text-text">Pro is always labelled.</strong> Pro agencies are shown
+              first and always carry a Pro badge. Within each group, the same quality score sets
+              the order, and that score can&apos;t be bought.
             </p>
             <p>
               <strong className="text-text">The Verified badge is earned.</strong> Any agency can

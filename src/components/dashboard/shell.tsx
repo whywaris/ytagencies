@@ -32,7 +32,6 @@ export async function AgencyDashboardShell({
         <DashboardTabs
           slug={agency.slug}
           managed={e.managed}
-          lapsed={lapsed}
           waiting={waiting ?? 0}
         />
       </div>
@@ -51,7 +50,7 @@ export async function AgencyDashboardShell({
                       : "bg-surface text-text",
                   )}
                 >
-                  {e.managed ? "Pro" : "Not managed"}
+                  {e.managed ? "Pro" : "Free"}
                 </span>
                 <span className="capitalize">{agency.status}</span>
                 {agency.status === "published" && (
@@ -96,11 +95,11 @@ export async function AgencyDashboardShell({
               >
                 Resubscribe
               </Link>{" "}
-              to receive new inquiries.
+              to see client details and reply.
             </b>
             <span className="text-text-2">
-              Your profile stays public with the details you added. Past inquiries stay readable;
-              editing is locked until you&apos;re back on Pro.
+              You&apos;re on Free: you can still edit your profile, and new requests show as a
+              preview without contact details.
             </span>
           </p>
         )}

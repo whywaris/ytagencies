@@ -783,6 +783,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      agency_outreach_contacts: {
+        Row: {
+          agency_id: string;
+          email: string;
+          opted_out_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          agency_id: string;
+          email: string;
+          opted_out_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          agency_id?: string;
+          email?: string;
+          opted_out_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      agency_outreach: {
+        Row: { agency_id: string; lead_id: string; sent_at: string };
+        Insert: { agency_id: string; lead_id: string; sent_at?: string };
+        Update: { agency_id?: string; lead_id?: string; sent_at?: string };
+        Relationships: [];
+      };
       guide_category_redirects: {
         Row: { from_slug: string; category_id: string; created_at: string };
         Insert: { from_slug: string; category_id: string; created_at?: string };
@@ -949,6 +979,8 @@ export type Database = {
           lead_id: string;
           reminded_at: string | null;
           sent_at: string;
+          opened_at: string | null;
+          via: string;
         };
         Insert: {
           agency_id: string;
@@ -956,6 +988,8 @@ export type Database = {
           lead_id: string;
           reminded_at?: string | null;
           sent_at?: string;
+          opened_at?: string | null;
+          via?: string;
         };
         Update: {
           agency_id?: string;
@@ -963,6 +997,8 @@ export type Database = {
           lead_id?: string;
           reminded_at?: string | null;
           sent_at?: string;
+          opened_at?: string | null;
+          via?: string;
         };
         Relationships: [
           {
@@ -984,6 +1020,10 @@ export type Database = {
       leads: {
         Row: {
           ref: string | null;
+          agency_id: string | null;
+          consent_fallback: boolean;
+          summary: string | null;
+          fallback_at: string | null;
           budget_range: string | null;
           goal: string | null;
           start_timeline: string | null;
@@ -1002,6 +1042,10 @@ export type Database = {
         };
         Insert: {
           ref?: string | null;
+          agency_id?: string | null;
+          consent_fallback?: boolean;
+          summary?: string | null;
+          fallback_at?: string | null;
           budget_range?: string | null;
           goal?: string | null;
           start_timeline?: string | null;
@@ -1020,6 +1064,10 @@ export type Database = {
         };
         Update: {
           ref?: string | null;
+          agency_id?: string | null;
+          consent_fallback?: boolean;
+          summary?: string | null;
+          fallback_at?: string | null;
           budget_range?: string | null;
           goal?: string | null;
           start_timeline?: string | null;
@@ -1519,6 +1567,22 @@ export type Database = {
       agency_managed: {
         Args: { p_agency: string };
         Returns: boolean;
+      };
+      lead_previews: {
+        Args: { p_agency: string };
+        Returns: {
+          lead_id: string;
+          sent_at: string;
+          contacted_at: string | null;
+          via: string;
+          service: string | null;
+          industry: string | null;
+          budget_range: string | null;
+          start_timeline: string | null;
+          goal: string | null;
+          country: string | null;
+          summary: string | null;
+        }[];
       };
       record_page_view: {
         Args: { p_path: string; p_visitor: string };

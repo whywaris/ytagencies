@@ -47,9 +47,9 @@ export function ProEndingEmail({ agencyName, billingUrl, endsOn }: Props & { end
   return (
     <EmailLayout preview={`Pro ends on ${endsOn}`}>
       <p style={text}>
-        {agencyName}&apos;s Pro plan ends on {endsOn}, in 3 days. After that your listing stays
-        public but unmanaged: businesses can&apos;t contact you and editing is locked. We keep your
-        details.
+        {agencyName}&apos;s Pro plan ends on {endsOn}, in 3 days. After that you&apos;re on Free:
+        you can still edit your profile, but new requests show as a preview without contact
+        details, and the Pro badge and placement stop.
       </p>
       <p style={text}>
         Changed your mind?{" "}
@@ -66,9 +66,9 @@ export function ProEndedEmail({ agencyName, billingUrl }: Props) {
   return (
     <EmailLayout preview="Your Pro plan has ended">
       <p style={text}>
-        Your Pro plan for {agencyName} has ended. Your listing stays public but unmanaged:
-        businesses can&apos;t contact you through it and editing is locked. We&apos;ve kept your
-        details.
+        Your Pro plan for {agencyName} has ended, so you&apos;re on Free. You can still edit your
+        profile; new requests show as a preview without contact details, and the Pro badge and
+        placement stop.
       </p>
       <p style={text}>
         <a href={billingUrl} style={link}>

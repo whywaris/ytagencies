@@ -66,12 +66,13 @@ const sections: LegalSection[] = [
           can&apos;t recognise you from one day to the next. We don&apos;t store your IP address or
           browser details.
         </p>
-        <h3>When you send an inquiry or request proposals</h3>
+        <h3>When you request a quote or request proposals</h3>
         <ul>
           <li>Your name and email address</li>
           <li>Your company name, if you give it</li>
-          <li>The service, industry and budget range you choose</li>
+          <li>The service, niche, budget range, timeline, goal and country you choose</li>
           <li>Your message</li>
+          <li>On a quote request, your agreement to the 48-hour fallback below</li>
         </ul>
         <h3>When you write to us</h3>
         <p>
@@ -105,9 +106,10 @@ const sections: LegalSection[] = [
       <>
         <ul>
           <li>
-            <strong>To deliver your inquiry</strong> to the agency you chose, or to up to three
-            agencies that match it, and to email you a confirmation. We do this because you asked us
-            to.
+            <strong>To deliver your request</strong> to the agency you chose, or to up to three
+            agencies that match it, and to email you a confirmation. If the agency you chose
+            doesn&apos;t reply within 48 hours, we send it to up to three similar agencies and tell
+            you who. We do this because you asked us to.
           </li>
           <li>
             <strong>To run your agency account</strong>: sign-in, your listing, your inquiries and
@@ -135,9 +137,13 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          <strong>Agencies.</strong> The agency you contact, or the agencies we match you with,
-          receive your inquiry so they can reply to you. Once they have it, they handle it under
-          their own privacy policy.
+          <strong>Agencies.</strong> Agencies on a Pro plan that receive your request see your name,
+          email, company and message so they can reply to you; once they have it, they handle it
+          under their own privacy policy. Agencies not on Pro see only a preview: the service,
+          niche, budget range, timeline, goal, country and a short summary of your message with
+          names, emails, phone numbers and links removed. If the agency hasn&apos;t claimed its
+          listing, we email the address we hold for it that it has a request, with no details of
+          it.
         </p>
         <p>
           <strong>Service providers</strong> that process data for us, under their data processing
@@ -280,7 +286,7 @@ export default function PrivacyPage() {
       contactEmail={email}
       summary={[
         "We collect what's needed to connect businesses with agencies: your details when you send an inquiry, write to us or manage a listing.",
-        "Your inquiry goes to the agencies you contact or are matched with. We don't sell your data or show ads.",
+        "Your contact details go only to Pro agencies you send a request to or are matched with; others see a preview without them. We don't sell your data or show ads.",
         "No advertising cookies. Google Analytics cookies are set only if you accept them, and you can change your mind any time.",
         `You can ask for a copy of your data or have it deleted at any time: ${email}.`,
       ]}

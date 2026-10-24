@@ -1,11 +1,10 @@
 // Directory ranking (ADMIN_V2_SPEC §6), explained publicly on /how-we-rank. Keep the two in sync.
 // No imports, so tests load this file directly.
 //
-// 1. Verified agencies (any plan, free included).
-// 2. Everyone else (Pro or free).
-// Within each: quality score (0–100), then name. Pro (managed) is never part of the order.
-// Sponsored slots (labelled, before both groups) exist but are switched off unless
-// SPONSORED_ENABLED=true; their data and tables are kept.
+// 1. Verified + Pro. 2. Pro. 3. Verified (free). 4. Everyone else.
+// Within each: quality score (0–100), then name. Pro agencies always carry the Pro badge;
+// Verified is earned and can't be bought. Sponsored slots (labelled, before every group) exist but
+// are switched off unless SPONSORED_ENABLED=true; their data and tables are kept.
 
 export type QualityInput = {
   hasLogo: boolean;
@@ -60,13 +59,22 @@ export const sponsoredEnabled = (env: Record<string, string | undefined> = proce
 /** When these rules last changed (yyyy-mm-dd): /how-we-rank "Last updated" and dateModified. */
 export const RANKING_UPDATED = "2026-10-24";
 
-export type Rankable = { id: string; name: string; isVerified: boolean; quality: number };
+export type Rankable = {
+  id: string;
+  name: string;
+  isVerified: boolean;
+  /** Live Pro (lib/entitlements.ts proBadge). */
+  managed: boolean;
+  quality: number;
+};
 
-/** Verified first, then quality score, then name. */
+/** 0 = Verified + Pro, 1 = Pro, 2 = Verified, 3 = everyone else. */
+export const rankGroup = (a: Pick<Rankable, "isVerified" | "managed">) =>
+  a.managed ? (a.isVerified ? 0 : 1) : a.isVerified ? 2 : 3;
+
+/** The directory order: group, then quality score, then name. */
 export const byMerit = (a: Rankable, b: Rankable) =>
-  Number(b.isVerified) - Number(a.isVerified) ||
-  b.quality - a.quality ||
-  a.name.localeCompare(b.name);
+  rankGroup(a) - rankGroup(b) || b.quality - a.quality || a.name.localeCompare(b.name);
 
 /**
  * Orders a page's agencies. `sponsoredIds` are the page's active slot holders in position order;
