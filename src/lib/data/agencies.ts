@@ -100,6 +100,11 @@ export type AgencyProfile = AgencyListItem & {
     subscribers: number | null;
     industry: string | null;
     confirmed: boolean;
+    /** Set when the channel owner confirmed the work (lib/trust.ts). */
+    confirmedAt: string | null;
+    channelId: string | null;
+    /** When the subscriber count was last read from YouTube. */
+    statsCheckedAt: string | null;
   }[];
   /** YouTube videos the agency worked on: not hidden, in its order, up to its plan's limit. */
   workSamples: {
@@ -115,6 +120,8 @@ export type AgencyProfile = AgencyListItem & {
     title: string;
     summary: string | null;
     channelUrl: string | null;
+    /** The channel link resolved on save: matched against confirmed channels (lib/trust.ts). */
+    channelId: string | null;
     metrics: Json | null;
     industry: Tag | null;
     service: Tag | null;
@@ -145,7 +152,14 @@ export type AgencyProfile = AgencyListItem & {
     business: boolean;
     ownership: boolean;
     channelsChecked: number;
+    verifiedDomain: string | null;
+    reviewedAt: string | null;
+    verifiedEmailAt: string | null;
   } | null;
+  /** When the approved claim was made (claims has no approval date); null if never claimed. */
+  claimedAt: string | null;
+  /** agency_response_times, whatever the plan (3+ contacted in 90 days, or null). */
+  reply: { medianMinutes: number; contacted: number } | null;
 };
 
 const LIST_SELECT = `
@@ -342,9 +356,9 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
       calendly_url, whatsapp_number,
       service_details:agency_services(is_primary, focus_pct, included, starting_price, price_unit, services(slug, name)),
       industry_details:agency_industries(is_primary, focus_pct, industries(slug, name)),
-      agency_channels(id, channel_url, title, subscriber_count, status, created_at, industries(name)),
+      agency_channels(id, channel_url, channel_id, title, subscriber_count, stats_checked_at, status, confirmed_at, created_at, industries(name)),
       agency_locations(locations(slug, name, type)),
-      case_studies(id, title, summary, channel_url, metrics, created_at, industries(slug, name), services(slug, name)),
+      case_studies(id, title, summary, channel_url, channel_id, metrics, created_at, industries(slug, name), services(slug, name)),
       work_samples(id, youtube_video_id, title, format, note, sort_order, created_at, services(slug, name)),
       published_reviews:reviews(id, author_name, author_company, rating, body, created_at, budget_range,
         project_start, project_end, score_quality, score_schedule, score_cost, score_refer, overall,
@@ -357,11 +371,12 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const [placement, responses, verificationRecord, locations] = await Promise.all([
+  const [placement, responses, verificationRecord, locations, claimedAt] = await Promise.all([
     getPlacement(),
     getResponseTimes(),
     getVerificationRecord(data.id),
     getLocations(),
+    data.is_claimed ? getClaimedAt(data.id) : null,
   ]);
   const hq = data.hq && locations.find((l) => l.slug === data.hq!.slug);
   const hqParent = hq?.parentId ? locations.find((l) => l.id === hq.parentId) : null;
@@ -424,8 +439,13 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
         subscribers: c.subscriber_count,
         industry: c.industries?.name ?? null,
         confirmed: c.status === "confirmed",
+        confirmedAt: c.confirmed_at,
+        channelId: c.channel_id,
+        statsCheckedAt: c.stats_checked_at,
       })),
     verificationRecord,
+    claimedAt,
+    reply: responses.get(data.id) ?? null,
     locations: data.agency_locations
       .map((r) => r.locations)
       .filter((l): l is Tag & { type: string } => l !== null),
@@ -448,6 +468,7 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
         title: c.title,
         summary: c.summary,
         channelUrl: c.channel_url,
+        channelId: c.channel_id,
         metrics: c.metrics,
         industry: c.industries,
         service: c.services,
@@ -492,10 +513,23 @@ export const getAgencyBySlug = cache(async (slug: string): Promise<AgencyProfile
  * role: anon can't read verifications). Only the ticks, the date and how many channels were
  * checked are used; nothing private.
  */
+/** The approved claim's date (service role: anon can't read claims). */
+async function getClaimedAt(agencyId: string) {
+  const { data } = await createAdminClient()
+    .from("claims")
+    .select("created_at")
+    .eq("agency_id", agencyId)
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.created_at ?? null;
+}
+
 async function getVerificationRecord(agencyId: string) {
   const { data } = await createAdminClient()
     .from("verifications")
-    .select("checklist, channels, reviewed_at, created_at")
+    .select("checklist, channels, reviewed_at, created_at, verified_domain, verified_email_at")
     .eq("agency_id", agencyId)
     .eq("status", "approved")
     .order("reviewed_at", { ascending: false, nullsFirst: false })
@@ -509,6 +543,9 @@ async function getVerificationRecord(agencyId: string) {
     business: checks.business === true,
     ownership: checks.ownership === true,
     channelsChecked: Array.isArray(data.channels) ? data.channels.length : 0,
+    verifiedDomain: data.verified_domain,
+    reviewedAt: data.reviewed_at,
+    verifiedEmailAt: data.verified_email_at,
   };
 }
 

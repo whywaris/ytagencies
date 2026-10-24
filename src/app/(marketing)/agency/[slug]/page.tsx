@@ -1,5 +1,6 @@
 import {
   ArrowUpRight,
+  BadgeCheck,
   CalendarDays,
   Check,
   Clock,
@@ -32,7 +33,7 @@ import { getLivePaths } from "@/lib/data/live-pages";
 import { getIndustries } from "@/lib/data/taxonomy";
 import { liveOnly } from "@/lib/sitemap-core";
 import { agencyWebsiteLink } from "@/lib/outbound";
-import { contractLabel, responseLabel } from "@/lib/pricing";
+import { contractLabel } from "@/lib/pricing";
 import { formatMetrics, safeExternalUrl } from "@/lib/profile";
 import { faq, glance, unitSuffix } from "@/lib/profile-copy";
 import { showClaimBar } from "@/lib/claim-rules";
@@ -42,6 +43,16 @@ import { breadcrumbJsonLd, faqJsonLd, professionalServiceJsonLd } from "@/lib/se
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import {
+  caseStudyLabel,
+  channelChip,
+  channelGroups,
+  monthYear,
+  replyTimeLabel,
+  termsCells,
+  trustRows,
+  type TrustRow,
+} from "@/lib/trust";
 import { REVIEW_BUDGETS } from "@/lib/validation/review";
 
 // Agency profile (docs/mockups/agency-profile.html). Everything comes from the agency's data;
@@ -129,12 +140,6 @@ const PRICE_RANGE_UNIT: Record<string, string> = {
   per_video: "video",
   project: "project",
 };
-const UNIT_TEXT: Record<string, string> = {
-  retainer: "per month, retainer",
-  per_video: "per video",
-  project: "per project",
-  performance: "per month, performance-based",
-};
 const REPORTING_LEDE: Record<string, string> = {
   weekly: "Reports every week.",
   biweekly: "Reports every two weeks.",
@@ -148,7 +153,6 @@ const card = "rounded-[16px] border border-line bg-raised";
 const btn =
   "inline-flex h-[46px] items-center justify-center gap-2 rounded-full px-[22px] text-[15px] font-semibold whitespace-nowrap transition-[transform,border-color] duration-150";
 const btnPrimary = `${btn} bg-accent text-on-accent shadow-[0_1px_2px_rgba(31,94,255,.3),0_8px_20px_-6px_rgba(31,94,255,.45)] motion-safe:hover:-translate-y-px`;
-const btnLight = `${btn} border border-line bg-raised text-text hover:border-text-2`;
 
 export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">) {
   const agency = await load(params);
@@ -183,8 +187,18 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
           count: agency.reviews.length,
         }
       : null;
-  const replies = e.responseTime ? responseLabel(agency.response?.medianMinutes ?? null) : null;
-  const replyCount = agency.response?.contacted ?? null;
+  // agency_response_times: 3+ contacted requests in 90 days, else no reply time (lib/trust.ts).
+  const replies = replyTimeLabel(agency.reply);
+  const replyCount = agency.reply?.contacted ?? null;
+  const groups = channelGroups(agency.channels);
+  const checks = trustRows({
+    isVerified: agency.isVerified,
+    verification: agency.verificationRecord,
+    isClaimed: agency.isClaimed,
+    claimedAt: agency.claimedAt,
+    channels: agency.channels,
+    reply: agency.reply,
+  });
 
   const breadcrumbs = [
     { name: "Home", path: "/" },
@@ -216,9 +230,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
   });
 
   const caseStudies = agency.caseStudies.slice(0, e.caseStudies);
-  const confirmedChannels = agency.channels.filter((c) => c.confirmed).length;
-  const v = agency.verificationRecord;
-  const domain = website?.hostname.replace(/^www\./, "");
   const price = agency.minBudgetUsd;
   const suffix = unitSuffix(agency.pricingModel);
   const mode = profileMode({ managed: e.managed, name: agency.name });
@@ -302,12 +313,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               <h1 className="text-[clamp(30px,4vw,42px)] leading-[1.05] font-[650] tracking-[-0.035em]">
                 {agency.name}
               </h1>
-              {agency.isVerified && (
-                <span className="inline-flex h-[26px] items-center gap-1.5 rounded-full bg-(--mint-soft) px-2.5 text-[12.5px] font-semibold text-(--mint)">
-                  <Check className="size-[13px] [stroke-width:2.5]" aria-hidden />
-                  Verified
-                </span>
-              )}
               {e.proBadge && <ProBadge />}
             </div>
             {agency.bestFor && (
@@ -350,6 +355,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 {agency.timezone && <Fact icon={Clock}>{agency.timezone}</Fact>}
               </ul>
             )}
+            <TrustStrip agency={agency} replies={replies} groups={groups} />
             {/* The one call to action is in the sidebar card (desktop) / bottom bar (mobile). */}
             {websiteLink && <WebsiteLink link={websiteLink} />}
             {booking.length > 0 && (
@@ -378,22 +384,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
           </div>
         </header>
 
-        {/* Unclaimed listings only (lib/claim-rules.ts); hidden for good once someone owns it. */}
-        {showClaimBar({ status: "published", isClaimed: agency.isClaimed }) && (
-          <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-line bg-surface px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[15px] text-text">
-              Is this your agency? Claim it for free to edit your profile and see requests.
-            </p>
-            <Link
-              href={`/claim/${agency.slug}`}
-              rel="nofollow"
-              className={cn(btnLight, "h-11 shrink-0 self-start sm:self-auto")}
-            >
-              Claim this listing
-            </Link>
-          </div>
-        )}
-
         <div className="grid items-start gap-14 pt-10 pb-20 min-[980px]:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0">
             <section id="glance" aria-labelledby="glance-h" className={sectionCls}>
@@ -406,9 +396,7 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               </p>
             </section>
 
-            <PricingSection agency={agency} />
-            <FocusSection agency={agency} primarySlug={primary?.slug ?? null} />
-            <ServicesSection agency={agency} />
+            <TrustSection checks={checks} />
 
             {agency.workSamples.length > 0 && (
               <section id="work" aria-labelledby="work-h" className={sectionCls}>
@@ -423,66 +411,10 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
               </section>
             )}
 
-            {agency.channels.length > 0 && (
-              <section id="channels" aria-labelledby="channels-h" className={sectionCls}>
-                <h2 id="channels-h" className={h2}>
-                  Channels they&apos;ve worked on
-                </h2>
-                <p className={lede}>
-                  Subscriber counts come from YouTube. &ldquo;Confirmed&rdquo; means the channel
-                  owner confirmed the work to us.
-                </p>
-                <ul className="grid gap-3 min-[760px]:grid-cols-3">
-                  {agency.channels.map((c, i) => (
-                    <li key={c.id}>
-                      <a
-                        href={c.url}
-                        target="_blank"
-                        rel="nofollow noopener"
-                        className={cn(
-                          card,
-                          "flex h-full flex-col gap-2.5 p-4 transition-colors duration-150 hover:border-text-2",
-                        )}
-                      >
-                        <span className="flex min-w-0 items-center gap-2.5">
-                          <span
-                            aria-hidden
-                            className={cn(
-                              "grid size-10 shrink-0 place-items-center rounded-full text-[14px] font-[650] text-text",
-                              SOFT[i % SOFT.length],
-                            )}
-                          >
-                            {initials(c.title ?? "YT")}
-                          </span>
-                          <span className="min-w-0">
-                            <b className="block truncate text-[14.5px] font-semibold">
-                              {c.title ?? channelHandle(c.url)}
-                            </b>
-                            {c.subscribers !== null && (
-                              <span className="text-[13px] text-text-2 tabular-nums">
-                                {compact(c.subscribers)} subscribers
-                              </span>
-                            )}
-                          </span>
-                        </span>
-                        <span className="mt-auto flex items-center justify-between gap-2 text-[13px] text-text-2">
-                          <span>{c.industry}</span>
-                          {c.confirmed ? (
-                            <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-(--mint)">
-                              <Check className="size-[13px] [stroke-width:2.5]" aria-hidden />
-                              Confirmed
-                            </span>
-                          ) : (
-                            <span className="text-[12.5px]">Listed by agency</span>
-                          )}
-                        </span>
-                        <span className="sr-only"> (opens YouTube in a new tab)</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+            <ServicesPricingSection agency={agency} />
+            <FocusSection agency={agency} primarySlug={primary?.slug ?? null} />
+
+            <ChannelsSection groups={groups} />
 
             {caseStudies.length > 0 && (
               <section id="cases" aria-labelledby="cases-h" className={sectionCls}>
@@ -493,18 +425,47 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                   {caseStudies.map((c) => {
                     const metrics = formatMetrics(c.metrics);
                     const tag = [c.industry?.name, c.service?.name].filter(Boolean).join(", ");
+                    const label = caseStudyLabel(c.channelId, agency.channels);
+                    const channelLink = safeExternalUrl(c.channelUrl);
                     return (
                       <article key={c.id} className={cn(card, "overflow-hidden rounded-[20px]")}>
                         <div className="px-6 pt-[22px] pb-[22px]">
-                          {tag && (
-                            <span className="inline-flex rounded-full bg-(--violet-soft) px-2.5 py-0.5 text-[12.5px] font-semibold text-(--violet-on-soft)">
-                              {tag}
+                          <p className="flex flex-wrap gap-2">
+                            {tag && (
+                              <span className="inline-flex rounded-full bg-(--violet-soft) px-2.5 py-0.5 text-[12.5px] font-semibold text-(--violet-on-soft)">
+                                {tag}
+                              </span>
+                            )}
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold",
+                                label === "Channel confirmed"
+                                  ? "bg-(--mint-soft) text-(--mint)"
+                                  : "bg-surface text-text-2",
+                              )}
+                            >
+                              {label === "Channel confirmed" && (
+                                <Check className="size-3 [stroke-width:2.5]" aria-hidden />
+                              )}
+                              {label}
                             </span>
-                          )}
+                          </p>
                           <h3 className="mt-3 mb-1.5 text-[19px] font-[650] tracking-[-0.015em]">
                             {c.title}
                           </h3>
                           {c.summary && <p className="text-[15px] text-text-2">{c.summary}</p>}
+                          {channelLink && (
+                            <a
+                              href={channelLink.href}
+                              target="_blank"
+                              rel="nofollow noopener"
+                              className="mt-3 inline-flex min-h-11 items-center gap-1 text-[14.5px] font-semibold text-accent hover:underline"
+                            >
+                              View the channel on YouTube
+                              <ArrowUpRight className="size-4" aria-hidden />
+                              <span className="sr-only"> (opens in a new tab)</span>
+                            </a>
+                          )}
                         </div>
                         {metrics.length > 0 && (
                           <dl className="grid border-t border-line-2 min-[620px]:grid-cols-3">
@@ -557,79 +518,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                     </li>
                   ))}
                 </ol>
-              </section>
-            )}
-
-            {v && (
-              <section id="verified" aria-labelledby="verified-h" className={sectionCls}>
-                <h2 id="verified-h" className={h2}>
-                  What was verified
-                </h2>
-                <p className={lede}>
-                  Checked by {BRAND_NAME} on {longDate(v.checkedAt)}.{" "}
-                  <Link href="/how-we-rank" className="text-accent hover:underline">
-                    How verification works
-                  </Link>
-                </p>
-                <ul className={cn(card, "overflow-hidden")}>
-                  <CheckRow
-                    done={v.domain}
-                    title={
-                      v.domain
-                        ? "Business email matches the website"
-                        : "Business email not matched to the website"
-                    }
-                    text={
-                      v.domain
-                        ? domain
-                          ? `The profile is run by someone at ${domain}.`
-                          : "The agency's email domain matches its website."
-                        : "We haven't checked this yet."
-                    }
-                  />
-                  <CheckRow
-                    done={v.business}
-                    title={
-                      v.business ? "Business details reviewed" : "Business details not reviewed"
-                    }
-                    text={
-                      v.business
-                        ? "Website, company details and contact information."
-                        : "We haven't checked this yet."
-                    }
-                  />
-                  <CheckRow
-                    done={v.ownership && v.channelsChecked > 0}
-                    title={
-                      v.ownership && v.channelsChecked > 0
-                        ? `${v.channelsChecked} YouTube ${v.channelsChecked === 1 ? "channel" : "channels"} checked`
-                        : "YouTube channels not checked"
-                    }
-                    text={
-                      v.ownership && v.channelsChecked > 0
-                        ? "The agency showed it runs or manages them, and we read their stats from YouTube."
-                        : "We haven't checked this yet."
-                    }
-                  />
-                  <CheckRow
-                    done={confirmedChannels > 0}
-                    title={
-                      confirmedChannels > 0
-                        ? `${confirmedChannels} client ${confirmedChannels === 1 ? "channel" : "channels"} confirmed`
-                        : "No client channels confirmed yet"
-                    }
-                    text={
-                      confirmedChannels > 0
-                        ? "The channel owners confirmed the work to us."
-                        : "Channels marked “Listed by agency” are the agency's own claim."
-                    }
-                  />
-                  <CheckRow
-                    done={false}
-                    title="Results not independently checked"
-                    text="Case study numbers are reported by the agency."
-                  />
-                </ul>
               </section>
             )}
 
@@ -810,13 +698,13 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                   <div>
                     {replies}
                     <span className="block text-[12.5px] text-text-2 tabular-nums">
-                      Based on {replyCount} inquiries in the last 90 days
+                      Based on {replyCount} requests in the last 90 days
                     </span>
                   </div>
                 </div>
               )}
             </div>
-            <VerifiedMini agency={agency} confirmedChannels={confirmedChannels} />
+            <CheckedMini checks={checks} />
           </aside>
         </div>
       </div>
@@ -877,90 +765,6 @@ function WebsiteLink({ link }: { link: NonNullable<ReturnType<typeof agencyWebsi
       <ArrowUpRight className="size-4" aria-hidden />
       <span className="sr-only"> (opens in a new tab)</span>
     </a>
-  );
-}
-
-function PricingSection({ agency }: { agency: AgencyProfile }) {
-  const cells: { label: string; value: string; note?: string }[] = [];
-  if (agency.minBudgetUsd !== null)
-    cells.push({
-      label: "Starting price",
-      value: usd(agency.minBudgetUsd),
-      note: agency.pricingModel ? UNIT_TEXT[agency.pricingModel] : undefined,
-    });
-  if (agency.minContract) {
-    const m = agency.minContract.match(/^(\d+)_months?$/)?.[1];
-    cells.push({
-      label: "Minimum contract",
-      value: agency.minContract === "none" ? "None" : `${m} ${m === "1" ? "month" : "months"}`,
-      note: agency.minContract === "none" ? "no minimum term" : undefined,
-    });
-  }
-  if (agency.adSpend === "separate")
-    cells.push({ label: "Ad spend", value: "Separate", note: "paid to Google" });
-  if (agency.adSpend === "included")
-    cells.push({ label: "Ad spend", value: "Included", note: "in the price" });
-  if (agency.setupFeeUsd !== null)
-    cells.push(
-      agency.setupFeeUsd === 0
-        ? { label: "Setup fee", value: "None" }
-        : { label: "Setup fee", value: usd(agency.setupFeeUsd), note: "one time" },
-    );
-  const servicePrices = agency.serviceDetails.filter((s) => s.startingPrice !== null);
-  if (cells.length === 0 && servicePrices.length === 0) return null;
-
-  return (
-    <section id="pricing" aria-labelledby="pricing-h" className={sectionCls}>
-      <h2 id="pricing-h" className={h2}>
-        Pricing
-      </h2>
-      <p className={lede}>What you&apos;ll pay and what you&apos;re committing to.</p>
-      {cells.length > 0 && (
-        // Hairlines are the 1px gaps showing the line colour behind the cells.
-        <dl
-          className={cn(
-            "grid gap-px overflow-hidden rounded-[18px] border border-line bg-line-2",
-            cells.length === 1 ? "grid-cols-1 sm:max-w-[50%]" : "grid-cols-2",
-            cells.length >= 3 && "min-[760px]:grid-cols-(--cols)",
-          )}
-          style={{ "--cols": `repeat(${cells.length}, minmax(0, 1fr))` } as React.CSSProperties}
-        >
-          {cells.map((c) => (
-            <div
-              key={c.label}
-              className={cn(
-                "flex flex-col bg-raised px-5 py-[18px]",
-                // An odd last cell on the 2-column (mobile) grid takes the whole row.
-                cells.length > 1 && "last:odd:col-span-2",
-                cells.length >= 3 && "min-[760px]:last:odd:col-span-1",
-              )}
-            >
-              <dt className="text-[12.5px] text-text-2">{c.label}</dt>
-              <dd className="mt-1 text-[18px] font-[650] tracking-[-0.01em] tabular-nums">
-                {c.value}
-              </dd>
-              {c.note && <dd className="text-[12.5px] text-text-2">{c.note}</dd>}
-            </div>
-          ))}
-        </dl>
-      )}
-      {servicePrices.length > 0 && (
-        <dl className="mt-3.5 flex flex-col tabular-nums">
-          {servicePrices.map((s) => (
-            <div
-              key={s.slug}
-              className="flex justify-between gap-3 border-b border-dashed border-line py-2.5 text-[14.5px] last:border-b-0"
-            >
-              <dt>{s.name}</dt>
-              <dd className="font-semibold">
-                from {usd(s.startingPrice!)}
-                {unitSuffix(s.priceUnit ?? agency.pricingModel)}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </section>
   );
 }
 
@@ -1040,75 +844,6 @@ function FocusSection({
         )}
       </div>
     </section>
-  );
-}
-
-function ServicesSection({ agency }: { agency: AgencyProfile }) {
-  // Only worth a section when there's more than the names (which "At a glance" already lists).
-  if (!agency.serviceDetails.some((s) => s.included.length > 0 || s.startingPrice !== null))
-    return null;
-  return (
-    <section id="services" aria-labelledby="services-h" className={sectionCls}>
-      <h2 id="services-h" className={h2}>
-        Services
-      </h2>
-      <p className={lede}>What&apos;s included in each service.</p>
-      <ul className="flex flex-col gap-3">
-        {agency.serviceDetails.map((s) => (
-          <li key={s.slug} className={cn(card, "px-5 py-[18px]")}>
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h3 className="text-[16.5px] font-[650]">
-                <Link href={`/${s.slug}`} className="hover:underline">
-                  {s.name}
-                </Link>
-              </h3>
-              {s.startingPrice !== null && (
-                <span className="text-[13.5px] text-text-2 tabular-nums">
-                  from {usd(s.startingPrice)}
-                  {unitSuffix(s.priceUnit ?? agency.pricingModel)}
-                </span>
-              )}
-            </div>
-            {s.included.length > 0 && (
-              <ul className="mt-2.5 flex flex-wrap gap-2">
-                {s.included.map((item) => (
-                  <li key={item} className="rounded-full bg-surface px-2.5 py-1 text-[13px]">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function CheckRow({ done, title, text }: { done: boolean; title: string; text: string }) {
-  return (
-    <li className="flex items-start gap-3.5 border-b border-line-2 px-[18px] py-4 last:border-b-0">
-      <span
-        aria-hidden
-        className={cn(
-          "grid size-[26px] shrink-0 place-items-center rounded-full",
-          done ? "bg-(--mint-soft) text-(--mint)" : "bg-surface text-text-2",
-        )}
-      >
-        {done ? (
-          <Check className="size-3.5 [stroke-width:2.5]" />
-        ) : (
-          <Minus className="size-3.5 [stroke-width:2.5]" />
-        )}
-      </span>
-      <div>
-        <b className="block text-[15px] font-semibold">
-          <span className="sr-only">{done ? "Checked: " : "Not checked: "}</span>
-          {title}
-        </b>
-        <span className="text-[13.5px] text-text-2">{text}</span>
-      </div>
-    </li>
   );
 }
 
@@ -1223,35 +958,305 @@ function SideChips({ agency }: { agency: AgencyProfile }) {
   );
 }
 
-function VerifiedMini({
+type ChannelGroups = ReturnType<typeof channelGroups<AgencyProfile["channels"][number]>>;
+
+const chipCls =
+  "inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium";
+
+/** Under the hero: what's true about this listing, from stored data only. */
+function TrustStrip({
   agency,
-  confirmedChannels,
+  replies,
+  groups,
 }: {
   agency: AgencyProfile;
-  confirmedChannels: number;
+  replies: string | null;
+  groups: ChannelGroups;
 }) {
-  const v = agency.verificationRecord;
-  const done = [
-    v?.domain && "Business email",
-    v?.business && "Business details",
-    v?.ownership &&
-      v.channelsChecked > 0 &&
-      `${v.channelsChecked} YouTube ${v.channelsChecked === 1 ? "channel" : "channels"}`,
-    confirmedChannels > 0 &&
-      `${confirmedChannels} client ${confirmedChannels === 1 ? "channel" : "channels"}`,
-  ].filter((x): x is string => Boolean(x));
-  if (!done.length) return null;
+  const channels = channelChip(groups.confirmed.length, groups.listed.length);
+  return (
+    <ul aria-label="About this listing" className="mt-4 flex flex-wrap gap-2">
+      <li>
+        {agency.isVerified ? (
+          <span className={cn(chipCls, "bg-(--mint-soft) font-semibold text-(--mint)")}>
+            <BadgeCheck className="size-4 [stroke-width:2]" aria-hidden />
+            Verified
+          </span>
+        ) : (
+          <span className={cn(chipCls, "bg-surface text-text-2")}>Not verified yet</span>
+        )}
+      </li>
+      <li>
+        {agency.isClaimed && (
+          <span className={cn(chipCls, "bg-surface")}>Managed by the agency</span>
+        )}
+        {/* The one claim prompt (lib/claim-rules.ts): only while nobody owns the listing. */}
+        {showClaimBar({ status: "published", isClaimed: agency.isClaimed }) && (
+          <span className={cn(chipCls, "bg-surface text-text-2")}>
+            Not claimed yet ·{" "}
+            <Link
+              href={`/claim/${agency.slug}`}
+              rel="nofollow"
+              className="font-semibold text-accent hover:underline"
+            >
+              Claim this listing
+            </Link>
+          </span>
+        )}
+      </li>
+      {channels && (
+        <li>
+          <a href="#channels" className={cn(chipCls, "bg-surface hover:text-accent")}>
+            {channels}
+          </a>
+        </li>
+      )}
+      <li>
+        <span className={cn(chipCls, "bg-surface", !replies && "text-text-2")}>
+          {replies ?? "Reply time: not enough data yet"}
+        </span>
+      </li>
+      <li>
+        <span className={cn(chipCls, "bg-surface text-text-2")}>
+          On {BRAND_NAME} since {monthYear(agency.createdAt)}
+        </span>
+      </li>
+    </ul>
+  );
+}
+
+function CheckMark({ done }: { done: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "grid size-[22px] shrink-0 place-items-center rounded-full",
+        done ? "bg-(--mint-soft) text-(--mint)" : "bg-surface text-text-2",
+      )}
+    >
+      {done ? (
+        <Check className="size-3 [stroke-width:2.5]" />
+      ) : (
+        <Minus className="size-3 [stroke-width:2.5]" />
+      )}
+    </span>
+  );
+}
+
+/** "Trust & proof": what we checked (left) vs what the agency told us (right). */
+function TrustSection({ checks }: { checks: TrustRow[] }) {
+  return (
+    <section id="trust" aria-labelledby="trust-h" className={sectionCls}>
+      <h2 id="trust-h" className={h2}>
+        Trust &amp; proof
+      </h2>
+      <p className={lede}>What we checked, and what comes from the agency.</p>
+      <div className="grid gap-4 min-[760px]:grid-cols-2">
+        <div className={cn(card, "px-5 py-[18px]")}>
+          <h3 className="mb-2 text-[16px] font-[650]">Checked by {BRAND_NAME}</h3>
+          <ul>
+            {checks.map((c) => (
+              <li
+                key={c.key}
+                className="flex items-start gap-3 border-b border-line-2 py-3 last:border-b-0"
+              >
+                <CheckMark done={c.done} />
+                <span className="min-w-0 text-[14.5px]">
+                  <span className="sr-only">{c.done ? "Checked: " : "Not checked: "}</span>
+                  <b className="font-semibold">{c.label}</b>
+                  {c.detail && <span className="text-text-2"> · {c.detail}</span>}
+                  {c.date && (
+                    <span className="block text-[12.5px] text-text-2">
+                      <time dateTime={c.date}>{longDate(c.date)}</time>
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-[16px] border border-line bg-surface px-5 py-[18px]">
+          <h3 className="mb-2 text-[16px] font-[650]">From the agency, not checked</h3>
+          <ul className="flex list-disc flex-col gap-2 pl-5 text-[14.5px] text-text-2">
+            <li>Results in case studies</li>
+            <li>Channels marked &ldquo;Listed by the agency&rdquo;</li>
+            <li>Team size, founding year and prices</li>
+          </ul>
+          <p className="mt-3 text-[14.5px] font-semibold">Ask for these in writing before you sign.</p>
+        </div>
+      </div>
+      <p className="mt-4 text-[13.5px] text-text-2">
+        Pro is a paid plan. Pro agencies are shown first in lists. It doesn&apos;t change Verified or
+        anything checked here.{" "}
+        <Link href="/how-we-rank" className="text-accent hover:underline">
+          How we rank
+        </Link>
+      </p>
+    </section>
+  );
+}
+
+/** The sidebar's short version of the checks, linking to the full card. */
+function CheckedMini({ checks }: { checks: TrustRow[] }) {
   return (
     <div className="rounded-[18px] border border-line bg-raised px-[18px] py-4 text-[13.5px]">
-      <h2 className="mb-2.5 text-[13.5px] font-[650]">Verified by {BRAND_NAME}</h2>
+      <h2 className="mb-2 text-[13.5px] font-[650]">What we checked</h2>
       <ul>
-        {done.map((d) => (
-          <li key={d} className="flex items-center gap-2 py-1 text-text-2">
-            <Check className="size-3.5 [stroke-width:2.5] text-(--mint)" aria-hidden />
-            {d}
+        {checks.map((c) => (
+          <li key={c.key} className="flex items-center gap-2 py-1">
+            <CheckMark done={c.done} />
+            <span className={c.done ? "" : "text-text-2"}>
+              <span className="sr-only">{c.done ? "Checked: " : "Not checked: "}</span>
+              {c.short}
+            </span>
           </li>
         ))}
       </ul>
+      <a href="#trust" className="mt-2 inline-block font-semibold text-accent hover:underline">
+        See details
+      </a>
     </div>
+  );
+}
+
+function ChannelCard({ c, i }: { c: AgencyProfile["channels"][number]; i: number }) {
+  const meta = [c.subscribers !== null ? `${compact(c.subscribers)} subscribers` : null, c.industry]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <li>
+      <a
+        href={c.url}
+        target="_blank"
+        rel="nofollow noopener"
+        className={cn(
+          card,
+          "flex h-full flex-col gap-2 p-4 transition-colors duration-150 hover:border-text-2",
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-2.5">
+          <span
+            aria-hidden
+            className={cn(
+              "grid size-10 shrink-0 place-items-center rounded-full text-[14px] font-[650] text-text",
+              SOFT[i % SOFT.length],
+            )}
+          >
+            {initials(c.title ?? "YT")}
+          </span>
+          <span className="min-w-0">
+            <b className="block truncate text-[14.5px] font-semibold">
+              {c.title ?? channelHandle(c.url)}
+            </b>
+            {meta && <span className="block text-[13px] text-text-2 tabular-nums">{meta}</span>}
+          </span>
+        </span>
+        {c.statsCheckedAt && (
+          <span className="mt-auto text-[12.5px] text-text-2">
+            From YouTube, checked {monthYear(c.statsCheckedAt)}
+          </span>
+        )}
+        <span className="sr-only"> (opens YouTube in a new tab)</span>
+      </a>
+    </li>
+  );
+}
+
+/** Channels in two groups: confirmed by the channel owner, and listed by the agency. */
+function ChannelsSection({ groups }: { groups: ChannelGroups }) {
+  if (groups.confirmed.length + groups.listed.length === 0) return null;
+  return (
+    <section id="channels" aria-labelledby="channels-h" className={sectionCls}>
+      <h2 id="channels-h" className={h2}>
+        Channels they&apos;ve worked on
+      </h2>
+      <p className={lede}>Subscriber counts come from YouTube.</p>
+      <h3 className="mb-3 flex items-center gap-1.5 text-[15px] font-semibold">
+        <Check className="size-4 [stroke-width:2.5] text-(--mint)" aria-hidden />
+        Confirmed by the channel owner
+      </h3>
+      {groups.confirmed.length > 0 ? (
+        <ul className="grid gap-3 min-[760px]:grid-cols-3">
+          {groups.confirmed.map((c, i) => (
+            <ChannelCard key={c.id} c={c} i={i} />
+          ))}
+        </ul>
+      ) : (
+        <p className="rounded-[16px] border border-dashed border-line px-5 py-4 text-[14px] text-text-2">
+          None yet. When an owner confirms, the channel moves here.
+        </p>
+      )}
+      {groups.listed.length > 0 && (
+        <>
+          <h3 className="mt-6 mb-3 text-[15px] font-semibold">Listed by the agency</h3>
+          <ul className="grid gap-3 min-[760px]:grid-cols-3">
+            {groups.listed.map((c, i) => (
+              <ChannelCard key={c.id} c={c} i={i + groups.confirmed.length} />
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+/**
+ * "Services & pricing": one terms row (pricing model, minimum contract, ad spend, setup fee), then
+ * one row per service with what's included and its price. The starting price itself is only in
+ * the sidebar (and the mobile bar), never repeated here.
+ */
+function ServicesPricingSection({ agency }: { agency: AgencyProfile }) {
+  const terms = termsCells(agency);
+  const services = agency.serviceDetails.filter(
+    (s) => s.included.length > 0 || s.startingPrice !== null,
+  );
+  if (terms.length === 0 && services.length === 0) return null;
+  return (
+    <section id="services" aria-labelledby="services-h" className={sectionCls}>
+      <h2 id="services-h" className={h2}>
+        Services &amp; pricing
+      </h2>
+      <p className={lede}>What&apos;s included and what you&apos;re committing to.</p>
+      {terms.length > 0 && (
+        <dl className="mb-4 flex flex-wrap gap-x-8 gap-y-3 rounded-[16px] border border-line bg-raised px-5 py-4">
+          {terms.map((t) => (
+            <div key={t.label} className="flex flex-col">
+              <dt className="text-[12.5px] text-text-2">{t.label}</dt>
+              <dd className="text-[15.5px] font-semibold tabular-nums">{t.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {services.length > 0 && (
+        <ul className="flex flex-col gap-3">
+          {services.map((s) => (
+            <li key={s.slug} className={cn(card, "px-5 py-[18px]")}>
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h3 className="text-[16.5px] font-[650]">
+                  <Link href={`/${s.slug}`} className="hover:underline">
+                    {s.name}
+                  </Link>
+                </h3>
+                {s.startingPrice !== null && (
+                  <span className="text-[14px] font-semibold tabular-nums">
+                    from {usd(s.startingPrice)}
+                    {unitSuffix(s.priceUnit ?? agency.pricingModel)}
+                  </span>
+                )}
+              </div>
+              {s.included.length > 0 && (
+                <ul className="mt-2.5 flex flex-wrap gap-2">
+                  {s.included.map((item) => (
+                    <li key={item} className="rounded-full bg-surface px-2.5 py-1 text-[13px]">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
