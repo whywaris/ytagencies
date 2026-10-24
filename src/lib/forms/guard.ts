@@ -34,6 +34,7 @@ export async function verifyTurnstile(token: string, ip: string) {
       method: "POST",
       body: new URLSearchParams({ secret, response: token, remoteip: ip }),
       cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
     const data = (await res.json()) as { success?: boolean };
     return data.success === true;

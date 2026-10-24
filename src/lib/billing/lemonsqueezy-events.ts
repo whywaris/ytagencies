@@ -47,6 +47,8 @@ export type LsEvent = {
   objectId: string;
   attributes: Record<string, unknown>;
   custom: Record<string, unknown>;
+  /** Sent from Lemon Squeezy test mode (meta.test_mode or attributes.test_mode). */
+  testMode: boolean;
 };
 
 export function parseEvent(rawBody: string, headerName: string | null): LsEvent | null {
@@ -70,8 +72,16 @@ export function parseEvent(rawBody: string, headerName: string | null): LsEvent 
     objectId,
     attributes: v.data.attributes,
     custom: isObj(v.meta.custom_data) ? v.meta.custom_data : {},
+    testMode: v.meta.test_mode === true || v.data.attributes.test_mode === true,
   };
 }
+
+/**
+ * A test-mode event only counts while we're in test mode (LEMONSQUEEZY_TEST_MODE=true): in live
+ * mode it's acknowledged and ignored, so a test purchase can never grant Pro on the live site.
+ */
+export const ignoreEvent = (event: Pick<LsEvent, "testMode">, testModeOn: boolean) =>
+  event.testMode && !testModeOn;
 
 /** The variants we sell (LEMONSQUEEZY_VARIANT_MONTHLY / _YEARLY). */
 export type Variants = { monthly: string; yearly: string };

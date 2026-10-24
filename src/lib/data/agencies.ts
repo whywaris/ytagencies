@@ -204,13 +204,12 @@ type ListRow = NonNullable<Awaited<ReturnType<typeof listQuery>>["data"]>[number
 type Placement = Awaited<ReturnType<typeof getPlacement>>;
 
 /**
- * Response times from the agency_response_times view: an aggregate over private lead routes that
- * only lists agencies with enough recent data (3+ contacted leads in 90 days, median under 2 days).
+ * Response times from agency_response_times() (a SECURITY DEFINER function, schema.sql): an
+ * aggregate over private lead routes that only lists agencies with enough recent data (3+
+ * contacted leads in 90 days, median under 2 days).
  */
 export const getResponseTimes = cache(async () => {
-  const { data, error } = await createStaticClient()
-    .from("agency_response_times")
-    .select("agency_id, median_minutes, contacted");
+  const { data, error } = await createStaticClient().rpc("agency_response_times");
   if (error) throw error;
   return new Map(
     data.map((r) => [r.agency_id, { medianMinutes: r.median_minutes, contacted: r.contacted }]),

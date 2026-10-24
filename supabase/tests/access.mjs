@@ -151,7 +151,7 @@ await as("anon", null, async () => {
     "reviews: can't insert (not even as published)",
   );
   ok((await rows("select * from profiles")).length === 0, "profiles: none readable");
-  ok((await rows("select * from rate_limits")).length === 0, "rate_limits: none readable");
+  ok(await denied("select * from rate_limits"), "rate_limits: anon has no access at all");
   ok(await denied("select hit_rate_limit('ip:x', 5, '1 hour')"), "hit_rate_limit(): can't execute");
   ok(await denied("update agencies set description = 'x'"), "agencies: can't update");
   ok(await denied("delete from agencies"), "agencies: can't delete");
@@ -1151,7 +1151,7 @@ await as("anon", null, async () => {
   ok(await denied(markAs(2)), "anon: can't mark a lead");
 });
 ok(
-  (await rows(`select 1 from agency_response_times where agency_id = '${MINE}'`)).length === 0,
+  (await rows(`select 1 from agency_response_times() where agency_id = '${MINE}'`)).length === 0,
   "response time: hidden with fewer than 3 contacted leads",
 );
 await as("authenticated", OWNER, async () => {
@@ -1160,7 +1160,7 @@ await as("authenticated", OWNER, async () => {
 });
 for (const n of [4, 5, 6]) await db.query(markAs(n));
 await as("anon", null, async () => {
-  const shown = await rows("select * from agency_response_times");
+  const shown = await rows("select * from agency_response_times()");
   const quill = shown.find((r) => r.agency_id === MINE);
   ok(
     quill?.contacted === 3 && Math.abs(quill.median_minutes - 120) <= 1,
@@ -1697,6 +1697,73 @@ ok(
   ),
   "work_samples: at most 12 per agency",
 );
+
+console.log("— security pass (Supabase advisor) —");
+await db.exec("reset role");
+ok(
+  (
+    await rows(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'v'
+        and not coalesce(c.reloptions::text[] @> array['security_invoker=on'], false)
+        and not coalesce(c.reloptions::text[] @> array['security_invoker=true'], false)`)
+  ).length === 0,
+  "no SECURITY DEFINER views left (every view is security_invoker)",
+);
+const noPath = await rows(`select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.prokind = 'f'
+    and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e') -- extensions
+    and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')`);
+ok(noPath.length === 0, `every public function sets search_path${noPath.length ? `: ${noPath.map((r) => r.proname)}` : ""}`);
+const noRls = await rows(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`);
+ok(noRls.length === 0, `RLS on every table${noRls.length ? `: ${noRls.map((r) => r.relname)}` : ""}`);
+await as("anon", null, async () => {
+  ok(!(await fails("select * from agency_response_times()")), "agency_response_times(): anon can call it");
+  for (const fn of ["lead_previews(gen_random_uuid())", "agency_managed(gen_random_uuid())"])
+    ok(await fails(`select ${fn}`), `${fn.split("(")[0]}(): anon can't call it`);
+  for (const t of [
+    "leads",
+    "lead_routes",
+    "claims",
+    "verifications",
+    "billing_events",
+    "agency_subscriptions",
+    "contact_messages",
+    "profiles",
+    "rate_limits",
+    "page_view_events",
+    "agency_outreach_contacts",
+    "agency_outreach",
+    "admin_actions",
+    "deleted_agency_routes",
+  ])
+    ok(
+      (await fails(`select * from ${t}`)) || (await rows(`select * from ${t}`)).length === 0,
+      `${t}: nothing readable by anon`,
+    );
+});
+await as("authenticated", OTHER, async () => {
+  for (const t of [
+    "leads",
+    "lead_routes",
+    "verifications",
+    "billing_events",
+    "agency_subscriptions",
+    "contact_messages",
+    "rate_limits",
+    "page_view_events",
+    "agency_outreach_contacts",
+    "admin_actions",
+  ])
+    ok(
+      (await fails(`select * from ${t}`)) || (await rows(`select * from ${t}`)).length === 0,
+      `${t}: nothing readable by an unrelated signed-in user`,
+    );
+  const claims = await rows("select user_id from claims");
+  ok(claims.every((c) => c.user_id === OTHER), "claims: only their own");
+  const own = await rows("select id from profiles");
+  ok(own.length === 1 && own[0].id === OTHER, "profiles: only their own");
+});
 
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

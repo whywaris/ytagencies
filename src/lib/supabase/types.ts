@@ -1575,14 +1575,6 @@ export type Database = {
       };
     };
     Views: {
-      agency_response_times: {
-        Row: {
-          agency_id: string;
-          contacted: number;
-          median_minutes: number;
-        };
-        Relationships: [];
-      };
       admin_agency_list: {
         Row: {
           created_at: string;
@@ -1624,6 +1616,10 @@ export type Database = {
       agency_managed: {
         Args: { p_agency: string };
         Returns: boolean;
+      };
+      agency_response_times: {
+        Args: Record<PropertyKey, never>;
+        Returns: { agency_id: string; median_minutes: number; contacted: number }[];
       };
       lead_previews: {
         Args: { p_agency: string };

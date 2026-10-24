@@ -8,13 +8,22 @@
 export const SUMMARY_MAX = 160;
 export const FALLBACK_HOURS = 48;
 
+// Order matters: whole emails and links go before the looser domain and handle rules.
 const PATTERNS: RegExp[] = [
   /[^\s@<>()]+@[^\s@<>()]+\.[^\s@<>()]+/g, // emails
-  /\b(?:https?:\/\/|www\.)\S+/gi, // links
-  /\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|io|co|ai|app|dev|me|tv|uk|us|ca|au|in|pk|de|fr|es|it|nl|xyz|info|biz)(?:\/\S*)?/gi, // bare domains
-  /(?:^|\s)@[a-z0-9_.-]{2,}/gi, // @handles
-  /\+?\d[\d\s().-]{6,}\d/g, // phone numbers and long digit runs
+  // "name [at] gmail [dot] com", "name (at) gmail.com", "name at gmail dot com"
+  /[\w.+-]+\s*(?:\[\s*at\s*\]|\(\s*at\s*\)|\{\s*at\s*\}|\s+at\s+)\s*[\w-]+(?:\s*(?:\.|\[\s*dot\s*\]|\(\s*dot\s*\)|\s+dot\s+)\s*[\w-]+)+/gi,
+  /\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, // any scheme://…
+  /\bwww\.\S+/gi,
+  // Bare domains and paths: word.tld with any 2–24 letter TLD (wa.me/…, t.me/…, acme.agency).
+  /\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,24}\b(?:\/\S*)?/gi,
+  /@[\w.]{2,}/g, // @handles anywhere
+  /\+?\d[\d\s().\/-]{5,}\d/g, // phone numbers and long digit runs, however spaced
+  /\b\d{6,}\b/g,
 ];
+
+/** Last pass: any token that still looks like contact data is dropped whole. */
+const LEFTOVER = /\S*(?:@|:\/\/|www\.|\d{5,})\S*/gi;
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -34,6 +43,7 @@ export function redactSummary(
     .filter((w) => w.length >= 3);
   for (const w of words) text = text.replace(new RegExp(`\\b${escape(w)}\\b`, "gi"), "[removed]");
   text = text
+    .replace(LEFTOVER, " [removed] ")
     .replace(/(\s*\[removed\]\s*)+/g, " [removed] ")
     .replace(/\s+/g, " ")
     .trim();
@@ -67,6 +77,11 @@ export const PREVIEW_KEYS: (keyof LeadPreview)[] = [
   "summary",
 ];
 
+/** Is anything in the text still contact data? (Tests check every redacted summary with it.) */
+export const hasContactData = (text: string) =>
+  PATTERNS.some((p) => new RegExp(p.source, p.flags.replace("g", "")).test(text)) ||
+  new RegExp(LEFTOVER.source, "i").test(text);
+
 /** Copies only the preview fields, whatever else the object holds. */
 export function toPreview(row: Partial<Record<string, unknown>>): LeadPreview {
   const pick = (k: string) => (typeof row[k] === "string" && row[k] ? (row[k] as string) : null);
@@ -77,7 +92,8 @@ export function toPreview(row: Partial<Record<string, unknown>>): LeadPreview {
     timeline: pick("timeline"),
     goal: pick("goal"),
     country: previewCountry(pick("country")),
-    summary: pick("summary"),
+    // Re-run on read too: rows saved before a rule was added get it as well.
+    summary: pick("summary") ? redactSummary(pick("summary")) || null : null,
   };
 }
 

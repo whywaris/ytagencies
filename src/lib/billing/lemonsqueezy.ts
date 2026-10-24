@@ -5,6 +5,7 @@ import { envValue, nextRow, type Email, type SubRow } from "@/lib/billing/events
 import {
   changeFor,
   checkoutBody,
+  ignoreEvent,
   lsEnvProblems,
   parseEvent,
   refundOf,
@@ -114,6 +115,10 @@ export async function handleWebhook(rawBody: string, headers: Headers): Promise<
     return new Response("Invalid signature", { status: 400 });
   const event = parseEvent(rawBody, headers.get("x-event-name"));
   if (!event) return new Response("Invalid event", { status: 400 });
+  if (ignoreEvent(event, envValue(process.env, "LEMONSQUEEZY_TEST_MODE") === "true")) {
+    console.info("lemonsqueezy test-mode event ignored in live mode", { event: event.name });
+    return Response.json({ received: true, ignored: "test mode" });
+  }
 
   const db = createAdminClient();
   const seen = await db
