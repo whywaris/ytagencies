@@ -145,7 +145,7 @@ export function GuidesIndex({ view, description }: { view: GuidesView; descripti
           <Tabs tabs={tabs} more={more} current={current?.slug ?? null} />
         )}
 
-        {featured && <Featured guide={featured} category={cat(featured)} />}
+        {featured && <FeaturedGuide guide={featured} category={cat(featured)} />}
 
         <section aria-labelledby="guides-grid" className="flex flex-col gap-8">
           <h2 id="guides-grid" className="flex items-baseline gap-3 text-h2">
@@ -292,7 +292,18 @@ function Tabs({
   );
 }
 
-function Featured({ guide, category }: { guide: GuideSummary; category: CardCategory | null }) {
+/** One wide guide card: the featured guide on /guides, and the home page when it has one guide. */
+export function FeaturedGuide({
+  guide,
+  category,
+  as: Heading = "h2",
+  priority = true,
+}: {
+  guide: GuideSummary;
+  category: CardCategory | null;
+  as?: "h2" | "h3";
+  priority?: boolean;
+}) {
   return (
     <article className="group relative grid items-center gap-6 rounded-[28px] border border-line bg-raised p-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] md:gap-10 md:p-5">
       {!guide.coverPath && category ? (
@@ -302,18 +313,18 @@ function Featured({ guide, category }: { guide: GuideSummary; category: CardCate
           slug={guide.slug}
           coverPath={guide.coverPath}
           sizes="(min-width: 1120px) 640px, (min-width: 768px) 58vw, 100vw"
-          priority
+          priority={priority}
         />
       )}
       <div className="flex flex-col gap-4 md:pr-4">
-        <h2 className="text-h2">
+        <Heading className="text-h2">
           <Link
             href={`/guides/${guide.slug}`}
             className="transition-colors duration-150 group-hover:text-accent after:absolute after:inset-0 after:rounded-[28px]"
           >
             {guide.title}
           </Link>
-        </h2>
+        </Heading>
         {guide.excerpt && <p className="text-[17px] text-text-2">{guide.excerpt}</p>}
         {guide.author && (
           <p className="flex items-center gap-2.5 font-medium">

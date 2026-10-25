@@ -34,14 +34,23 @@ import Link from "next/link";
 
 import { AgencyLogo } from "@/components/agency-logo";
 import { GuideCard } from "@/components/guides/guide-parts";
+import { FeaturedGuide } from "@/components/guides/guides-index";
 import { FindAgenciesButton, Finder } from "@/components/home/finder";
 import { JsonLd } from "@/components/json-ld";
 import { getDirectoryIndex } from "@/lib/data/agencies";
 import { getGuideCategories, getLiveGuides } from "@/lib/data/guides";
-import { getHomeAgencies } from "@/lib/data/home";
+import { getHomeAgencies, getHomeStats, getServiceStartPrices } from "@/lib/data/home";
 import { getIndustries, getServices } from "@/lib/data/taxonomy";
 import { firstSentence, formatUsd } from "@/lib/directory";
-import { dailyPick, popularIndustryCombos, utcDay, type ComboCounts } from "@/lib/home";
+import {
+  dailyPick,
+  guideLayout,
+  industryTiles,
+  popularIndustryCombos,
+  statsLine,
+  utcDay,
+  type ComboCounts,
+} from "@/lib/home";
 import { faqJsonLd } from "@/lib/seo/json-ld";
 import { BRAND_NAME, INDEPENDENT_DIRECTORY, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -221,14 +230,9 @@ async function homeData() {
 
 // ───────── 2. Hero ─────────
 
-const TRUST = [
-  "Starting prices on every profile",
-  "Filter by your industry",
-  "Free for businesses and creators",
-];
-
 export async function HomeHero() {
-  const { services, industries, index, serviceName, industryBySegment } = await homeData();
+  const [{ services, industries, index, serviceName, industryBySegment }, stats] =
+    await Promise.all([homeData(), getHomeStats()]);
   const counts: ComboCounts = {};
   for (const [key, page] of index.pages) if (key.includes("|for-")) counts[key] = page.count;
   const popular = popularIndustryCombos(index.combos, 4).flatMap((c) => {
@@ -283,6 +287,8 @@ export async function HomeHero() {
             />
           </div>
         )}
+        {/* Live counts (the page is ISR, hourly). */}
+        <p className="mt-5 text-[14.5px] text-text-2">{statsLine(stats)}</p>
 
         {popular.length > 0 && (
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-[14px]">
@@ -301,15 +307,6 @@ export async function HomeHero() {
             ))}
           </div>
         )}
-
-        <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[14.5px] text-text-2">
-          {TRUST.map((t) => (
-            <li key={t} className="flex items-center gap-1.5">
-              <Check className="size-4 [stroke-width:2.5] text-verified" aria-hidden />
-              {t}
-            </li>
-          ))}
-        </ul>
       </div>
     </section>
   );
@@ -317,8 +314,19 @@ export async function HomeHero() {
 
 // ───────── 3. Services ─────────
 
+/** Price units by pricing model (service cards and agency cards). */
+const UNIT: Record<string, string> = {
+  retainer: "month",
+  per_video: "video",
+  project: "project",
+  performance: "month",
+};
+
 export async function ServicesSection() {
-  const { services, index, industryBySegment } = await homeData();
+  const [{ services, index, industryBySegment }, startPrices] = await Promise.all([
+    homeData(),
+    getServiceStartPrices(),
+  ]);
   // Hand-written cards first (in their order); a service added in the database without one still
   // gets a card, from its name and intro.
   const known = SERVICE_CARDS.filter((c) => services.some((s) => s.slug === c.slug));
@@ -349,64 +357,81 @@ export async function ServicesSection() {
           title="Every kind of YouTube help, from specialists"
         />
         <ul className="grid gap-4 min-[620px]:grid-cols-2 min-[960px]:grid-cols-3">
-          {cards.map(({ slug, title, description, tone, Icon, popular }) => (
-            <li
-              key={slug}
-              className="relative flex h-full flex-col gap-4 rounded-[22px] border border-line bg-raised p-6 transition-[transform,box-shadow,border-color] duration-200 ease-out hover:border-text-2/40 hover:shadow-[0_16px_32px_-16px_rgba(20,25,40,.22)] has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-accent motion-safe:hover:-translate-y-1"
-            >
-              <span
-                className={cn(
-                  "flex size-11 items-center justify-center rounded-[13px] text-bg",
-                  SOLID[tone],
-                )}
-                aria-hidden
+          {cards.map(({ slug, title, description, tone, Icon, popular }) => {
+            const count = index.hubCounts.get(slug) ?? 0;
+            const start = startPrices.get(slug) ?? null;
+            return (
+              <li
+                key={slug}
+                className="relative flex h-full flex-col gap-4 rounded-[22px] border border-line bg-raised p-6 transition-[transform,box-shadow,border-color] duration-200 ease-out hover:border-text-2/40 hover:shadow-[0_16px_32px_-16px_rgba(20,25,40,.22)] has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-accent motion-safe:hover:-translate-y-1"
               >
-                <Icon className="size-[22px] [stroke-width:1.75]" />
-              </span>
-              <div className="flex flex-col gap-1.5">
-                <h3 className="text-[19px] leading-tight font-[650]">
-                  {/* The whole card is the link; the industry links sit above it. */}
-                  <Link
-                    // A hub with under 3 agencies is noindex: the card opens /agencies filtered
-                    // to the service instead (a nofollow filter link) until it's live.
-                    href={
-                      (index.hubCounts.get(slug) ?? 0) >= MIN_AGENCIES_TO_INDEX
-                        ? `/${slug}`
-                        : `/agencies?service=${slug}`
-                    }
-                    rel={
-                      (index.hubCounts.get(slug) ?? 0) >= MIN_AGENCIES_TO_INDEX
-                        ? undefined
-                        : "nofollow"
-                    }
-                    className="outline-none after:absolute after:inset-0 after:rounded-[22px] after:content-['']"
-                  >
-                    {title}
-                  </Link>
-                </h3>
-                <p className="text-[15px] text-text-2">{description}</p>
-              </div>
-              {popular.length > 0 && (
-                <p className="mt-auto border-t border-line pt-4 text-[14px] text-text-2">
-                  Popular for{" "}
-                  {popular.map((p, i) => (
-                    <span key={p.href}>
-                      {i > 0 && (i === popular.length - 1 ? " and " : ", ")}
-                      <Link
-                        href={p.href}
-                        className={cn(
-                          "relative z-10 rounded font-medium text-text hover:underline",
-                          focusRing,
-                        )}
-                      >
-                        {p.name}
-                      </Link>
-                    </span>
-                  ))}
-                </p>
-              )}
-            </li>
-          ))}
+                <span
+                  className={cn(
+                    "flex size-11 items-center justify-center rounded-[13px] text-bg",
+                    SOLID[tone],
+                  )}
+                  aria-hidden
+                >
+                  <Icon className="size-[22px] [stroke-width:1.75]" />
+                </span>
+                <div className="flex flex-col gap-1.5">
+                  <h3 className="text-[19px] leading-tight font-[650]">
+                    {/* The whole card is the link; the industry links sit above it. */}
+                    <Link
+                      // A hub with under 3 agencies is noindex: the card opens /agencies filtered
+                      // to the service instead (a nofollow filter link) until it's live.
+                      href={
+                        (index.hubCounts.get(slug) ?? 0) >= MIN_AGENCIES_TO_INDEX
+                          ? `/${slug}`
+                          : `/agencies?service=${slug}`
+                      }
+                      rel={
+                        (index.hubCounts.get(slug) ?? 0) >= MIN_AGENCIES_TO_INDEX
+                          ? undefined
+                          : "nofollow"
+                      }
+                      className="outline-none after:absolute after:inset-0 after:rounded-[22px] after:content-['']"
+                    >
+                      {title}
+                    </Link>
+                  </h3>
+                  <p className="text-[15px] text-text-2">{description}</p>
+                  {count > 0 && (
+                    <p className="text-[14px]">
+                      <span className="font-semibold">
+                        {count} {count === 1 ? "agency" : "agencies"}
+                      </span>
+                      {start && UNIT[start.model] && (
+                        <span className="text-text-2">
+                          {" "}
+                          · Typical start: {formatUsd(start.usd)}/{UNIT[start.model]}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                {popular.length > 0 && (
+                  <p className="mt-auto border-t border-line pt-4 text-[14px] text-text-2">
+                    Popular for{" "}
+                    {popular.map((p, i) => (
+                      <span key={p.href}>
+                        {i > 0 && (i === popular.length - 1 ? " and " : ", ")}
+                        <Link
+                          href={p.href}
+                          className={cn(
+                            "relative z-10 rounded font-medium text-text hover:underline",
+                            focusRing,
+                          )}
+                        >
+                          {p.name}
+                        </Link>
+                      </span>
+                    ))}
+                  </p>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </section>
@@ -415,15 +440,8 @@ export async function ServicesSection() {
 
 // ───────── 4. Agencies ─────────
 
-const UNIT: Record<string, string> = {
-  retainer: "month",
-  per_video: "video",
-  project: "project",
-  performance: "month",
-};
-
 export async function AgenciesSection() {
-  const agencies = await getHomeAgencies(); // [] when fewer than 3
+  const agencies = await getHomeAgencies(); // never empty while agencies are published
   if (!agencies.length) return null;
 
   return (
@@ -432,8 +450,8 @@ export async function AgenciesSection() {
         <SectionHeader
           id="agencies-heading"
           eyebrow="Agencies"
-          title="Agencies businesses and creators are looking at"
-          lede="Every profile shows the industries they work in and where their prices start."
+          title="Agencies to compare"
+          lede="Profiles show the services and industries each agency lists, and a starting price where they give one."
           link={{ href: "/agencies", label: "Browse all agencies" }}
         />
         <ul className="grid gap-4 min-[620px]:grid-cols-2 min-[960px]:grid-cols-3">
@@ -691,21 +709,13 @@ export function WhySection() {
 
 export async function IndustriesSection() {
   const { industries, index } = await homeData();
-  // Each tile links to the industry's own hub when it's live (3+ agencies), else to its live
-  // service × industry page with the most agencies. Industries with neither aren't listed.
-  const best = new Map<string, { href: string; count: number }>();
+  // Industries with a live hub (3+ published agencies), linking to it. Fewer than 4: no section.
+  const hubCounts = new Map<string, number>();
   for (const [path, p] of index.paths) {
     const slug = path.match(/^\/industries\/([a-z0-9-]+)$/)?.[1];
-    if (slug && p.count >= MIN_AGENCIES_TO_INDEX) best.set(slug, { href: path, count: p.count });
+    if (slug) hubCounts.set(slug, p.count);
   }
-  for (const c of popularIndustryCombos(index.combos, Infinity)) {
-    const slug = c.segment.slice(4);
-    if (!best.has(slug)) best.set(slug, { href: `/${c.serviceSlug}/${c.segment}`, count: c.count });
-  }
-  const tiles = industries
-    .filter((i) => best.has(i.slug))
-    .sort((a, b) => best.get(b.slug)!.count - best.get(a.slug)!.count)
-    .slice(0, 12);
+  const tiles = industryTiles(industries, hubCounts, MIN_AGENCIES_TO_INDEX);
   if (!tiles.length) return null;
 
   return (
@@ -723,7 +733,7 @@ export async function IndustriesSection() {
             return (
               <li key={industry.slug}>
                 <Link
-                  href={best.get(industry.slug)!.href}
+                  href={`/industries/${industry.slug}`}
                   className={cn(
                     "flex h-full min-h-16 items-center gap-3 rounded-[18px] border border-line bg-raised p-3 text-[15px] font-semibold transition-[transform,border-color] duration-200 ease-out hover:border-text-2/40 motion-safe:hover:-translate-y-0.5",
                     focusRing,
@@ -758,6 +768,7 @@ export async function GuidesSection() {
   const guides = dailyPick(live, utcDay(new Date()), 3);
   if (!guides.length) return null;
   const categories = await getGuideCategories();
+  const layout = guideLayout(guides.length);
   return (
     <section aria-labelledby="guides-heading">
       <div className={cn(shell, "flex flex-col gap-10")}>
@@ -768,16 +779,30 @@ export async function GuidesSection() {
           lede="Plain answers to what businesses and creators ask first."
           link={{ href: "/guides", label: "All guides" }}
         />
-        <ul className="grid gap-8 min-[640px]:grid-cols-2 min-[1000px]:grid-cols-3">
-          {guides.map((g) => (
-            <li key={g.slug}>
-              <GuideCard
-                guide={g}
-                category={categories.find((c) => c.id === g.categoryId) ?? null}
-              />
-            </li>
-          ))}
-        </ul>
+        {layout === "featured" ? (
+          <FeaturedGuide
+            guide={guides[0]}
+            category={categories.find((c) => c.id === guides[0].categoryId) ?? null}
+            as="h3"
+            priority={false}
+          />
+        ) : (
+          <ul
+            className={cn(
+              "grid gap-8 min-[640px]:grid-cols-2",
+              layout === "three" && "min-[1000px]:grid-cols-3",
+            )}
+          >
+            {guides.map((g) => (
+              <li key={g.slug}>
+                <GuideCard
+                  guide={g}
+                  category={categories.find((c) => c.id === g.categoryId) ?? null}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   );

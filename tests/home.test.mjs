@@ -3,7 +3,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { finderHref, pickHomeAgencies, popularIndustryCombos } from "../src/lib/home.ts";
+import { readFileSync } from "node:fs";
+
+import {
+  finderHref,
+  guideLayout,
+  industryTiles,
+  pickHomeAgencies,
+  popularIndustryCombos,
+  statsLine,
+  typicalStart,
+} from "../src/lib/home.ts";
+
+const read = (p) => readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 
 test("finder: live page, else service page filtered, else Request proposals prefilled", () => {
   const counts = { "youtube-ads-agencies|for-saas": 4, "youtube-ads-agencies|for-law": 1 };
@@ -73,26 +85,82 @@ test("agencies: one sponsored first, then the ranking groups, then views, score,
   );
 });
 
-test("home picks use the same groups as lib/ranking.ts", async () => {
+test("home picks use the same groups as lib/ranking.ts (once 3+ are Verified)", async () => {
   const { rankGroup } = await import("../src/lib/ranking.ts");
+  const verified = ["v1", "v2", "v3"].map((id) => ag(id, true));
   for (const managed of [true, false])
     for (const isVerified of [true, false]) {
-      const first = pickHomeAgencies(
-        [ag("x", isVerified, 0, managed), ag("a", false, 0, false), ag("b", false, 0, false)],
-        { sponsoredIds: [], views: { a: 99, b: 98 } },
-      );
-      const expectFirst = rankGroup({ managed, isVerified }) < 3 ? "x" : "a";
+      const first = pickHomeAgencies([ag("x", isVerified, 0, managed), ...verified], {
+        sponsoredIds: [],
+        views: { x: 99 },
+      });
+      const expectFirst = rankGroup({ managed, isVerified }) < 3 ? "x" : "v1";
       assert.equal(first[0].id, expectFirst);
     }
 });
 
-test("agencies: max 6", () => {
-  const list = ["a", "b", "c", "d", "e", "f", "g"].map((id) => ag(id));
-  assert.equal(pickHomeAgencies(list, { sponsoredIds: [], views: {} }).length, 6);
+test("agencies: never empty; fewer than 3 Verified shows the most complete profiles", () => {
+  const opts = { sponsoredIds: [], views: {} };
+  // No Verified agencies at all (the live directory today), none indexable.
+  const list = [
+    { ...ag("thin", false, 90), complete: false, indexable: false },
+    { ...ag("full-low", false, 20), complete: true, indexable: false },
+    { ...ag("full-high", false, 70), complete: true, indexable: false },
+    { ...ag("one-verified", true, 10), complete: true, indexable: false },
+  ];
+  assert.deepEqual(
+    pickHomeAgencies(list, opts).map((a) => a.id),
+    ["full-high", "full-low", "one-verified"],
+  );
+  // Too few complete profiles: topped up by quality score.
+  assert.deepEqual(
+    pickHomeAgencies([{ ...ag("a", false, 5), complete: true }, ag("b", false, 50), ag("c", false, 1)], opts).map((a) => a.id),
+    ["a", "b", "c"],
+  );
+  // 3 or 6 cards.
+  const many = (n) => Array.from({ length: n }, (_, i) => ag(`a${i}`));
+  assert.equal(pickHomeAgencies(many(2), opts).length, 2);
+  assert.equal(pickHomeAgencies(many(5), opts).length, 3);
+  assert.equal(pickHomeAgencies(many(7), opts).length, 6);
+  assert.equal(pickHomeAgencies([], opts).length, 0);
 });
 
-test("agencies: fewer than 3 hides the section", () => {
-  const opts = { sponsoredIds: [], views: {} };
-  assert.deepEqual(pickHomeAgencies([ag("a"), ag("b")], opts), []);
-  assert.equal(pickHomeAgencies([ag("a"), ag("b"), ag("c")], opts).length, 3);
+test("industries: only hubs with 3+ agencies; fewer than 4 hides the section", () => {
+  const ind = ["saas", "crypto", "doctors", "law", "gaming"].map((slug) => ({ slug }));
+  const counts = new Map([["saas", 9], ["crypto", 3], ["doctors", 5], ["law", 2], ["gaming", 4]]);
+  assert.deepEqual(industryTiles(ind, counts, 3).map((i) => i.slug), ["saas", "doctors", "gaming", "crypto"]);
+  assert.deepEqual(industryTiles(ind, new Map([["saas", 9], ["crypto", 3], ["doctors", 5]]), 3), []);
+  assert.deepEqual(industryTiles(ind, new Map([["saas", 9]]), 3), []);
+});
+
+test("guides: one wide card, two columns, or a grid of three", () => {
+  assert.equal(guideLayout(1), "featured");
+  assert.equal(guideLayout(2), "two");
+  assert.equal(guideLayout(3), "three");
+  const src = read("src/components/home/sections.tsx");
+  assert.match(src, /layout === "featured" \? \(\n\s+<FeaturedGuide/);
+  assert.match(src, /layout === "three" && "min-\[1000px\]:grid-cols-3"/);
+});
+
+test("stats line: live counts, agencies rounded down to 10s", () => {
+  assert.equal(
+    statsLine({ agencies: 944, services: 10, countries: 31 }),
+    "940+ YouTube agencies · 10 services · 31 countries · Free for businesses",
+  );
+  assert.equal(statsLine({ agencies: 7, services: 1, countries: 1 }), "7 YouTube agencies · 1 service · 1 country · Free for businesses");
+  assert.equal(statsLine({ agencies: 12, services: 10, countries: 0 }), "10+ YouTube agencies · 10 services · Free for businesses");
+  // Counted from the published agencies in the database, not typed in.
+  const data = read("src/lib/data/home.ts");
+  assert.match(data, /return \{ agencies: rows\.length, services: services\.length, countries: countries\.size \};/);
+  assert.match(read("src/components/home/sections.tsx"), /\{statsLine\(stats\)\}/);
+});
+
+test("typical start: only with 5+ prices in one pricing model, the median", () => {
+  const p = (usd, model = "retainer") => ({ usd, model });
+  assert.equal(typicalStart([p(1000), p(2000), p(3000), p(4000)]), null);
+  assert.equal(typicalStart([p(1000), p(2000), p(3000), p(4000), p(null), p(500, null)]), null);
+  assert.deepEqual(typicalStart([p(1000), p(2000), p(3000), p(4000), p(9000)]), { usd: 3000, model: "retainer" });
+  assert.deepEqual(typicalStart([p(1000), p(2000), p(3000), p(4000), p(5000), p(6000)]), { usd: 3500, model: "retainer" });
+  // Mixed units don't share a median: 3 monthly + 3 per video isn't enough of either.
+  assert.equal(typicalStart([p(1), p(2), p(3), p(4, "per_video"), p(5, "per_video"), p(6, "per_video")]), null);
 });

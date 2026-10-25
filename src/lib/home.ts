@@ -37,47 +37,103 @@ type Pickable = {
   isVerified: boolean;
   managed: boolean;
   quality: number;
+  /** Passes the thin-profile rule (lib/profile-seo.ts). */
+  indexable?: boolean;
+  /** Logo, description and 2+ services: good enough to show while few are Verified. */
+  complete?: boolean;
 };
 
 /** lib/ranking.ts rankGroup, repeated here to keep this file import-free (tested to match). */
 const group = (a: Pickable) => (a.managed ? (a.isVerified ? 0 : 1) : a.isVerified ? 2 : 3);
 
 /**
- * Agencies for the home page: at most one sponsored card first, then the directory's groups
- * (lib/ranking.ts: Verified + Pro, Pro, Verified, everyone else), within each by profile views
- * (last 30 days), then quality score and name. Fewer than `min` means the section is hidden: [].
+ * Agencies for the home page ("Agencies to compare"), never empty while any agency is published:
+ *  - 3+ Verified: the directory's ranking over indexable profiles (Verified + Pro, Pro, Verified,
+ *    everyone else; then profile views, quality score, name).
+ *  - Otherwise: the most complete profiles (logo, description, 2+ services) by quality score,
+ *    topped up by quality score when fewer than 3 are complete.
+ * At most one sponsored card first. 6 cards when there are 6, else 3 (or all, under 3).
  */
 export function pickHomeAgencies<T extends Pickable>(
   agencies: T[],
-  {
-    sponsoredIds,
-    views,
-    limit = 6,
-    min = 3,
-  }: {
-    sponsoredIds: string[];
-    views: Record<string, number>;
-    limit?: number;
-    min?: number;
-  },
+  { sponsoredIds, views }: { sponsoredIds: string[]; views: Record<string, number> },
 ): (T & { sponsored: boolean })[] {
+  const byQuality = (a: T, b: T) => b.quality - a.quality || a.name.localeCompare(b.name);
+  const indexable = agencies.filter((a) => a.indexable !== false);
+  const ranked =
+    agencies.filter((a) => a.isVerified).length >= 3 && indexable.length >= 3
+      ? [...indexable].sort(
+          (a, b) =>
+            group(a) - group(b) || (views[b.id] ?? 0) - (views[a.id] ?? 0) || byQuality(a, b),
+        )
+      : [...agencies].sort(
+          (a, b) => Number(b.complete ?? false) - Number(a.complete ?? false) || byQuality(a, b),
+        );
   const sponsored = sponsoredIds
     .map((id) => agencies.find((a) => a.id === id))
     .find((a): a is T => !!a);
-  const rest = agencies
-    .filter((a) => a.id !== sponsored?.id)
-    .sort(
-      (a, b) =>
-        group(a) - group(b) ||
-        (views[b.id] ?? 0) - (views[a.id] ?? 0) ||
-        b.quality - a.quality ||
-        a.name.localeCompare(b.name),
-    );
-  const picked = [
+  const all = [
     ...(sponsored ? [{ ...sponsored, sponsored: true }] : []),
-    ...rest.map((a) => ({ ...a, sponsored: false })),
-  ].slice(0, limit);
-  return picked.length >= min ? picked : [];
+    ...ranked.filter((a) => a.id !== sponsored?.id).map((a) => ({ ...a, sponsored: false })),
+  ];
+  return all.slice(0, all.length >= 6 ? 6 : 3);
+}
+
+/**
+ * Industry tiles: industries whose hub has at least `min` published agencies, most first (up to
+ * 12). Fewer than 4 qualify: none (the section hides rather than show a lone chip).
+ */
+export function industryTiles<T extends { slug: string }>(
+  industries: T[],
+  hubCounts: Map<string, number>,
+  min = 3,
+) {
+  const tiles = industries
+    .filter((i) => (hubCounts.get(i.slug) ?? 0) >= min)
+    .sort((a, b) => hubCounts.get(b.slug)! - hubCounts.get(a.slug)!)
+    .slice(0, 12);
+  return tiles.length >= 4 ? tiles : [];
+}
+
+/** Guides section layout: one wide card, two columns, or a grid of three. */
+export const guideLayout = (n: number) => (n <= 1 ? "featured" : n === 2 ? "two" : "three");
+
+/** "940+ YouTube agencies · 10 services · 31 countries · Free for businesses" (live counts). */
+export function statsLine({
+  agencies,
+  services,
+  countries,
+}: {
+  agencies: number;
+  services: number;
+  countries: number;
+}) {
+  const n = agencies >= 10 ? `${Math.floor(agencies / 10) * 10}+` : String(agencies);
+  const plural = (k: number, one: string, many: string) => (k === 1 ? one : many);
+  return [
+    `${n} YouTube ${plural(agencies, "agency", "agencies")}`,
+    `${services} ${plural(services, "service", "services")}`,
+    ...(countries > 0 ? [`${countries} ${plural(countries, "country", "countries")}`] : []),
+    "Free for businesses",
+  ].join(" · ");
+}
+
+/**
+ * "Typical start" for a service card: the median starting price among the most common pricing
+ * model, shown only when at least 5 published agencies with that model have a price (prices in
+ * different units can't share a median). null: show nothing.
+ */
+export function typicalStart(prices: { usd: number | null; model: string | null }[], min = 5) {
+  const byModel = new Map<string, number[]>();
+  for (const p of prices)
+    if (p.usd !== null && p.usd > 0 && p.model)
+      byModel.set(p.model, [...(byModel.get(p.model) ?? []), p.usd]);
+  const [model, list] = [...byModel].sort((a, b) => b[1].length - a[1].length)[0] ?? [];
+  if (!model || list.length < min) return null;
+  const sorted = [...list].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const usd = sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  return { usd, model };
 }
 
 /** UTC date as YYYY-MM-DD: the home page's daily seed. */
