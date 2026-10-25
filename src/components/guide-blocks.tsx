@@ -30,8 +30,8 @@ const count = new Intl.NumberFormat("en-US");
 
 const tableWrap = "mb-8 overflow-x-auto";
 const table = "w-full min-w-[560px] border-collapse text-left text-[16px]";
-const th = "border-b border-text-2/40 px-3 py-2.5 font-semibold first:pl-0";
-const td = "border-b border-line px-3 py-2.5 align-top first:pl-0";
+const th = "border-b border-muted-foreground/40 px-3 py-2.5 font-semibold first:pl-0";
+const td = "border-b border-border px-3 py-2.5 align-top first:pl-0";
 const button =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2";
 
@@ -52,7 +52,7 @@ function ComparisonTable({ a }: { a: BlockAttrs }) {
         </thead>
         <tbody>
           {list.map((r, i) => (
-            <tr key={i} className={cn(i === 0 && a.highlightFirst === true && "bg-(--accent-soft)")}>
+            <tr key={i} className={cn(i === 0 && a.highlightFirst === true && "bg-primary/10 text-foreground")}>
               <th scope="row" className={cn(td, "font-semibold", i === 0 && a.highlightFirst === true && "pl-3 first:pl-3")}>
                 {s(r.name)}
               </th>
@@ -61,7 +61,7 @@ function ComparisonTable({ a }: { a: BlockAttrs }) {
               <td className={td}>{s(r.difference)}</td>
               <td className={cn(td, "whitespace-nowrap")}>
                 {s(r.anchor) && (
-                  <a href={`#${s(r.anchor)}`} className="font-semibold text-accent hover:underline">
+                  <a href={`#${s(r.anchor)}`} className="font-semibold text-foreground underline underline-offset-2">
                     Read<span className="sr-only"> about {s(r.name)}</span>
                   </a>
                 )}
@@ -84,12 +84,12 @@ function ProductCard({ a, id, number }: { a: BlockAttrs; id?: string; number?: n
     <section
       id={id}
       aria-labelledby={id ? `${id}-title` : undefined}
-      className="mb-10 scroll-mt-20 rounded-2xl border border-line bg-raised p-6 md:p-7"
+      className="mb-10 scroll-mt-20 rounded-2xl border border-border bg-card p-6 md:p-7"
     >
       {(s(a.badge) || a.ours === true) && (
         <p className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px] font-semibold tracking-[0.06em] uppercase">
-          {s(a.badge) && <span className="rounded-full bg-(--accent-soft) px-2.5 py-1 text-(--accent-on-soft)">{s(a.badge)}</span>}
-          {a.ours === true && <span className="rounded-full bg-surface px-2.5 py-1 text-text-2">Our product</span>}
+          {s(a.badge) && <span className="rounded-full bg-primary/10 px-2.5 py-1 text-foreground">{s(a.badge)}</span>}
+          {a.ours === true && <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">Our product</span>}
         </p>
       )}
       <h2 id={id ? `${id}-title` : undefined} className="mb-3 text-h2">
@@ -106,7 +106,7 @@ function ProductCard({ a, id, number }: { a: BlockAttrs; id?: string; number?: n
           {points.map((p, i) => (
             <li key={i} className="flex items-start gap-2.5">
               {p.kind === "caveat" ? (
-                <Minus className="mt-1.5 size-4 shrink-0 [stroke-width:2.5] text-text-2" aria-hidden />
+                <Minus className="mt-1.5 size-4 shrink-0 [stroke-width:2.5] text-muted-foreground" aria-hidden />
               ) : (
                 <Check className="mt-1.5 size-4 shrink-0 [stroke-width:2.5] text-(--mint)" aria-hidden />
               )}
@@ -127,9 +127,9 @@ function ProductCard({ a, id, number }: { a: BlockAttrs; id?: string; number?: n
             width={size?.width}
             height={size?.height}
             loading="lazy"
-            className="h-auto w-full rounded-[12px] border border-line"
+            className="h-auto w-full rounded-[12px] border border-border"
           />
-          {s(a.caption) && <figcaption className="text-small">{s(a.caption)}</figcaption>}
+          {s(a.caption) && <figcaption className="text-[14px] text-muted-foreground">{s(a.caption)}</figcaption>}
         </figure>
       )}
       {s(a.price) && (
@@ -138,7 +138,7 @@ function ProductCard({ a, id, number }: { a: BlockAttrs; id?: string; number?: n
           {priceSource && (
             <>
               {" "}
-              <a href={priceSource} target="_blank" rel={OUTSIDE_REL} className="text-small text-accent underline underline-offset-2">
+              <a href={priceSource} target="_blank" rel={OUTSIDE_REL} className="text-[14px] text-primary underline underline-offset-2">
                 (source)<span className="sr-only"> opens in a new tab</span>
               </a>
             </>
@@ -146,13 +146,13 @@ function ProductCard({ a, id, number }: { a: BlockAttrs; id?: string; number?: n
         </p>
       )}
       {s(a.ctaLabel) && ctaHref && (
-        <Link href={ctaHref} className={cn(button, "mb-4 bg-accent text-on-accent hover:bg-(--accent-hover) focus-visible:outline-accent")}>
+        <Link href={ctaHref} className={cn(button, "mb-4 bg-primary text-primary-foreground hover:bg-(--accent-hover) focus-visible:outline-primary")}>
           {s(a.ctaLabel)}
           <ArrowRight className="size-4" aria-hidden />
         </Link>
       )}
       {s(a.chooseIf) && (
-        <p className="rounded-xl bg-surface px-4 py-3">
+        <p className="rounded-xl bg-muted px-4 py-3">
           <strong className="font-semibold">Choose this if</strong> {s(a.chooseIf).replace(/^choose this if\s*/i, "")}
         </p>
       )}
@@ -199,13 +199,13 @@ function ProsCons({ a }: { a: BlockAttrs }) {
   const watch = lines(a.watch);
   if (!good.length && !watch.length) return null;
   const column = (title: string, items: string[], bad: boolean) => (
-    <div className="rounded-2xl border border-line p-5">
+    <div className="rounded-2xl border border-border p-5">
       <h3 className="mb-3 text-[17px] font-semibold">{title}</h3>
       <ul className="flex flex-col gap-2 text-[16px]">
         {items.map((t, i) => (
           <li key={i} className="flex items-start gap-2.5">
             {bad ? (
-              <Minus className="mt-1 size-4 shrink-0 [stroke-width:2.5] text-text-2" aria-hidden />
+              <Minus className="mt-1 size-4 shrink-0 [stroke-width:2.5] text-muted-foreground" aria-hidden />
             ) : (
               <Check className="mt-1 size-4 shrink-0 [stroke-width:2.5] text-(--mint)" aria-hidden />
             )}
@@ -227,16 +227,16 @@ function Faq({ a }: { a: BlockAttrs }) {
   const items = rows(a.items).filter((i) => s(i.q).trim());
   if (!items.length) return null;
   return (
-    <div className="mb-8 border-t border-line">
+    <div className="mb-8 border-t border-border">
       {items.map((i, n) => (
-        <details key={n} className="group border-b border-line">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 py-4 text-[17px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
+        <details key={n} className="group border-b border-border">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 py-4 text-[17px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
             {s(i.q)}
-            <span aria-hidden className="grid size-[26px] shrink-0 place-items-center rounded-full bg-surface transition-transform duration-200 group-open:rotate-180">
+            <span aria-hidden className="grid size-[26px] shrink-0 place-items-center rounded-full bg-muted transition-transform duration-200 group-open:rotate-180">
               <span className="block size-[7px] -translate-y-0.5 rotate-45 border-r-2 border-b-2 border-text-2" />
             </span>
           </summary>
-          <div className="pb-5 text-text-2">
+          <div className="pb-5 text-muted-foreground">
             {paragraphs(s(i.a)).map((p, k) => (
               <p key={k} className="mb-3 last:mb-0">
                 {p}
@@ -252,14 +252,15 @@ function Faq({ a }: { a: BlockAttrs }) {
 function CtaBox({ a }: { a: BlockAttrs }) {
   const primary = s(a.primaryHref);
   const secondary = s(a.secondaryHref);
-  // "banner": the hero's navy, in both themes; "box": near-black (raised in dark mode).
+  // "banner": the hero's navy; "box": near-black.
   const banner = a.variant === "banner";
   const ink = banner ? "text-navy" : "text-[#16171a]";
   return (
     <aside
       className={cn(
         "mb-10 flex flex-col gap-4 rounded-[24px] px-6 py-8 text-white md:px-9",
-        banner ? "bg-navy" : "bg-[#16171a] site-dark:border site-dark:border-line site-dark:bg-raised",
+        // Own colours in both themes (white text: 17:1 on the box, 10:1 on navy).
+        banner ? "bg-navy" : "bg-[#16171a] site-dark:ring-1 site-dark:ring-white/15",
       )}
     >
       {s(a.heading) && <p className="text-[24px] leading-tight font-[650] tracking-[-0.02em]">{s(a.heading)}</p>}
@@ -287,50 +288,56 @@ function CtaBox({ a }: { a: BlockAttrs }) {
   );
 }
 
-function DirectoryStats({ stats }: { stats: DirectoryStatsData | null }) {
+/** Zero counts are hidden on the site (all zero: no block); the editor shows them with a note. */
+function DirectoryStats({ stats, editing }: { stats: DirectoryStatsData | null; editing: boolean }) {
   const cells: [string, number | null][] = [
     ["Agencies listed", stats?.agencies ?? null],
     ["Verified", stats?.verified ?? null],
     [stats?.serviceName ? `Offer ${stats.serviceName}` : "Offer this service", stats?.offering ?? null],
   ];
+  const shown = editing ? cells : cells.filter(([, v]) => v !== null && v > 0);
+  if (!shown.length) return null;
+  const cols = ["", "", "sm:grid-cols-2", "sm:grid-cols-3"][shown.length];
   return (
     <figure className="mb-8">
-      <dl className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-3">
-        {cells.map(([label, value]) => (
-          <div key={label} className="flex flex-col gap-1 bg-raised px-5 py-4">
-            <dt className="text-small">{label}</dt>
-            <dd className="text-[28px] font-[650] tracking-[-0.02em] tabular-nums">
+      <dl className={cn("grid gap-px overflow-hidden rounded-2xl border border-border bg-border", cols)}>
+        {shown.map(([label, value]) => (
+          <div key={label} className="flex flex-col gap-1 bg-card px-5 py-4">
+            <dt className="text-[14px] text-muted-foreground">{label}</dt>
+            <dd className="text-[28px] font-[650] tracking-[-0.02em] text-foreground tabular-nums">
               {value === null ? "–" : count.format(value)}
             </dd>
+            {editing && value === 0 && (
+              <dd className="text-[13px] text-muted-foreground">Hidden on the site while 0</dd>
+            )}
           </div>
         ))}
       </dl>
-      <figcaption className="mt-2 text-small">Live counts from the directory.</figcaption>
+      <figcaption className="mt-2 text-[14px] text-muted-foreground">Live counts from the directory.</figcaption>
     </figure>
   );
 }
 
-/** Label first in the markup (dt, then the value), value first on screen. */
 function StatRow({ a }: { a: BlockAttrs }) {
   const items = rows(a.items).filter((i) => s(i.value).trim());
   if (!items.length) return null;
   const cols = ["", "", "sm:grid-cols-2", "sm:grid-cols-3"][items.length];
   return (
-    <dl className={cn("mb-8 grid gap-px overflow-hidden rounded-2xl border border-line bg-line", cols)}>
+    <dl className={cn("mb-8 grid gap-px overflow-hidden rounded-2xl border border-border bg-border", cols)}>
       {items.map((i, n) => (
-        <div key={n} className="flex flex-col-reverse justify-end gap-1 bg-raised px-5 py-4">
-          <dt className="text-[15px] text-text-2">
+        <div key={n} className="flex flex-col-reverse justify-end gap-1 bg-card px-5 py-4">
+          <dt className="text-[15px] text-muted-foreground">
             {s(i.label)}
             {s(i.source) && (
               <>
                 {" "}
-                <a href={s(i.source)} target="_blank" rel={OUTSIDE_REL} className="text-small text-accent underline underline-offset-2">
+                <a href={s(i.source)} target="_blank" rel={OUTSIDE_REL} className="text-[14px] text-primary underline underline-offset-2">
                   (source)<span className="sr-only"> opens in a new tab</span>
                 </a>
               </>
             )}
           </dt>
-          <dd className="text-[30px] leading-tight font-[650] tracking-[-0.02em] text-text tabular-nums">{s(i.value)}</dd>
+          <dd className="text-[30px] leading-tight font-[650] tracking-[-0.02em] text-foreground tabular-nums">{s(i.value)}</dd>
         </div>
       ))}
     </dl>
@@ -342,7 +349,7 @@ function GuideButton({ a }: { a: BlockAttrs }) {
   if (!href || !s(a.label)) return null;
   return (
     <p className="mb-6">
-      <Link href={href} className={cn(button, "bg-accent text-on-accent hover:bg-(--accent-hover) focus-visible:outline-accent")}>
+      <Link href={href} className={cn(button, "bg-primary text-primary-foreground hover:bg-(--accent-hover) focus-visible:outline-primary")}>
         {s(a.label)}
         <ArrowRight className="size-4" aria-hidden />
       </Link>
@@ -353,7 +360,7 @@ function GuideButton({ a }: { a: BlockAttrs }) {
 /** Sits right above a list; the list keeps its own spacing. */
 function ListLabel({ a }: { a: BlockAttrs }) {
   if (!s(a.text).trim()) return null;
-  return <p className="mb-2 text-[15px] font-semibold tracking-[0.02em] text-(--accent-on-soft)">{s(a.text)}</p>;
+  return <p className="mb-2 text-[15px] font-semibold tracking-[0.02em] text-primary">{s(a.text)}</p>;
 }
 
 /** A named quote. No name, no quote: the page never shows an anonymous testimonial. */
@@ -362,22 +369,22 @@ function GuideQuote({ a }: { a: BlockAttrs }) {
   if (!name || !s(a.text).trim()) return null;
   const cite = s(a.cite);
   return (
-    <figure className="mb-8 border-l-2 border-accent pl-5">
-      <blockquote cite={cite || undefined} className="text-[20px] leading-normal text-text">
+    <figure className="mb-8 border-l-2 border-primary pl-5">
+      <blockquote cite={cite || undefined} className="text-[20px] leading-normal text-foreground">
         {paragraphs(s(a.text)).map((p, i) => (
           <p key={i} className="mb-3 last:mb-0">
             {p}
           </p>
         ))}
       </blockquote>
-      <figcaption className="mt-3 text-[15px] text-text-2">
+      <figcaption className="mt-3 text-[15px] text-muted-foreground">
         <span aria-hidden>— </span>
-        <span className="font-semibold text-text">{name}</span>
+        <span className="font-semibold text-foreground">{name}</span>
         {s(a.role) && <>, {s(a.role)}</>}
         {cite && (
           <>
             {" "}
-            <a href={cite} target="_blank" rel={OUTSIDE_REL} className="text-small text-accent underline underline-offset-2">
+            <a href={cite} target="_blank" rel={OUTSIDE_REL} className="text-[14px] text-primary underline underline-offset-2">
               (source)<span className="sr-only"> opens in a new tab</span>
             </a>
           </>
@@ -394,12 +401,15 @@ export function GuideBlockView({
   id,
   number,
   stats = null,
+  editing = false,
 }: {
   type: BlockType;
   attrs: BlockAttrs;
   id?: string;
   number?: number;
   stats?: DirectoryStatsData | null;
+  /** In the editor: show what the site hides (zero counts). */
+  editing?: boolean;
 }) {
   switch (type) {
     case "comparisonTable":
@@ -415,7 +425,7 @@ export function GuideBlockView({
     case "ctaBox":
       return <CtaBox a={attrs} />;
     case "directoryStats":
-      return <DirectoryStats stats={stats} />;
+      return <DirectoryStats stats={stats} editing={editing} />;
     case "statRow":
       return <StatRow a={attrs} />;
     case "button":

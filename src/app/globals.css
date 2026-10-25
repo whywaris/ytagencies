@@ -99,6 +99,8 @@
   --accent-hover: color-mix(in srgb, #0b57d0 90%, #ffffff);
   --on-accent: #ffffff;
   --verified: #188038;
+  /* Guide blocks' check marks (the editor canvas). */
+  --mint: #188038;
   --surface-2: color-mix(in srgb, var(--text) 5%, transparent);
   --success: #188038;
   --warning: #b06000;
@@ -117,6 +119,7 @@
     /* White on #4C8DF6 is 3.3:1; black is 6.5:1. */
     --on-accent: #000000;
     --verified: #34a853;
+    --mint: #34a853;
     --success: #34a853;
     --warning: #f2b33d;
     --danger: #f28b82;
@@ -133,6 +136,7 @@
   --accent-hover: color-mix(in srgb, #4c8df6 90%, #000000);
   --on-accent: #000000;
   --verified: #34a853;
+  --mint: #34a853;
   --success: #34a853;
   --warning: #f2b33d;
   --danger: #f28b82;

@@ -92,3 +92,16 @@ test("content styles: the lead, headings, tables and bold", () => {
   assert.match(article, /const takeaways = guide\.keyTakeaways\.length > 0 && \(/);
   assert.match(article, /afterLead=\{alternatives \? undefined : takeaways\}/);
 });
+
+test("guide blocks use theme tokens only (the CTA box and banner keep their own colours)", () => {
+  const src = read("src/components/guide-blocks.tsx");
+  const cta = src.match(/\nfunction CtaBox[\s\S]*?\n}\n/)[0];
+  const rest = src.replace(cta, "");
+  assert.doesNotMatch(rest, /#[0-9a-f]{3,6}\b|\b(?:bg|text|border)-(?:white|black)\b|raised|accent-soft|text-text|bg-surface|border-line|bg-line/i);
+  assert.match(rest, /"bg-primary\/10 text-foreground"/); // the highlighted comparison row
+  assert.match(cta, /banner \? "bg-navy" : "bg-\[#16171a\]/);
+  // Directory stats: zero counts hidden on the site, the whole block when nothing is left.
+  assert.match(rest, /const shown = editing \? cells : cells\.filter\(\(\[, v\]\) => v !== null && v > 0\);\n {2}if \(!shown\.length\) return null;/);
+  assert.match(rest, /Hidden on the site while 0/);
+  assert.match(read("src/components/admin/guide-block-node.tsx"), /stats=\{stats\} editing \/>/);
+});

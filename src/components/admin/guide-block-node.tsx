@@ -126,7 +126,7 @@ function BlockNodeView({ node, updateAttributes, deleteNode, selected, editor, g
           <span className="text-admin-meta">{def.description} Click to fill it in.</span>
         </button>
       ) : (
-        <GuideBlockView type={type} attrs={attrs} number={number} stats={stats} />
+        <GuideBlockView type={type} attrs={attrs} number={number} stats={stats} editing />
       )}
 
       <Dialog.Root

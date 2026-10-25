@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { Footer } from "@/components/footer";
+import { GuideBlocksDemo } from "@/components/guide-blocks-demo";
 import { Nav } from "@/components/nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -149,6 +150,16 @@ function Panel({ theme }: { theme: "light" | "dark" }) {
             <Badge variant="verified">Verified</Badge>
             <Badge variant="sponsored">Sponsored</Badge>
             <Badge>Healthcare</Badge>
+          </div>
+        </Section>
+
+        <Section title="Guide blocks">
+          <div data-contrast={`site-${theme}`} className="max-w-reading">
+            <GuideBlocksDemo />
+          </div>
+          <h3 className="text-[17px] font-semibold">In the editor canvas</h3>
+          <div data-contrast={`editor-${theme}`} data-admin data-theme={theme} className="max-w-reading rounded-2xl bg-bg p-4 text-text">
+            <GuideBlocksDemo editing />
           </div>
         </Section>
       </div>
