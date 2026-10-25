@@ -22,6 +22,7 @@ import {
   Search,
   Settings,
   Star,
+  Tags,
   Sun,
   UserRound,
   Users,
@@ -75,6 +76,7 @@ const GROUPS: { heading: string; items: Item[] }[] = [
       { href: "/admin/claims", label: "Claims", icon: KeyRound },
       { href: "/admin/reviews", label: "Reviews", icon: Star },
       { href: "/admin/verification", label: "Verification", icon: BadgeCheck },
+      { href: "/admin/industry-review", label: "Industry review", icon: Tags },
     ],
   },
   {

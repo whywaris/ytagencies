@@ -1786,5 +1786,53 @@ await as("anon", null, async () => {
   ok(!(await fails("select cover_alt, prices_checked_on from guides limit 1")), "guides: anon can read cover_alt and prices_checked_on");
 });
 
+console.log("— industry suggestions —");
+await db.exec("reset role");
+await db.exec(`
+  insert into industry_suggestions (agency_id, industry_id, evidence_text, source_url, method, confidence)
+  values ('${PINE}', 1, 'We work with dental clinics across Texas.', 'https://pinecask.example/about', 'keywords', 0.8);
+  insert into industry_enrichment_runs (agency_id, outcome, pages) values ('${PINE}', 'ok', 2);
+`);
+await as("anon", null, async () => {
+  for (const t of ["industry_suggestions", "industry_enrichment_runs"])
+    ok(await denied(`select * from ${t}`), `${t}: anon can't read`);
+  ok(
+    await denied(`insert into industry_suggestions (agency_id, industry_id, evidence_text, source_url, method, confidence)
+      values ('${PINE}', 2, 'some sentence here', 'https://x.example', 'keywords', 1)`),
+    "industry_suggestions: anon can't insert",
+  );
+});
+await as("authenticated", OWNER, async () => {
+  for (const t of ["industry_suggestions", "industry_enrichment_runs"])
+    ok(await denied(`select * from ${t}`), `${t}: a non-admin can't read`);
+  ok(
+    await denied(`update industry_suggestions set status = 'approved', reviewed_by = '${OWNER}', reviewed_at = now() returning id`),
+    "industry_suggestions: a non-admin can't approve",
+  );
+});
+await as("authenticated", ADMIN, async () => {
+  ok((await rows("select id from industry_suggestions")).length === 1, "industry_suggestions: admin reads the queue");
+  ok((await rows("select agency_id from industry_enrichment_runs")).length === 1, "industry_enrichment_runs: admin reads");
+  ok(
+    await denied(`update industry_suggestions set evidence_text = 'changed evidence' returning id`),
+    "industry_suggestions: even an admin can't rewrite the evidence",
+  );
+  ok(
+    await denied(`update industry_suggestions set status = 'approved', reviewed_by = '${OWNER}', reviewed_at = now() returning id`),
+    "industry_suggestions: an admin approves only as themselves",
+  );
+  ok(
+    (await rows(`update industry_suggestions set status = 'approved', reviewed_by = '${ADMIN}', reviewed_at = now() returning id`)).length === 1,
+    "industry_suggestions: admin approves",
+  );
+});
+await db.exec("reset role");
+ok(await fails(`update industry_suggestions set status = 'pending'`), "industry_suggestions: pending can't carry a review date");
+ok(
+  await fails(`insert into industry_suggestions (agency_id, industry_id, evidence_text, source_url, method, confidence)
+    values ('${PINE}', 1, 'another sentence here', 'https://pinecask.example', 'llm', 0.7)`),
+  "industry_suggestions: one per agency and industry",
+);
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

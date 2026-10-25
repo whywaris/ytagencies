@@ -1474,3 +1474,46 @@ select 'Alternatives', 'alternatives',
   'Honest comparisons of the platforms and services people use to hire YouTube help.',
   'violet', coalesce((select max(sort_order) + 1 from guide_categories), 0), true
 where not exists (select 1 from guide_categories where slug = 'alternatives');
+
+-- ───────── Industry suggestions from agency websites (migration 20261104000100) ─────────
+create table industry_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  agency_id uuid not null references agencies(id) on delete cascade,
+  industry_id int not null references industries(id) on delete cascade,
+  evidence_text text not null check (char_length(evidence_text) between 1 and 300),
+  source_url text not null check (source_url ~ '^https?://' and char_length(source_url) <= 2000),
+  method text not null check (method in ('keywords', 'llm')),
+  confidence numeric(3, 2) not null check (confidence between 0 and 1),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  reviewed_by uuid references auth.users(id) on delete set null,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (agency_id, industry_id),
+  -- Reviewed exactly when it's no longer pending.
+  check ((status = 'pending') = (reviewed_at is null))
+);
+create index industry_suggestions_queue_idx on industry_suggestions (status, agency_id);
+create index industry_suggestions_reviewed_idx on industry_suggestions (reviewed_at) where status = 'approved';
+
+create table industry_enrichment_runs (
+  agency_id uuid primary key references agencies(id) on delete cascade,
+  checked_at timestamptz not null default now(),
+  outcome text not null check (outcome in ('ok', 'no_website', 'blocked', 'failed')),
+  pages int not null default 0 check (pages between 0 and 4),
+  detail text check (char_length(detail) <= 300)
+);
+
+alter table industry_suggestions enable row level security;
+alter table industry_enrichment_runs enable row level security;
+
+revoke all on industry_suggestions, industry_enrichment_runs from anon, authenticated;
+grant select on industry_suggestions, industry_enrichment_runs to authenticated;
+grant update (status, reviewed_by, reviewed_at) on industry_suggestions to authenticated;
+
+create policy "admin reads suggestions" on industry_suggestions
+  for select to authenticated using (is_admin());
+create policy "admin reviews suggestions" on industry_suggestions
+  for update to authenticated using (is_admin()) with check (is_admin() and reviewed_by = auth.uid());
+create policy "admin reads enrichment runs" on industry_enrichment_runs
+  for select to authenticated using (is_admin());
+

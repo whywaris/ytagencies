@@ -186,6 +186,8 @@ test("outbound fetches: fixed hosts only (and the admin image import's own check
     "src/lib/public-slugs.ts": /NEXT_PUBLIC_SUPABASE_URL/,
     "src/lib/actions/admin-guides.ts": /isPublicIp\(a\.address\)/,
     "src/components/admin/rich-editor.tsx": /fetch\(src\)/, // a blob: URL in the browser
+    // The industry enrichment script: the agency's own site only, private addresses refused.
+    "src/lib/enrich/fetch.ts": /ips\.some\(isPrivateIp\)/,
   };
   const callers = SRC.filter((f) => /\bfetch\(/.test(read(f)) && !f.includes("/app/"));
   for (const f of callers) {

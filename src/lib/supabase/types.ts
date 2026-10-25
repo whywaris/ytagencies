@@ -1035,6 +1035,109 @@ export type Database = {
         };
         Relationships: [];
       };
+      industry_enrichment_runs: {
+        Row: {
+          agency_id: string;
+          checked_at: string;
+          detail: string | null;
+          outcome: string;
+          pages: number;
+        };
+        Insert: {
+          agency_id: string;
+          checked_at?: string;
+          detail?: string | null;
+          outcome: string;
+          pages?: number;
+        };
+        Update: {
+          agency_id?: string;
+          checked_at?: string;
+          detail?: string | null;
+          outcome?: string;
+          pages?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "industry_enrichment_runs_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: true;
+            referencedRelation: "admin_agency_list";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "industry_enrichment_runs_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: true;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      industry_suggestions: {
+        Row: {
+          agency_id: string;
+          confidence: number;
+          created_at: string;
+          evidence_text: string;
+          id: string;
+          industry_id: number;
+          method: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          source_url: string;
+          status: string;
+        };
+        Insert: {
+          agency_id: string;
+          confidence: number;
+          created_at?: string;
+          evidence_text: string;
+          id?: string;
+          industry_id: number;
+          method: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          source_url: string;
+          status?: string;
+        };
+        Update: {
+          agency_id?: string;
+          confidence?: number;
+          created_at?: string;
+          evidence_text?: string;
+          id?: string;
+          industry_id?: number;
+          method?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          source_url?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "industry_suggestions_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_agency_list";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "industry_suggestions_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "industry_suggestions_industry_id_fkey";
+            columns: ["industry_id"];
+            isOneToOne: false;
+            referencedRelation: "industries";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       lead_routes: {
         Row: {
           agency_id: string;
