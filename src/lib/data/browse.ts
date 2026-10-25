@@ -85,3 +85,25 @@ export async function getBrowseOptions(pool: BrowseItem[]) {
   };
   return { options, services, industries, countries };
 }
+
+/**
+ * Other agencies ranked by overlap: shared industries weigh more than shared services.
+ * Ties break alphabetically so paid placement doesn't decide "similar". Reads the cached pool,
+ * so profile pages don't each query the directory.
+ */
+export async function getSimilarAgencies(agency: AgencyListItem, limit: number) {
+  const industries = new Set(agency.industries.map((i) => i.slug));
+  const ownServices = new Set(agency.services.map((s) => s.slug));
+  // Only managed agencies: the point is to reach someone who replies.
+  const others = (await getBrowsePool()).filter((a) => a.id !== agency.id && a.managed);
+  const sharing = others.filter((a) => a.services.some((s) => ownServices.has(s.slug)));
+  // Too few share a service: widen to every published managed agency.
+  const candidates = sharing.length < limit ? others : sharing;
+
+  const score = (a: AgencyListItem) =>
+    a.industries.filter((i) => industries.has(i.slug)).length * 2 +
+    a.services.filter((s) => ownServices.has(s.slug)).length;
+  return [...candidates]
+    .sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}

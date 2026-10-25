@@ -22,13 +22,9 @@ import { LazyContactForm } from "@/components/forms/lazy-contact-form";
 import { ProBadge } from "@/components/pro-badge";
 import { WorkSamplesGrid } from "@/components/agency/work-samples-grid";
 import { JsonLd } from "@/components/json-ld";
-import {
-  getAgencyBySlug,
-  getAgencySlugs,
-  getSimilarAgencies,
-  type AgencyProfile,
-} from "@/lib/data/agencies";
+import { getAgencyBySlug, getAgencySlugs, type AgencyProfile } from "@/lib/data/agencies";
 import { bookingLinks } from "@/lib/booking";
+import { getSimilarAgencies } from "@/lib/data/browse";
 import { getLivePaths } from "@/lib/data/live-pages";
 import { getIndustries } from "@/lib/data/taxonomy";
 import { liveOnly } from "@/lib/sitemap-core";

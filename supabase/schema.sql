@@ -397,6 +397,10 @@ grant select (id, slug, name, tagline, description, website, logo_path, founded_
 -- One open claim per user per agency.
 create unique index claims_one_pending on claims (agency_id, user_id) where status = 'pending';
 
+-- Every directory list and profile embeds these per agency.
+create index reviews_agency_idx on reviews (agency_id);
+create index case_studies_agency_idx on case_studies (agency_id);
+
 -- ───────── Storage: agency logos (SECURITY.md) ─────────
 -- Public read for logos; owners write only to agencies/<their agency id>/. png/jpg/webp, max 2 MB.
 -- The server action also checks file signatures, since the declared type can't be trusted.
