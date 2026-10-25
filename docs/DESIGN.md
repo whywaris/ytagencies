@@ -24,6 +24,7 @@ Public site only. The admin keeps its own design (its original tokens, Inter, no
 | `--accent-soft`            | `#EAF0FF`  | `#17213A`  | Soft accent tiles                                        |
 | `--accent-hover`           | `#1C55E6`  | accent 90% | Primary button hover (darker in light, keeps 4.5:1)      |
 | `--accent-on-soft`         | `#1C5AF5`  | `#6B9BFF`  | Accent text on `--accent-soft` (`#1F5EFF` is 4.49:1 there) |
+| navy (`bg-navy`)           | `#23417A`  | `#23417A`  | Guide hero band and CTA banner only, white text (10:1)   |
 | `--violet-on-soft`         | `#6A4AE6`  | `#A28BFF`  | Violet text on `--violet-soft` (`#7C5CFF` is 3.76:1 there) |
 | `--coral-on-soft` | `#B8391F` | `#FF8A6E` | Error text on `--coral-soft` (sign-in; `#D1462A` is 4.07:1 there) |
 

@@ -72,7 +72,6 @@ export default async function GuidePreviewPage({
         categories={categories}
         template={isAlternatives(category?.slug) ? "alternatives" : "default"}
         directoryStats={(service) => <DirectoryStatsLive service={service} />}
-        primaryService={related[0]?.service ?? null}
         related={related}
         relatedGuides={[]}
         shareUrl={absoluteUrl(`/guides/${g.slug}`)}

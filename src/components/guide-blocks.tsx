@@ -252,8 +252,16 @@ function Faq({ a }: { a: BlockAttrs }) {
 function CtaBox({ a }: { a: BlockAttrs }) {
   const primary = s(a.primaryHref);
   const secondary = s(a.secondaryHref);
+  // "banner": the hero's navy, in both themes; "box": near-black (raised in dark mode).
+  const banner = a.variant === "banner";
+  const ink = banner ? "text-navy" : "text-[#16171a]";
   return (
-    <aside className="mb-10 flex flex-col gap-4 rounded-[24px] bg-[#16171a] px-6 py-8 text-white md:px-9 site-dark:border site-dark:border-line site-dark:bg-raised">
+    <aside
+      className={cn(
+        "mb-10 flex flex-col gap-4 rounded-[24px] px-6 py-8 text-white md:px-9",
+        banner ? "bg-navy" : "bg-[#16171a] site-dark:border site-dark:border-line site-dark:bg-raised",
+      )}
+    >
       {s(a.heading) && <p className="text-[24px] leading-tight font-[650] tracking-[-0.02em]">{s(a.heading)}</p>}
       {lines(a.lines).map((l, i) => (
         <p key={i} className="text-[16.5px] text-white/75">
@@ -263,7 +271,7 @@ function CtaBox({ a }: { a: BlockAttrs }) {
       {(primary || secondary) && (
         <div className="mt-1 flex flex-wrap gap-3">
           {primary && s(a.primaryLabel) && (
-            <Link href={primary} className={cn(button, "bg-white text-[#16171a] focus-visible:outline-white")}>
+            <Link href={primary} className={cn(button, "bg-white focus-visible:outline-white", ink)}>
               {s(a.primaryLabel)}
               <ArrowRight className="size-4" aria-hidden />
             </Link>
@@ -302,6 +310,83 @@ function DirectoryStats({ stats }: { stats: DirectoryStatsData | null }) {
   );
 }
 
+/** Label first in the markup (dt, then the value), value first on screen. */
+function StatRow({ a }: { a: BlockAttrs }) {
+  const items = rows(a.items).filter((i) => s(i.value).trim());
+  if (!items.length) return null;
+  const cols = ["", "", "sm:grid-cols-2", "sm:grid-cols-3"][items.length];
+  return (
+    <dl className={cn("mb-8 grid gap-px overflow-hidden rounded-2xl border border-line bg-line", cols)}>
+      {items.map((i, n) => (
+        <div key={n} className="flex flex-col-reverse justify-end gap-1 bg-raised px-5 py-4">
+          <dt className="text-[15px] text-text-2">
+            {s(i.label)}
+            {s(i.source) && (
+              <>
+                {" "}
+                <a href={s(i.source)} target="_blank" rel={OUTSIDE_REL} className="text-small text-accent underline underline-offset-2">
+                  (source)<span className="sr-only"> opens in a new tab</span>
+                </a>
+              </>
+            )}
+          </dt>
+          <dd className="text-[30px] leading-tight font-[650] tracking-[-0.02em] text-text tabular-nums">{s(i.value)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function GuideButton({ a }: { a: BlockAttrs }) {
+  const href = s(a.href);
+  if (!href || !s(a.label)) return null;
+  return (
+    <p className="mb-6">
+      <Link href={href} className={cn(button, "bg-accent text-on-accent hover:bg-(--accent-hover) focus-visible:outline-accent")}>
+        {s(a.label)}
+        <ArrowRight className="size-4" aria-hidden />
+      </Link>
+    </p>
+  );
+}
+
+/** Sits right above a list; the list keeps its own spacing. */
+function ListLabel({ a }: { a: BlockAttrs }) {
+  if (!s(a.text).trim()) return null;
+  return <p className="mb-2 text-[15px] font-semibold tracking-[0.02em] text-(--accent-on-soft)">{s(a.text)}</p>;
+}
+
+/** A named quote. No name, no quote: the page never shows an anonymous testimonial. */
+function GuideQuote({ a }: { a: BlockAttrs }) {
+  const name = s(a.name).trim();
+  if (!name || !s(a.text).trim()) return null;
+  const cite = s(a.cite);
+  return (
+    <figure className="mb-8 border-l-2 border-accent pl-5">
+      <blockquote cite={cite || undefined} className="text-[20px] leading-normal text-text">
+        {paragraphs(s(a.text)).map((p, i) => (
+          <p key={i} className="mb-3 last:mb-0">
+            {p}
+          </p>
+        ))}
+      </blockquote>
+      <figcaption className="mt-3 text-[15px] text-text-2">
+        <span aria-hidden>— </span>
+        <span className="font-semibold text-text">{name}</span>
+        {s(a.role) && <>, {s(a.role)}</>}
+        {cite && (
+          <>
+            {" "}
+            <a href={cite} target="_blank" rel={OUTSIDE_REL} className="text-small text-accent underline underline-offset-2">
+              (source)<span className="sr-only"> opens in a new tab</span>
+            </a>
+          </>
+        )}
+      </figcaption>
+    </figure>
+  );
+}
+
 /** One guide block. `stats` is the live directory count (directory stats only). */
 export function GuideBlockView({
   type,
@@ -331,5 +416,13 @@ export function GuideBlockView({
       return <CtaBox a={attrs} />;
     case "directoryStats":
       return <DirectoryStats stats={stats} />;
+    case "statRow":
+      return <StatRow a={attrs} />;
+    case "button":
+      return <GuideButton a={attrs} />;
+    case "listLabel":
+      return <ListLabel a={attrs} />;
+    case "quote":
+      return <GuideQuote a={attrs} />;
   }
 }

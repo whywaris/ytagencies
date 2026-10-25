@@ -148,25 +148,25 @@ export function AuthorLinks({ author }: { author: Author }) {
   );
 }
 
-/** End-of-article author box. */
+/** End-of-article author box. Not a heading: the article outline is only its own sections. */
 export function AuthorBox({ author }: { author: Author }) {
   return (
-    <section
-      aria-labelledby="about-author"
+    <aside
+      aria-label="About the author"
       className="flex flex-col gap-4 rounded-2xl border border-line p-6 sm:flex-row sm:gap-5"
     >
       <AuthorAvatar author={author} size={64} />
       <div className="flex min-w-0 flex-col gap-1">
-        <h2 id="about-author" className="text-[19px] font-semibold">
+        <p className="text-[19px] font-semibold">
           <Link href={`/authors/${author.slug}`} className="hover:underline">
             {author.name}
           </Link>
-        </h2>
+        </p>
         {author.role && <p className="text-small">{author.role}</p>}
         {author.bio && <p className="mt-2 text-[16px] leading-relaxed">{author.bio}</p>}
         <AuthorLinks author={author} />
       </div>
-    </section>
+    </aside>
   );
 }
 

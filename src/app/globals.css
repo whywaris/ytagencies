@@ -150,6 +150,8 @@
   --color-on-accent: var(--on-accent);
   --color-surface-2: var(--surface-2);
   --color-raised: var(--raised);
+  /* Guide hero band and CTA banner: the same navy in both themes (white text, 10:1). */
+  --color-navy: #23417a;
   --color-line-2: var(--line-2);
   --color-accent-soft: var(--accent-soft);
   --color-success: var(--success);
@@ -450,7 +452,7 @@
   @apply mt-16 mb-4 scroll-mt-20 text-h2;
 }
 .guide-content h3:not(.guide-block *) {
-  @apply mt-10 mb-3 scroll-mt-20 text-h3;
+  @apply mt-10 mb-3 scroll-mt-20 text-h3 md:text-[22px];
 }
 .guide-content h4:not(.guide-block *) {
   @apply mt-8 mb-2 scroll-mt-20 font-semibold;
@@ -464,6 +466,10 @@
 .guide-content p:not(.guide-block *) {
   @apply mb-6;
 }
+/* The lead: the guide's first paragraph. */
+.guide-content > p:first-child {
+  @apply mb-8 text-[19px] leading-[1.55] font-medium text-text md:text-[21px];
+}
 .guide-content ul:not(.guide-block *) {
   @apply mb-6 list-disc space-y-2 pl-6 marker:text-text-2;
 }
@@ -471,7 +477,7 @@
   @apply mb-6 list-decimal space-y-2 pl-6 marker:text-text-2;
 }
 .guide-content strong:not(.guide-block *) {
-  @apply font-semibold;
+  @apply font-semibold text-text;
 }
 .guide-content blockquote:not(.guide-block *) {
   @apply mb-6 border-l-2 border-line pl-5 text-text-2;
@@ -495,10 +501,10 @@
   @apply w-full min-w-[480px] border-collapse text-left text-[16px];
 }
 .guide-content th:not(.guide-block *) {
-  @apply border-b border-text-2/40 px-3 py-2.5 font-semibold first:pl-0;
+  @apply border border-line bg-surface px-3 py-2.5 font-semibold;
 }
 .guide-content td:not(.guide-block *) {
-  @apply border-b border-line px-3 py-2.5 align-top first:pl-0;
+  @apply border border-line px-3 py-2.5 align-top;
 }
 .guide-content .guide-figure {
   @apply my-8 flex flex-col gap-3;

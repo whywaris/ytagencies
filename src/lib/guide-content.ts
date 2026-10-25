@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 
-import { blockText, isBlockType, sanitizeBlock, type BlockAttrs, type BlockType } from "./guide-blocks.ts";
+import { BLOCK_TYPES, blockText, isBlockType, sanitizeBlock, type BlockAttrs, type BlockType } from "./guide-blocks.ts";
 
 // Guide content (ADMIN_V2_SPEC §8, SECURITY.md). The source of truth is Tiptap JSON; everything
 // public is rendered from it on the server through ONE allowlist (docToHast): only the nodes,
@@ -223,13 +223,7 @@ const BLOCKS = new Set([
   "hardBreak",
   "text",
   // Guide blocks (lib/guide-blocks.ts): their attributes are cleaned field by field.
-  "comparisonTable",
-  "productCard",
-  "abTable",
-  "prosCons",
-  "faq",
-  "ctaBox",
-  "directoryStats",
+  ...BLOCK_TYPES,
 ]);
 const MARKS = new Set(["bold", "italic", "underline", "strike", "code", "link"]);
 

@@ -46,8 +46,17 @@ const FILLED = {
   abTable: { aLabel: "Fiverr", bLabel: "YT Agencies", rows: [{ label: "Who", a: "Freelancers", b: "Agencies" }], bBetter: "Ongoing work." },
   prosCons: { good: ["Fast"], watch: ["Varies"] },
   faq: { items: [{ q: "Is it free?", a: "Yes." }] },
-  ctaBox: { heading: "Compare", lines: ["One", "Two"], primaryLabel: "Browse", primaryHref: "/agencies", secondaryLabel: "Ask", secondaryHref: "/request-proposals" },
+  ctaBox: { variant: "banner", heading: "Compare", lines: ["One", "Two"], primaryLabel: "Browse", primaryHref: "/agencies", secondaryLabel: "Ask", secondaryHref: "/request-proposals" },
   directoryStats: { service: "youtube-ads-agencies" },
+  statRow: {
+    items: [
+      { value: "73%", label: "of viewers", source: "https://example.com/study" },
+      { value: "2x", label: "watch time", source: "" },
+    ],
+  },
+  button: { label: "Get proposals", href: "/request-proposals" },
+  listLabel: { text: "In this order:" },
+  quote: { text: "They doubled our views.", name: "Sam Lee", role: "Founder, Acme", cite: "https://example.com/case" },
 };
 
 test("every block type has a definition, an empty value and a filled example", () => {
@@ -192,12 +201,16 @@ test("old guides render unchanged", () => {
   assert.equal(wordCount(doc), f.words);
 });
 
-test("the example Alternatives guide uses every block and passes the sanitizer as is", () => {
+test("the example Alternatives guide uses every original block and passes the sanitizer as is", () => {
   const sql = read("supabase/migrations/20261103000100_guide_blocks_alternatives.sql");
   const doc = JSON.parse(sql.match(/\$doc\$(.*)\$doc\$::jsonb/s)[1]);
-  assert.deepEqual(sanitizeDoc(doc, noImages), doc);
+  // Saved before the CTA box had a style: it reads back as the default box.
+  const withVariant = structuredClone(doc);
+  for (const n of withVariant.content) if (n.type === "ctaBox") n.attrs = { variant: "box", ...n.attrs };
+  assert.deepEqual(sanitizeDoc(doc, noImages), withVariant);
   const types = new Set(doc.content.map((n) => n.type));
-  for (const t of BLOCK_TYPES) assert.ok(types.has(t), t);
+  for (const t of ["comparisonTable", "productCard", "abTable", "prosCons", "faq", "ctaBox", "directoryStats"])
+    assert.ok(types.has(t), t);
   assert.match(sql, /'draft',\s*\n\s*\(select id from guide_categories where slug = 'alternatives'\)/);
   // No invented competitor numbers: placeholders instead.
   assert.ok(placeholdersIn(docText(doc)).length >= 10);

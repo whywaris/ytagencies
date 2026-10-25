@@ -68,10 +68,12 @@ export function ShareBar({
 }) {
   const rail = variant === "rail";
   return (
-    <section aria-labelledby={`share-${variant}`} className={cn("flex flex-col gap-3", className)}>
-      <h2 id={`share-${variant}`} className={rail ? "sr-only" : "text-[15px] font-semibold"}>
+    // A labelled aside, not a heading: the rail and the row never show at once (display: none
+    // takes the hidden one out of the accessibility tree too).
+    <aside aria-labelledby={`share-${variant}`} className={cn("flex flex-col gap-3", className)}>
+      <p id={`share-${variant}`} className={rail ? "sr-only" : "text-[15px] font-semibold"}>
         Share this guide
-      </h2>
+      </p>
       <ul className={cn("flex gap-2", rail ? "flex-col" : "flex-wrap")}>
         {shareLinks(url, title).map((s) => (
           <li key={s.network}>
@@ -97,6 +99,6 @@ export function ShareBar({
           />
         </li>
       </ul>
-    </section>
+    </aside>
   );
 }

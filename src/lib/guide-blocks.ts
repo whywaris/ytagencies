@@ -1,5 +1,5 @@
 // Guide blocks: structured nodes in a guide document (comparison table, product card, A vs B,
-// pros & cons, FAQ, CTA box, directory stats). One definition per block drives the editor's form,
+// pros & cons, FAQ, CTA box, directory stats, stat row, button, list label, quote). One definition per block drives the editor's form,
 // the server's sanitizer (only these exact attributes survive) and the plain text used for search
 // and word counts. The public page and the editor render them with the same React components
 // (components/guide-blocks.tsx). No imports: tested (tests/guide-blocks.test.mjs).
@@ -32,6 +32,10 @@ export const BLOCK_TYPES = [
   "faq",
   "ctaBox",
   "directoryStats",
+  "statRow",
+  "button",
+  "listLabel",
+  "quote",
 ] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 export type BlockAttrs = Record<string, unknown>;
@@ -167,8 +171,17 @@ export const BLOCKS: Record<BlockType, Def> = {
   },
   ctaBox: {
     label: "CTA box",
-    description: "A dark box with a heading, short lines and up to two buttons.",
+    description: "A dark box (or a navy banner) with a heading, short lines and up to two buttons.",
     fields: [
+      {
+        key: "variant",
+        label: "Style",
+        kind: "select",
+        options: [
+          { value: "box", label: "Box" },
+          { value: "banner", label: "Banner (navy)" },
+        ],
+      },
       { key: "heading", label: "Heading", kind: "text", max: 100 },
       { key: "lines", label: "Lines (up to 3)", kind: "list", max: 3, itemMax: 160 },
       { key: "primaryLabel", label: "Primary button", kind: "text", max: 40 },
@@ -177,6 +190,7 @@ export const BLOCKS: Record<BlockType, Def> = {
       { key: "secondaryHref", label: "Secondary link (on this site)", kind: "internalUrl", placeholder: "/request-proposals" },
     ],
     empty: () => ({
+      variant: "box",
       heading: "",
       lines: [""],
       primaryLabel: "",
@@ -190,6 +204,51 @@ export const BLOCKS: Record<BlockType, Def> = {
     description: "Live counts from the directory: agencies, Verified, and how many offer a service.",
     fields: [{ key: "service", label: "Service", kind: "service" }],
     empty: () => ({ service: "" }),
+  },
+  statRow: {
+    label: "Stat row",
+    description: "Up to three numbers with a label each. Link the source.",
+    fields: [
+      {
+        key: "items",
+        label: "Stats",
+        kind: "rows",
+        max: 3,
+        addLabel: "Add a stat",
+        fields: [
+          { key: "value", label: "Value", kind: "text", max: 24, placeholder: "73%" },
+          { key: "label", label: "Label", kind: "text", max: 120 },
+          { key: "source", label: "Source (link)", kind: "externalUrl", placeholder: "https://…" },
+        ],
+      },
+    ],
+    empty: () => ({ items: [{ value: "", label: "", source: "" }] }),
+  },
+  button: {
+    label: "Button",
+    description: "One primary button to a page on this site.",
+    fields: [
+      { key: "label", label: "Label", kind: "text", max: 40 },
+      { key: "href", label: "Link (on this site)", kind: "internalUrl", placeholder: "/request-proposals" },
+    ],
+    empty: () => ({ label: "", href: "" }),
+  },
+  listLabel: {
+    label: "List label",
+    description: "A short coloured label above a list (\"In this order:\").",
+    fields: [{ key: "text", label: "Label", kind: "text", max: 60 }],
+    empty: () => ({ text: "" }),
+  },
+  quote: {
+    label: "Quote",
+    description: "A quote with who said it. Shown only with a name: no anonymous testimonials.",
+    fields: [
+      { key: "text", label: "Quote", kind: "textarea", max: 600 },
+      { key: "name", label: "Name (required)", kind: "text", max: 80 },
+      { key: "role", label: "Role", kind: "text", max: 100, placeholder: "Head of growth, Acme" },
+      { key: "cite", label: "Source (link)", kind: "externalUrl", placeholder: "https://…" },
+    ],
+    empty: () => ({ text: "", name: "", role: "", cite: "" }),
   },
 };
 
@@ -311,6 +370,18 @@ export function blockText(type: BlockType, a: BlockAttrs): string {
       break;
     case "directoryStats":
       break; // live numbers, not text
+    case "statRow":
+      for (const i of rows(a.items)) parts.push(s(i.value), s(i.label));
+      break;
+    case "button":
+      parts.push(s(a.label));
+      break;
+    case "listLabel":
+      parts.push(s(a.text));
+      break;
+    case "quote":
+      parts.push(s(a.text), s(a.name), s(a.role));
+      break;
   }
   return parts.filter((p) => p.trim()).join(" ");
 }

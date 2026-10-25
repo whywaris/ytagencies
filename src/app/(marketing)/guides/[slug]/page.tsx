@@ -105,7 +105,6 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
       )}
       <GuideArticle
         guide={g}
-        primaryService={related[0]?.service ?? null}
         related={related}
         relatedGuides={more}
         agencies={mentioned}

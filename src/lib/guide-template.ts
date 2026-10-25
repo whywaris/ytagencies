@@ -75,3 +75,10 @@ export const longDateOf = (iso: string) =>
     year: "numeric",
     timeZone: "UTC",
   });
+
+/** The guide byline's date: "Oct. 25, 2026", "May 3, 2026" (UTC, so the date never shifts). */
+export function bylineDate(iso: string) {
+  const d = new Date(iso);
+  const month = d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  return `${month === "May" ? month : `${month}.`} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}

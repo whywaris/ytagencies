@@ -15,14 +15,7 @@ export const AUTHOR_COLUMNS =
   "slug, name, role, bio, avatar_path, linkedin_url, x_url, website_url";
 const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, category_id, is_featured, published_at, updated_at, content_updated_at, cover_path, body_md, body_json, related_combos, author:authors(${AUTHOR_COLUMNS})`;
 
-/**
- * Public URL of an image: a pasted https link (covers hosted on Cloudflare, see lib/media.ts) as
- * it is, else a file in the agency-media bucket (older uploads, guide images, author photos).
- */
-export const mediaUrl = (path: string) =>
-  path.startsWith("https://")
-    ? path
-    : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/agency-media/${path}`;
+export { mediaUrl } from "@/lib/guide-media";
 
 export type Author = {
   slug: string;

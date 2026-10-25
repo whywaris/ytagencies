@@ -23,6 +23,7 @@ import {
   CircleHelp,
   Columns2,
   Heading2,
+  Hash,
   Heading3,
   ImagePlus,
   Italic,
@@ -31,6 +32,7 @@ import {
   List,
   ListOrdered,
   Megaphone,
+  MousePointerClick,
   Pilcrow,
   Plus,
   Quote,
@@ -39,6 +41,7 @@ import {
   Settings2,
   SquareCheckBig,
   Table2,
+  Tag,
   Trash2,
   Undo2,
   Wallet,
@@ -187,11 +190,13 @@ const Embed = TiptapNode.create<{ services: ServiceOption[] }>({
   addNodeView: () => ReactNodeViewRenderer(EmbedView),
 });
 
-// ───────── Image with a required alt text field ─────────
+// ───────── Image with a required alt text field and an optional caption ─────────
 
 function ImageView({ node, updateAttributes, selected }: ReactNodeViewProps) {
   const src = node.attrs.src as string;
   const alt = (node.attrs.alt as string | null) ?? "";
+  // Stored as the image's title; the page shows it as the figcaption.
+  const caption = (node.attrs.title as string | null) ?? "";
   const uploading = !guideImageAllowed(src);
   return (
     <NodeViewWrapper
@@ -210,6 +215,13 @@ function ImageView({ node, updateAttributes, selected }: ReactNodeViewProps) {
           "h-8 rounded-md border bg-bg px-2 text-admin-meta",
           alt ? "border-line" : "border-warning",
         )}
+      />
+      <input
+        value={caption}
+        onChange={(e) => updateAttributes({ title: e.target.value.slice(0, 300) || null })}
+        placeholder="Caption (optional, shown under the image)"
+        aria-label="Caption"
+        className="h-8 rounded-md border border-line bg-bg px-2 text-admin-meta"
       />
     </NodeViewWrapper>
   );
@@ -261,6 +273,10 @@ const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   faq: CircleHelp,
   ctaBox: Megaphone,
   directoryStats: BarChart3,
+  statRow: Hash,
+  button: MousePointerClick,
+  listLabel: Tag,
+  quote: Quote,
 };
 
 function insertItems(pickImage: () => void, firstService: () => string | undefined): InsertItem[] {
@@ -289,7 +305,6 @@ function insertItems(pickImage: () => void, firstService: () => string | undefin
       keywords: "list ol steps",
       run: (e, r) => place(e, r, { type: "orderedList", content: [{ type: "listItem", content: [para()] }] }),
     },
-    { label: "Quote", group: "Basic", icon: Quote, run: (e, r) => place(e, r, { type: "blockquote", content: [para()] }) },
     {
       label: "Table",
       group: "Basic",

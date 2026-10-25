@@ -10,7 +10,7 @@ import {
   type CardCategory,
 } from "@/components/guides/guide-parts";
 import { colorHex } from "@/lib/guide-categories";
-import { alternativesDisclosure, longDateOf, shortTitle } from "@/lib/guide-template";
+import { alternativesDisclosure, bylineDate, longDateOf, shortTitle } from "@/lib/guide-template";
 import { ShareBar } from "@/components/guides/share-bar";
 import { TableOfContents } from "@/components/guides/toc";
 import { TocPanel } from "@/components/toc-panel";
@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 // The guide page layout, shared by /guides/[slug] and the admin "Preview as page".
 // ≥ 1100px: table of contents | article (≤ 680px) | share rail, the side columns sticky.
 // Smaller: a collapsible "On this page" under the hero and share links after the article.
+// Default template: a navy hero band above the grid, the cover at the top of the article column.
 
 export type ArticleGuide = {
   slug: string;
@@ -52,7 +53,6 @@ const dateText = (d: string) =>
 
 export function GuideArticle({
   guide,
-  primaryService,
   related,
   relatedGuides,
   agencies = [],
@@ -64,8 +64,6 @@ export function GuideArticle({
   template = "default",
 }: {
   guide: ArticleGuide;
-  /** First related directory page's service: the second breadcrumb step. */
-  primaryService: { name: string; slug: string } | null;
   related: { href: string; label: string }[];
   relatedGuides: GuideSummary[];
   /** "Agencies mentioned": live profiles the guide links to (the public page only). */
@@ -81,195 +79,211 @@ export function GuideArticle({
   /** "alternatives": the Alternatives hero, disclosure and nofollow outside links. */
   template?: "default" | "alternatives";
 }) {
-  const categoryOf = (id?: string | null) => (id ? categories.find((c) => c.id === id) : null) ?? null;
+  const categoryOf = (id?: string | null) =>
+    (id ? categories.find((c) => c.id === id) : null) ?? null;
   const category = categoryOf(guide.categoryId);
   const groups = groupOutline(guideBlocks(guide.doc, guideImageAllowed).outline);
   const numbered = guide.numberedSections;
 
   const alternatives = template === "alternatives" && !!category;
 
+  const takeaways = guide.keyTakeaways.length > 0 && (
+    // A guide block: the body's element styles (.guide-content) leave it alone.
+    <section
+      aria-labelledby="key-takeaways"
+      className="guide-block mb-10 rounded-2xl bg-surface p-6"
+    >
+      <h2 id="key-takeaways" className="mb-3 text-[19px] font-semibold">
+        Key takeaways
+      </h2>
+      <ul className="flex list-disc flex-col gap-2 pl-5 text-[17px] marker:text-text-2">
+        {guide.keyTakeaways.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
+    </section>
+  );
+
   return (
-    <div className="mx-auto grid max-w-content grid-cols-1 px-4 pt-8 pb-20 min-[1100px]:grid-cols-[200px_minmax(0,680px)_40px] min-[1100px]:justify-center min-[1100px]:gap-x-12 md:px-6 md:pt-12">
-      {alternatives ? (
-        <AlternativesHeader guide={guide} category={category} generatedCover={generatedCover} />
-      ) : (
-      <header className="flex max-w-reading flex-col gap-6 min-[1100px]:col-start-2">
+    <>
+      {!alternatives && <GuideHero guide={guide} category={category} />}
+      <div className="mx-auto grid max-w-content grid-cols-1 px-4 pt-8 pb-20 min-[1100px]:grid-cols-[200px_minmax(0,680px)_40px] min-[1100px]:justify-center min-[1100px]:gap-x-12 md:px-6 md:pt-12">
+        {alternatives ? (
+          <AlternativesHeader guide={guide} category={category} generatedCover={generatedCover} />
+        ) : (
+          <GuideCover
+            slug={guide.slug}
+            coverPath={guide.coverPath}
+            title={generatedCover ? undefined : guide.title}
+            sizes="(min-width: 720px) 680px, 100vw"
+            priority
+            className="max-w-reading min-[1100px]:col-start-2"
+            alt={guide.coverAlt?.trim() || guide.title}
+          />
+        )}
+
+        {groups.length > 0 && (
+          <>
+            <aside className="hidden min-[1100px]:col-start-1 min-[1100px]:row-start-2 min-[1100px]:block print:hidden">
+              <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pt-12">
+                <TableOfContents groups={groups} numbered={numbered} />
+              </div>
+            </aside>
+            <TocPanel groups={groups} numbered={numbered} className="mt-8" />
+          </>
+        )}
+
+        <article
+          className={cn(
+            "max-w-reading min-w-0 pt-10 text-[18px] leading-[1.65] min-[1100px]:col-start-2 min-[1100px]:row-start-2",
+            numbered && "guide-numbered",
+          )}
+        >
+          {alternatives && takeaways}
+
+          <GuideBody
+            doc={guide.doc}
+            budgetRange={budgetRange}
+            directoryStats={directoryStats}
+            nofollowOutside={alternatives}
+            afterLead={alternatives ? undefined : takeaways}
+          />
+
+          {agencies.length > 0 && (
+            <section aria-labelledby="agencies-mentioned" className="mt-16 flex flex-col gap-4">
+              <h2 id="agencies-mentioned" className="text-h3">
+                Agencies mentioned
+              </h2>
+              <ul className="flex flex-col gap-4">
+                {agencies.map((a) => (
+                  <li key={a.id}>
+                    <AgencyCard agency={a} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {related.length > 0 && (
+            <section
+              aria-labelledby="find-agency"
+              className="mt-16 flex flex-col gap-4 rounded-2xl bg-surface p-6 md:p-8"
+            >
+              <h2 id="find-agency" className="text-h3">
+                Find the right agency
+              </h2>
+              <p className="text-[17px] text-text-2">
+                Compare agencies that do this work, with their budgets, specialties and reviews.
+              </p>
+              <Button asChild className="self-start">
+                <Link href={related[0].href}>{related[0].label}</Link>
+              </Button>
+              {related.length > 1 && (
+                <ul className="flex flex-col text-[17px]">
+                  {related.slice(1).map((r) => (
+                    <li key={r.href}>
+                      <Link
+                        href={r.href}
+                        className="flex min-h-11 items-center text-accent hover:underline"
+                      >
+                        {r.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
+
+          <ShareBar
+            url={shareUrl}
+            title={guide.title}
+            variant="row"
+            className="mt-12 min-[1100px]:hidden"
+          />
+
+          {guide.author && (
+            <div className="mt-12">
+              <AuthorBox author={guide.author} />
+            </div>
+          )}
+        </article>
+
+        <aside className="hidden min-[1100px]:col-start-3 min-[1100px]:row-start-2 min-[1100px]:block">
+          <div className="sticky top-20 pt-12">
+            <ShareBar url={shareUrl} title={guide.title} variant="rail" />
+          </div>
+        </aside>
+
+        {relatedGuides.length > 0 && (
+          <section
+            aria-labelledby="more-guides"
+            className="mt-20 flex flex-col gap-8 border-t border-line pt-12 min-[1100px]:col-span-3"
+          >
+            <h2 id="more-guides" className="text-h2">
+              More guides
+            </h2>
+            <div className="grid gap-x-8 gap-y-10 min-[1100px]:grid-cols-3 sm:grid-cols-2">
+              {relatedGuides.map((g) => (
+                <GuideCard key={g.slug} guide={g} category={categoryOf(g.categoryId)} />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * The default hero: a full-width navy band with the breadcrumb (Guides › category), the H1 and the
+ * byline. The excerpt stays out of it (it's for search results, cards and link previews); the
+ * cover sits under the band, in the article column.
+ */
+function GuideHero({ guide, category }: { guide: ArticleGuide; category: CardCategory | null }) {
+  const crumb = "flex min-h-11 items-center underline-offset-4 hover:text-white hover:underline";
+  return (
+    <header className="bg-navy text-white">
+      <div className="mx-auto flex max-w-[860px] flex-col items-center gap-5 px-4 pt-6 pb-12 text-center md:px-6 md:pb-16">
         <nav aria-label="Breadcrumb">
-          <ol className="flex flex-wrap items-center gap-x-2 text-small">
+          <ol className="flex flex-wrap items-center justify-center gap-x-2 text-[14px] text-white/80">
             <li>
-              <Link href="/guides" className="flex min-h-11 items-center hover:text-text">
+              <Link href="/guides" className={crumb}>
                 Guides
               </Link>
             </li>
-            {primaryService && (
+            {category && (
               <li className="flex items-center gap-2">
-                <span aria-hidden>/</span>
-                <Link
-                  href={`/${primaryService.slug}`}
-                  className="flex min-h-11 items-center hover:text-text"
-                >
-                  {primaryService.name}
+                <span aria-hidden>›</span>
+                <Link href={`/guides/category/${category.slug}`} className={crumb}>
+                  {category.name}
                 </Link>
               </li>
             )}
           </ol>
         </nav>
-        {category && (
-          <Link
-            href={`/guides/category/${category.slug}`}
-            className="-mb-2 self-start rounded-full px-3 py-1 text-[13px] font-semibold tracking-[0.06em] text-white uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            style={{ background: colorHex(category.color) }}
-          >
-            {category.name}
-          </Link>
-        )}
-        <h1 className="text-display">{guide.title}</h1>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px] text-text-2">
+        <h1 className="text-display text-balance">{guide.title}</h1>
+        <div className="mt-1 flex flex-col items-center gap-2 text-[15px] text-white/85">
           {guide.author && (
-            <Link
-              href={`/authors/${guide.author.slug}`}
-              className="flex items-center gap-2.5 font-medium text-text hover:underline"
-            >
-              <AuthorAvatar author={guide.author} size={32} />
-              {guide.author.name}
-            </Link>
-          )}
-          <span>
-            Updated <time dateTime={guide.updatedAt}>{dateText(guide.updatedAt)}</time>
-          </span>
-          <span>{guide.readMinutes} min read</span>
-        </div>
-        <GuideCover
-          slug={guide.slug}
-          coverPath={guide.coverPath}
-          title={generatedCover ? undefined : guide.title}
-          sizes="(min-width: 720px) 680px, 100vw"
-          priority
-          className="mt-2"
-          alt={guide.coverAlt ?? ""}
-        />
-      </header>
-      )}
-
-      {groups.length > 0 && (
-        <>
-          <aside className="hidden min-[1100px]:col-start-1 min-[1100px]:row-start-2 min-[1100px]:block print:hidden">
-            <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pt-12">
-              <TableOfContents groups={groups} numbered={numbered} />
-            </div>
-          </aside>
-          <TocPanel groups={groups} numbered={numbered} className="mt-8" />
-        </>
-      )}
-
-      <article
-        className={cn(
-          "max-w-reading min-w-0 pt-10 text-[18px] leading-[1.65] min-[1100px]:col-start-2 min-[1100px]:row-start-2",
-          numbered && "guide-numbered",
-        )}
-      >
-        {guide.keyTakeaways.length > 0 && (
-          <section aria-labelledby="key-takeaways" className="mb-10 rounded-2xl bg-surface p-6">
-            <h2 id="key-takeaways" className="mb-3 text-[19px] font-semibold">
-              Key takeaways
-            </h2>
-            <ul className="flex list-disc flex-col gap-2 pl-5 text-[17px] marker:text-text-2">
-              {guide.keyTakeaways.map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <GuideBody
-          doc={guide.doc}
-          budgetRange={budgetRange}
-          directoryStats={directoryStats}
-          nofollowOutside={alternatives}
-        />
-
-        {agencies.length > 0 && (
-          <section aria-labelledby="agencies-mentioned" className="mt-16 flex flex-col gap-4">
-            <h2 id="agencies-mentioned" className="text-h3">
-              Agencies mentioned
-            </h2>
-            <ul className="flex flex-col gap-4">
-              {agencies.map((a) => (
-                <li key={a.id}>
-                  <AgencyCard agency={a} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {related.length > 0 && (
-          <section
-            aria-labelledby="find-agency"
-            className="mt-16 flex flex-col gap-4 rounded-2xl bg-surface p-6 md:p-8"
-          >
-            <h2 id="find-agency" className="text-h3">
-              Find the right agency
-            </h2>
-            <p className="text-[17px] text-text-2">
-              Compare agencies that do this work, with their budgets, specialties and reviews.
+            <p className="flex items-center gap-3">
+              <AuthorAvatar author={guide.author} size={36} />
+              <span>
+                Written by{" "}
+                <Link
+                  href={`/authors/${guide.author.slug}`}
+                  className="font-semibold text-white underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  {guide.author.name}
+                </Link>
+              </span>
             </p>
-            <Button asChild className="self-start">
-              <Link href={related[0].href}>{related[0].label}</Link>
-            </Button>
-            {related.length > 1 && (
-              <ul className="flex flex-col text-[17px]">
-                {related.slice(1).map((r) => (
-                  <li key={r.href}>
-                    <Link
-                      href={r.href}
-                      className="flex min-h-11 items-center text-accent hover:underline"
-                    >
-                      {r.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
-
-        <ShareBar
-          url={shareUrl}
-          title={guide.title}
-          variant="row"
-          className="mt-12 min-[1100px]:hidden"
-        />
-
-        {guide.author && (
-          <div className="mt-12">
-            <AuthorBox author={guide.author} />
-          </div>
-        )}
-      </article>
-
-      <aside className="hidden min-[1100px]:col-start-3 min-[1100px]:row-start-2 min-[1100px]:block">
-        <div className="sticky top-20 pt-12">
-          <ShareBar url={shareUrl} title={guide.title} variant="rail" />
+          )}
+          <p>
+            Last updated on <time dateTime={guide.updatedAt}>{bylineDate(guide.updatedAt)}</time>
+          </p>
         </div>
-      </aside>
-
-      {relatedGuides.length > 0 && (
-        <section
-          aria-labelledby="more-guides"
-          className="mt-20 flex flex-col gap-8 border-t border-line pt-12 min-[1100px]:col-span-3"
-        >
-          <h2 id="more-guides" className="text-h2">
-            More guides
-          </h2>
-          <div className="grid gap-x-8 gap-y-10 min-[1100px]:grid-cols-3 sm:grid-cols-2">
-            {relatedGuides.map((g) => (
-              <GuideCard key={g.slug} guide={g} category={categoryOf(g.categoryId)} />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
+      </div>
+    </header>
   );
 }
 

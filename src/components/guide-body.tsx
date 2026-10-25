@@ -2,6 +2,7 @@ import { toJsxRuntime, type Components } from "hast-util-to-jsx-runtime";
 import Link from "next/link";
 import { Children, Fragment, isValidElement } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
+import type { Element, Root } from "hast";
 
 import { GuideBlockView, OUTSIDE_REL, type DirectoryStatsData } from "@/components/guide-blocks";
 import { CopyLinkButton } from "@/components/guides/copy-link";
@@ -135,6 +136,7 @@ export function GuideBody({
   budgetRange,
   directoryStats = () => null,
   nofollowOutside = false,
+  afterLead,
 }: {
   doc: Doc;
   budgetRange: (service: string) => React.ReactNode;
@@ -142,12 +144,29 @@ export function GuideBody({
   directoryStats?: (service: string) => React.ReactNode;
   /** Links to other sites get rel="nofollow" too (the Alternatives template). */
   nofollowOutside?: boolean;
+  /** Shown right after the lead (the first paragraph), or first when the guide opens otherwise. */
+  afterLead?: React.ReactNode;
 }) {
   const { blocks } = guideBlocks(doc, guideImageAllowed);
   const components = nofollowOutside ? NOFOLLOW_COMPONENTS : DEFAULT_COMPONENTS;
+  const render = (tree: Root) => toJsxRuntime(tree, { Fragment, jsx, jsxs, components });
+
+  // Split the first chunk after its opening paragraph, so afterLead lands between the two.
+  const first = blocks[0]?.kind === "html" ? blocks[0].tree : null;
+  const leadEnd = first ? first.children.findIndex((c) => c.type === "element") + 1 : 0;
+  const hasLead = !!first && leadEnd > 0 && (first.children[leadEnd - 1] as Element).tagName === "p";
+
   return (
     <div className="guide-content">
+      {afterLead && !hasLead && afterLead}
       {blocks.map((block, i) =>
+        i === 0 && hasLead && first ? (
+          <Fragment key={i}>
+            {render({ type: "root", children: first.children.slice(0, leadEnd) })}
+            {afterLead}
+            {render({ type: "root", children: first.children.slice(leadEnd) })}
+          </Fragment>
+        ) :
         block.kind === "budget-range" ? (
           <Fragment key={i}>{budgetRange(block.service)}</Fragment>
         ) : block.kind === "block" ? (
@@ -159,9 +178,7 @@ export function GuideBody({
             )}
           </div>
         ) : (
-          <Fragment key={i}>
-            {toJsxRuntime(block.tree, { Fragment, jsx, jsxs, components })}
-          </Fragment>
+          <Fragment key={i}>{render(block.tree)}</Fragment>
         ),
       )}
     </div>
