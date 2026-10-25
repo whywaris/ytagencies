@@ -5,7 +5,15 @@ import { z } from "zod";
 
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { queueInvites, sendTest } from "@/lib/outreach-mail";
-import { classifyImport, normalizeEmail, parseCsv, TEMPLATES, type ImportRow } from "@/lib/outreach-rules";
+import {
+  classifyImport,
+  fromOnOutreachDomain,
+  normalizeEmail,
+  OUTREACH_FROM_DOMAIN,
+  parseCsv,
+  TEMPLATES,
+  type ImportRow,
+} from "@/lib/outreach-rules";
 import type { FormResult } from "@/lib/validation/lead";
 
 // Admin → Growth → Outreach. Service role after the admin check; every change is logged (ids and
@@ -22,29 +30,39 @@ const optionalEmail = z
   .toLowerCase()
   .max(254)
   .refine((v) => v === "" || !!normalizeEmail(v), "Enter a valid email address.");
-const settingsSchema = z.object({
+const sendingSchema = z.object({
   senderName: z.string().trim().min(1, "Enter a sender name.").max(80),
-  from: optionalEmail,
+  from: optionalEmail.refine(
+    (v) => v === "" || fromOnOutreachDomain(v),
+    `Use an address on ${OUTREACH_FROM_DOMAIN}, e.g. hello@${OUTREACH_FROM_DOMAIN}.`,
+  ),
   replyTo: optionalEmail,
-  businessAddress: z.string().trim().max(300),
-  dailyCap: z.coerce.number().int().min(1, "At least 1.").max(200, "At most 200."),
-  reminderDays: z.coerce.number().int().min(3, "At least 3 days.").max(60, "At most 60 days."),
+  businessAddress: z.string().trim().max(300, "Use 300 characters or fewer."),
+  dailyCap: z.coerce.number().int("Use a whole number.").min(1, "At least 1.").max(200, "At most 200."),
+  reminderDays: z.coerce.number().int("Use a whole number.").min(3, "At least 3 days.").max(60, "At most 60 days."),
+});
+export type OutreachSendingInput = z.input<typeof sendingSchema>;
+
+const templatesSchema = z.object({
   inviteSubject: z.string().trim().min(1, "Enter a subject.").max(150),
   inviteBody: z.string().trim().min(1, "Enter the email text.").max(5000),
   reminderSubject: z.string().trim().min(1, "Enter a subject.").max(150),
   reminderBody: z.string().trim().min(1, "Enter the email text.").max(5000),
 });
-export type OutreachSettingsInput = z.input<typeof settingsSchema>;
+export type OutreachTemplatesInput = z.input<typeof templatesSchema>;
 
-export async function saveOutreachSettings(raw: unknown): Promise<FormResult> {
+const invalid = (error: z.ZodError) => {
+  const fieldErrors: Record<string, string> = {};
+  for (const i of error.issues) fieldErrors[String(i.path[0])] ??= i.message;
+  return { ok: false as const, error: "Check the highlighted fields.", fieldErrors };
+};
+
+/** Settings tab: sender, addresses, cap and reminder delay. */
+export async function saveOutreachSending(raw: unknown): Promise<FormResult> {
   const ctx = await adminContext();
   if (!ctx) return { ok: false, error: NOT_ADMIN };
-  const parsed = settingsSchema.safeParse(raw);
-  if (!parsed.success) {
-    const fieldErrors: Record<string, string> = {};
-    for (const i of parsed.error.issues) fieldErrors[String(i.path[0])] ??= i.message;
-    return { ok: false, error: "Check the highlighted fields.", fieldErrors };
-  }
+  const parsed = sendingSchema.safeParse(raw);
+  if (!parsed.success) return invalid(parsed.error);
   const v = parsed.data;
   const { error } = await ctx.db
     .from("app_settings")
@@ -55,6 +73,24 @@ export async function saveOutreachSettings(raw: unknown): Promise<FormResult> {
       outreach_business_address: v.businessAddress,
       outreach_daily_cap: v.dailyCap,
       outreach_reminder_days: v.reminderDays,
+    })
+    .eq("id", true);
+  if (error) return { ok: false, error: SAVE_FAILED };
+  await ctx.log("outreach.settings", "app_settings", null, { fields: Object.keys(v) });
+  revalidatePath(PAGE);
+  return { ok: true, data: undefined };
+}
+
+/** Templates tab: the two subjects and bodies. */
+export async function saveOutreachTemplates(raw: unknown): Promise<FormResult> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  const parsed = templatesSchema.safeParse(raw);
+  if (!parsed.success) return invalid(parsed.error);
+  const v = parsed.data;
+  const { error } = await ctx.db
+    .from("app_settings")
+    .update({
       outreach_invite_subject: v.inviteSubject,
       outreach_invite_body: v.inviteBody,
       outreach_reminder_subject: v.reminderSubject,
@@ -62,7 +98,7 @@ export async function saveOutreachSettings(raw: unknown): Promise<FormResult> {
     })
     .eq("id", true);
   if (error) return { ok: false, error: SAVE_FAILED };
-  await ctx.log("outreach.settings", "app_settings", null, { fields: Object.keys(v) });
+  await ctx.log("outreach.templates", "app_settings", null, { fields: Object.keys(v) });
   revalidatePath(PAGE);
   return { ok: true, data: undefined };
 }

@@ -51,20 +51,52 @@ export function blockedReason(r: Recipient) {
   return null;
 }
 
+/** Outreach is sent only from this subdomain, so it can never hurt sign-in and lead emails. */
+export const OUTREACH_FROM_DOMAIN = "mail.ytagencies.com";
+export const fromOnOutreachDomain = (v: string) =>
+  normalizeEmail(v)?.endsWith(`@${OUTREACH_FROM_DOMAIN}`) ?? false;
+
 export type OutreachSettings = {
   paused: boolean;
   from: string;
   businessAddress: string;
+  /** CLAIM_TOKEN_SECRET is set, so unsubscribe and removal links can be signed. */
+  linksReady?: boolean;
 };
+
+/** What's missing before anything can be sent, the pause aside. */
+export function setupProblems(s: OutreachSettings) {
+  const out: string[] = [];
+  if (!s.from.trim()) out.push("Set the From address.");
+  else if (!fromOnOutreachDomain(s.from)) out.push(`The From address must be on ${OUTREACH_FROM_DOMAIN}.`);
+  if (!s.businessAddress.trim()) out.push("Set the business postal address.");
+  if (s.linksReady === false)
+    out.push("The server setting CLAIM_TOKEN_SECRET is missing, so unsubscribe links can't be made.");
+  return out;
+}
 
 /** What stops the cron from sending at all; empty when it may send. */
 export function sendingProblems(s: OutreachSettings) {
-  const out: string[] = [];
-  if (s.paused) out.push("Outreach is paused.");
-  if (!normalizeEmail(s.from)) out.push("Set the From address.");
-  if (!s.businessAddress.trim()) out.push("Set the business postal address.");
-  return out;
+  return [...(s.paused ? ["Outreach is paused."] : []), ...setupProblems(s)];
 }
+
+/** The banner: "sending" only when nothing is missing and it isn't paused. */
+export function outreachStatus(s: OutreachSettings) {
+  const missing = setupProblems(s);
+  if (missing.length) {
+    const fields = [!s.from.trim() && "the From address", !s.businessAddress.trim() && "business address"].filter(Boolean);
+    return {
+      state: "setup" as const,
+      title: fields.length ? `Can't send yet: set ${fields.join(" and ")}` : "Can't send yet",
+      detail: missing,
+    };
+  }
+  if (s.paused) return { state: "paused" as const, title: "Outreach is paused", detail: ["Nothing is sent until you resume it."] };
+  return { state: "sending" as const, title: "Outreach is sending", detail: ["Weekdays 09:00–17:00 UTC, within the daily cap."] };
+}
+
+/** Shown in the template preview when no agency has an address yet. */
+export const SAMPLE_AGENCY = { id: "sample", slug: "sample-agency", name: "Sample Agency" } as const;
 
 export const SEND_START_HOUR = 9; // UTC, first run
 export const SEND_END_HOUR = 17; // UTC, last run

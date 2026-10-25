@@ -75,7 +75,15 @@ test("paused, a missing From or a missing postal address blocks sending", () => 
   assert.deepEqual(sendingProblems({ ...good, from: "" }), ["Set the From address."]);
   assert.deepEqual(sendingProblems({ ...good, businessAddress: "  " }), ["Set the business postal address."]);
   // The cron checks before doing anything, and the setting starts paused.
-  assert.match(read("src/lib/outreach-mail.ts"), /const problems = sendingProblems\(settings\);\n\s+if \(problems\.length\) return/);
+  assert.match(
+    read("src/lib/outreach-mail.ts"),
+    /const problems = sendingProblems\(\{ \.\.\.settings, linksReady: linkSecretReady\(\) \}\);\n\s+if \(problems\.length\) return/,
+  );
+  // Only from the outreach subdomain, and never without the link secret.
+  assert.deepEqual(sendingProblems({ ...good, from: "hello@gmail.com" }), ["The From address must be on mail.ytagencies.com."]);
+  assert.deepEqual(sendingProblems({ ...good, linksReady: false }), [
+    "The server setting CLAIM_TOKEN_SECRET is missing, so unsubscribe links can't be made.",
+  ]);
   assert.match(read("supabase/migrations/20261105000100_agency_outreach_emails.sql"), /outreach_paused boolean not null default true/);
 });
 
@@ -162,4 +170,73 @@ test("templates: variables filled, honest default copy, no tracking pixel, token
   // The claim page only records the click and prefills; the claim actions never read the token.
   assert.doesNotMatch(read("src/lib/actions/claims.tsx"), /outreach_messages/);
   assert.match(read("src/app/(marketing)/claim/[slug]/page.tsx"), /The token only tracks the click/);
+});
+
+test("status banner tells the truth: 'sending' only when ready and not paused", async () => {
+  const { outreachStatus } = await import("../src/lib/outreach-rules.ts");
+  const empty = { paused: false, from: "", businessAddress: "", linksReady: true };
+  const s1 = outreachStatus(empty);
+  assert.equal(s1.state, "setup");
+  assert.equal(s1.title, "Can't send yet: set the From address and business address");
+  assert.equal(outreachStatus({ ...empty, paused: true }).state, "setup"); // missing setup wins over the pause
+  const ready = { paused: false, from: "hello@mail.ytagencies.com", businessAddress: "1 Main St", linksReady: true };
+  assert.equal(outreachStatus(ready).state, "sending");
+  assert.equal(outreachStatus({ ...ready, paused: true }).state, "paused");
+  assert.equal(outreachStatus({ ...ready, linksReady: false }).state, "setup");
+  assert.equal(outreachStatus({ ...ready, from: "x@gmail.com" }).state, "setup");
+  // The banner links to the Settings tab when something is missing.
+  assert.match(read("src/components/admin/outreach.tsx"), /status\.state === "setup" && \(\n\s+<Link href="\/admin\/outreach\?tab=settings"/);
+});
+
+test("every Outreach tab builds with empty settings, no agencies and no contacts", async () => {
+  const { agenciesView, contactsView, dashboardView, templatesView } = await import("../src/lib/outreach-view.ts");
+  const { SAMPLE_AGENCY, renderTemplate } = await import("../src/lib/outreach-rules.ts");
+  const now = new Date("2026-11-02T10:00:00Z");
+  const filters = { email: "", contacted: "", country: "", service: "", optout: "", bounced: "" };
+
+  const dash = dashboardView([], [], now);
+  assert.deepEqual(dash.cards.map(([, n]) => n), [0, 0, 0, 0, 0, 0, 0]);
+  assert.equal(dash.byDay.length, 14);
+  assert.deepEqual(dash.batches, []);
+
+  const ag = agenciesView([], [], [], new Set(), [], filters, 1);
+  assert.deepEqual([ag.total, ag.page, ag.pages, ag.rows.length], [0, 1, 1, 0]);
+  const agQ = agenciesView([], [], [], new Set(), [], { ...filters, email: "yes", country: "usa" }, 99);
+  assert.equal(agQ.page, 1);
+
+  assert.deepEqual(contactsView([], [], ""), { term: "", saved: 0, list: [] });
+  assert.deepEqual(contactsView([], [], "acme").list, []);
+
+  // No agency with an address: a labelled sample, and links that never throw.
+  const links = {
+    profile: (s) => `https://ytagencies.com/agency/${s}`,
+    claim: (s) => `https://ytagencies.com/claim/${s}?t=sample-token`,
+    unsubscribe: () => "[unsubscribe link: CLAIM_TOKEN_SECRET isn't set]",
+  };
+  const agency = { id: "a1", slug: "acme", name: "Acme", hq_location_id: null, agency_services: [] };
+  for (const [agencies, contacts] of [[[], []], [[agency], []]]) {
+    const t = templatesView(agencies, contacts, links, SAMPLE_AGENCY);
+    assert.equal(t.sample, true);
+    assert.deepEqual(t.agencies, [{ id: "sample", name: "Sample Agency (sample)", sample: true }]);
+    const vars = { ...t.previewVars.sample, sender_name: "", business_address: "" };
+    // Empty sender and address render without throwing.
+    assert.equal(renderTemplate("{agency_name} {sender_name}{business_address}", vars), "Sample Agency ");
+  }
+  const real = templatesView([agency], [{ agency_id: "a1", email: "hi@acme.com", opted_out_at: null }], links, SAMPLE_AGENCY);
+  assert.equal(real.sample, false);
+  assert.deepEqual(real.agencies, [{ id: "a1", name: "Acme", sample: false }]);
+
+  // The page builds every tab from these, and the unsubscribe link only when the secret is set.
+  const page = read("src/app/admin/outreach/page.tsx");
+  for (const v of ["dashboardView(", "agenciesView(", "contactsView(", "templatesView("]) assert.ok(page.includes(v), v);
+  assert.match(page, /unsubscribe: \(id\) => \(linksReady \? unsubscribeUrl\(id\) : /);
+  assert.match(page, /\["settings", "Settings"\]/);
+});
+
+test("From must be on mail.ytagencies.com (settings save and sending)", async () => {
+  const { fromOnOutreachDomain } = await import("../src/lib/outreach-rules.ts");
+  assert.equal(fromOnOutreachDomain("Hello@Mail.YTAgencies.com"), true);
+  for (const bad of ["hello@ytagencies.com", "hello@send.ytagencies.com", "x@mail.ytagencies.com.evil.co", "", "nope"])
+    assert.equal(fromOnOutreachDomain(bad), false, bad);
+  assert.match(read("src/lib/actions/admin-outreach.ts"), /\(v\) => v === "" \|\| fromOnOutreachDomain\(v\),/);
 });

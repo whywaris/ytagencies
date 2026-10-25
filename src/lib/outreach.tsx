@@ -17,6 +17,9 @@ const secret = () => {
   if (!s || s.length < 32) throw new Error("CLAIM_TOKEN_SECRET must be at least 32 characters");
   return s;
 };
+
+/** Whether signed unsubscribe and removal links can be made (pages check before building them). */
+export const linkSecretReady = () => (process.env.CLAIM_TOKEN_SECRET?.length ?? 0) >= 32;
 // Each link has its own label, so it never works as a claim or verification link (or as the other
 // one). No expiry: an unsubscribe link should keep working.
 const mac = (agencyId: string, label = "outreach-unsubscribe") =>

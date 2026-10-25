@@ -4,22 +4,32 @@ import {
   AgenciesQueue,
   ContactImport,
   ContactRow,
-  OutreachSettingsForm,
-  PauseSwitch,
-  type QueueRow,
+  SendingSettingsForm,
+  StatusBanner,
+  TemplatesForm,
 } from "@/components/admin/outreach";
 import { Table } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/auth";
 import { getLocations, getServices } from "@/lib/data/taxonomy";
-import { unsubscribeUrl } from "@/lib/outreach";
-import { claimLink, getOutreachSettings } from "@/lib/outreach-mail";
-import { sendingProblems } from "@/lib/outreach-rules";
+import { linkSecretReady, unsubscribeUrl } from "@/lib/outreach";
+import { claimLink, getOutreachSettings, type Settings } from "@/lib/outreach-mail";
+import { OUTREACH_FROM_DOMAIN, outreachStatus, SAMPLE_AGENCY } from "@/lib/outreach-rules";
+import {
+  agenciesView,
+  contactsView,
+  dashboardView,
+  templatesView,
+  type AgencyRow,
+  type ContactRow as ContactData,
+  type MessageRow,
+} from "@/lib/outreach-view";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cn } from "@/lib/utils";
 
 // Admin → Growth → Outreach: invites to unclaimed agencies to claim their free profile
-// (lib/outreach-mail.ts). Dashboard, the agencies to invite, their addresses, and the templates.
+// (lib/outreach-mail.ts). What each tab shows comes from lib/outreach-view.ts (tested with an
+// empty setup); this file only fetches rows and renders.
 
 export const metadata = { title: "Outreach" };
 
@@ -28,16 +38,14 @@ const TABS = [
   ["agencies", "Agencies"],
   ["contacts", "Contacts"],
   ["templates", "Templates"],
+  ["settings", "Settings"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
-const PER_PAGE = 100;
-const DAY_MS = 86_400_000;
-const daysAgo = (n: number) => new Date(Date.now() - n * DAY_MS).toISOString().slice(0, 10);
 
 type Db = ReturnType<typeof createAdminClient>;
 
 async function unclaimedAgencies(db: Db) {
-  const rows: { id: string; slug: string; name: string; hq_location_id: number | null; agency_services: { services: { slug: string } }[] }[] = [];
+  const rows: AgencyRow[] = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await db
       .from("agencies")
@@ -62,18 +70,12 @@ async function outreachState(db: Db) {
     db.from("outreach_suppressions").select("email").limit(10000),
   ]);
   if (contacts.error || messages.error || suppressed.error) throw new Error("Couldn't load outreach");
-  return { contacts: contacts.data, messages: messages.data, suppressed: new Set(suppressed.data.map((s) => s.email)) };
+  return {
+    contacts: contacts.data as ContactData[],
+    messages: messages.data as MessageRow[],
+    suppressed: new Set(suppressed.data.map((s) => s.email)),
+  };
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  queued: "queued",
-  sent: "sent",
-  delivered: "delivered",
-  bounced: "bounced",
-  complained: "complained",
-  failed: "failed",
-  cancelled: "cancelled",
-};
 
 export default async function OutreachPage({ searchParams }: PageProps<"/admin/outreach">) {
   await requireAdmin("/admin/outreach");
@@ -82,7 +84,7 @@ export default async function OutreachPage({ searchParams }: PageProps<"/admin/o
   const tab: Tab = (TABS.map((t) => t[0]) as string[]).includes(str("tab")) ? (str("tab") as Tab) : "dashboard";
   const db = createAdminClient();
   const settings = await getOutreachSettings(db);
-  const problems = sendingProblems(settings);
+  const linksReady = linkSecretReady();
 
   return (
     <div className="flex flex-col gap-8">
@@ -93,14 +95,17 @@ export default async function OutreachPage({ searchParams }: PageProps<"/admin/o
           agency, never to claimed, unsubscribed or bounced addresses.
         </p>
       </div>
-      <PauseSwitch paused={settings.paused} problems={problems} />
-      <nav aria-label="Outreach" className="flex gap-1 border-b border-line">
+      <StatusBanner status={outreachStatus({ ...settings, linksReady })} paused={settings.paused} />
+      <nav aria-label="Outreach" className="flex flex-wrap gap-1 border-b border-line">
         {TABS.map(([id, label]) => (
           <Link
             key={id}
             href={`/admin/outreach?tab=${id}`}
             aria-current={tab === id ? "page" : undefined}
-            className={cn("-mb-px border-b-2 px-3 py-2 text-[14px] font-medium", tab === id ? "border-accent" : "border-transparent text-text-2 hover:text-text")}
+            className={cn(
+              "-mb-px border-b-2 px-3 py-2 text-[14px] font-medium",
+              tab === id ? "border-accent" : "border-transparent text-text-2 hover:text-text",
+            )}
           >
             {label}
           </Link>
@@ -109,44 +114,31 @@ export default async function OutreachPage({ searchParams }: PageProps<"/admin/o
       {tab === "dashboard" && <Dashboard db={db} />}
       {tab === "agencies" && <Agencies db={db} str={str} />}
       {tab === "contacts" && <Contacts db={db} q={str("q")} />}
-      {tab === "templates" && <Templates db={db} settings={settings} />}
+      {tab === "templates" && <Templates db={db} settings={settings} linksReady={linksReady} />}
+      {tab === "settings" && (
+        <SendingSettingsForm
+          fromDomain={OUTREACH_FROM_DOMAIN}
+          initial={{
+            senderName: settings.senderName,
+            from: settings.from,
+            replyTo: settings.replyTo,
+            businessAddress: settings.businessAddress,
+            dailyCap: settings.dailyCap,
+            reminderDays: settings.reminderDays,
+          }}
+        />
+      )}
     </div>
   );
 }
 
 async function Dashboard({ db }: { db: Db }) {
   const { contacts, messages } = await outreachState(db);
-  const count = (f: (m: (typeof messages)[number]) => boolean) => messages.filter(f).length;
-  const cards: [string, number][] = [
-    ["Queued", count((m) => m.status === "queued")],
-    ["Sent", count((m) => !!m.sent_at)],
-    ["Delivered", count((m) => m.status === "delivered")],
-    ["Bounced", count((m) => m.status === "bounced" || m.status === "complained")],
-    ["Clicked", count((m) => !!m.clicked_at)],
-    ["Claimed", new Set(messages.filter((m) => m.claimed_at).map((m) => m.agency_id)).size],
-    ["Unsubscribed", contacts.filter((c) => c.opted_out_at).length],
-  ];
-  const days = Array.from({ length: 14 }, (_, i) => daysAgo(i));
-  const byDay = days.map((d) => ({
-    day: d,
-    sent: count((m) => m.sent_at?.slice(0, 10) === d),
-    clicked: count((m) => m.clicked_at?.slice(0, 10) === d),
-  }));
-  const batches = new Map<string, { at: string; total: number; sent: number; clicked: number; claimed: number }>();
-  for (const m of messages) {
-    if (!m.batch_id || m.template !== "invite") continue;
-    const b = batches.get(m.batch_id) ?? { at: m.queued_at, total: 0, sent: 0, clicked: 0, claimed: 0 };
-    b.total++;
-    if (m.sent_at) b.sent++;
-    if (m.clicked_at) b.clicked++;
-    if (m.claimed_at) b.claimed++;
-    if (m.queued_at < b.at) b.at = m.queued_at;
-    batches.set(m.batch_id, b);
-  }
+  const v = dashboardView(messages, contacts, new Date());
   return (
     <div className="flex flex-col gap-8">
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
-        {cards.map(([label, n]) => (
+        {v.cards.map(([label, n]) => (
           <div key={label} className="rounded-xl border border-line p-4">
             <dt className="text-admin-meta">{label}</dt>
             <dd className="num text-[24px] font-semibold">{n}</dd>
@@ -164,7 +156,7 @@ async function Dashboard({ db }: { db: Db }) {
             </tr>
           </thead>
           <tbody>
-            {byDay.map((d) => (
+            {v.byDay.map((d) => (
               <tr key={d.day}>
                 <td className="num">{d.day}</td>
                 <td className="num">{d.sent}</td>
@@ -176,7 +168,7 @@ async function Dashboard({ db }: { db: Db }) {
       </section>
       <section className="flex flex-col gap-3">
         <h2 className="text-admin-section">Batches</h2>
-        {batches.size ? (
+        {v.batches.length ? (
           <Table>
             <thead>
               <tr>
@@ -188,18 +180,15 @@ async function Dashboard({ db }: { db: Db }) {
               </tr>
             </thead>
             <tbody>
-              {[...batches.values()]
-                .sort((a, b) => b.at.localeCompare(a.at))
-                .slice(0, 30)
-                .map((b) => (
-                  <tr key={b.at}>
-                    <td className="num">{b.at.slice(0, 16).replace("T", " ")}</td>
-                    <td className="num">{b.total}</td>
-                    <td className="num">{b.sent}</td>
-                    <td className="num">{b.clicked}</td>
-                    <td className="num">{b.claimed}</td>
-                  </tr>
-                ))}
+              {v.batches.map((b) => (
+                <tr key={b.id}>
+                  <td className="num">{b.at.slice(0, 16).replace("T", " ")}</td>
+                  <td className="num">{b.total}</td>
+                  <td className="num">{b.sent}</td>
+                  <td className="num">{b.clicked}</td>
+                  <td className="num">{b.claimed}</td>
+                </tr>
+              ))}
             </tbody>
           </Table>
         ) : (
@@ -217,62 +206,17 @@ async function Agencies({ db, str }: { db: Db; str: (k: string) => string }) {
     getServices(),
     getLocations(),
   ]);
-  const byId = new Map(locations.map((l) => [l.id, l]));
-  const countryOf = (id: number | null) => {
-    const l = id === null ? null : byId.get(id);
-    return l?.type === "city" ? byId.get(l.parentId ?? -1)?.slug : l?.slug;
+  const f = {
+    email: str("email"),
+    contacted: str("contacted"),
+    country: str("country"),
+    service: str("service"),
+    optout: str("optout"),
+    bounced: str("bounced"),
   };
-  const contactOf = new Map(state.contacts.map((c) => [c.agency_id, c]));
-  const messagesOf = new Map<string, typeof state.messages>();
-  for (const m of state.messages) messagesOf.set(m.agency_id, [...(messagesOf.get(m.agency_id) ?? []), m]);
-
-  const rows = agencies.map((a) => {
-    const c = contactOf.get(a.id);
-    const ms = messagesOf.get(a.id) ?? [];
-    const latest = ms.find((m) => m.template === "reminder") ?? ms.find((m) => m.template === "invite");
-    const bounced = !!c && state.suppressed.has(c.email.toLowerCase());
-    const status = !c
-      ? "No email"
-      : c.opted_out_at
-        ? "Unsubscribed"
-        : bounced
-          ? "Bounced"
-          : latest
-            ? `${latest.template === "invite" ? "Invite" : "Reminder"} ${STATUS_LABEL[latest.status] ?? latest.status}${latest.clicked_at ? ", clicked" : ""}`
-            : "Not contacted";
-    return {
-      id: a.id,
-      name: a.name,
-      slug: a.slug,
-      email: c?.email ?? null,
-      status,
-      canQueue: !!c && !c.opted_out_at && !bounced && !ms.some((m) => m.template === "invite"),
-      country: countryOf(a.hq_location_id),
-      services: a.agency_services.map((s) => s.services.slug),
-      contacted: ms.length > 0,
-      optedOut: !!c?.opted_out_at,
-      bounced,
-    };
-  });
-  const f = { email: str("email"), contacted: str("contacted"), country: str("country"), service: str("service"), optout: str("optout"), bounced: str("bounced") };
-  const shown = rows.filter(
-    (r) =>
-      (f.email !== "yes" || r.email) &&
-      (f.email !== "no" || !r.email) &&
-      (f.contacted !== "no" || !r.contacted) &&
-      (!f.country || r.country === f.country) &&
-      (!f.service || r.services.includes(f.service)) &&
-      (f.optout !== "1" || r.optedOut) &&
-      (f.bounced !== "1" || r.bounced),
-  );
-  const page = Math.max(1, Number(str("page")) || 1);
-  const pages = Math.max(1, Math.ceil(shown.length / PER_PAGE));
-  const slice: QueueRow[] = shown.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-  const countries = [...new Set(rows.map((r) => r.country).filter((c): c is string => !!c))]
-    .map((slug) => locations.find((l) => l.slug === slug)!)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const v = agenciesView(agencies, state.contacts, state.messages, state.suppressed, locations, f, Number(str("page")) || 1);
   const qs = (patch: Record<string, string>) =>
-    `/admin/outreach?${new URLSearchParams(Object.entries({ tab: "agencies", ...f, ...patch }).filter(([, v]) => v))}`;
+    `/admin/outreach?${new URLSearchParams(Object.entries({ tab: "agencies", ...f, ...patch }).filter(([, x]) => x))}`;
   const select = "h-9 rounded-lg border border-line bg-bg px-2 text-[14px]";
 
   return (
@@ -290,7 +234,7 @@ async function Agencies({ db, str }: { db: Db; str: (k: string) => string }) {
         </select>
         <select name="country" defaultValue={f.country} className={select} aria-label="Country">
           <option value="">Any country</option>
-          {countries.map((c) => (
+          {v.countries.map((c) => (
             <option key={c.slug} value={c.slug}>
               {c.name}
             </option>
@@ -315,14 +259,22 @@ async function Agencies({ db, str }: { db: Db; str: (k: string) => string }) {
         </button>
       </form>
       <p className="text-admin-meta">
-        {shown.length} unclaimed published agenc{shown.length === 1 ? "y" : "ies"}
-        {pages > 1 && ` · page ${page} of ${pages}`}
+        {v.total} unclaimed published agenc{v.total === 1 ? "y" : "ies"}
+        {v.pages > 1 && ` · page ${v.page} of ${v.pages}`}
       </p>
-      <AgenciesQueue rows={slice} />
-      {pages > 1 && (
+      {v.rows.length ? <AgenciesQueue rows={v.rows} /> : <p className="text-text-2">No agencies match these filters.</p>}
+      {v.pages > 1 && (
         <nav aria-label="Pages" className="flex gap-3 text-[14px]">
-          {page > 1 && <Link href={qs({ page: String(page - 1) })} className="text-accent hover:underline">Previous</Link>}
-          {page < pages && <Link href={qs({ page: String(page + 1) })} className="text-accent hover:underline">Next</Link>}
+          {v.page > 1 && (
+            <Link href={qs({ page: String(v.page - 1) })} className="text-accent hover:underline">
+              Previous
+            </Link>
+          )}
+          {v.page < v.pages && (
+            <Link href={qs({ page: String(v.page + 1) })} className="text-accent hover:underline">
+              Next
+            </Link>
+          )}
         </nav>
       )}
     </div>
@@ -331,9 +283,7 @@ async function Agencies({ db, str }: { db: Db; str: (k: string) => string }) {
 
 async function Contacts({ db, q }: { db: Db; q: string }) {
   const [agencies, state] = await Promise.all([unclaimedAgencies(db), outreachState(db)]);
-  const contactOf = new Map(state.contacts.map((c) => [c.agency_id, c.email]));
-  const term = q.trim().toLowerCase();
-  const list = (term ? agencies.filter((a) => a.name.toLowerCase().includes(term) || a.slug.includes(term)) : agencies.filter((a) => contactOf.has(a.id))).slice(0, 100);
+  const v = contactsView(agencies, state.contacts, q);
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-3">
@@ -344,54 +294,61 @@ async function Contacts({ db, q }: { db: Db; q: string }) {
         <h2 className="text-admin-section">Addresses</h2>
         <form action="/admin/outreach" className="flex gap-2">
           <input type="hidden" name="tab" value="contacts" />
-          <input name="q" defaultValue={q} placeholder="Find an agency to add or edit" className="h-9 w-72 rounded-lg border border-line bg-bg px-3 text-[14px]" aria-label="Find an agency" />
-          <button type="submit" className="h-9 rounded-lg border border-line px-3 text-[14px] font-medium">Search</button>
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Find an agency to add or edit"
+            className="h-9 w-72 rounded-lg border border-line bg-bg px-3 text-[14px]"
+            aria-label="Find an agency"
+          />
+          <button type="submit" className="h-9 rounded-lg border border-line px-3 text-[14px] font-medium">
+            Search
+          </button>
         </form>
         <p className="text-admin-meta">
-          {term ? `Unclaimed agencies matching “${q}”` : `${contactOf.size} saved address${contactOf.size === 1 ? "" : "es"}`}
-          {list.length === 100 && " (first 100)"}
+          {v.term ? `Unclaimed agencies matching “${q}”` : `${v.saved} saved address${v.saved === 1 ? "" : "es"}`}
+          {v.list.length === 100 && " (first 100)"}
         </p>
-        {list.length ? (
+        {v.list.length ? (
           <ul className="flex flex-col divide-y divide-line rounded-xl border border-line">
-            {list.map((a) => (
+            {v.list.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
                 <span className="font-medium">{a.name}</span>
-                <ContactRow agencyId={a.id} email={contactOf.get(a.id) ?? ""} />
+                <ContactRow agencyId={a.id} email={a.email} />
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-text-2">{term ? "No unclaimed agency matches." : "No addresses yet."}</p>
+          <p className="text-text-2">
+            {v.term ? "No unclaimed agency matches." : "No addresses yet. Search for an agency above, or import a CSV."}
+          </p>
         )}
       </section>
     </div>
   );
 }
 
-async function Templates({ db, settings }: { db: Db; settings: Awaited<ReturnType<typeof getOutreachSettings>> }) {
-  const agencies = (await unclaimedAgencies(db)).slice(0, 200);
-  const previewVars = Object.fromEntries(
-    agencies.map((a) => [
-      a.id,
-      {
-        agency_name: a.name,
-        profile_url: absoluteUrl(`/agency/${a.slug}`),
-        claim_url: claimLink(a.slug, "sample-token"),
-        unsubscribe_url: unsubscribeUrl(a.id),
-      },
-    ]),
+async function Templates({ db, settings, linksReady }: { db: Db; settings: Settings; linksReady: boolean }) {
+  const [agencies, state] = await Promise.all([unclaimedAgencies(db), outreachState(db)]);
+  const v = templatesView(
+    agencies,
+    state.contacts,
+    {
+      profile: (slug) => absoluteUrl(`/agency/${slug}`),
+      claim: (slug) => claimLink(slug, "sample-token"),
+      // Never throws: without CLAIM_TOKEN_SECRET the preview shows a placeholder (and nothing sends).
+      unsubscribe: (id) => (linksReady ? unsubscribeUrl(id) : "[unsubscribe link: CLAIM_TOKEN_SECRET isn't set]"),
+    },
+    SAMPLE_AGENCY,
   );
   return (
-    <OutreachSettingsForm
-      agencies={agencies.map((a) => ({ id: a.id, name: a.name }))}
-      previewVars={previewVars}
+    <TemplatesForm
+      agencies={v.agencies}
+      previewVars={v.previewVars}
+      sample={v.sample}
+      senderName={settings.senderName}
+      businessAddress={settings.businessAddress}
       initial={{
-        senderName: settings.senderName,
-        from: settings.from,
-        replyTo: settings.replyTo,
-        businessAddress: settings.businessAddress,
-        dailyCap: settings.dailyCap,
-        reminderDays: settings.reminderDays,
         inviteSubject: settings.templates.invite.subject,
         inviteBody: settings.templates.invite.body,
         reminderSubject: settings.templates.reminder.subject,

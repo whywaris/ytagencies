@@ -2,13 +2,14 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 
 import { getMailer } from "@/lib/email";
-import { removeListingUrl, unsubscribeUrl } from "@/lib/outreach";
+import { linkSecretReady, removeListingUrl, unsubscribeUrl } from "@/lib/outreach";
 import {
   blockedReason,
   reminderDue,
   renderTemplate,
   runQuota,
   sendingProblems,
+  setupProblems,
   textToHtml,
   type Template,
 } from "@/lib/outreach-rules";
@@ -199,7 +200,7 @@ async function queueReminders(db: Db, settings: Settings, now: Date) {
 export async function runOutreach(now = new Date()) {
   const db = createAdminClient();
   const settings = await getOutreachSettings(db);
-  const problems = sendingProblems(settings);
+  const problems = sendingProblems({ ...settings, linksReady: linkSecretReady() });
   if (problems.length) return { sent: 0, failed: 0, cancelled: 0, reminders: 0, problems };
 
   const reminders = await queueReminders(db, settings, now);
@@ -257,8 +258,8 @@ export async function runOutreach(now = new Date()) {
 /** "Send test to me": the template for a real agency, to the admin, with a dummy token. */
 export async function sendTest(template: Template, agency: { id: string; slug: string; name: string }, to: string) {
   const settings = await getOutreachSettings();
-  if (!settings.from || !settings.businessAddress.trim())
-    return "Set the From address and the business postal address first.";
+  const missing = setupProblems({ ...settings, linksReady: linkSecretReady() });
+  if (missing.length) return missing.join(" ");
   const email = composeEmail(settings, template, agency, "test-link-not-tracked-000000000000");
   const res = await deliver(settings, to, { ...email, subject: `[Test] ${email.subject}` });
   return res.error;
