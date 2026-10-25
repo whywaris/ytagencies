@@ -137,6 +137,6 @@ test("facade: no iframe before the click, the no-cookie player after", () => {
 test("CSP and images allow the thumbnail host and the no-cookie player", () => {
   const config = read("next.config.ts");
   assert.match(config, /const YT_THUMBS = "https:\/\/i\.ytimg\.com";/);
-  assert.match(config, /`frame-src https:\/\/challenges\.cloudflare\.com \$\{YT_PLAYER\}`/);
+  assert.match(config, /`frame-src \$\{YT_PLAYER\}`/);
   assert.match(config, /hostname: "i\.ytimg\.com"/);
 });

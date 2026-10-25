@@ -9,7 +9,7 @@ import { getUser } from "@/lib/auth";
 import { createClaimToken, emailMatchesWebsite } from "@/lib/claims";
 import { profileViews } from "@/lib/data/agency-stats";
 import { getMailer, oneLine } from "@/lib/email";
-import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { clientIp, underRateLimit } from "@/lib/forms/guard";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -128,9 +128,6 @@ export async function submitAgency(raw: unknown): Promise<FormResult<Submitted>>
   const input = parsed.data;
 
   const ip = await clientIp();
-  if (!(await verifyTurnstile(input.turnstileToken, ip))) {
-    return { ok: false, error: "The security check didn't pass. Please try it again." };
-  }
   if (!(await underRateLimit(ip, input.workEmail))) {
     return { ok: false, error: "Too many attempts. Please try again in an hour." };
   }

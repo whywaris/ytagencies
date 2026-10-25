@@ -8,7 +8,7 @@ import { ClaimVerificationEmail } from "@/emails/claim-verification";
 import { getUser } from "@/lib/auth";
 import { getMailer, oneLine } from "@/lib/email";
 import { approveClaim, createClaimToken, emailMatchesWebsite, readClaimToken } from "@/lib/claims";
-import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { clientIp, underRateLimit } from "@/lib/forms/guard";
 import { alreadyManagedMessage, claimState } from "@/lib/claim-rules";
 import { revalidateAgency } from "@/lib/revalidate";
 import { absoluteUrl, CONTACT_EMAIL } from "@/lib/site";
@@ -26,15 +26,13 @@ const GENERIC = "Something went wrong on our side. Please try again in a minute.
 const fieldErrors = (issues: { path: PropertyKey[]; message: string }[]) =>
   Object.fromEntries(issues.map((i) => [String(i.path[0]), i.message]));
 
-/** Signed in, honeypot, Turnstile and rate limit: the checks every claim form shares. */
-async function guard(raw: unknown, key: string, token: string) {
+/** Signed in, honeypot and rate limit: the checks every claim form shares. */
+async function guard(raw: unknown, key: string) {
   const user = await getUser();
   if (!user) return { error: "Sign in first." } as const;
   if (typeof raw === "object" && raw !== null && "website" in raw && raw.website)
     return { bot: true } as const;
   const ip = await clientIp();
-  if (!(await verifyTurnstile(token, ip)))
-    return { error: "The security check didn't pass. Please try it again." } as const;
   if (!(await underRateLimit(ip, key)))
     return { error: "Too many attempts. Please try again in an hour." } as const;
   return { user } as const;
@@ -57,12 +55,9 @@ export async function startClaim(raw: unknown): Promise<FormResult<ClaimStarted>
       ),
     };
   }
-  const { agencySlug, workEmail, turnstileToken } = parsed.data;
+  const { agencySlug, workEmail } = parsed.data;
 
   const ip = await clientIp();
-  if (!(await verifyTurnstile(turnstileToken, ip))) {
-    return { ok: false, error: "The security check didn't pass. Please try it again." };
-  }
   if (!(await underRateLimit(ip, workEmail))) {
     return { ok: false, error: "Too many attempts. Please try again in an hour." };
   }
@@ -205,7 +200,7 @@ export async function submitClaimProof(raw: unknown): Promise<FormResult> {
       fieldErrors: fieldErrors(parsed.error.issues),
     };
   const input = parsed.data;
-  const g = await guard(raw, input.linkedinUrl, input.turnstileToken);
+  const g = await guard(raw, input.linkedinUrl);
   if ("bot" in g) return { ok: true, data: undefined };
   if ("error" in g) return { ok: false, error: g.error! };
   const { user } = g;

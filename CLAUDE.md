@@ -26,7 +26,7 @@ This is an SEO-first product. Every public page must be server-rendered, fast, a
 - **Database/Auth/Storage:** Supabase (Postgres + Row Level Security + Auth + Storage).
 - **Email:** Resend + React Email templates.
 - **Forms:** react-hook-form + Zod; server actions for mutations.
-- **Bot protection:** Cloudflare Turnstile on every public form.
+- **Bot protection:** honeypot + rate limits on every public form (no CAPTCHA).
 - **Search:** Postgres full-text search (tsvector) for v1.
 - **Hosting:** Vercel. DNS on Cloudflare in **DNS-only (grey cloud)** mode. Do not proxy Vercel through Cloudflare.
 - **Analytics:** Vercel Analytics + Google Search Console.

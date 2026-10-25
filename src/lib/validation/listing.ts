@@ -55,7 +55,6 @@ export const submitAgencySchema = z
       .toLowerCase()
       .max(254, "Use 254 characters or fewer.")
       .pipe(z.email("Enter a valid email address.")),
-    turnstileToken: z.string().min(1, "Complete the security check.").max(2048),
     website: z.string().max(200).optional(), // honeypot
     ...profileDetailsFields,
   })

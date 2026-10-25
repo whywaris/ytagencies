@@ -9,7 +9,7 @@ import { PAGE_UPDATED } from "@/lib/page-dates";
 
 // Describes exactly what the code collects today. Keep it in sync with the code: forms
 // (lib/actions), the analytics beacon (api/events), Google Analytics (components/analytics.tsx,
-// after consent), sign-in (Supabase), emails (Resend) and Turnstile. LAUNCH: have it reviewed for your jurisdiction before launch.
+// after consent), sign-in (Supabase) and emails (Resend). LAUNCH: have it reviewed for your jurisdiction before launch.
 
 const UPDATED = PAGE_UPDATED["/privacy"];
 const TITLE = "Privacy policy";
@@ -92,8 +92,8 @@ const sections: LegalSection[] = [
         <p>Our sign-in provider keeps records of sign-ins, including IP addresses, for security.</p>
         <h3>To stop spam</h3>
         <p>
-          Our forms use Cloudflare Turnstile to block bots. To limit abuse, we keep a one-way hash
-          of your IP address and email address for about an hour. It can&apos;t be turned back into
+          To limit abuse of our forms, we keep a one-way hash of your IP address and email address
+          for about an hour. It can&apos;t be turned back into
           the original.
         </p>
       </>
@@ -157,7 +157,7 @@ const sections: LegalSection[] = [
             keeps this data for up to 14 months.
           </li>
           <li>Resend: sending emails</li>
-          <li>Cloudflare: bot protection (Turnstile) and image hosting</li>
+          <li>Cloudflare: image hosting</li>
           <li>
             Google: sign-in with Google, if you choose it, and the YouTube Data API, which receives
             channel links during verification

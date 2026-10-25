@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { clientIp, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { clientIp, underRateLimit } from "@/lib/forms/guard";
 import { previewCountry, redactSummary } from "@/lib/lead-preview";
 import { getPublishedAgency, matchAgencies, queueLeadEmails, saveLead } from "@/lib/leads";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,7 +20,7 @@ import {
   type FormResult,
 } from "@/lib/validation/lead";
 
-// Public form actions. Order (SECURITY.md): honeypot → Zod → Turnstile → rate limit → write.
+// Public form actions. Order (SECURITY.md): honeypot → Zod → rate limit → write.
 // Nothing touches the database with the service role until every check has passed.
 
 type Link = { href: string; label: string };
@@ -58,19 +58,9 @@ function invalid(error: z.ZodError): {
   return { ok: false, error: "Check the highlighted fields.", fieldErrors };
 }
 
-/** Turnstile + rate limit. Returns an error result, or null when the request may proceed. */
-async function guard(
-  token: string,
-  email: string,
-): Promise<{ ok: false; error: string; fieldErrors?: Record<string, string> } | null> {
+/** Rate limit. Returns an error result, or null when the request may proceed. */
+async function guard(email: string): Promise<{ ok: false; error: string } | null> {
   const ip = await clientIp();
-  if (!(await verifyTurnstile(token, ip))) {
-    return {
-      ok: false,
-      error: "The security check didn't pass. Please try it again.",
-      fieldErrors: { turnstileToken: "Complete the security check again." },
-    };
-  }
   if (!(await underRateLimit(ip, email))) {
     return {
       ok: false,
@@ -89,7 +79,7 @@ export async function submitGetMatched(raw: unknown): Promise<FormResult<Matched
   if (!parsed.success) return invalid(parsed.error);
   const input = parsed.data;
 
-  const blocked = await guard(input.turnstileToken, input.email);
+  const blocked = await guard(input.email);
   if (blocked) return blocked;
 
   try {
@@ -206,7 +196,7 @@ export async function contactAgency(raw: unknown): Promise<FormResult<Contacted>
   if (!parsed.success) return invalid(parsed.error);
   const input = parsed.data;
 
-  const blocked = await guard(input.turnstileToken, input.email);
+  const blocked = await guard(input.email);
   if (blocked) return blocked;
 
   try {

@@ -92,9 +92,8 @@ const company = z
   .optional()
   .or(z.literal(""));
 
-// Bot checks travel with the payload: Turnstile token and an always-empty honeypot.
+// Bot check travels with the payload: an always-empty honeypot.
 const botFields = {
-  turnstileToken: z.string().min(1, "Complete the security check.").max(2048),
   website: z.string().max(200).optional(), // honeypot, checked before validation
 };
 

@@ -16,7 +16,6 @@ export const proRequestSchema = z.object({
     .min(1, "Enter your agency's name or listing link.")
     .max(300, "Use 300 characters or fewer."),
   period: z.enum(["monthly", "yearly"], { error: "Choose monthly or yearly." }),
-  turnstileToken: z.string().min(1, "Complete the security check.").max(2048),
   website: z.string().max(200).optional(), // honeypot, checked before validation
 });
 export type ProRequestInput = z.infer<typeof proRequestSchema>;

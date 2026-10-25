@@ -5,13 +5,13 @@ import { after } from "next/server";
 import { ContactAdminEmail, ContactConfirmationEmail } from "@/emails/contact";
 import { topicOf } from "@/lib/contact-topics";
 import { getMailer, oneLine } from "@/lib/email";
-import { clientIp, rateLimitRetryAt, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { clientIp, rateLimitRetryAt, underRateLimit } from "@/lib/forms/guard";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { contactSchema } from "@/lib/validation/contact";
 import type { FormResult } from "@/lib/validation/lead";
 
-// /contact. Order (SECURITY.md): honeypot → Zod → Turnstile → rate limit → write. The message is
+// /contact. Order (SECURITY.md): honeypot → Zod → rate limit → write. The message is
 // saved first (Admin → Inbox), then emailed to the topic's inbox, with a short confirmation to the
 // sender. Emails go out after the response; a mail failure never loses the message.
 
@@ -30,13 +30,6 @@ export async function submitContact(raw: unknown): Promise<FormResult> {
   const input = parsed.data;
 
   const ip = await clientIp();
-  if (!(await verifyTurnstile(input.turnstileToken, ip))) {
-    return {
-      ok: false,
-      error: "The security check didn't pass. Please try it again.",
-      fieldErrors: { turnstileToken: "Complete the security check again." },
-    };
-  }
   if (!(await underRateLimit(ip, input.email))) {
     const at = await rateLimitRetryAt(ip, input.email);
     const minutes = at ? Math.max(1, Math.ceil((at.getTime() - Date.now()) / 60_000)) : 60;

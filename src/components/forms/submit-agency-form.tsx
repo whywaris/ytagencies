@@ -15,7 +15,6 @@ import {
   selectClasses,
   textareaClasses,
 } from "@/components/forms/field";
-import { Turnstile } from "@/components/forms/turnstile";
 import { BillingToggle } from "@/components/pro-billing";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +63,7 @@ const STEPS = [
     fields: ["services", "industries", "serviceDetails", "industryFocus"],
   },
   { title: "Pricing", fields: ["minBudget", "pricingModel", "minContract", "adSpend", "setupFee"] },
-  { title: "Confirm your work email", fields: ["workEmail", "turnstileToken"] },
+  { title: "Confirm your work email", fields: ["workEmail"] },
 ] as const;
 
 export function SubmitAgencyForm({
@@ -86,7 +85,6 @@ export function SubmitAgencyForm({
   const [done, setDone] = useState<Done | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
-  const [turnstileReset, setTurnstileReset] = useState(0);
   const [subscribe, setSubscribe] = useState(false);
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const [redirecting, startRedirect] = useTransition();
@@ -110,7 +108,6 @@ export function SubmitAgencyForm({
       setupFee: "",
       description: "",
       workEmail: "",
-      turnstileToken: "",
       website: "",
       ...EMPTY_DETAILS,
     },
@@ -170,7 +167,6 @@ export function SubmitAgencyForm({
       }
       return;
     }
-    setTurnstileReset((n) => n + 1); // tokens are single-use
     setFormError(res.error);
     for (const [k, m] of Object.entries(res.fieldErrors ?? {}))
       setError(k as keyof SubmitAgencyInput, { message: m });
@@ -498,17 +494,6 @@ export function SubmitAgencyForm({
             </fieldset>
           )}
           <Honeypot {...register("website")} />
-          <div className="contents">
-            <Turnstile
-              resetKey={turnstileReset}
-              onToken={(t) =>
-                setValue("turnstileToken", t, { shouldValidate: formState.isSubmitted })
-              }
-            />
-            {err("turnstileToken") && (
-              <p className="text-[14px] text-destructive">{err("turnstileToken")}</p>
-            )}
-          </div>
         </div>
 
         <div className="flex flex-wrap gap-3">

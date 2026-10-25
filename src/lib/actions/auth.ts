@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { googleSignInEnabled } from "@/lib/auth-providers";
-import { clientIp, rateLimitRetryAt, underRateLimit, verifyTurnstile } from "@/lib/forms/guard";
+import { clientIp, rateLimitRetryAt, underRateLimit } from "@/lib/forms/guard";
 import { authOrigin, callbackUrl } from "@/lib/redirects";
 import { SITE_URL } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
@@ -42,12 +42,9 @@ export async function sendMagicLink(raw: unknown): Promise<FormResult> {
       ),
     };
   }
-  const { email, next, turnstileToken } = parsed.data;
+  const { email, next } = parsed.data;
 
   const ip = await clientIp();
-  if (!(await verifyTurnstile(turnstileToken, ip))) {
-    return { ok: false, error: "Verification failed. Refresh the page and try again." };
-  }
   if (!(await underRateLimit(ip, email))) {
     const at = await rateLimitRetryAt(ip, email);
     return { ok: false, error: `Too many sign-in attempts. You can try again ${retryIn(at)}.` };

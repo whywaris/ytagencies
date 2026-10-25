@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { ContactAgencyForm as ContactAgencyFormType } from "@/components/forms/contact-agency-form";
 
-// The contact form (react-hook-form + Zod + Turnstile, ~140 KB gz) sits far below the fold on every
+// The contact form (react-hook-form + Zod) sits far below the fold on every
 // profile. Load it only when the visitor scrolls near it or follows "Request a quote" (#contact).
 const ContactAgencyForm = dynamic(() =>
   import("@/components/forms/contact-agency-form").then((m) => m.ContactAgencyForm),

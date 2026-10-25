@@ -12,7 +12,6 @@ import {
   selectClasses,
   textareaClasses,
 } from "@/components/forms/field";
-import { Turnstile } from "@/components/forms/turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { submitContact } from "@/lib/actions/contact";
@@ -30,16 +29,14 @@ export function ContactForm({
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ email: string; topic: ContactTopic } | null>(null);
-  const [turnstileReset, setTurnstileReset] = useState(0);
   const successHeading = useRef<HTMLHeadingElement>(null);
 
   const {
     register,
     handleSubmit,
-    setValue,
     setError,
     control,
-    formState: { errors, isSubmitting, isSubmitted },
+    formState: { errors, isSubmitting },
   } = useForm<ContactInput>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
@@ -48,7 +45,6 @@ export function ContactForm({
       email: "",
       message: initialMessage,
       agencyUrl: initialAgencyUrl,
-      turnstileToken: "",
       website: "",
     },
   });
@@ -62,7 +58,6 @@ export function ContactForm({
     setFormError(null);
     const result = await submitContact(values);
     if (result.ok) return setSent({ email: values.email, topic: values.topic });
-    setTurnstileReset((n) => n + 1);
     setFormError(result.error);
     for (const [field, message] of Object.entries(result.fieldErrors ?? {})) {
       setError(field as keyof ContactInput, { message });
@@ -153,16 +148,6 @@ export function ContactForm({
       </Field>
 
       <Honeypot {...register("website")} />
-
-      <div className="contents">
-        <Turnstile
-          resetKey={turnstileReset}
-          onToken={(token) => setValue("turnstileToken", token, { shouldValidate: isSubmitted })}
-        />
-        {err("turnstileToken") && (
-          <p className="text-[14px] text-destructive">{err("turnstileToken")}</p>
-        )}
-      </div>
 
       <div className="flex flex-col gap-4">
         <Button type="submit" disabled={isSubmitting} className="self-start">

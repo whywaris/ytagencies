@@ -170,17 +170,6 @@ const sections: LegalSection[] = [
     ),
   },
   {
-    id: "turnstile",
-    title: "Cloudflare Turnstile",
-    body: (
-      <p>
-        Our forms include Cloudflare Turnstile, which checks that you&apos;re not a bot. It runs in
-        a frame served by Cloudflare, not by us, and isn&apos;t used for advertising or to follow
-        you across sites. Cloudflare&apos;s Turnstile privacy addendum describes what it processes.
-      </p>
-    ),
-  },
-  {
     id: "no-tracking",
     title: "What we don't use",
     body: (

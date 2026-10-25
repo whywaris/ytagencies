@@ -67,7 +67,6 @@ const step2 = {
   customerLocation: "Austin, US",
   priorAgency: "",
   message: "",
-  turnstileToken: "t",
 };
 
 test("step 2: URLs are normalised, email lowercased, optional fields can be empty", () => {

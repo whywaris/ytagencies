@@ -5,10 +5,10 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 ## Secrets & environment
 
 - Secrets live only in Vercel env vars and a local `.env.local` (git-ignored). Never commit them.
-- Only variables prefixed `NEXT_PUBLIC_` may reach the browser. Exactly four are allowed: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (public by design; the secret stays server-side) and `NEXT_PUBLIC_GA_ID` (a Google Analytics measurement ID is public by design).
+- Only variables prefixed `NEXT_PUBLIC_` may reach the browser. Exactly three are allowed: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `NEXT_PUBLIC_GA_ID` (a Google Analytics measurement ID is public by design).
 - `ALLOW_INDEXING` must be exactly `"true"` for search engines to index the site (lib/indexing.ts); otherwise every response carries `X-Robots-Tag: noindex, nofollow` and robots.txt disallows everything.
 - Google Analytics loads only when `NEXT_PUBLIC_GA_ID` is set and `VERCEL_ENV` is `production`, only on public pages (never /admin, /dashboard, /login, /claim, /auth) and never for signed-in visitors (a Supabase session cookie, checked in the browser with no network call; signing in later in the tab switches GA off and stops events), with Consent Mode v2 defaults all denied until the visitor accepts. Events go through `lib/track.ts` and carry no personal data (no names, emails, messages or search text). The CSP allows only `www.googletagmanager.com` (scripts) and the Google Analytics hit hosts (connect, img).
-- `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `TURNSTILE_SECRET_KEY`, `CLAIM_TOKEN_SECRET` and `YOUTUBE_API_KEY` (YouTube Data API v3, used only by admin verification) are server-only. Import them only in files with `import "server-only"` or route handlers, and never log them.
+- `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `CLAIM_TOKEN_SECRET` and `YOUTUBE_API_KEY` (YouTube Data API v3, used only by admin verification) are server-only. Import them only in files with `import "server-only"` or route handlers, and never log them.
 - `CRON_SECRET` is server-only. Scheduled routes under `/api/cron/` refuse any request without `Authorization: Bearer <CRON_SECRET>` (Vercel Cron sends it), compared in constant time.
 - `PAYMENTS_ENABLED` is a server-side switch, not a secret. Anything that charges money stays off unless it is exactly `"true"`; while it's off the billing interface is a no-op.
 - `LEMONSQUEEZY_API_KEY` and `LEMONSQUEEZY_WEBHOOK_SECRET` are server-only secrets, used only in `lib/billing/lemonsqueezy.ts` (`import "server-only"`) and never logged. `LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_VARIANT_MONTHLY`, `LEMONSQUEEZY_VARIANT_YEARLY` and `LEMONSQUEEZY_TEST_MODE` (exactly `"true"` = test mode) are server-only settings. Test keys and test mode only on Preview and local; live keys only on Production (the production build warns if test mode is on).
@@ -40,13 +40,12 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 ## Forms & input
 
 - Every public form (get-matched, contact agency, contact us, review, claim) has:
-  - Cloudflare Turnstile verified server-side.
   - Zod validation on the server.
   - Rate limiting per IP and per email (e.g. 5 submissions/hour), stored in a `rate_limits` table or Upstash.
   - Honeypot field.
 - Lead summaries (the free owner's preview) are redacted on save and again when read: emails (also written as "at/dot"), phone numbers however spaced, any URL or bare domain, and @handles, plus the sender's own name and company (`redactSummary`, tested with tricky input).
-- Turnstile is invisible on every form (a box appears only when Cloudflare wants a challenge) and every submit is verified server-side, failing closed. Production refuses Cloudflare test keys and missing keys, both at build time and on the server (lib/turnstile-keys.ts).
-- Sign-in (magic link) uses Turnstile, is rate-limited per IP and per email (5 an hour, plus Supabase's own email limit) and has a honeypot. The response is the same whether or not the email has an account.
+- No CAPTCHA (Cloudflare Turnstile was removed on purpose): bots are held back by the honeypot and the rate limits.
+- Sign-in (magic link) is rate-limited per IP and per email (5 an hour, plus Supabase's own email limit) and has a honeypot. The response is the same whether or not the email has an account.
 - Reviews: plain text only, length-capped, held for moderation before publishing.
 - Contact messages (`contact_messages`) are written only by the server action (service role, after the checks above); nobody else can read or write them, and admins handle them in Admin → Inbox. The confirmation email to the sender contains nothing they typed, so the form can't be used to send spam through us; the admin copy shows a reported link as text and uses reply-to, not the sender as From.
 - Never use `dangerouslySetInnerHTML` with user content.
@@ -72,9 +71,9 @@ These rules are mandatory. If a task conflicts with them, stop and flag it.
 
 ## HTTP headers (next.config)
 
-- `Content-Security-Policy` (allow self, Supabase, Turnstile, Vercel analytics).
+- `Content-Security-Policy` (allow self, Supabase, Vercel analytics).
   - `script-src` allows `'unsafe-inline'`: Next.js injects inline hydration scripts, and a nonce-based CSP would force every page to render dynamically, breaking ISR. Revisit if Next supports hashes for static pages.
-  - Everything else stays strict: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, and only the Supabase, Turnstile and Vercel origins that are needed.
+  - Everything else stays strict: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, and only the Supabase and Vercel origins that are needed.
 - No CSP entry is needed for the site's own domain (`'self'`). Production is `https://ytagencies.com`; `www` redirects to it with a 308, so cookies and the session only ever live on the apex.
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
 - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy` restricting camera/mic/geolocation.

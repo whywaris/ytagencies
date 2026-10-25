@@ -3,9 +3,8 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { turnstileKeyProblems } from "@/lib/turnstile-keys";
 
-// SECURITY.md public-form checks that need the server: Turnstile and rate limiting.
+// SECURITY.md public-form checks that need the server: rate limiting.
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW = "1 hour";
@@ -15,32 +14,6 @@ export async function clientIp() {
   const h = await headers();
   // Vercel sets x-forwarded-for; the first entry is the client.
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
-}
-
-export async function verifyTurnstile(token: string, ip: string) {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) {
-    console.error("TURNSTILE_SECRET_KEY is not set");
-    return false;
-  }
-  // Production with a missing or test key: refuse rather than let a test key pass everyone.
-  const problems = turnstileKeyProblems();
-  if (problems.length) {
-    console.error(`Turnstile misconfigured in production: ${problems.join("; ")}`);
-    return false;
-  }
-  try {
-    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      body: new URLSearchParams({ secret, response: token, remoteip: ip }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
-    const data = (await res.json()) as { success?: boolean };
-    return data.success === true;
-  } catch {
-    return false; // fail closed
-  }
 }
 
 // Hashed so the table never holds raw IPs or email addresses.

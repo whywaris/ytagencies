@@ -13,7 +13,6 @@ import {
 
 import { a11yProps, Field, Honeypot, textareaClasses } from "@/components/forms/field";
 import { btnLight, btnPrimary } from "@/components/forms/claim-ui";
-import { Turnstile } from "@/components/forms/turnstile";
 import { BillingToggle } from "@/components/pro-billing";
 import { Input } from "@/components/ui/input";
 import { startCheckout } from "@/lib/actions/billing";
@@ -33,19 +32,17 @@ const linkBtn = "font-semibold text-accent hover:underline";
 const h1 = "text-[26px] leading-tight font-[650] tracking-[-0.03em]";
 const sub = "mt-1.5 text-[15px] text-text-2";
 
-/** The submit / error / Turnstile wiring the three forms share. */
+/** The submit / error / honeypot wiring the forms share. */
 function useClaimForm<T extends FieldValues>(
   form: UseFormReturn<T>,
   action: (v: T) => Promise<FormResult<unknown>>,
   onDone: (v: T, data: unknown) => void,
 ) {
   const [formError, setFormError] = useState<string | null>(null);
-  const [turnstileReset, setTurnstileReset] = useState(0);
   const onSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
     const res = await action(values);
     if (res.ok) return onDone(values, res.data);
-    setTurnstileReset((n) => n + 1); // tokens are single-use
     setFormError(res.error);
     for (const [k, m] of Object.entries(res.fieldErrors ?? {}))
       form.setError(k as Path<T>, { message: m });
@@ -54,24 +51,7 @@ function useClaimForm<T extends FieldValues>(
     const m = form.formState.errors[k]?.message;
     return typeof m === "string" ? m : undefined;
   };
-  const bot = (
-    <>
-      <Honeypot {...form.register("website" as Path<T>)} />
-      <div className="contents">
-        <Turnstile
-          resetKey={turnstileReset}
-          onToken={(t) =>
-            form.setValue("turnstileToken" as Path<T>, t as T[Path<T>], {
-              shouldValidate: form.formState.isSubmitted,
-            })
-          }
-        />
-        {err("turnstileToken" as Path<T>) && (
-          <p className="text-[14px] text-destructive">{err("turnstileToken" as Path<T>)}</p>
-        )}
-      </div>
-    </>
-  );
+  const bot = <Honeypot {...form.register("website" as Path<T>)} />;
   const alert = formError && (
     <p role="alert" className="mt-4 rounded-md border border-destructive p-3 text-destructive">
       {formError}
@@ -165,7 +145,6 @@ function EmailForm({
     defaultValues: {
       agencySlug,
       workEmail: domainMatches(signedInAs, domain) ? signedInAs : "",
-      turnstileToken: "",
       website: "",
     },
   });
@@ -240,7 +219,6 @@ function ProofForm({
       role: "",
       linkedinUrl: "",
       note: "",
-      turnstileToken: "",
       website: "",
     },
   });

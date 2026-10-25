@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Honeypot } from "@/components/forms/field";
-import { Turnstile } from "@/components/forms/turnstile";
 import { sendMagicLink } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import { loginSchema } from "@/lib/validation/auth";
@@ -26,7 +25,6 @@ const COPY = {
 } as const;
 
 const RESEND_SECONDS = 60;
-const VERIFY_FAILED = "Verification failed. Refresh the page and try again.";
 
 const secondary =
   "flex h-12 w-full items-center justify-center gap-2.5 rounded-full border border-line bg-raised px-4 font-semibold transition-colors duration-150 hover:border-text-2 disabled:cursor-not-allowed disabled:text-text-2 disabled:hover:border-line";
@@ -49,8 +47,6 @@ export function LoginCard({
   const [error, setError] = useState<string | null>(initialError);
   const [pending, setPending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [resetKey, setResetKey] = useState(0);
-  const token = useRef("");
   const honeypot = useRef<HTMLInputElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const switched = useRef(false);
@@ -67,34 +63,18 @@ export function LoginCard({
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  /** Invisible Turnstile usually has a token within a second; wait up to 10s for it. */
-  async function turnstileToken() {
-    for (let i = 0; i < 100 && !token.current; i++) await new Promise((r) => setTimeout(r, 100));
-    return token.current;
-  }
-
   async function send(address: string) {
     setError(null);
     const valid = loginSchema.shape.email.safeParse(address);
     if (!valid.success) return setError(valid.error.issues[0].message);
     setPending(true);
-    const turnstile = await turnstileToken();
-    const result: FormResult = turnstile
-      ? await sendMagicLink({
-          email: valid.data,
-          next,
-          turnstileToken: turnstile,
-          website: honeypot.current?.value ?? "",
-        })
-      : { ok: false, error: VERIFY_FAILED };
-    // Tokens are single-use: get a fresh one for the next send.
-    token.current = "";
-    setResetKey((k) => k + 1);
+    const result: FormResult = await sendMagicLink({
+      email: valid.data,
+      next,
+      website: honeypot.current?.value ?? "",
+    });
     setPending(false);
-    if (!result.ok) {
-      const fields = result.fieldErrors;
-      return setError(fields?.email ?? (fields?.turnstileToken ? VERIFY_FAILED : result.error));
-    }
+    if (!result.ok) return setError(result.fieldErrors?.email ?? result.error);
     setSentTo(valid.data);
     setCooldown(RESEND_SECONDS);
     setView("sent");
@@ -117,9 +97,6 @@ export function LoginCard({
       aria-labelledby="login-title"
       className="rise-sm mx-auto w-full max-w-[440px] rounded-[24px] border border-line bg-raised px-5 py-6 shadow-[0_1px_2px_rgba(20,25,40,.05),0_12px_32px_-12px_rgba(20,25,40,.14),0_40px_80px_-32px_rgba(20,25,40,.2)] sm:p-8"
     >
-      {/* Mounted in both views, so "Resend link" has a token ready too. */}
-      <Turnstile resetKey={resetKey} onToken={(t) => (token.current = t)} />
-
       {view === "form" ? (
         <div className="flex flex-col gap-6">
           <div

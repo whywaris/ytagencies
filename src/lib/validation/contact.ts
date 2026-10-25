@@ -30,7 +30,6 @@ export const contactSchema = z
       )
       .optional()
       .or(z.literal("")),
-    turnstileToken: z.string().min(1, "Complete the security check.").max(2048),
     website: z.string().max(200).optional(), // honeypot, checked before validation
   })
   .refine((v) => v.topic !== "report" || !!v.agencyUrl, {

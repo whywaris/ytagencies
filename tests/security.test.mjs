@@ -107,7 +107,7 @@ test("lead contact details: the dashboard checks the plan before reading them", 
 
 test("every server action checks who's asking", () => {
   const guard =
-    /adminContext\(|getOwnedAgency\(|editableAgency\(|proAgency\(|owned\(|getUser\(|guard\(|verifyTurnstile\(|honeypotFilled\(/;
+    /adminContext\(|getOwnedAgency\(|editableAgency\(|proAgency\(|owned\(|getUser\(|guard\(|underRateLimit\(|honeypotFilled\(/;
   const open = new Set(["auth.ts:signOut"]); // signing yourself out needs no check
   for (const f of SRC.filter((f) => f.startsWith("src/lib/actions/"))) {
     const s = read(f);
@@ -179,7 +179,6 @@ test("guide HTML: allowlisted, no scripts, handlers, javascript: links or iframe
 test("outbound fetches: fixed hosts only (and the admin image import's own checks)", () => {
   const allowed = {
     "src/lib/actions/work-samples.ts": /oembedUrl\(video\.id\)/,
-    "src/lib/forms/guard.ts": /challenges\.cloudflare\.com\/turnstile/,
     "src/lib/youtube.ts": /www\.googleapis\.com\/youtube/,
     "src/lib/billing/lemonsqueezy.ts": /\$\{API\}\$\{path\}/,
     "src/lib/auth-providers.ts": /\/auth\/v1\/settings/,
@@ -195,7 +194,7 @@ test("outbound fetches: fixed hosts only (and the admin image import's own check
     assert.match(read(f), allowed[f], f);
   }
   assert.match(read("src/lib/work-samples.ts"), /`https:\/\/www\.youtube\.com\/oembed\?/);
-  for (const f of ["src/lib/actions/work-samples.ts", "src/lib/forms/guard.ts", "src/lib/youtube.ts"])
+  for (const f of ["src/lib/actions/work-samples.ts", "src/lib/youtube.ts"])
     assert.match(read(f), /AbortSignal\.timeout\(/, f);
 });
 
@@ -210,7 +209,6 @@ test("headers: CSP, HSTS, framing, referrer and permissions", () => {
     /key: "Referrer-Policy", value: "strict-origin-when-cross-origin"/,
     /key: "X-Frame-Options", value: "DENY"/,
     /key: "Permissions-Policy"/,
-    /challenges\.cloudflare\.com/, // Turnstile
     /googletagmanager\.com/, // GA (after consent)
     /YT_PLAYER/, // work samples
   ])

@@ -5,7 +5,6 @@ import { gaId } from "./src/lib/analytics";
 import { lsEnvProblems } from "./src/lib/billing/lemonsqueezy-events";
 import { companyTodos } from "./src/lib/company";
 import { indexingAllowed, noindexHeaders } from "./src/lib/indexing";
-import { turnstileKeyProblems } from "./src/lib/turnstile-keys";
 import { mediaHosts } from "./src/lib/media";
 import { PRICING_REDIRECTS, PROPOSALS_REDIRECTS } from "./src/lib/moved-pages";
 
@@ -32,12 +31,12 @@ const GA_HITS =
   "https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com";
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com ${GA_SCRIPT}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
+  `script-src 'self' 'unsafe-inline' ${GA_SCRIPT}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://${supabaseHost}${media.map((h) => ` https://${h}`).join("")} ${GA_HITS} ${AVATAR_HOST} ${YT_THUMBS}`,
   "font-src 'self'",
   `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} ${GA_HITS}${isDev ? " https://va.vercel-scripts.com" : ""}`,
-  `frame-src https://challenges.cloudflare.com ${YT_PLAYER}`,
+  `frame-src ${YT_PLAYER}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -126,16 +125,6 @@ const nextConfig: NextConfig = {
 
 // Launch checklist: list company facts nobody has filled in yet (src/lib/company.ts).
 export default function config(phase: string): NextConfig {
-  // Production builds refuse missing or Cloudflare test Turnstile keys (lib/turnstile-keys.ts).
-  if (phase === PHASE_PRODUCTION_BUILD) {
-    const turnstile = turnstileKeyProblems();
-    if (turnstile.length) {
-      console.error(
-        `✖ Turnstile: ${turnstile.join("; ")}. Set the real keys in Vercel Production.`,
-      );
-      throw new Error("Turnstile keys aren't valid for production");
-    }
-  }
   // Lemon Squeezy: name anything missing for checkout or webhooks (names only, never values). Not
   // fatal: Get Pro then says "temporarily unavailable" and emails the admin (lib/billing/checkout.ts).
   if (phase === PHASE_PRODUCTION_BUILD && process.env.VERCEL_ENV === "production") {

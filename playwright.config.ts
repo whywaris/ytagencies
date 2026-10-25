@@ -17,17 +17,12 @@ export default defineConfig({
   webServer: live
     ? undefined
     : {
-        // Cloudflare's documented always-pass test site key: real keys refuse localhost.
-        // E2E_SKIP_BUILD=1: reuse a build made with the same test key (saves memory on small machines).
+        // E2E_SKIP_BUILD=1: reuse an existing build (saves memory on small machines).
         command: process.env.E2E_SKIP_BUILD
           ? `pnpm start -p ${PORT}`
           : `pnpm build && pnpm start -p ${PORT}`,
         url: `http://localhost:${PORT}/login`,
         timeout: 900_000,
         reuseExistingServer: !process.env.CI,
-        env: {
-          NEXT_PUBLIC_TURNSTILE_SITE_KEY:
-            process.env.E2E_TURNSTILE_SITE_KEY ?? "1x00000000000000000000AA",
-        },
       },
 });

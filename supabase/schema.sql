@@ -263,11 +263,11 @@ create policy "public read" on case_studies for select to authenticated using (
 create policy "owner manage" on case_studies for all to authenticated using (
   exists (select 1 from agencies a where a.id = agency_id and (a.owner_id = auth.uid() or is_admin())));
 
--- Reviews: public sees published; inserts go through a server action (Turnstile + rate limit)
+-- Reviews: public sees published; inserts go through a server action (honeypot + rate limit)
 create policy "public read published" on reviews for select using (status = 'published' or is_admin());
 create policy "admin moderate" on reviews for all using (is_admin()) with check (is_admin());
 
--- Leads: never public. Inserted server-side with the service role after Turnstile + rate limit.
+-- Leads: never public. Inserted server-side with the service role after honeypot + rate limit.
 create policy "admin read" on leads for select to authenticated using (is_admin());
 create policy "agency reads routed leads" on leads for select to authenticated using (
   exists (select 1 from lead_routes lr join agencies a on a.id = lr.agency_id

@@ -14,7 +14,6 @@ import {
   selectClasses,
   textareaClasses,
 } from "@/components/forms/field";
-import { Turnstile } from "@/components/forms/turnstile";
 import { Input } from "@/components/ui/input";
 import { submitGetMatched } from "@/lib/actions/leads";
 import { prefillFrom, STEP1_FIELDS } from "@/lib/get-matched";
@@ -55,7 +54,6 @@ export function GetMatchedForm({
   const [fromSearch, setFromSearch] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState<Sent | null>(null);
-  const [turnstileReset, setTurnstileReset] = useState(0);
   const sentHeading = useRef<HTMLHeadingElement>(null);
 
   const {
@@ -65,7 +63,7 @@ export function GetMatchedForm({
     setError,
     trigger,
     control,
-    formState: { errors, isSubmitting, isSubmitted },
+    formState: { errors, isSubmitting },
   } = useForm<GetMatchedInput, unknown, GetMatchedData>({
     resolver: zodResolver(getMatchedSchema),
     defaultValues: {
@@ -78,7 +76,6 @@ export function GetMatchedForm({
       customerLocation: "",
       priorAgency: "",
       message: "",
-      turnstileToken: "",
       website: "",
       ref: "",
     },
@@ -130,7 +127,6 @@ export function GetMatchedForm({
       setSent({ email: values.email, page: result.data.page, guide: result.data.guide });
       return;
     }
-    setTurnstileReset((n) => n + 1); // tokens are single-use
     setFormError(result.error);
     const fields = Object.keys(result.fieldErrors ?? {});
     for (const [field, message] of Object.entries(result.fieldErrors ?? {}))
@@ -392,16 +388,6 @@ export function GetMatchedForm({
         </Field>
 
         <Honeypot {...register("website")} />
-
-        <div className="contents">
-          <Turnstile
-            resetKey={turnstileReset}
-            onToken={(token) => setValue("turnstileToken", token, { shouldValidate: isSubmitted })}
-          />
-          {err("turnstileToken") && (
-            <p className="text-[14px] text-destructive">{err("turnstileToken")}</p>
-          )}
-        </div>
 
         <div className="flex flex-wrap gap-3">
           <button type="submit" disabled={isSubmitting} className={primary}>

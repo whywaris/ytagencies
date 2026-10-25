@@ -14,7 +14,6 @@ import {
   selectClasses,
   textareaClasses,
 } from "@/components/forms/field";
-import { Turnstile } from "@/components/forms/turnstile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { contactAgency } from "@/lib/actions/leads";
@@ -46,15 +45,13 @@ export function ContactAgencyForm({
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const [turnstileReset, setTurnstileReset] = useState(0);
   const successHeading = useRef<HTMLHeadingElement>(null);
 
   const {
     register,
     handleSubmit,
-    setValue,
     setError,
-    formState: { errors, isSubmitting, isSubmitted },
+    formState: { errors, isSubmitting },
   } = useForm<ContactAgencyInput>({
     resolver: zodResolver(contactAgencySchema),
     defaultValues: {
@@ -70,7 +67,6 @@ export function ContactAgencyForm({
       customerLocation: "",
       message: "",
       consent: false,
-      turnstileToken: "",
       website: "",
     },
   });
@@ -87,7 +83,6 @@ export function ContactAgencyForm({
       setSentTo(values.email);
       return;
     }
-    setTurnstileReset((n) => n + 1);
     setFormError(result.error);
     for (const [field, message] of Object.entries(result.fieldErrors ?? {})) {
       setError(field as keyof ContactAgencyInput, { message });
@@ -255,16 +250,6 @@ export function ContactAgencyForm({
       </div>
 
       <Honeypot {...register("website")} />
-
-      <div className="contents">
-        <Turnstile
-          resetKey={turnstileReset}
-          onToken={(token) => setValue("turnstileToken", token, { shouldValidate: isSubmitted })}
-        />
-        {err("turnstileToken") && (
-          <p className="text-[14px] text-destructive">{err("turnstileToken")}</p>
-        )}
-      </div>
 
       <div className="flex flex-col gap-4">
         <Button type="submit" disabled={isSubmitting} className="self-start">
