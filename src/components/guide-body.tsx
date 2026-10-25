@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Children, Fragment, isValidElement } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
 
+import { GuideBlockView, OUTSIDE_REL, type DirectoryStatsData } from "@/components/guide-blocks";
 import { CopyLinkButton } from "@/components/guides/copy-link";
 import { ZoomableImage } from "@/components/guides/zoom-image";
 import { guideBlocks, imageSize, type Doc } from "@/lib/guide-content";
@@ -12,7 +13,9 @@ import { cn } from "@/lib/utils";
 
 // Renders a guide document (Tiptap JSON, through the allowlist in lib/guide-content.ts) as React,
 // never as an HTML string. Server-rendered on the public page and the admin preview: no editor
-// code. The live budget box is passed in (a server component).
+// code. Typography comes from the shared .guide-content stylesheet (app/globals.css), the same one
+// the editor canvas uses; guide blocks use the same components as the editor. The live budget box
+// and the live directory counts are passed in (server components).
 
 const SITE_HOST = new URL(SITE_URL).host;
 
@@ -55,17 +58,12 @@ function Figure({ src, alt, title }: { src?: unknown; alt?: string; title?: stri
   const size = imageSize(src);
   const caption = title || alt;
   return (
-    <figure className="my-8 flex flex-col gap-3">
+    <figure className="guide-figure">
       {size ? (
         <ZoomableImage src={src} alt={alt ?? ""} width={size.width} height={size.height} />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element -- size unknown, so next/image can't lay it out
-        <img
-          src={src}
-          alt={alt ?? ""}
-          loading="lazy"
-          className="w-full rounded-[12px] border border-line"
-        />
+        <img src={src} alt={alt ?? ""} loading="lazy" />
       )}
       {caption && (
         // Same text as the alt: screen readers already heard it.
@@ -87,39 +85,25 @@ const isImageOnly = (children: React.ReactNode) => {
   return parts.length === 1 && isValidElement(parts[0]) && parts[0].type === Img;
 };
 
-const components: Partial<Components> = {
-  h1: heading("h2", "guide-h2 mt-16 mb-4 text-h2"), // one H1 per page: the title
-  h2: heading("h2", "guide-h2 mt-16 mb-4 text-h2"),
-  h3: heading("h3", "mt-10 mb-3 text-h3"),
-  h4: (props) => <h4 className="mt-8 mb-2 scroll-mt-20 font-semibold" {...props} />,
-  h5: (props) => <h5 className="mt-6 mb-2 font-semibold" {...props} />,
-  h6: (props) => <h6 className="mt-6 mb-2 font-semibold text-text-2" {...props} />,
+// Element styles live in .guide-content (app/globals.css); these only add behaviour: heading ids
+// with a copy-link button, figures, the table's scroll wrapper and link handling.
+const baseComponents: Partial<Components> = {
+  h1: heading("h2", "guide-h2"), // one H1 per page: the title
+  h2: heading("h2", "guide-h2"),
+  h3: heading("h3", ""),
   // A paragraph holding only an image becomes the figure itself (a <figure> can't sit in a <p>).
-  p: (props) =>
-    isImageOnly(props.children) ? <>{props.children}</> : <p className="mb-6" {...props} />,
-  ul: (props) => <ul className="mb-6 list-disc space-y-2 pl-6 marker:text-text-2" {...props} />,
-  ol: (props) => <ol className="mb-6 list-decimal space-y-2 pl-6 marker:text-text-2" {...props} />,
-  strong: (props) => <strong className="font-semibold" {...props} />,
-  blockquote: (props) => (
-    <blockquote className="mb-6 border-l-2 border-line pl-5 text-text-2" {...props} />
-  ),
-  code: (props) => <code className="rounded bg-surface px-1 py-0.5 text-[0.88em]" {...props} />,
-  pre: (props) => (
-    <pre className="mb-6 overflow-x-auto rounded-2xl bg-surface p-5 text-[15px]" {...props} />
-  ),
-  hr: () => <hr className="my-12 border-line" />,
+  p: (props) => (isImageOnly(props.children) ? <>{props.children}</> : <p {...props} />),
   table: (props) => (
-    <div className="mb-8 overflow-x-auto">
-      <table className="w-full min-w-[480px] border-collapse text-left text-[16px]" {...props} />
+    <div className="guide-table">
+      <table {...props} />
     </div>
   ),
-  th: (props) => (
-    <th className="border-b border-text-2/40 px-3 py-2.5 font-semibold first:pl-0" {...props} />
-  ),
-  td: (props) => (
-    <td className="border-b border-line px-3 py-2.5 align-top first:pl-0" {...props} />
-  ),
-  a: ({ href = "", children }) => {
+  img: Img,
+};
+
+/** Links: ours stay in the app, anchors in the page, everything else opens in a new tab. */
+const linkFor = (outsideRel: string): Components["a"] =>
+  function GuideLink({ href = "", children }) {
     const path = internalPath(href);
     if (path) {
       return (
@@ -136,34 +120,52 @@ const components: Partial<Components> = {
       );
     }
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={link}>
+      <a href={href} target="_blank" rel={outsideRel} className={link}>
         {children}
         <span className="sr-only"> (opens in a new tab)</span>
       </a>
     );
-  },
-  img: Img,
-};
+  };
+
+const DEFAULT_COMPONENTS = { ...baseComponents, a: linkFor("noopener noreferrer") };
+const NOFOLLOW_COMPONENTS = { ...baseComponents, a: linkFor(OUTSIDE_REL) };
 
 export function GuideBody({
   doc,
   budgetRange,
+  directoryStats = () => null,
+  nofollowOutside = false,
 }: {
   doc: Doc;
   budgetRange: (service: string) => React.ReactNode;
+  /** Live directory counts for a directory stats block (a server component). */
+  directoryStats?: (service: string) => React.ReactNode;
+  /** Links to other sites get rel="nofollow" too (the Alternatives template). */
+  nofollowOutside?: boolean;
 }) {
   const { blocks } = guideBlocks(doc, guideImageAllowed);
+  const components = nofollowOutside ? NOFOLLOW_COMPONENTS : DEFAULT_COMPONENTS;
   return (
-    <>
+    <div className="guide-content">
       {blocks.map((block, i) =>
         block.kind === "budget-range" ? (
           <Fragment key={i}>{budgetRange(block.service)}</Fragment>
+        ) : block.kind === "block" ? (
+          <div key={i} className="guide-block" data-guide-block={block.type}>
+            {block.type === "directoryStats" ? (
+              directoryStats(String(block.attrs.service ?? ""))
+            ) : (
+              <GuideBlockView type={block.type} attrs={block.attrs} id={block.id} number={block.number} />
+            )}
+          </div>
         ) : (
           <Fragment key={i}>
             {toJsxRuntime(block.tree, { Fragment, jsx, jsxs, components })}
           </Fragment>
         ),
       )}
-    </>
+    </div>
   );
 }
+
+export type { DirectoryStatsData };

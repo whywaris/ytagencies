@@ -1462,3 +1462,15 @@ comment on table rate_limits is
 comment on table page_view_events is
   'One row per visitor per directory page for 90 days (record_page_view). RLS on, no policies: service role only.';
 revoke all on rate_limits from anon, authenticated;
+
+-- ───────── Guide blocks and the Alternatives template (migration 20261103000100) ─────────
+alter table guides
+  add column cover_alt text check (char_length(cover_alt) <= 200),
+  add column prices_checked_on date;
+grant select (cover_alt, prices_checked_on) on guides to anon, authenticated;
+
+insert into guide_categories (name, slug, description, color, sort_order, show_in_tabs)
+select 'Alternatives', 'alternatives',
+  'Honest comparisons of the platforms and services people use to hire YouTube help.',
+  'violet', coalesce((select max(sort_order) + 1 from guide_categories), 0), true
+where not exists (select 1 from guide_categories where slug = 'alternatives');

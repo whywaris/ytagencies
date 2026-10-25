@@ -19,6 +19,7 @@ export function GuideCover({
   sizes,
   priority = false,
   className,
+  alt = "",
 }: {
   slug: string;
   coverPath: string | null;
@@ -27,6 +28,8 @@ export function GuideCover({
   sizes: string;
   priority?: boolean;
   className?: string;
+  /** The cover's alt text (set in the editor); empty when it only decorates. */
+  alt?: string;
 }) {
   return (
     <div
@@ -44,7 +47,7 @@ export function GuideCover({
       ) : coverPath ? (
         <Image
           src={mediaUrl(coverPath)}
-          alt=""
+          alt={alt}
           fill
           sizes={sizes}
           // Next 16: preload replaces the deprecated priority (LCP image).

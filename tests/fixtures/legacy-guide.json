@@ -1,0 +1,346 @@
+{
+  "md": "## Pricing basics\n\nAgencies charge **monthly** or *per video*. See [our directory](/youtube-ads-agencies) and [Google](https://google.com).\n\n- One\n- Two\n\n1. First\n2. Second\n\n> [!tip] Ask for references.\n\n### Contracts\n\n| Plan | Price |\n| --- | --- |\n| Basic | $1,000 |\n\n{{budget-range youtube-ads-agencies}}\n\n#### Small print\n\n`code` and ---\n\n---\n\nThe end.",
+  "doc": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 2
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Pricing basics"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Agencies charge "
+          },
+          {
+            "type": "text",
+            "text": "monthly",
+            "marks": [
+              {
+                "type": "bold"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " or "
+          },
+          {
+            "type": "text",
+            "text": "per video",
+            "marks": [
+              {
+                "type": "italic"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": ". See "
+          },
+          {
+            "type": "text",
+            "text": "our directory",
+            "marks": [
+              {
+                "type": "link",
+                "attrs": {
+                  "href": "/youtube-ads-agencies"
+                }
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " and "
+          },
+          {
+            "type": "text",
+            "text": "Google",
+            "marks": [
+              {
+                "type": "link",
+                "attrs": {
+                  "href": "https://google.com/"
+                }
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": "."
+          }
+        ]
+      },
+      {
+        "type": "bulletList",
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "One"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Two"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "orderedList",
+        "attrs": {
+          "start": 1
+        },
+        "content": [
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "First"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "listItem",
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Second"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "blockquote",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Tip: ",
+                "marks": [
+                  {
+                    "type": "bold"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "text": "Ask for references."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 3
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Contracts"
+          }
+        ]
+      },
+      {
+        "type": "table",
+        "content": [
+          {
+            "type": "tableRow",
+            "content": [
+              {
+                "type": "tableHeader",
+                "attrs": {
+                  "colspan": 1,
+                  "rowspan": 1
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Plan"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableHeader",
+                "attrs": {
+                  "colspan": 1,
+                  "rowspan": 1
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Price"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "tableRow",
+            "content": [
+              {
+                "type": "tableCell",
+                "attrs": {
+                  "colspan": 1,
+                  "rowspan": 1
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Basic"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "tableCell",
+                "attrs": {
+                  "colspan": 1,
+                  "rowspan": 1
+                },
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "$1,000"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "embed",
+        "attrs": {
+          "kind": "budget-range",
+          "service": "youtube-ads-agencies"
+        }
+      },
+      {
+        "type": "heading",
+        "attrs": {
+          "level": 4
+        },
+        "content": [
+          {
+            "type": "text",
+            "text": "Small print"
+          }
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "code",
+            "marks": [
+              {
+                "type": "code"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": " and ---"
+          }
+        ]
+      },
+      {
+        "type": "horizontalRule"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "The end."
+          }
+        ]
+      }
+    ]
+  },
+  "html": "<h2>Pricing basics</h2><p>Agencies charge <strong>monthly</strong> or <em>per video</em>. See <a href=\"/youtube-ads-agencies\">our directory</a> and <a href=\"https://google.com/\">Google</a>.</p><ul><li><p>One</p></li><li><p>Two</p></li></ul><ol><li><p>First</p></li><li><p>Second</p></li></ol><blockquote><p><strong>Tip: </strong>Ask for references.</p></blockquote><h3>Contracts</h3><table><thead><tr><th>Plan</th><th>Price</th></tr></thead><tbody><tr><td>Basic</td><td>$1,000</td></tr></tbody></table><div data-embed=\"budget-range\" data-service=\"youtube-ads-agencies\"></div><h4>Small print</h4><p><code>code</code> and ---</p><hr><p>The end.</p>",
+  "outline": [
+    {
+      "id": "pricing-basics",
+      "text": "Pricing basics",
+      "depth": 2
+    },
+    {
+      "id": "contracts",
+      "text": "Contracts",
+      "depth": 3
+    }
+  ],
+  "blockKinds": [
+    "html",
+    "budget-range",
+    "html"
+  ],
+  "words": 35
+}

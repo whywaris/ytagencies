@@ -10,6 +10,7 @@ import {
   type CardCategory,
 } from "@/components/guides/guide-parts";
 import { colorHex } from "@/lib/guide-categories";
+import { alternativesDisclosure, longDateOf, shortTitle } from "@/lib/guide-template";
 import { ShareBar } from "@/components/guides/share-bar";
 import { TableOfContents } from "@/components/guides/toc";
 import { TocPanel } from "@/components/toc-panel";
@@ -35,6 +36,10 @@ export type ArticleGuide = {
   keyTakeaways: string[];
   numberedSections: boolean;
   categoryId?: string | null;
+  excerpt?: string | null;
+  coverAlt?: string | null;
+  /** Alternatives: when competitor prices were checked (yyyy-mm-dd). */
+  pricesCheckedOn?: string | null;
 };
 
 const dateText = (d: string) =>
@@ -55,6 +60,8 @@ export function GuideArticle({
   budgetRange,
   generatedCover = true,
   categories = [],
+  directoryStats,
+  template = "default",
 }: {
   guide: ArticleGuide;
   /** First related directory page's service: the second breadcrumb step. */
@@ -69,14 +76,23 @@ export function GuideArticle({
   generatedCover?: boolean;
   /** Guide categories: the chip above the H1 and the "More guides" covers. */
   categories?: (CardCategory & { id: string })[];
+  /** Live directory counts for directory stats blocks (a server component). */
+  directoryStats?: (service: string) => React.ReactNode;
+  /** "alternatives": the Alternatives hero, disclosure and nofollow outside links. */
+  template?: "default" | "alternatives";
 }) {
   const categoryOf = (id?: string | null) => (id ? categories.find((c) => c.id === id) : null) ?? null;
   const category = categoryOf(guide.categoryId);
   const groups = groupOutline(guideBlocks(guide.doc, guideImageAllowed).outline);
   const numbered = guide.numberedSections;
 
+  const alternatives = template === "alternatives" && !!category;
+
   return (
     <div className="mx-auto grid max-w-content grid-cols-1 px-4 pt-8 pb-20 min-[1100px]:grid-cols-[200px_minmax(0,680px)_40px] min-[1100px]:justify-center min-[1100px]:gap-x-12 md:px-6 md:pt-12">
+      {alternatives ? (
+        <AlternativesHeader guide={guide} category={category} generatedCover={generatedCover} />
+      ) : (
       <header className="flex max-w-reading flex-col gap-6 min-[1100px]:col-start-2">
         <nav aria-label="Breadcrumb">
           <ol className="flex flex-wrap items-center gap-x-2 text-small">
@@ -130,8 +146,10 @@ export function GuideArticle({
           sizes="(min-width: 720px) 680px, 100vw"
           priority
           className="mt-2"
+          alt={guide.coverAlt ?? ""}
         />
       </header>
+      )}
 
       {groups.length > 0 && (
         <>
@@ -163,7 +181,12 @@ export function GuideArticle({
           </section>
         )}
 
-        <GuideBody doc={guide.doc} budgetRange={budgetRange} />
+        <GuideBody
+          doc={guide.doc}
+          budgetRange={budgetRange}
+          directoryStats={directoryStats}
+          nofollowOutside={alternatives}
+        />
 
         {agencies.length > 0 && (
           <section aria-labelledby="agencies-mentioned" className="mt-16 flex flex-col gap-4">
@@ -247,5 +270,85 @@ export function GuideArticle({
         </section>
       )}
     </div>
+  );
+}
+
+/**
+ * The Alternatives hero: breadcrumb, category chip, H1, the excerpt as the subtitle and the cover
+ * on the right (under it on small screens), the byline, and the disclosure, which this category
+ * always shows.
+ */
+function AlternativesHeader({
+  guide,
+  category,
+  generatedCover,
+}: {
+  guide: ArticleGuide;
+  category: CardCategory;
+  generatedCover: boolean;
+}) {
+  return (
+    <header className="grid gap-8 min-[1100px]:col-span-3 md:grid-cols-[minmax(0,1fr)_minmax(0,400px)] md:items-center">
+      <div className="flex min-w-0 flex-col gap-5">
+        <nav aria-label="Breadcrumb">
+          <ol className="flex flex-wrap items-center gap-x-2 text-small">
+            <li>
+              <Link href="/guides" className="flex min-h-11 items-center hover:text-text">
+                Guides
+              </Link>
+            </li>
+            <li className="flex items-center gap-2">
+              <span aria-hidden>›</span>
+              <Link href={`/guides/category/${category.slug}`} className="flex min-h-11 items-center hover:text-text">
+                {category.name}
+              </Link>
+            </li>
+            <li className="flex items-center gap-2">
+              <span aria-hidden>›</span>
+              <span aria-current="page" className="text-text">
+                {shortTitle(guide.title)}
+              </span>
+            </li>
+          </ol>
+        </nav>
+        <Link
+          href={`/guides/category/${category.slug}`}
+          className="-mb-1 self-start rounded-full px-3 py-1 text-[13px] font-semibold tracking-[0.06em] text-white uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          style={{ background: colorHex(category.color) }}
+        >
+          {category.name}
+        </Link>
+        <h1 className="text-display">{guide.title}</h1>
+        {guide.excerpt && <p className="text-[19px] text-text-2">{guide.excerpt}</p>}
+        <div className="flex flex-col gap-1.5 text-[15px] text-text-2">
+          {guide.author && (
+            <p className="flex items-center gap-2.5">
+              <AuthorAvatar author={guide.author} size={32} />
+              <span>
+                Written by{" "}
+                <Link href={`/authors/${guide.author.slug}`} className="font-medium text-text hover:underline">
+                  {guide.author.name}
+                </Link>
+                {guide.author.role && <> · {guide.author.role}</>}
+              </span>
+            </p>
+          )}
+          <p>
+            Updated <time dateTime={guide.updatedAt}>{dateText(guide.updatedAt)}</time> · {guide.readMinutes} min read
+          </p>
+        </div>
+        <p className="rounded-xl bg-surface px-4 py-3 text-[14.5px] text-text-2">
+          {alternativesDisclosure(guide.pricesCheckedOn ? longDateOf(guide.pricesCheckedOn) : "[date]")}
+        </p>
+      </div>
+      <GuideCover
+        slug={guide.slug}
+        coverPath={guide.coverPath}
+        title={generatedCover ? undefined : guide.title}
+        sizes="(min-width: 768px) 400px, 100vw"
+        priority
+        alt={guide.coverAlt ?? ""}
+      />
+    </header>
   );
 }

@@ -6,6 +6,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
+import { getDirectoryStats } from "@/lib/data/guides";
+import { placeholdersIn } from "@/lib/guide-blocks";
+import { prePublishChecks } from "@/lib/guide-template";
 import {
   docText,
   docToHtml,
@@ -62,6 +65,12 @@ const guideSchema = z.object({
   // An upload in guide-media, a link to our Cloudflare image host (lib/media.ts), or an older
   // upload in agency-media.
   coverPath: z.string().trim().max(500).nullable(),
+  coverAlt: z.string().trim().max(200, "Keep the cover alt text under 200 characters."),
+  // Alternatives only: when competitor prices were last checked (yyyy-mm-dd).
+  pricesCheckedOn: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v), "Use a date for Prices checked on."),
   seoTitle: z.string().trim().max(70, "Keep the SEO title under 70 characters."),
   seoDescription: z.string().trim().max(200, "Keep the SEO description under 200 characters."),
   authorId: uuid.nullable(),
@@ -120,6 +129,8 @@ export async function saveGuide(id: string | null, raw: unknown): Promise<FormRe
     body_json: doc as unknown as Json,
     body_html: html,
     cover_path: v.coverPath,
+    cover_alt: v.coverAlt || null,
+    prices_checked_on: v.pricesCheckedOn || null,
     seo_title: v.seoTitle || null,
     seo_description: v.seoDescription || null,
     author_id: v.authorId,
@@ -231,26 +242,34 @@ export async function setGuideStatus(
   const { data: g } = await ctx.db
     .from("guides")
     .select(
-      "slug, title, body_md, body_json, published_at, draft_json, draft_html, draft_meta, category_id",
+      "slug, title, excerpt, body_md, body_json, published_at, draft_json, draft_html, draft_meta, category_id, cover_path, cover_alt, seo_description, prices_checked_on",
     )
     .eq("id", id)
     .maybeSingle();
   if (!g) return { ok: false, error: "This guide was deleted." };
   const hasDraft = !!g.draft_json;
   if (v.action !== "unpublish") {
-    // What goes live: the unpublished changes if there are any.
+    // What goes live: the unpublished changes if there are any, checked with the editor's own
+    // pre-publish rules (lib/guide-template.ts).
     const doc = guideDoc(g.draft_json ?? g.body_json, g.body_md);
-    if (!docText(doc)) return { ok: false, error: "Write the guide before publishing it." };
-    // Every live guide has a category (the unpublished changes' one if they set it).
-    const meta = (g.draft_meta ?? {}) as { category_id?: string | null };
-    if (!(meta.category_id !== undefined ? meta.category_id : g.category_id))
-      return { ok: false, error: "Choose a category before publishing." };
-    const noAlt = imagesWithoutAlt(doc);
-    if (noAlt)
-      return {
-        ok: false,
-        error: `Add alt text to ${noAlt === 1 ? "1 image" : `${noAlt} images`} before publishing (click the image, then Alt text).`,
-      };
+    const live = { ...g, ...((g.draft_meta ?? {}) as Partial<typeof g>) };
+    const { data: category } = live.category_id
+      ? await ctx.db.from("guide_categories").select("slug").eq("id", live.category_id).maybeSingle()
+      : { data: null };
+    const blocking = prePublishChecks({
+      categoryId: live.category_id,
+      categorySlug: category?.slug ?? null,
+      excerpt: live.excerpt ?? "",
+      coverPath: live.cover_path,
+      coverAlt: live.cover_alt ?? "",
+      seoDescription: live.seo_description ?? "",
+      pricesCheckedOn: live.prices_checked_on,
+      hasText: !!docText(doc),
+      imagesWithoutAlt: imagesWithoutAlt(doc),
+      placeholders: placeholdersIn(docText(doc)).length,
+    }).filter((c) => c.blocking);
+    if (blocking.length)
+      return { ok: false, error: `Before publishing: ${blocking.map((c) => c.label.toLowerCase()).join(", ")}.` };
   }
 
   const now = new Date();
@@ -500,4 +519,18 @@ export async function setGuideFeatured(id: string, on: boolean): Promise<FormRes
   revalidatePath("/guides");
   revalidatePath("/admin/guides");
   return { ok: true, data: null };
+}
+
+/** Live directory counts for a directory stats block in the editor (the page reads the same). */
+export async function directoryStatsFor(service: string): Promise<
+  FormResult<{ agencies: number; verified: number; offering: number; serviceName: string | null }>
+> {
+  const ctx = await adminContext();
+  if (!ctx) return { ok: false, error: NOT_ADMIN };
+  const slug = typeof service === "string" && /^[a-z0-9-]{0,80}$/.test(service) ? service : "";
+  try {
+    return { ok: true, data: await getDirectoryStats(slug) };
+  } catch {
+    return { ok: false, error: "Couldn't count agencies." };
+  }
 }

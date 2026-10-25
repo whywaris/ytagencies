@@ -439,105 +439,90 @@
   }
 }
 
-/* Admin guide editor canvas (components/admin/rich-editor.tsx): close to the public guide body. */
-.guide-prose {
-  font-size: 17px;
-  line-height: 1.7;
+/* Guide text: ONE stylesheet for the public guide body (components/guide-body.tsx) and the editor
+   canvas (components/admin/rich-editor.tsx), so both look the same. Guide blocks
+   (components/guide-blocks.tsx, inside .guide-block) style themselves and are left alone. */
+.guide-content {
+  font-size: 18px;
+  line-height: 1.65;
 }
-.guide-prose > * + * {
-  margin-top: 1rem;
+.guide-content :is(h1, h2):not(.guide-block *) {
+  @apply mt-16 mb-4 scroll-mt-20 text-h2;
 }
-.guide-prose h2 {
-  margin-top: 2.5rem;
-  font-size: 1.6em;
-  line-height: 1.25;
-  font-weight: 600;
+.guide-content h3:not(.guide-block *) {
+  @apply mt-10 mb-3 scroll-mt-20 text-h3;
 }
-.guide-prose h3 {
-  margin-top: 2rem;
-  font-size: 1.3em;
-  line-height: 1.3;
-  font-weight: 600;
+.guide-content h4:not(.guide-block *) {
+  @apply mt-8 mb-2 scroll-mt-20 font-semibold;
 }
-.guide-prose :is(h4, h5, h6) {
-  margin-top: 1.5rem;
-  font-weight: 600;
+.guide-content h5:not(.guide-block *) {
+  @apply mt-6 mb-2 font-semibold;
 }
-.guide-prose h6 {
-  color: var(--text-2);
+.guide-content h6:not(.guide-block *) {
+  @apply mt-6 mb-2 font-semibold text-text-2;
 }
-.guide-prose ul {
-  list-style: disc;
-  padding-left: 1.5rem;
+.guide-content p:not(.guide-block *) {
+  @apply mb-6;
 }
-.guide-prose ol {
-  list-style: decimal;
-  padding-left: 1.5rem;
+.guide-content ul:not(.guide-block *) {
+  @apply mb-6 list-disc space-y-2 pl-6 marker:text-text-2;
 }
-.guide-prose li > p {
-  margin: 0.25rem 0;
+.guide-content ol:not(.guide-block *) {
+  @apply mb-6 list-decimal space-y-2 pl-6 marker:text-text-2;
 }
-.guide-prose blockquote {
-  border-left: 2px solid var(--line);
-  padding-left: 1.25rem;
-  color: var(--text-2);
+.guide-content strong:not(.guide-block *) {
+  @apply font-semibold;
 }
-.guide-prose a {
-  color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.guide-content blockquote:not(.guide-block *) {
+  @apply mb-6 border-l-2 border-line pl-5 text-text-2;
 }
-.guide-prose code {
-  border-radius: 4px;
-  background: var(--surface);
-  padding: 0.1em 0.3em;
-  font-size: 0.88em;
+.guide-content code:not(.guide-block *) {
+  @apply rounded bg-surface px-1 py-0.5 text-[0.88em];
 }
-.guide-prose pre {
-  overflow-x: auto;
-  border-radius: 12px;
-  background: var(--surface);
-  padding: 1rem 1.25rem;
+.guide-content pre:not(.guide-block *) {
+  @apply mb-6 overflow-x-auto rounded-2xl bg-surface p-5 text-[15px];
 }
-.guide-prose pre code {
-  background: none;
-  padding: 0;
+.guide-content hr:not(.guide-block *) {
+  @apply my-12 border-line;
 }
-.guide-prose hr {
-  margin: 2rem 0;
-  border-color: var(--line);
+.guide-content a:not(.guide-block *) {
+  @apply text-accent underline underline-offset-2;
 }
-.guide-prose hr.ProseMirror-selectednode {
-  border-color: var(--accent);
+.guide-content :is(.guide-table, .tableWrapper) {
+  @apply mb-8 overflow-x-auto;
 }
-.guide-prose .tableWrapper {
-  overflow-x: auto;
+.guide-content table:not(.guide-block *) {
+  @apply w-full min-w-[480px] border-collapse text-left text-[16px];
 }
-.guide-prose table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 16px;
+.guide-content th:not(.guide-block *) {
+  @apply border-b border-text-2/40 px-3 py-2.5 font-semibold first:pl-0;
 }
-.guide-prose :is(th, td) {
+.guide-content td:not(.guide-block *) {
+  @apply border-b border-line px-3 py-2.5 align-top first:pl-0;
+}
+.guide-content .guide-figure {
+  @apply my-8 flex flex-col gap-3;
+}
+.guide-content .guide-figure img {
+  @apply w-full rounded-[12px] border border-line;
+}
+
+/* Editor-only states on the shared stylesheet. */
+.guide-content.ProseMirror :is(th, td) {
   position: relative;
-  border: 1px solid var(--line);
-  padding: 0.5rem 0.75rem;
-  vertical-align: top;
-  text-align: left;
 }
-.guide-prose th {
-  background: var(--surface);
-  font-weight: 600;
-}
-.guide-prose .selectedCell::after {
+.guide-content .selectedCell::after {
   position: absolute;
   inset: 0;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   content: "";
   pointer-events: none;
 }
-.guide-prose p.is-editor-empty:first-child::before,
-.guide-prose p.is-empty:only-child::before {
+.guide-content hr.ProseMirror-selectednode {
+  border-color: var(--accent);
+}
+.guide-content p.is-editor-empty:first-child::before,
+.guide-content p.is-empty:only-child::before {
   float: left;
   height: 0;
   color: var(--text-2);

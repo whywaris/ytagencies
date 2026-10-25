@@ -259,3 +259,18 @@ export function collectionPageJsonLd(c: {
     },
   };
 }
+
+/** The options a comparison guide compares, in order (Alternatives guides). */
+export function comparisonListJsonLd(name: string, items: { name: string; path: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name,
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      url: absolute(item.path),
+    })),
+  };
+}

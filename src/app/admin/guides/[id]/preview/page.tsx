@@ -2,9 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BudgetRange } from "@/components/guides/budget-range";
+import { DirectoryStatsLive } from "@/components/guides/directory-stats";
 import { GuideArticle } from "@/components/guides/guide-article";
 import { requireAdmin } from "@/lib/auth";
-import { AUTHOR_COLUMNS, resolveCombos, toAuthor, type AuthorRow } from "@/lib/data/guides";
+import {
+  AUTHOR_COLUMNS,
+  getGuideCategories,
+  resolveCombos,
+  toAuthor,
+  type AuthorRow,
+} from "@/lib/data/guides";
+import { isAlternatives } from "@/lib/guide-template";
 import { docReadMinutes, guideDoc } from "@/lib/guide-content";
 import { absoluteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,7 +37,11 @@ export default async function GuidePreviewPage({
   // Unpublished changes if there are any, else the live guide.
   // ponytail: the author box shows the live author until "Update" if only the author changed.
   const g = { ...row, ...(row.draft_meta as Partial<typeof row> | null) };
-  const related = await resolveCombos(g.related_combos);
+  const [related, categories] = await Promise.all([
+    resolveCombos(g.related_combos),
+    getGuideCategories(),
+  ]);
+  const category = categories.find((c) => c.id === g.category_id);
   const previewDoc = guideDoc(g.draft_json ?? g.body_json, g.body_md);
 
   return (
@@ -52,7 +64,14 @@ export default async function GuidePreviewPage({
           author: toAuthor(g.author as AuthorRow | null),
           keyTakeaways: g.key_takeaways,
           numberedSections: g.numbered_sections,
+          categoryId: g.category_id,
+          excerpt: g.excerpt,
+          coverAlt: g.cover_alt,
+          pricesCheckedOn: g.prices_checked_on,
         }}
+        categories={categories}
+        template={isAlternatives(category?.slug) ? "alternatives" : "default"}
+        directoryStats={(service) => <DirectoryStatsLive service={service} />}
         primaryService={related[0]?.service ?? null}
         related={related}
         relatedGuides={[]}

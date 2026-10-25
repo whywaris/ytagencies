@@ -1765,5 +1765,26 @@ await as("authenticated", OTHER, async () => {
   ok(own.length === 1 && own[0].id === OTHER, "profiles: only their own");
 });
 
+console.log("— guide blocks and Alternatives —");
+await db.exec("reset role");
+ok(
+  (await rows("select 1 from guide_categories where slug = 'alternatives'")).length === 1,
+  "guide_categories: the Alternatives category exists",
+);
+if (MIGRATIONS) {
+  const example = (
+    await rows(`select g.status, c.slug as category from guides g
+      left join guide_categories c on c.id = g.category_id where g.slug = 'fiverr-alternatives'`)
+  )[0];
+  ok(example?.status === "draft" && example.category === "alternatives", "example guide: a draft in Alternatives");
+}
+await as("anon", null, async () => {
+  ok(
+    (await rows("select slug from guides where slug = 'fiverr-alternatives'")).length === 0,
+    "example guide: not readable by anon while it's a draft",
+  );
+  ok(!(await fails("select cover_alt, prices_checked_on from guides limit 1")), "guides: anon can read cover_alt and prices_checked_on");
+});
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

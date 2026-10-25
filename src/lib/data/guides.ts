@@ -134,7 +134,7 @@ export const getLiveGuides = cache(async (): Promise<GuideSummary[]> => {
 export const getGuideBySlug = cache(async (slug: string) => {
   const { data, error } = await createStaticClient()
     .from("guides")
-    .select(`${SUMMARY_COLUMNS}, seo_title, key_takeaways, numbered_sections`)
+    .select(`${SUMMARY_COLUMNS}, seo_title, key_takeaways, numbered_sections, cover_alt, prices_checked_on`)
     .eq("slug", slug)
     .in("status", LIVE_STATUSES)
     .lte("published_at", new Date().toISOString())
@@ -145,6 +145,8 @@ export const getGuideBySlug = cache(async (slug: string) => {
     seo_title: string | null;
     key_takeaways: string[];
     numbered_sections: boolean;
+    cover_alt: string | null;
+    prices_checked_on: string | null;
   };
   return {
     ...summary(row),
@@ -152,6 +154,8 @@ export const getGuideBySlug = cache(async (slug: string) => {
     seoTitle: row.seo_title,
     keyTakeaways: row.key_takeaways,
     numberedSections: row.numbered_sections,
+    coverAlt: row.cover_alt,
+    pricesCheckedOn: row.prices_checked_on,
     related: await resolveCombos(row.related_combos),
   };
 });
@@ -297,4 +301,37 @@ export const searchLiveGuides = cache(async (q: string) => {
       .filter((g) => guideMatches({ title: g.title, excerpt: g.excerpt, text: text(g.body_html) }, q))
       .map((g) => g.slug),
   );
+});
+
+/**
+ * Live counts for a directory stats block: published agencies, how many are Verified, and how
+ * many offer the block's service. Read at render (ISR), never typed into the guide.
+ */
+export const getDirectoryStats = cache(async (serviceSlug: string) => {
+  const db = createStaticClient();
+  const service = serviceSlug
+    ? (await getServices()).find((s) => s.slug === serviceSlug) ?? null
+    : null;
+  const [all, verified, offering] = await Promise.all([
+    db.from("agencies").select("id", { count: "exact", head: true }).eq("status", "published"),
+    db
+      .from("agencies")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published")
+      .eq("is_verified", true),
+    service
+      ? db
+          .from("agencies")
+          .select("id, agency_services!inner(service_id)", { count: "exact", head: true })
+          .eq("status", "published")
+          .eq("agency_services.service_id", service.id)
+      : null,
+  ]);
+  if (all.error || verified.error || offering?.error) throw new Error("Couldn't count agencies");
+  return {
+    agencies: all.count ?? 0,
+    verified: verified.count ?? 0,
+    offering: offering?.count ?? 0,
+    serviceName: service?.name ?? null,
+  };
 });

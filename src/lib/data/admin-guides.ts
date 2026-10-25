@@ -56,6 +56,8 @@ type Row = {
   draft_meta: unknown;
   draft_updated_at: string | null;
   cover_path: string | null;
+  cover_alt: string | null;
+  prices_checked_on: string | null;
   seo_title: string | null;
   seo_description: string | null;
   author_id: string | null;
@@ -79,6 +81,8 @@ export function toEditorGuide(row: Row): EditorGuide {
     // Unpublished changes first; guides from before the Tiptap editor convert from Markdown.
     body: guideDoc(g.draft_json ?? g.body_json, g.body_md),
     coverPath: g.cover_path,
+    coverAlt: g.cover_alt ?? "",
+    pricesCheckedOn: g.prices_checked_on ?? "",
     seoTitle: g.seo_title ?? "",
     seoDescription: g.seo_description ?? "",
     authorId: g.author_id,
@@ -103,6 +107,8 @@ export const NEW_GUIDE: EditorGuide = {
   excerpt: "",
   body: emptyDoc(),
   coverPath: null,
+  coverAlt: "",
+  pricesCheckedOn: "",
   seoTitle: "",
   seoDescription: "",
   authorId: null,
@@ -119,10 +125,10 @@ export const NEW_GUIDE: EditorGuide = {
 
 
 /** Guide categories for the editor's Category select, in order. */
-export async function categoryOptions(): Promise<{ id: string; name: string }[]> {
+export async function categoryOptions(): Promise<{ id: string; name: string; slug: string }[]> {
   const { data, error } = await createAdminClient()
     .from("guide_categories")
-    .select("id, name")
+    .select("id, name, slug")
     .order("sort_order")
     .order("name");
   if (error) throw new Error("Couldn't load categories");

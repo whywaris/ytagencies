@@ -924,6 +924,8 @@ export type Database = {
           draft_updated_at: string | null;
           content_updated_at: string | null;
           cover_path: string | null;
+          cover_alt: string | null;
+          prices_checked_on: string | null;
           created_at: string;
           excerpt: string | null;
           id: string;
@@ -951,6 +953,8 @@ export type Database = {
           draft_updated_at?: string | null;
           content_updated_at?: string | null;
           cover_path?: string | null;
+          cover_alt?: string | null;
+          prices_checked_on?: string | null;
           created_at?: string;
           excerpt?: string | null;
           id?: string;
@@ -978,6 +982,8 @@ export type Database = {
           draft_updated_at?: string | null;
           content_updated_at?: string | null;
           cover_path?: string | null;
+          cover_alt?: string | null;
+          prices_checked_on?: string | null;
           created_at?: string;
           excerpt?: string | null;
           id?: string;

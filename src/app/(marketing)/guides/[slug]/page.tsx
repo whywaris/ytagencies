@@ -11,7 +11,10 @@ import {
   relatedGuides,
 } from "@/lib/data/guides";
 import { firstThatFits } from "@/lib/directory";
-import { articleJsonLd, breadcrumbJsonLd } from "@/lib/seo/json-ld";
+import { articleJsonLd, breadcrumbJsonLd, comparisonListJsonLd, faqJsonLd } from "@/lib/seo/json-ld";
+import { DirectoryStatsLive } from "@/components/guides/directory-stats";
+import { comparisonItems, faqItems } from "@/lib/guide-blocks";
+import { isAlternatives } from "@/lib/guide-template";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { absoluteUrl, BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
 import { liveOnly } from "@/lib/sitemap-core";
@@ -57,6 +60,10 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
     getGuideCategories(),
   ]);
   const category = categories.find((c) => c.id === g.categoryId);
+  const alternatives = isAlternatives(category?.slug);
+  // One FAQPage per page, from every FAQ block; Alternatives also list the compared options.
+  const faqs = faqItems(g.doc.content);
+  const compared = alternatives ? comparisonItems(g.doc.content) : [];
   // Links out only to live, indexable pages (the sitemap's set).
   const related = liveOnly(g.related, live);
   const mentioned = agencySlugsIn(g.doc, SITE_DOMAIN)
@@ -87,6 +94,15 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
           image: `/og/guide/${g.slug}`,
         })}
       />
+      {faqs.length > 0 && <JsonLd data={faqJsonLd(faqs)} />}
+      {compared.length > 0 && (
+        <JsonLd
+          data={comparisonListJsonLd(
+            g.title,
+            compared.map((c) => ({ name: c.name, path: c.anchor ? `${path}#${c.anchor}` : path })),
+          )}
+        />
+      )}
       <GuideArticle
         guide={g}
         primaryService={related[0]?.service ?? null}
@@ -95,7 +111,9 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
         agencies={mentioned}
         shareUrl={absoluteUrl(path)}
         budgetRange={(service) => <BudgetRange service={service} />}
+        directoryStats={(service) => <DirectoryStatsLive service={service} />}
         categories={categories}
+        template={alternatives ? "alternatives" : "default"}
       />
     </>
   );

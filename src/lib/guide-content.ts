@@ -5,6 +5,8 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 
+import { blockText, isBlockType, sanitizeBlock, type BlockAttrs, type BlockType } from "./guide-blocks.ts";
+
 // Guide content (ADMIN_V2_SPEC §8, SECURITY.md). The source of truth is Tiptap JSON; everything
 // public is rendered from it on the server through ONE allowlist (docToHast): only the nodes,
 // marks and attributes below get out, text is escaped, links are http(s)/mailto/relative only,
@@ -220,6 +222,14 @@ const BLOCKS = new Set([
   "embed",
   "hardBreak",
   "text",
+  // Guide blocks (lib/guide-blocks.ts): their attributes are cleaned field by field.
+  "comparisonTable",
+  "productCard",
+  "abTable",
+  "prosCons",
+  "faq",
+  "ctaBox",
+  "directoryStats",
 ]);
 const MARKS = new Set(["bold", "italic", "underline", "strike", "code", "link"]);
 
@@ -294,6 +304,7 @@ export function sanitizeDoc(input: unknown, imageAllowed: (src: string) => boole
         return kind && service ? { type, attrs: { kind, service } } : null;
       }
       default:
+        if (isBlockType(type)) return { type, attrs: sanitizeBlock(type, a, imageAllowed) };
         return kids ? { type, content: kids } : { type };
     }
   };
@@ -420,6 +431,12 @@ function blockHast(n: Node, imageAllowed: (src: string) => boolean): ElementCont
       return el("div", [], { dataEmbed: kind as string, dataService: service });
     }
     default:
+      // Guide blocks: their text, for search and the stored HTML. The page renders them as
+      // components (components/guide-blocks.tsx), never from this.
+      if (isBlockType(n.type)) {
+        const t = blockText(n.type, (n.attrs ?? {}) as BlockAttrs);
+        return el("div", t ? [el("p", [{ type: "text", value: t }])] : [], { dataBlock: n.type });
+      }
       return null;
   }
 }
@@ -442,6 +459,7 @@ const ATTR: Record<string, string> = {
   rowSpan: "rowspan",
   dataEmbed: "data-embed",
   dataService: "data-service",
+  dataBlock: "data-block",
 };
 
 /** hast → HTML string (only what docToHast produced: escaped text, known attributes). */
@@ -470,7 +488,9 @@ export function docText(doc: Doc): string {
       ? (n.text ?? "")
       : n.type === "embed"
         ? ""
-        : (n.content ?? []).map(walk).join(" ");
+        : isBlockType(n.type)
+          ? blockText(n.type, (n.attrs ?? {}) as BlockAttrs)
+          : (n.content ?? []).map(walk).join(" ");
   return doc.content.map(walk).join(" ").replace(/\s+/g, " ").trim();
 }
 export const wordCount = (doc: Doc) => (docText(doc) ? docText(doc).split(" ").length : 0);
@@ -652,7 +672,11 @@ export function cleanPastedHtml(html: string): string {
 // ───────── Rendering support: blocks, heading ids, table of contents ─────────
 
 /** What the public page renders: hast chunks, with embeds (the live budget box) between them. */
-export type GuideBlock = { kind: "html"; tree: Root } | { kind: "budget-range"; service: string };
+export type GuideBlock =
+  | { kind: "html"; tree: Root }
+  | { kind: "budget-range"; service: string }
+  /** A guide block. Product cards carry their section id and their number among product cards. */
+  | { kind: "block"; type: BlockType; attrs: BlockAttrs; id?: string; number?: number };
 export type OutlineItem = { id: string; text: string; depth: 2 | 3 };
 export type TocGroup = { id: string; text: string; children: OutlineItem[] };
 
@@ -692,28 +716,46 @@ export function guideBlocks(doc: Doc, imageAllowed: (src: string) => boolean) {
     ) {
       flush();
       blocks.push({ kind: "budget-range", service: n.attrs.service });
+    } else if (isBlockType(n.type)) {
+      flush();
+      blocks.push({ kind: "block", type: n.type, attrs: (n.attrs ?? {}) as BlockAttrs });
     } else run.push(n);
   }
   flush();
 
   const seen = new Map<string, number>();
   const outline: OutlineItem[] = [];
+  const uniqueId = (t: string) => {
+    const base = headingSlug(t);
+    const count = seen.get(base) ?? 0;
+    seen.set(base, count + 1);
+    return count ? `${base}-${count + 1}` : base;
+  };
   const walk = (node: Root | Element) => {
     for (const child of node.children) {
       if (child.type !== "element") continue;
       if (/^h[2-4]$/.test(child.tagName)) {
         const t = textOf(child).trim();
-        const base = headingSlug(t);
-        const count = seen.get(base) ?? 0;
-        seen.set(base, count + 1);
-        const id = count ? `${base}-${count + 1}` : base;
+        const id = uniqueId(t);
         child.properties = { ...child.properties, id };
         if (child.tagName !== "h4")
           outline.push({ id, text: t, depth: child.tagName === "h3" ? 3 : 2 });
       } else walk(child);
     }
   };
-  for (const b of blocks) if (b.kind === "html") walk(b.tree);
+  // In document order, so headings and product cards share one set of unique ids.
+  let cards = 0;
+  for (const b of blocks) {
+    if (b.kind === "html") walk(b.tree);
+    else if (b.kind === "block" && b.type === "productCard") {
+      const title = String(b.attrs.title ?? "").trim();
+      b.number = ++cards;
+      if (title) {
+        b.id = uniqueId(title);
+        outline.push({ id: b.id, text: `${b.number}. ${title}`, depth: 2 });
+      }
+    }
+  }
   return { blocks, outline };
 }
 

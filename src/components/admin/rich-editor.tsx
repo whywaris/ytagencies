@@ -18,24 +18,28 @@ import {
 import { StarterKit } from "@tiptap/starter-kit";
 import { Suggestion } from "@tiptap/suggestion";
 import {
+  BarChart3,
   Bold,
-  ChevronRight,
+  CircleHelp,
+  Columns2,
   Heading2,
   Heading3,
-  Heading4,
   ImagePlus,
   Italic,
+  LayoutList,
   Link2,
   List,
   ListOrdered,
-  Minus,
+  Megaphone,
+  Pilcrow,
+  Plus,
   Quote,
   Redo2,
+  Rows3,
   Settings2,
-  Strikethrough,
+  SquareCheckBig,
   Table2,
   Trash2,
-  Underline,
   Undo2,
   Wallet,
   type LucideIcon,
@@ -44,11 +48,13 @@ import { DropdownMenu, Popover } from "radix-ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { guideBlockNodes, openNextBlock } from "@/components/admin/guide-block-node";
 import { usePortalContainer } from "@/components/admin/portal";
-import { importRemoteImage, uploadGuideImage } from "@/lib/actions/admin-guides";
+import type { DirectoryStatsData } from "@/components/guide-blocks";
+import { directoryStatsFor, importRemoteImage, uploadGuideImage } from "@/lib/actions/admin-guides";
+import { BLOCKS, type BlockType } from "@/lib/guide-blocks";
 import {
   cleanPastedHtml,
-  docOutline,
   docReadMinutes,
   looksLikeMarkdown,
   markdownToDoc,
@@ -62,6 +68,8 @@ import { cn } from "@/lib/utils";
 
 // WYSIWYG guide editor (Tiptap, MIT extensions only). The document is Tiptap JSON; the server
 // sanitizes it and renders the HTML on save (lib/guide-content.ts). Public pages never load this.
+// The canvas uses the public page's stylesheet (.guide-content) and guide blocks use the public
+// page's components, so what you see here is what the page shows.
 
 export type ServiceOption = { slug: string; name: string };
 
@@ -188,18 +196,10 @@ function ImageView({ node, updateAttributes, selected }: ReactNodeViewProps) {
   return (
     <NodeViewWrapper
       as="figure"
-      className={cn(
-        "my-6 flex flex-col gap-2",
-        selected && "outline-2 outline-offset-4 outline-accent",
-      )}
+      className={cn("guide-figure", selected && "outline-2 outline-offset-4 outline-accent")}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- editor canvas, not a page */}
-      <img
-        src={src}
-        alt={alt}
-        data-drag-handle
-        className={cn("w-full rounded-xl border border-line", uploading && "opacity-50")}
-      />
+      <img src={src} alt={alt} data-drag-handle className={cn(uploading && "opacity-50")} />
       <input
         value={alt}
         onChange={(e) => updateAttributes({ alt: e.target.value.slice(0, 300) })}
@@ -219,101 +219,145 @@ const GuideImage = Image.extend({
   addNodeView: () => ReactNodeViewRenderer(ImageView),
 });
 
-// ───────── Slash menu ─────────
+// ───────── Inserter: the "+" button and the "/" menu share one list ─────────
 
-type SlashItem = {
+type InsertItem = {
   label: string;
+  group: "Basic" | "Guide blocks";
   icon: LucideIcon;
-  run: (editor: Editor, range: Range) => void;
+  keywords?: string;
+  run: (editor: Editor, range: Range | null) => void;
 };
 type SlashState = {
-  items: SlashItem[];
+  items: InsertItem[];
   index: number;
   rect: DOMRect | null;
-  pick: (i: SlashItem) => void;
+  pick: (i: InsertItem) => void;
 };
 
-function slashItems(pickImage: () => void, firstService: () => string | undefined): SlashItem[] {
-  const heading = (level: 2 | 3 | 4, label: string, i: LucideIcon): SlashItem => ({
-    label,
-    icon: i,
-    run: (e, r) => e.chain().focus().deleteRange(r).setNode("heading", { level }).run(),
+/**
+ * Puts content where the inserter was opened: replacing the "/query" text (slash menu), the empty
+ * paragraph the cursor is in, or after the block the cursor is in.
+ */
+function place(e: Editor, range: Range | null, content: object | object[]) {
+  if (range) return e.chain().focus().deleteRange(range).insertContent(content).run();
+  const { $from } = e.state.selection;
+  if ($from.depth >= 1) {
+    const top = $from.node(1);
+    const start = $from.before(1);
+    if (top.type.name === "paragraph" && top.content.size === 0)
+      return e.chain().focus().insertContentAt({ from: start, to: start + top.nodeSize }, content).run();
+    return e.chain().focus().insertContentAt($from.after(1), content).run();
+  }
+  return e.chain().focus().insertContentAt(e.state.selection.from, content).run();
+}
+
+const para = (text = "") => ({ type: "paragraph", ...(text ? { content: [{ type: "text", text }] } : {}) });
+const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
+  comparisonTable: Rows3,
+  productCard: LayoutList,
+  abTable: Columns2,
+  prosCons: SquareCheckBig,
+  faq: CircleHelp,
+  ctaBox: Megaphone,
+  directoryStats: BarChart3,
+};
+
+function insertItems(pickImage: () => void, firstService: () => string | undefined): InsertItem[] {
+  const heading = (level: 2 | 3, icon: LucideIcon): InsertItem => ({
+    label: `Heading ${level}`,
+    group: "Basic",
+    icon,
+    keywords: "title h" + level,
+    run: (e, r) => place(e, r, { type: "heading", attrs: { level } }),
   });
   return [
-    heading(2, "Heading 2", Heading2),
-    heading(3, "Heading 3", Heading3),
-    heading(4, "Heading 4", Heading4),
+    { label: "Paragraph", group: "Basic", icon: Pilcrow, keywords: "text", run: (e, r) => place(e, r, para()) },
+    heading(2, Heading2),
+    heading(3, Heading3),
     {
-      label: "Bullet list",
+      label: "Bulleted list",
+      group: "Basic",
       icon: List,
-      run: (e, r) => e.chain().focus().deleteRange(r).toggleBulletList().run(),
+      keywords: "list ul",
+      run: (e, r) => place(e, r, { type: "bulletList", content: [{ type: "listItem", content: [para()] }] }),
     },
     {
       label: "Numbered list",
+      group: "Basic",
       icon: ListOrdered,
-      run: (e, r) => e.chain().focus().deleteRange(r).toggleOrderedList().run(),
+      keywords: "list ol steps",
+      run: (e, r) => place(e, r, { type: "orderedList", content: [{ type: "listItem", content: [para()] }] }),
     },
+    { label: "Quote", group: "Basic", icon: Quote, run: (e, r) => place(e, r, { type: "blockquote", content: [para()] }) },
     {
       label: "Table",
+      group: "Basic",
       icon: Table2,
-      run: (e, r) =>
-        e
-          .chain()
-          .focus()
-          .deleteRange(r)
-          .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-          .run(),
-    },
-    {
-      label: "Image",
-      icon: ImagePlus,
       run: (e, r) => {
-        e.chain().focus().deleteRange(r).run();
-        pickImage();
+        const cell = (header: boolean) => ({ type: header ? "tableHeader" : "tableCell", content: [para()] });
+        const row = (header: boolean) => ({ type: "tableRow", content: [cell(header), cell(header), cell(header)] });
+        place(e, r, { type: "table", content: [row(true), row(false), row(false)] });
       },
     },
     {
-      label: "Quote",
-      icon: Quote,
-      run: (e, r) => e.chain().focus().deleteRange(r).toggleBlockquote().run(),
+      label: "Image",
+      group: "Basic",
+      icon: ImagePlus,
+      keywords: "picture photo screenshot",
+      run: (e, r) => {
+        if (r) e.chain().focus().deleteRange(r).run();
+        pickImage();
+      },
     },
-    {
-      label: "Divider",
-      icon: Minus,
-      run: (e, r) => e.chain().focus().deleteRange(r).setHorizontalRule().run(),
-    },
+    ...(Object.keys(BLOCKS) as BlockType[]).map(
+      (type): InsertItem => ({
+        label: BLOCKS[type].label,
+        group: "Guide blocks",
+        icon: BLOCK_ICONS[type],
+        keywords: BLOCKS[type].description,
+        run: (e, r) => {
+          openNextBlock();
+          place(e, r, { type, attrs: BLOCKS[type].empty() });
+        },
+      }),
+    ),
     {
       label: "Budget range",
+      group: "Guide blocks",
       icon: Wallet,
+      keywords: "price budget live",
       run: (e, r) => {
         const service = firstService();
         if (!service) return void toast.error("Add a service first.");
-        e.chain()
-          .focus()
-          .deleteRange(r)
-          .insertContent({ type: "embed", attrs: { kind: "budget-range", service } })
-          .run();
+        place(e, r, { type: "embed", attrs: { kind: "budget-range", service } });
       },
     },
   ];
 }
+
+const matches = (item: InsertItem, q: string) =>
+  `${item.label} ${item.keywords ?? ""} ${item.group}`.toLowerCase().includes(q.trim().toLowerCase());
 
 // ───────── Editor ─────────
 
 export function RichEditor({
   initial,
   services,
-  status,
   ensureGuideId,
   onChange,
+  onSave,
+  header,
 }: {
   initial: Doc;
   services: ServiceOption[];
-  /** "Saved", "Saving…", "Unsaved changes"… */
-  status: React.ReactNode;
   /** Saves the guide if it's new; uploads need its id. */
   ensureGuideId: () => Promise<string | null>;
   onChange: (doc: Doc) => void;
+  /** Ctrl+S / Cmd+S. */
+  onSave: () => void;
+  /** Title and URL, above the toolbar's sticky area. */
+  header?: React.ReactNode;
 }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [slash, setSlash] = useState<SlashState | null>(null);
@@ -323,9 +367,9 @@ export function RichEditor({
   const copying = useRef(new Set<string>());
   const [doc, setDoc] = useState(initial);
   // Callbacks the extensions call; refs so the editor is built once.
-  const live = useRef({ ensureGuideId, onChange, services });
+  const live = useRef({ ensureGuideId, onChange, services, onSave });
   useEffect(() => {
-    live.current = { ensureGuideId, onChange, services };
+    live.current = { ensureGuideId, onChange, services, onSave };
   });
 
   const showSlash = (s: SlashState | null) => {
@@ -354,6 +398,18 @@ export function RichEditor({
       TableKit.configure({ table: { resizable: false } }),
       GuideImage.configure({ allowBase64: true }),
       Embed.configure({ services }),
+      ...guideBlockNodes({
+        services: () => live.current.services,
+        upload: async (file) => {
+          const guideId = await live.current.ensureGuideId();
+          if (!guideId) {
+            toast.error("Give the guide a title first, so it can be saved.");
+            return null;
+          }
+          return upload(guideId, file);
+        },
+        stats: loadStats,
+      }),
       Placeholder.configure({ placeholder: "Write, or type / for blocks" }),
       Extension.create({
         name: "guideShortcuts",
@@ -362,17 +418,21 @@ export function RichEditor({
             setLinkOpen(true);
             return true;
           },
+          "Mod-s": () => {
+            live.current.onSave();
+            return true;
+          },
         }),
       }),
       Extension.create({
         name: "slashMenu",
         addProseMirrorPlugins() {
-          const items = slashItems(
+          const items = insertItems(
             () => fileInput.current?.click(),
             () => live.current.services[0]?.slug,
           );
           return [
-            Suggestion<SlashItem, SlashItem>({
+            Suggestion<InsertItem, InsertItem>({
               editor: this.editor,
               char: "/",
               startOfLine: true,
@@ -380,13 +440,12 @@ export function RichEditor({
                 const $from = state.doc.resolve(range.from);
                 return $from.parent.type.name === "paragraph" && $from.depth === 1;
               },
-              items: ({ query }) =>
-                items.filter((i) => i.label.toLowerCase().includes(query.toLowerCase())),
+              items: ({ query }) => items.filter((i) => matches(i, query)),
               command: ({ editor: e, range, props }) => props.run(e, range),
               render: () => {
                 const update = (p: {
-                  items: SlashItem[];
-                  command: (i: SlashItem) => void;
+                  items: InsertItem[];
+                  command: (i: InsertItem) => void;
                   clientRect?: (() => DOMRect | null) | null;
                 }) =>
                   showSlash(
@@ -436,10 +495,11 @@ export function RichEditor({
     ],
     editorProps: {
       attributes: {
-        class: "guide-prose min-h-[60vh] px-4 py-6 outline-none sm:px-8",
+        class: "guide-content min-h-[50vh] pb-24 outline-none",
         spellcheck: "true",
       },
-      transformPastedHTML: (html) => cleanPastedHtml(html),
+      // Copies from this editor keep their blocks; anything else is cleaned (Docs, Word, web).
+      transformPastedHTML: (html) => (html.includes("data-pm-slice") ? html : cleanPastedHtml(html)),
       handleKeyDown: (_view, e) => {
         // Ctrl+Shift+V: ProseMirror pastes plain text; don't turn it into Markdown either.
         plainPaste.current = e.shiftKey && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v";
@@ -568,56 +628,20 @@ export function RichEditor({
   }
 
   const words = useMemo(() => wordCount(doc), [doc]);
-  const outline = useMemo(() => docOutline(doc), [doc]);
+  /* eslint-disable react-hooks/refs -- the items read these refs when one is picked (a click),
+     never during render. */
+  const items = useMemo(
+    () => insertItems(() => fileInput.current?.click(), () => live.current.services[0]?.slug),
+    [],
+  );
+  /* eslint-enable react-hooks/refs */
 
-  if (!editor) return <div className="min-h-[60vh] rounded-xl border border-line" aria-busy />;
-
-  const jump = (index: number) => {
-    let pos = -1;
-    editor.state.doc.forEach((_n, offset, i) => {
-      if (i === index) pos = offset;
-    });
-    if (pos < 0) return;
-    editor
-      .chain()
-      .focus()
-      .setTextSelection(pos + 1)
-      .run();
-    (editor.view.nodeDOM(pos) as HTMLElement | null)?.scrollIntoView({ block: "center" });
-  };
+  if (!editor) return <div className="min-h-[50vh]" aria-busy />;
 
   return (
-    <div className="flex flex-col gap-3">
-      {outline.length > 0 && (
-        <details className="group rounded-xl border border-line">
-          <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl px-4 font-medium select-none [&::-webkit-details-marker]:hidden">
-            <ChevronRight
-              className="size-4 [stroke-width:1.5] text-text-2 transition-transform duration-150 group-open:rotate-90"
-              aria-hidden
-            />
-            Outline
-            <span className="text-admin-meta num">{outline.length}</span>
-          </summary>
-          <ol className="flex flex-col px-2 pb-2">
-            {outline.map((h) => (
-              <li key={h.index}>
-                <button
-                  type="button"
-                  onClick={() => jump(h.index)}
-                  style={{ paddingLeft: `${(h.level - 2) * 16 + 8}px` }}
-                  className={cn(
-                    "flex min-h-8 w-full items-center rounded-md pr-2 text-left hover:bg-surface-2",
-                    h.level > 2 && "text-text-2",
-                  )}
-                >
-                  {h.text || "Untitled heading"}
-                </button>
-              </li>
-            ))}
-          </ol>
-        </details>
-      )}
-      <div className="flex flex-col rounded-xl border border-line">
+    <div className="flex flex-col">
+      {header}
+      <div className="relative flex flex-col">
         <input
           ref={fileInput}
           type="file"
@@ -634,9 +658,12 @@ export function RichEditor({
           linkOpen={linkOpen}
           setLinkOpen={setLinkOpen}
           pickImage={() => fileInput.current?.click()}
+          inserter={<Inserter editor={editor} items={items} />}
         />
 
-        <EditorContent editor={editor} />
+        <div className="pt-6">
+          <EditorContent editor={editor} />
+        </div>
 
         {slash && (
           <ul
@@ -670,24 +697,98 @@ export function RichEditor({
                 className={cn(menuItem, i === slash.index && "bg-surface-2")}
               >
                 <item.icon className={cn(icon, "text-text-2")} aria-hidden />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {(i === 0 || slash.items[i - 1].group !== item.group) && (
+                  <span className="text-admin-meta">{item.group}</span>
+                )}
               </li>
             ))}
           </ul>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-2 border-t border-line px-4 py-2 text-admin-meta">
+        <p className="sticky bottom-0 flex flex-wrap items-center gap-x-2 border-t border-line bg-bg py-2 text-admin-meta" aria-live="polite">
           <span className="num">
             {words.toLocaleString("en-US")} {words === 1 ? "word" : "words"}
           </span>
           <span aria-hidden>·</span>
           <span className="num">{docReadMinutes(doc)} min read</span>
-          <span aria-hidden>·</span>
-          {status}
-        </div>
+        </p>
       </div>
     </div>
   );
+}
+
+/** The "+" block inserter: every block, grouped, with search. Inserts after the cursor's block. */
+function Inserter({ editor, items }: { editor: Editor; items: InsertItem[] }) {
+  const container = usePortalContainer();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const shown = items.filter((i) => matches(i, q));
+  const groups = (["Basic", "Guide blocks"] as const).map((g) => ({ g, list: shown.filter((i) => i.group === g) }));
+  return (
+    <Popover.Root
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o) setQ("");
+      }}
+    >
+      <Popover.Trigger title="Add a block (or type / in an empty line)" aria-label="Add a block" className={cn(btn, "bg-accent text-on-accent hover:bg-accent hover:text-on-accent")}>
+        <Plus className={icon} aria-hidden />
+      </Popover.Trigger>
+      <Popover.Portal container={container}>
+        <Popover.Content align="start" sideOffset={6} className={cn(menu, "z-[70] flex w-80 flex-col gap-1 p-2")}>
+          <input
+            autoFocus
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && shown[0]) {
+                e.preventDefault();
+                shown[0].run(editor, null);
+                setOpen(false);
+              }
+            }}
+            placeholder="Search blocks"
+            aria-label="Search blocks"
+            className={field}
+          />
+          <div className="max-h-80 overflow-y-auto">
+            {groups.map(
+              ({ g, list }) =>
+                list.length > 0 && (
+                  <div key={g} role="group" aria-label={g} className="pt-2">
+                    <p className="px-2 pb-1 text-admin-meta">{g}</p>
+                    {list.map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => {
+                          item.run(editor, null);
+                          setOpen(false);
+                        }}
+                        className={menuItem}
+                      >
+                        <item.icon className={cn(icon, "text-text-2")} aria-hidden />
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                ),
+            )}
+            {!shown.length && <p className="px-2 py-3 text-admin-meta">No block matches “{q}”.</p>}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+/** Directory counts for the editor's directory stats blocks (admin action; same numbers as the page). */
+async function loadStats(service: string): Promise<DirectoryStatsData | null> {
+  const res = await reach(directoryStatsFor(service));
+  return res.ok ? res.data : null;
 }
 
 /** Mounted once the editor exists, so its state is read from the start. */
@@ -696,11 +797,13 @@ function Toolbar({
   linkOpen,
   setLinkOpen,
   pickImage,
+  inserter,
 }: {
   editor: Editor;
   linkOpen: boolean;
   setLinkOpen: (o: boolean) => void;
   pickImage: () => void;
+  inserter: React.ReactNode;
 }) {
   const state = useEditorState({
     editor,
@@ -708,8 +811,6 @@ function Toolbar({
       block: e.isActive("heading") ? String(e.getAttributes("heading").level) : "p",
       bold: e.isActive("bold"),
       italic: e.isActive("italic"),
-      underline: e.isActive("underline"),
-      strike: e.isActive("strike"),
       link: e.isActive("link"),
       bullet: e.isActive("bulletList"),
       ordered: e.isActive("orderedList"),
@@ -724,28 +825,40 @@ function Toolbar({
     <div
       role="toolbar"
       aria-label="Formatting"
-      className="sticky top-14 z-10 flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-line bg-bg p-1"
+      className="sticky top-0 z-20 -mx-2 flex flex-wrap items-center gap-0.5 rounded-xl border border-line bg-bg p-1 shadow-sm"
     >
+      {inserter}
+      <Sep />
       <select
         aria-label="Block type"
-        value={state.block}
+        value={["p", "2", "3"].includes(state.block) ? state.block : "other"}
         onChange={(e) => {
           const v = e.target.value;
           if (v === "p") chain().setParagraph().run();
-          else
-            chain()
-              .setHeading({ level: Number(v) as 2 | 3 | 4 | 5 | 6 })
-              .run();
+          else if (v === "2" || v === "3") chain().setHeading({ level: Number(v) as 2 | 3 }).run();
         }}
         className="h-8 rounded-md border border-line bg-bg px-2"
       >
         <option value="p">Paragraph</option>
-        {[2, 3, 4, 5, 6].map((l) => (
-          <option key={l} value={l}>
-            Heading {l}
-          </option>
-        ))}
+        <option value="2">Heading 2</option>
+        <option value="3">Heading 3</option>
+        {/* Older guides can have smaller headings; they're kept, just not offered. */}
+        {!["p", "2", "3"].includes(state.block) && <option value="other">Heading {state.block}</option>}
       </select>
+      <ToolButton
+        label="Heading 2"
+        keys="## space"
+        icon={Heading2}
+        active={state.block === "2"}
+        onClick={() => chain().toggleHeading({ level: 2 }).run()}
+      />
+      <ToolButton
+        label="Heading 3"
+        keys="### space"
+        icon={Heading3}
+        active={state.block === "3"}
+        onClick={() => chain().toggleHeading({ level: 3 }).run()}
+      />
       <Sep />
       <ToolButton
         label="Bold"
@@ -761,25 +874,11 @@ function Toolbar({
         active={state.italic}
         onClick={() => chain().toggleItalic().run()}
       />
-      <ToolButton
-        label="Underline"
-        keys="Ctrl+U"
-        icon={Underline}
-        active={state.underline}
-        onClick={() => chain().toggleUnderline().run()}
-      />
-      <ToolButton
-        label="Strikethrough"
-        keys="Ctrl+Shift+S"
-        icon={Strikethrough}
-        active={state.strike}
-        onClick={() => chain().toggleStrike().run()}
-      />
       <Sep />
       <LinkPopover editor={editor} open={linkOpen} onOpenChange={setLinkOpen} active={state.link} />
       <Sep />
       <ToolButton
-        label="Bullet list"
+        label="Bulleted list"
         keys="- space"
         icon={List}
         active={state.bullet}
@@ -800,17 +899,10 @@ function Toolbar({
         active={state.quote}
         onClick={() => chain().toggleBlockquote().run()}
       />
-      <ToolButton
-        label="Divider"
-        keys="---"
-        icon={Minus}
-        active={false}
-        onClick={() => chain().setHorizontalRule().run()}
-      />
       <Sep />
       <TableMenu editor={editor} inTable={state.table} />
       <ToolButton
-        label="Image"
+        label="Image (alt text required)"
         keys="drop or paste works too"
         icon={ImagePlus}
         active={false}
