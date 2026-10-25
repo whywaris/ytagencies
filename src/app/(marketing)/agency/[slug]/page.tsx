@@ -391,9 +391,6 @@ export default async function AgencyPage({ params }: PageProps<"/agency/[slug]">
                 At a glance
               </h2>
               <p className="mt-3 max-w-[42em] text-[18px] leading-[1.65]">{atAGlance}</p>
-              <p className="mt-3 text-[13px] text-text-2">
-                Written by {BRAND_NAME} from the agency&apos;s profile details.
-              </p>
             </section>
 
             <TrustSection checks={checks} />
@@ -1085,13 +1082,6 @@ function TrustSection({ checks }: { checks: TrustRow[] }) {
           <p className="mt-3 text-[14.5px] font-semibold">Ask for these in writing before you sign.</p>
         </div>
       </div>
-      <p className="mt-4 text-[13.5px] text-text-2">
-        Pro is a paid plan. Pro agencies are shown first in lists. It doesn&apos;t change Verified or
-        anything checked here.{" "}
-        <Link href="/how-we-rank" className="text-accent hover:underline">
-          How we rank
-        </Link>
-      </p>
     </section>
   );
 }

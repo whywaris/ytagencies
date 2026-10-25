@@ -35,7 +35,7 @@ import Link from "next/link";
 import { AgencyLogo } from "@/components/agency-logo";
 import { GuideCard } from "@/components/guides/guide-parts";
 import { FeaturedGuide } from "@/components/guides/guides-index";
-import { FindAgenciesButton, Finder } from "@/components/home/finder";
+import { Finder } from "@/components/home/finder";
 import { JsonLd } from "@/components/json-ld";
 import { getDirectoryIndex } from "@/lib/data/agencies";
 import { getGuideCategories, getLiveGuides } from "@/lib/data/guides";
@@ -900,7 +900,13 @@ export function ClosingBand() {
         <p className="text-[17px] text-white/75">
           Free for businesses and creators. Takes under a minute to start.
         </p>
-        <FindAgenciesButton className="mt-2" />
+        <Link
+          href="/agencies"
+          className="mt-2 inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 font-semibold text-[#16171a] transition-transform duration-150 hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          Find agencies
+          <ArrowRight className="size-5 [stroke-width:2]" aria-hidden />
+        </Link>
       </div>
     </section>
   );

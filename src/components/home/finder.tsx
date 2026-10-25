@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { finderHref, type ComboCounts } from "@/lib/home";
-import { cn } from "@/lib/utils";
 
 // Home hero finder: service + industry → the best page for that pair (lib/home.ts). The only
 // client code on the home page, with the closing band's button that brings focus back here.
@@ -110,31 +109,5 @@ export function Finder({
         <ArrowRight className="size-5 [stroke-width:2]" aria-hidden />
       </button>
     </form>
-  );
-}
-
-/** Closing band button: scrolls back to the hero finder and focuses its first field. */
-export function FindAgenciesButton({ className }: { className?: string }) {
-  return (
-    <a
-      href={`#${FINDER_ID}`}
-      onClick={(e) => {
-        const el = document.getElementById(SERVICE_ID);
-        if (!el) return;
-        e.preventDefault();
-        el.scrollIntoView({
-          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-          block: "center",
-        });
-        el.focus({ preventScroll: true });
-      }}
-      className={cn(
-        "inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 font-semibold text-[#16171a] transition-transform duration-150 hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
-        className,
-      )}
-    >
-      Find agencies
-      <ArrowRight className="size-5 [stroke-width:2]" aria-hidden />
-    </a>
   );
 }

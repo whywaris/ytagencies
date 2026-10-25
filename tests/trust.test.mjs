@@ -129,7 +129,6 @@ test("no price duplication: the starting price is only in the sidebar and mobile
   // Section order: At a glance, Trust & proof, Work samples, then Services & pricing.
   const order = ['id="glance"', "<TrustSection", 'id="work"', "<ServicesPricingSection"].map((m) => page.indexOf(m));
   assert.ok(order.every((n, i) => n > 0 && (i === 0 || n > order[i - 1])), String(order));
-  // Pro note and no review schema added.
-  assert.match(page, /Pro is a paid plan\. Pro agencies are shown first in lists\./);
+  // No review schema added.
   assert.doesNotMatch(page, /aggregateRating/);
 });
