@@ -50,10 +50,28 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
   const { slug } = await params;
   const agency = await getAgencyBySlug(slug);
   if (!agency) notFound();
-  const paid = (await searchParams).status === "success";
+  const sp = await searchParams;
+  const paid = sp.status === "success";
 
   const user = await getUser();
   const admin = createAdminClient();
+  // From an outreach email (/claim/<slug>?t=<token>): count the click and suggest the address it
+  // went to. The token only tracks the click; the domain and email checks below still apply.
+  const token = typeof sp.t === "string" && /^[A-Za-z0-9_-]{32,64}$/.test(sp.t) ? sp.t : null;
+  let suggestedEmail = "";
+  if (token) {
+    const { data: msg } = await admin
+      .from("outreach_messages")
+      .select("id, email, clicked_at")
+      .eq("token", token)
+      .eq("agency_id", agency.id)
+      .maybeSingle();
+    if (msg) {
+      suggestedEmail = msg.email;
+      if (!msg.clicked_at)
+        await admin.from("outreach_messages").update({ clicked_at: new Date().toISOString() }).eq("id", msg.id).is("clicked_at", null);
+    }
+  }
   const primaryService = agency.services[0];
   const primaryIndustry = agency.industries[0];
   const [owner, subs, views, service, industry, prices] = await Promise.all([
@@ -238,7 +256,10 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
         </ol>
         <div className="mt-2">
           {!user ? (
-            <Link href={`/login?next=/claim/${agency.slug}`} className={btnPrimary}>
+            <Link
+              href={`/login?next=${encodeURIComponent(`/claim/${agency.slug}${token ? `?t=${token}` : ""}`)}`}
+              className={btnPrimary}
+            >
               Sign in to continue
             </Link>
           ) : mine ? (
@@ -273,6 +294,7 @@ export default async function ClaimPage({ params, searchParams }: PageProps<"/cl
               agencyName={agency.name}
               domain={hostOf(agency.website)}
               signedInAs={user.email ?? ""}
+              suggestedEmail={suggestedEmail}
             />
           )}
         </div>

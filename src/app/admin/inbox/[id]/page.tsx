@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { InboxActions } from "@/components/admin/inbox-actions";
+import { ArchiveListingButton, InboxActions } from "@/components/admin/inbox-actions";
 import { DetailList } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/auth";
 import { topicOf } from "@/lib/contact-topics";
@@ -84,12 +84,15 @@ export default async function InboxMessagePage({ params }: PageProps<"/admin/inb
         <p className="whitespace-pre-wrap">{m.message}</p>
       </section>
 
-      <a
-        href={reply}
-        className="h-9 self-start rounded-lg border border-line px-3 leading-9 font-medium transition-colors duration-150 hover:bg-surface-2"
-      >
-        Reply by email
-      </a>
+      <div className="flex flex-wrap gap-2">
+        <a
+          href={reply}
+          className="h-9 self-start rounded-lg border border-line px-3 leading-9 font-medium transition-colors duration-150 hover:bg-surface-2"
+        >
+          Reply by email
+        </a>
+        {m.topic === "removal" && m.agency_id && <ArchiveListingButton agencyId={m.agency_id} />}
+      </div>
     </div>
   );
 }

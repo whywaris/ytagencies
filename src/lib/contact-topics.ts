@@ -62,5 +62,13 @@ export const ACCESS_TOPIC = {
   note: "Someone asks to manage a listing another account manages. Contact both, then decide.",
   response: COMPANY.responseTimes.agencies,
 } as const;
-export const INBOX_TOPICS = [...CONTACT_TOPICS, PRO_TOPIC, ACCESS_TOPIC] as const;
+// Not on /contact: "Remove my listing" from an outreach email (/remove-listing).
+export const REMOVAL_TOPIC = {
+  id: "removal",
+  label: "Removal request",
+  inbox: COMPANY.email,
+  note: "An agency asked to be removed. Check the email is on its domain, then archive the listing.",
+  response: COMPANY.responseTimes.agencies,
+} as const;
+export const INBOX_TOPICS = [...CONTACT_TOPICS, PRO_TOPIC, ACCESS_TOPIC, REMOVAL_TOPIC] as const;
 export const topicOf = (id: string) => INBOX_TOPICS.find((t) => t.id === id) ?? CONTACT_TOPICS[0];

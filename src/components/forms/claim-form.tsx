@@ -72,11 +72,14 @@ export function ClaimStep({
   agencyName,
   domain,
   signedInAs,
+  suggestedEmail = "",
 }: {
   agencySlug: string;
   agencyName: string;
   domain: string | null;
   signedInAs: string;
+  /** The address an outreach invite went to (/claim/<slug>?t=…). */
+  suggestedEmail?: string;
 }) {
   const [view, setView] = useState<"email" | "proof">("email");
   const [sent, setSent] = useState<{ kind: "verify" | "review" | "proof"; email: string } | null>(
@@ -113,6 +116,7 @@ export function ClaimStep({
       agencySlug={agencySlug}
       domain={domain}
       signedInAs={signedInAs}
+      suggestedEmail={suggestedEmail}
       onProof={() => setView("proof")}
       onSent={(kind, email) => setSent({ kind, email })}
     />
@@ -130,21 +134,24 @@ function EmailForm({
   agencySlug,
   domain,
   signedInAs,
+  suggestedEmail,
   onProof,
   onSent,
 }: {
   agencySlug: string;
   domain: string | null;
   signedInAs: string;
+  suggestedEmail: string;
   onProof: () => void;
   onSent: (kind: "verify" | "review", email: string) => void;
 }) {
   const form = useForm<ClaimInput>({
     resolver: zodResolver(claimSchema),
-    // The account email is a good first guess when it's on the agency's domain.
+    // The account email is a good first guess when it's on the agency's domain, else the address
+    // our invite went to (still checked like any other).
     defaultValues: {
       agencySlug,
-      workEmail: domainMatches(signedInAs, domain) ? signedInAs : "",
+      workEmail: domainMatches(signedInAs, domain) ? signedInAs : suggestedEmail,
       website: "",
     },
   });

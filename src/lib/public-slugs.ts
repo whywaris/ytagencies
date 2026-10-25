@@ -84,6 +84,7 @@ const STATIC_ROOTS = new Set([
   "about",
   "contact",
   "report-listing",
+  "remove-listing",
   "styleguide",
   "dashboard",
   "admin",

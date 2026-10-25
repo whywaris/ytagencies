@@ -1,0 +1,24 @@
+# Outreach emails (src/app/api/cron/outreach). Vercel Hobby allows only daily crons, so GitHub
+# calls the endpoint every hour, 09:00–17:00 UTC on weekdays. Needs the repository secret
+# CRON_SECRET (the same value as on Vercel). GitHub may start scheduled runs a few minutes late.
+name: Outreach emails
+
+on:
+  schedule:
+    - cron: "0 9-17 * * 1-5"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run the outreach cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail --silent --show-error --max-time 90 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            https://ytagencies.com/api/cron/outreach

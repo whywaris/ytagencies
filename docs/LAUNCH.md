@@ -118,6 +118,7 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    | `ALLOW_INDEXING` | server | no | Production is indexed by default (robots.txt allows public pages and lists the sitemap). Set `false` on Production to block indexing again (every response then sends `X-Robots-Tag: noindex, nofollow` and robots.txt blocks everything). Previews and local dev are always blocked unless it's exactly `true`; never set it on Preview. |
    | `SUPABASE_SERVICE_ROLE_KEY` | server | yes | Same Supabase page, `service_role` key. Admin, cron and public data functions use it. |
    | `RESEND_API_KEY` | server | yes | Resend API key (sending access, `send.ytagencies.com`). Without it no lead or rejection emails go out. |
+   | `RESEND_WEBHOOK_SECRET` | server, secret | for outreach | Resend → **Webhooks** → add `https://ytagencies.com/api/webhooks/resend` with the events `email.delivered`, `email.bounced`, `email.complained`; copy its signing secret (`whsec_…`). Without it delivery, bounce and complaint events are refused, so reminders never queue and bounces aren't suppressed. |
    | `CLAIM_TOKEN_SECRET` | server | yes | `openssl rand -base64 48`. Signs claim links and keys the daily visitor hash of the analytics beacon. Changing it voids pending claim links. Unset: claims fail and the beacon records nothing. |
    | `CRON_SECRET` | server | yes | `openssl rand -base64 32`. Vercel sends it to `/api/cron/*`; without it those routes answer 401 and nothing scheduled runs. |
    | `YOUTUBE_API_KEY` | server | yes | Google Cloud → enable "YouTube Data API v3" → create an API key restricted to that API. Used by admin verification and the monthly stats check (well within the free 10,000 units/day). |
@@ -155,6 +156,15 @@ Lemon Squeezy is the merchant of record: it charges, handles tax and sends recei
 7. **Go live.** Turn test mode off and repeat steps 2–4 in live mode (new variant IDs if you recreate the product, a new webhook and secret, a live API key). On Vercel **Production** set the live values, leave `LEMONSQUEEZY_TEST_MODE` unset, set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $29 purchase on your own agency, then refund it in Lemon Squeezy (you get an admin email; end Pro in Admin → Agencies → Change plan, or cancel the subscription in Lemon Squeezy).
 8. **Ongoing.** Refunds and cancellations happen in the Lemon Squeezy dashboard; the webhook updates the plan. Ending a paid plan from Admin → Change plan only changes our side, so cancel it in Lemon Squeezy too.
 9. **Rejecting a paid submission.** "Add your agency" lets the submitter subscribe before review. Admin → Submissions marks those ("Paid for Pro when submitting", with the subscription id). Rejecting deletes the draft but not the charge: refund the order in full and cancel the subscription in Lemon Squeezy.
+
+## Outreach emails (claim invites)
+
+1. Resend → **Domains** → add `mail.ytagencies.com` and create its SPF, DKIM (and the MX for bounces Resend shows) in Cloudflare, DNS-only. Wait for "Verified". Keep it separate from `send.` so outreach can never hurt lead and sign-in emails.
+2. DMARC for the subdomain: a TXT record `_dmarc.mail.ytagencies.com` = `v=DMARC1; p=none; rua=mailto:help@ytagencies.com` (tighten to `quarantine` once reports look clean).
+3. Resend webhook and `RESEND_WEBHOOK_SECRET` (env table above).
+4. GitHub → the repository → **Settings → Secrets and variables → Actions** → new secret `CRON_SECRET` with the same value as on Vercel. `.github/workflows/outreach.yml` then calls `/api/cron/outreach` every hour, 09:00–17:00 UTC on weekdays (Vercel Hobby only allows daily crons). Run it once with **Run workflow** to see a 200.
+5. Admin → Growth → Outreach → Templates: set the From address (e.g. `hello@mail.ytagencies.com`), a Reply-to you read, and the business postal address (required by anti-spam law; nothing sends without it). Send a test to yourself.
+6. Add addresses (Contacts), queue a small first batch (Agencies), then switch Pause off. Start well under the daily cap and watch bounces on the Dashboard.
 
 ## Cloudflare DNS (DNS-only, grey cloud)
 

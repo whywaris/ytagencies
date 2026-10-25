@@ -20,6 +20,7 @@ import {
   Moon,
   PanelLeft,
   Search,
+  Send,
   Settings,
   Star,
   Tags,
@@ -84,6 +85,7 @@ const GROUPS: { heading: string; items: Item[] }[] = [
     items: [
       { href: "/admin/leads", label: "Leads", icon: Users },
       { href: "/admin/seo-pages", label: "SEO pages", icon: FileSearch },
+      { href: "/admin/outreach", label: "Outreach", icon: Send },
     ],
   },
   {

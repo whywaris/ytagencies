@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { setAgenciesStatus } from "@/lib/actions/admin-directory";
 import { deleteMessage, setMessageStatus } from "@/lib/actions/admin-inbox";
 
 const secondary =
@@ -63,5 +64,29 @@ export function InboxActions({
         }}
       />
     </div>
+  );
+}
+
+/** "Remove my listing" requests: archive the agency in one click (it leaves every public page). */
+export function ArchiveListingButton({ agencyId }: { agencyId: string }) {
+  const router = useRouter();
+  return (
+    <ConfirmDialog
+      trigger={
+        <button type="button" className={secondary}>
+          Archive listing…
+        </button>
+      }
+      title="Archive this listing?"
+      description="It's taken off the site and out of search at once, and no more outreach goes to it. You can publish it again from Agencies."
+      confirmLabel="Archive listing"
+      onConfirm={async () => {
+        const res = await setAgenciesStatus([agencyId], "archived");
+        if (!res.ok) return res.error;
+        toast.success("Listing archived");
+        router.refresh();
+        return null;
+      }}
+    />
   );
 }

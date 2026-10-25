@@ -507,19 +507,52 @@ export type Database = {
       };
       app_settings: {
         Row: {
-          id: boolean;
-          updated_at: string;
           guide_tabs_max: number;
+          id: boolean;
+          outreach_business_address: string;
+          outreach_daily_cap: number;
+          outreach_from: string;
+          outreach_invite_body: string;
+          outreach_invite_subject: string;
+          outreach_paused: boolean;
+          outreach_reminder_body: string;
+          outreach_reminder_days: number;
+          outreach_reminder_subject: string;
+          outreach_reply_to: string;
+          outreach_sender_name: string;
+          updated_at: string;
         };
         Insert: {
-          id?: boolean;
-          updated_at?: string;
           guide_tabs_max?: number;
+          id?: boolean;
+          outreach_business_address?: string;
+          outreach_daily_cap?: number;
+          outreach_from?: string;
+          outreach_invite_body?: string;
+          outreach_invite_subject?: string;
+          outreach_paused?: boolean;
+          outreach_reminder_body?: string;
+          outreach_reminder_days?: number;
+          outreach_reminder_subject?: string;
+          outreach_reply_to?: string;
+          outreach_sender_name?: string;
+          updated_at?: string;
         };
         Update: {
-          id?: boolean;
-          updated_at?: string;
           guide_tabs_max?: number;
+          id?: boolean;
+          outreach_business_address?: string;
+          outreach_daily_cap?: number;
+          outreach_from?: string;
+          outreach_invite_body?: string;
+          outreach_invite_subject?: string;
+          outreach_paused?: boolean;
+          outreach_reminder_body?: string;
+          outreach_reminder_days?: number;
+          outreach_reminder_subject?: string;
+          outreach_reply_to?: string;
+          outreach_sender_name?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -678,6 +711,7 @@ export type Database = {
       };
       contact_messages: {
         Row: {
+          agency_id: string | null;
           agency_url: string | null;
           closed_at: string | null;
           created_at: string;
@@ -689,6 +723,7 @@ export type Database = {
           topic: string;
         };
         Insert: {
+          agency_id?: string | null;
           agency_url?: string | null;
           closed_at?: string | null;
           created_at?: string;
@@ -700,6 +735,7 @@ export type Database = {
           topic: string;
         };
         Update: {
+          agency_id?: string | null;
           agency_url?: string | null;
           closed_at?: string | null;
           created_at?: string;
@@ -710,7 +746,22 @@ export type Database = {
           status?: string;
           topic?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "contact_messages_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_agency_list";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_messages_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       deleted_agency_routes: {
         Row: {
@@ -1137,6 +1188,90 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      outreach_messages: {
+        Row: {
+          agency_id: string;
+          batch_id: string | null;
+          claimed_at: string | null;
+          clicked_at: string | null;
+          delivered_at: string | null;
+          email: string;
+          error: string | null;
+          id: string;
+          queued_at: string;
+          resend_id: string | null;
+          sent_at: string | null;
+          status: string;
+          template: string;
+          token: string;
+        };
+        Insert: {
+          agency_id: string;
+          batch_id?: string | null;
+          claimed_at?: string | null;
+          clicked_at?: string | null;
+          delivered_at?: string | null;
+          email: string;
+          error?: string | null;
+          id?: string;
+          queued_at?: string;
+          resend_id?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          template: string;
+          token: string;
+        };
+        Update: {
+          agency_id?: string;
+          batch_id?: string | null;
+          claimed_at?: string | null;
+          clicked_at?: string | null;
+          delivered_at?: string | null;
+          email?: string;
+          error?: string | null;
+          id?: string;
+          queued_at?: string;
+          resend_id?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          template?: string;
+          token?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "outreach_messages_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "admin_agency_list";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "outreach_messages_agency_id_fkey";
+            columns: ["agency_id"];
+            isOneToOne: false;
+            referencedRelation: "agencies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      outreach_suppressions: {
+        Row: {
+          created_at: string;
+          email: string;
+          reason: string;
+        };
+        Insert: {
+          created_at?: string;
+          email: string;
+          reason: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
+          reason?: string;
+        };
+        Relationships: [];
       };
       lead_routes: {
         Row: {

@@ -1834,5 +1834,42 @@ ok(
   "industry_suggestions: one per agency and industry",
 );
 
+console.log("— outreach emails —");
+await db.exec("reset role");
+const tok = (n) => `tok_${String(n).repeat(40)}`.slice(0, 40);
+await db.exec(`
+  update agencies set is_claimed = false where id = '${SALT}';
+  insert into outreach_messages (agency_id, email, template, token) values ('${SALT}', 'hi@saltmere.example', 'invite', '${tok(1)}');
+  insert into outreach_suppressions (email, reason) values ('gone@bounce.example', 'bounced');
+`);
+ok(
+  await fails(`insert into outreach_messages (agency_id, email, template, token) values ('${SALT}', 'hi@saltmere.example', 'invite', '${tok(2)}')`),
+  "outreach_messages: one invite per agency, ever",
+);
+ok(
+  await fails(`insert into outreach_messages (agency_id, email, template, token) values ('${SALT}', 'hi@saltmere.example', 'follow-up', '${tok(3)}')`),
+  "outreach_messages: only invite and reminder (so at most two per agency)",
+);
+await as("anon", null, async () => {
+  for (const t of ["outreach_messages", "outreach_suppressions"]) ok(await denied(`select * from ${t}`), `${t}: anon can't read`);
+});
+await as("authenticated", OWNER, async () => {
+  for (const t of ["outreach_messages", "outreach_suppressions"]) ok(await denied(`select * from ${t}`), `${t}: a non-admin can't read`);
+  ok(await denied(`update outreach_messages set status = 'cancelled' returning id`), "outreach_messages: a non-admin can't change it");
+});
+await as("authenticated", ADMIN, async () => {
+  ok((await rows("select id from outreach_messages")).length === 1, "outreach_messages: admin reads");
+  ok(await denied(`update outreach_messages set status = 'sent' returning id`), "outreach_messages: even admins change it only through the server");
+});
+await db.exec("reset role");
+await db.exec(`update agencies set is_claimed = true where id = '${SALT}'`);
+const [afterClaim] = await rows(`select status, claimed_at from outreach_messages where agency_id = '${SALT}'`);
+ok(afterClaim.status === "cancelled" && afterClaim.claimed_at !== null, "outreach_messages: claiming cancels what's queued and records claimed_at");
+await db.exec(`update agencies set is_claimed = false where id = '${SALT}'`);
+ok(
+  !(await fails(`insert into contact_messages (topic, name, email, message, agency_id) values ('removal', 'Saltmere', 'a@saltmere.example', 'Please remove', '${SALT}')`)),
+  "contact_messages: removal requests with the agency attached",
+);
+
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exitCode = failures ? 1 : 0;

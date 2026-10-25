@@ -17,20 +17,29 @@ const secret = () => {
   if (!s || s.length < 32) throw new Error("CLAIM_TOKEN_SECRET must be at least 32 characters");
   return s;
 };
-// Its own label, so it never works as a claim or verification link. No expiry: an unsubscribe
-// link should keep working.
-const mac = (agencyId: string) =>
-  createHmac("sha256", secret()).update(`outreach-unsubscribe:${agencyId}`).digest("base64url");
+// Each link has its own label, so it never works as a claim or verification link (or as the other
+// one). No expiry: an unsubscribe link should keep working.
+const mac = (agencyId: string, label = "outreach-unsubscribe") =>
+  createHmac("sha256", secret()).update(`${label}:${agencyId}`).digest("base64url");
+
+function validMac(agencyId: string, token: string, label?: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(agencyId)) return false;
+  const expected = Buffer.from(mac(agencyId, label));
+  const got = Buffer.from(token);
+  return got.length === expected.length && timingSafeEqual(got, expected);
+}
 
 export const unsubscribeUrl = (agencyId: string) =>
   absoluteUrl(`/api/outreach/unsubscribe?a=${agencyId}&t=${mac(agencyId)}`);
 
-export function validUnsubscribe(agencyId: string, token: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(agencyId)) return false;
-  const expected = Buffer.from(mac(agencyId));
-  const got = Buffer.from(token);
-  return got.length === expected.length && timingSafeEqual(got, expected);
-}
+export const validUnsubscribe = (agencyId: string, token: string) => validMac(agencyId, token);
+
+/** "Remove my listing" (outreach email footer): a short form that lands in Admin → Inbox. */
+export const removeListingUrl = (agencyId: string) =>
+  absoluteUrl(`/remove-listing?a=${agencyId}&t=${mac(agencyId, "outreach-remove")}`);
+
+export const validRemoveLink = (agencyId: string, token: string) =>
+  validMac(agencyId, token, "outreach-remove");
 
 /** Returns whether an email went out. */
 export async function sendOutreach(
