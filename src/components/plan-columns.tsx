@@ -6,8 +6,8 @@ import { freeFeatures, proFeatures } from "@/lib/entitlements";
 // feature lists from the entitlements (the billing page's list).
 
 /** Fallbacks if the plans table can't be read: the launch prices. */
-const PRO_MONTHLY_USD = 29;
-const PRO_YEARLY_USD = 279;
+const PRO_MONTHLY_USD = 49;
+const PRO_YEARLY_USD = 470;
 
 export async function getProPrices() {
   const pro = (await getPlanPrices()).get("pro");

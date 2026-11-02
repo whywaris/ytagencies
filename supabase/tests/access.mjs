@@ -1058,8 +1058,8 @@ if (MIGRATIONS) {
 }
 ok(
   JSON.stringify(await rows("select id, price_monthly::int m, price_yearly::int y from plans")) ===
-    JSON.stringify([{ id: "pro", m: 29, y: 279 }]),
-  "plans: only Pro, $29 / $279",
+    JSON.stringify([{ id: "pro", m: 49, y: 470 }]),
+  "plans: only Pro, $49 / $470",
 );
 ok(
   await fails(

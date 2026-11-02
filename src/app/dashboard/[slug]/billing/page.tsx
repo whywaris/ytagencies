@@ -47,8 +47,8 @@ export default async function BillingPage({
   const live = liveSubscription(subs.data);
   const lastPaid = subs.data.find((s) => s.source === "payment" && s.customer_id);
   const pro = prices.get("pro");
-  const monthly = Number(pro?.price_monthly ?? 29);
-  const yearly = Number(pro?.price_yearly ?? 279);
+  const monthly = Number(pro?.price_monthly ?? 49);
+  const yearly = Number(pro?.price_yearly ?? 470);
   const saving = Math.round((1 - yearly / (monthly * 12)) * 100);
   const lapsed = !live && subs.data.length > 0;
 

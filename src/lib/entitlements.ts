@@ -2,7 +2,7 @@
 // file directly; getEntitlements() in lib/data/entitlements.ts feeds it from the database.
 //
 // Listings are free and can exist without an owner. A claimed listing's owner edits the basics on
-// Free; Pro ($29/month or $279/year) adds client details and replies, booking buttons, no similar
+// Free; Pro ($49/month or $470/year) adds client details and replies, booking buttons, no similar
 // agencies, unlimited case studies, analytics, the Pro badge and Pro placement. "Managed" means a
 // live Pro subscription.
 

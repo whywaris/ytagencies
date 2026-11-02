@@ -505,7 +505,7 @@ create table plans (
   price_yearly numeric(10, 2)
 );
 insert into plans (id, name, price_monthly, price_yearly) values
-  ('pro', 'Pro', 29, 279)
+  ('pro', 'Pro', 49, 470) -- migration 20261107000100
 on conflict (id) do update set name = excluded.name, price_monthly = excluded.price_monthly,
   price_yearly = excluded.price_yearly;
 

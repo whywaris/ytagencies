@@ -129,8 +129,8 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
    | `PAYMENTS_ENABLED` | server | for payments | Only exactly `true` turns checkout on (with the Lemon Squeezy variables below). While off (or any of them is missing), "Get Pro" shows "Checkout is temporarily unavailable. Email help@ytagencies.com", logs which variable is missing and emails `ADMIN_EMAIL` (at most hourly). There's no fallback form; grant Pro by hand in Agencies → Change plan if needed. The production build log also warns when any is missing. |
    | `LEMONSQUEEZY_API_KEY` | server, secret | for payments | Lemon Squeezy → **Settings → API** → create a key. A key created in test mode is a test key: test key on Preview/local, live key on Production. |
    | `LEMONSQUEEZY_STORE_ID` | server | for payments | Lemon Squeezy → **Settings → Stores** → your store's ID (a number). |
-   | `LEMONSQUEEZY_VARIANT_MONTHLY` | server | for payments | Lemon Squeezy → **Products** → "YT Agencies Pro" → the $29/month variant's ID (a number). |
-   | `LEMONSQUEEZY_VARIANT_YEARLY` | server | for payments | The same product → the $279/year variant's ID. Must differ from the monthly one. |
+   | `LEMONSQUEEZY_VARIANT_MONTHLY` | server | for payments | Lemon Squeezy → **Products** → "YT Agencies Pro" → the $49/month variant's ID (a number). |
+   | `LEMONSQUEEZY_VARIANT_YEARLY` | server | for payments | The same product → the $470/year variant's ID. Must differ from the monthly one. |
    | `LEMONSQUEEZY_WEBHOOK_SECRET` | server, secret | for payments | Lemon Squeezy → **Settings → Webhooks** → add the endpoint `https://ytagencies.com/api/webhooks/lemonsqueezy`; you choose the signing secret there (a random string, 6–40 characters). Without it, payments don't update plans. |
    | `LEMONSQUEEZY_TEST_MODE` | server | for test payments | `true` creates checkouts in test mode. Unset (or `false`) on Production. |
 
@@ -145,7 +145,7 @@ Supabase's built-in email is for testing only: it sends a couple of emails an ho
 Lemon Squeezy is the merchant of record: it charges, handles tax and sends receipts and invoices. Test mode and live mode are separate (API keys and webhooks don't carry over).
 
 1. **Account and store.** Sign up at lemonsqueezy.com, create the store "YT Agencies" and complete the store activation in the dashboard. Live payments need it; test mode works before it.
-2. **Product (test mode first).** Turn on test mode in the dashboard. Create one subscription product "YT Agencies Pro" with two variants: $29 billed monthly and $279 billed yearly. Copy both variant IDs and the store ID (Settings → Stores).
+2. **Product (test mode first).** Turn on test mode in the dashboard. Create one subscription product "YT Agencies Pro" with two variants: $49 billed monthly and $470 billed yearly. Copy both variant IDs and the store ID (Settings → Stores).
 3. **Webhook (test).** Settings → Webhooks → add an endpoint: a tunnel to your machine (e.g. `ngrok http 3000`, then `https://<tunnel>/api/webhooks/lemonsqueezy`), or the Preview URL plus `/api/webhooks/lemonsqueezy`. Set a signing secret and tick these events: `subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_resumed`, `subscription_expired`, `subscription_payment_success`, `subscription_payment_failed`, `order_refunded`.
 4. **Key (test).** Settings → API (in test mode) → create a key.
 5. **Env (Preview and `.env.local`).** The test key, store ID, the two variant IDs, the webhook secret, `LEMONSQUEEZY_TEST_MODE=true`, `PAYMENTS_ENABLED=true`. Admin → Settings → Payments then says "On (test mode)".
@@ -153,7 +153,7 @@ Lemon Squeezy is the merchant of record: it charges, handles tax and sends recei
    - Admin → Plans: source Payment, the subscription id, last event "Payment received".
    - Billing → Manage subscription opens the Lemon Squeezy customer portal: switch to yearly, cancel (Pro stays until the period end), resume.
    - Settings → Webhooks shows every delivery answered 200. Resending one is ignored (already processed).
-7. **Go live.** Turn test mode off and repeat steps 2–4 in live mode (new variant IDs if you recreate the product, a new webhook and secret, a live API key). On Vercel **Production** set the live values, leave `LEMONSQUEEZY_TEST_MODE` unset, set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $29 purchase on your own agency, then refund it in Lemon Squeezy (you get an admin email; end Pro in Admin → Agencies → Change plan, or cancel the subscription in Lemon Squeezy).
+7. **Go live.** Turn test mode off and repeat steps 2–4 in live mode (new variant IDs if you recreate the product, a new webhook and secret, a live API key). On Vercel **Production** set the live values, leave `LEMONSQUEEZY_TEST_MODE` unset, set `PAYMENTS_ENABLED=true`, then redeploy. Make one real $49 purchase on your own agency, then refund it in Lemon Squeezy (you get an admin email; end Pro in Admin → Agencies → Change plan, or cancel the subscription in Lemon Squeezy).
 8. **Ongoing.** Refunds and cancellations happen in the Lemon Squeezy dashboard; the webhook updates the plan. Ending a paid plan from Admin → Change plan only changes our side, so cancel it in Lemon Squeezy too.
 9. **Rejecting a paid submission.** "Add your agency" lets the submitter subscribe before review. Admin → Submissions marks those ("Paid for Pro when submitting", with the subscription id). Rejecting deletes the draft but not the charge: refund the order in full and cancel the subscription in Lemon Squeezy.
 

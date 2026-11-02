@@ -173,7 +173,7 @@ Taxonomy: same functionality as today, restyled. Settings: admin profile, `PAYME
 ### Entitlements
 One server function `getEntitlements(agency)` used everywhere:
 
-Listings are free and can exist without an owner. Managing one needs an active Pro subscription ($29/month or $279/year). There is no free managed plan and no Founding plan (removed in migration 20261020000100, which turned Founding subscriptions into Pro with source manual and the same end date).
+Listings are free and can exist without an owner. Managing one needs an active Pro subscription ($49/month or $470/year). There is no free managed plan and no Founding plan (removed in migration 20261020000100, which turned Founding subscriptions into Pro with source manual and the same end date).
 
 **Managed** (`isManaged` in `lib/entitlements.ts`, the one helper used everywhere) = an active Pro subscription within its dates (including one cancelling at the period end, until `ends_at`), or a `past_due` one within a 7-day grace. Everything else is **unmanaged**.
 
@@ -197,7 +197,7 @@ Unmanaged profiles replace Contact with "Get matched with similar agencies" (`/g
 - **Pricing details and response time:** agencies give a minimum contract, ad spend (separate / included / not applicable) and an optional setup fee; the profile shows a Pricing block, directory rows and hero cards a "No lock-in" chip for no minimum or month-to-month. Owners mark routed leads as contacted (dashboard → Leads; server time, set once); profiles and rows show "Usually replies within …" from the `agency_response_times` view (3+ contacted in 90 days, median under 2 days). Unanswered leads get one reminder email after 24 hours (daily cron). Admin → agency → Activity shows the median and contacted rate.
 - Website links (Pro only): `rel="sponsored noopener"`; unmanaged profiles have no outbound website link and no contact form.
 - Get-matched routing: only managed agencies (up to 3). If none match, the request is saved and the admin is notified to follow up by hand.
-- **/pricing** page (was /for-agencies/pricing, 301): three columns (Listing: free, can't be contacted; Pro $29/mo or $279/yr with a monthly/yearly toggle and "Save 20%"; Sponsored: no public price, "Contact us"; Pro + Verified only). While `PAYMENTS_ENABLED !== "true"`, every "Get Pro" opens a Request Pro form (name, email, agency, monthly/yearly) that lands in Admin → Inbox (topic `pro`) and emails help@; the admin grants Pro by hand (source manual). Sponsored shows "Contact us".
+- **/pricing** page (was /for-agencies/pricing, 301): three columns (Listing: free, can't be contacted; Pro $49/mo or $470/yr with a monthly/yearly toggle and "Save 20%"; Sponsored: no public price, "Contact us"; Pro + Verified only). While `PAYMENTS_ENABLED !== "true"`, every "Get Pro" opens a Request Pro form (name, email, agency, monthly/yearly) that lands in Admin → Inbox (topic `pro`) and emails help@; the admin grants Pro by hand (source manual). Sponsored shows "Contact us".
 - Agency dashboard: shows current plan, entitlements, and an analytics panel (profile views, website clicks, inquiries) limited to the plan's history window.
 
 ### Payments (Creem)

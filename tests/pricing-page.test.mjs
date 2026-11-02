@@ -78,9 +78,9 @@ function files(dir) {
   });
 }
 
-test('no "$49" (the old Sponsored price) anywhere in the site', () => {
-  const hits = files("src").filter((p) =>
-    /\$\s?49\b|SPONSORED_FROM_USD/.test(readFileSync(p, "utf8")),
-  );
+// Sponsored has no public price ("Contact us"). ($49 was its old price; it's Pro's monthly price
+// now, read from the plans table.)
+test("no public Sponsored price anywhere in the site", () => {
+  const hits = files("src").filter((p) => /SPONSORED_FROM_USD/.test(readFileSync(p, "utf8")));
   assert.deepEqual(hits, []);
 });
