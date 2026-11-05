@@ -59,10 +59,12 @@ import { REVIEW_BUDGETS } from "@/lib/validation/review";
 // a section without data isn't rendered. Server component: the contact form and the analytics
 // beacon are the only client parts.
 
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 hours; changes refresh on demand (lib/revalidate.ts)
 
 export async function generateStaticParams() {
-  return (await getAgencySlugs()).map(({ slug }) => ({ slug }));
+  // Indexable profiles only. Thin (noindex) ones render on their first visit and are then cached
+  // the same way: they're most of the directory, and they made every build and deployment bigger.
+  return (await getAgencySlugs()).filter((a) => a.indexable).map(({ slug }) => ({ slug }));
 }
 
 async function load(params: PageProps<"/agency/[slug]">["params"]) {

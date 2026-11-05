@@ -4,7 +4,7 @@ import { directoryHeading } from "@/lib/directory";
 import { ogImage } from "@/lib/seo/og";
 
 // Social image for /[service]/[segment].
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 hours; changes refresh on demand (lib/revalidate.ts)
 
 export async function GET(
   _request: Request,

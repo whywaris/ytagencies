@@ -13,7 +13,7 @@ import {
 } from "@/lib/billing/lemonsqueezy-events";
 import { sendBillingEmail } from "@/lib/billing/notices";
 import { alertAdmin } from "@/lib/email";
-import { revalidateAgency } from "@/lib/revalidate";
+import { revalidateAgencyListings } from "@/lib/revalidate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/types";
 
@@ -184,7 +184,7 @@ export async function handleWebhook(rawBody: string, headers: Headers): Promise<
           next.row,
         );
         if (!applied) return new Response("Try again", { status: 500 });
-        revalidateAgency(agency.data.slug);
+        revalidateAgencyListings(agency.data.slug);
         if (next.email) await notify(agency.data, next.email);
       }
     }

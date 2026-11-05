@@ -15,8 +15,11 @@ import { createStaticClient } from "@/lib/supabase/server";
 
 export type BrowseItem = AgencyListItem & { countries: string[] };
 
-// ponytail: the whole published list per minute, capped at PostgREST's max rows (1000 by
-// default). Page in SQL when the directory grows past that.
+// The whole published list, shared by /agencies and the directory pages. A page's ISR time can't be
+// longer than the shortest cache it reads (unstable_cache lowers it), so this must stay at least as
+// long as those pages' `revalidate`: at 60 seconds, it made 254 pages rebuild every minute they were
+// visited. Listing changes clear it through BROWSE_POOL_TAG (lib/revalidate.ts).
+// ponytail: capped at PostgREST's max rows (1000 by default). Page in SQL past that.
 const loadPool = unstable_cache(
   async () => {
     const [{ data, error }, placement, responses, locations] = await Promise.all([
@@ -44,7 +47,7 @@ const loadPool = unstable_cache(
     }));
   },
   ["browse-pool"],
-  { revalidate: 60 },
+  { revalidate: 86400, tags: ["browse-pool"] },
 );
 
 export const getBrowsePool = loadPool;

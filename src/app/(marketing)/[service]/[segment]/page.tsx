@@ -31,7 +31,7 @@ import {
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 
-export const revalidate = 3600;
+export const revalidate = 21600; // 6 hours; changes refresh on demand (lib/revalidate.ts)
 
 // Pre-render indexable combos; thin ones render on first request and are then cached the same way.
 export async function generateStaticParams() {

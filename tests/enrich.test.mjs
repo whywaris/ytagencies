@@ -177,8 +177,8 @@ test("approval writes the tag (not primary) and refreshes the pages; claimed age
   assert.match(src, /const ctx = await adminContext\(\);\n {2}if \(!ctx\) return \{ ok: false, error: NOT_ADMIN \};/);
   assert.match(src, /from\("agency_industries"\)\.upsert\(\n\s+open\.map\(\(r\) => \(\{ agency_id: r\.agency_id, industry_id: r\.industry_id, is_primary: false \}\)\)/);
   assert.match(src, /decision === "approved" \? rows\.filter\(\(r\) => !r\.agencies\?\.is_claimed\) : rows/);
-  assert.match(src, /revalidateAgency\(slug\);/);
-  // revalidateAgency covers the profile, the industry hub, service × industry pages and the sitemaps.
+  assert.match(src, /revalidateAgencyListings\(slug\);/);
+  // Listings covers the profile, the industry hub, service × industry pages and the sitemaps.
   const reval = read("src/lib/revalidate.ts");
   for (const p of ["/agency/${slug}", "/(marketing)/[service]/[segment]", "/(marketing)/industries/[industry]", "revalidateSitemap();"])
     assert.ok(reval.includes(p), p);

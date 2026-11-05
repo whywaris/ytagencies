@@ -13,7 +13,7 @@ import { removeCaseStudy, writeCaseStudy } from "@/lib/case-studies";
 import { getEntitlements } from "@/lib/data/entitlements";
 import { imageInfo } from "@/lib/image-info";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { revalidateAgency } from "@/lib/revalidate";
+import { revalidateAgency, revalidateAgencyListings } from "@/lib/revalidate";
 import { basicsSchema, caseStudySchema, profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
 import { fetchChannel } from "@/lib/youtube";
@@ -64,7 +64,9 @@ export async function updateProfile(agencyId: string, raw: unknown): Promise<For
   const error = await applyProfile(owned.supabase, owned.agency.id, parsed.data);
   if (error) return { ok: false, error };
 
-  revalidateAgency(owned.agency.slug);
+  // ponytail: every profile save refreshes the directory, changed or not. Compare services,
+  // industries, places and price first if owners' saves start showing up in ISR writes.
+  revalidateAgencyListings(owned.agency.slug);
   return { ok: true, data: undefined };
 }
 

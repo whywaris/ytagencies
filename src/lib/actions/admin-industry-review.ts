@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
-import { revalidateAgency } from "@/lib/revalidate";
+import { revalidateAgencyListings } from "@/lib/revalidate";
 
 // Admin → Directory → Industry review. Approving writes the tag (agency_industries,
 // is_primary = false) and refreshes every page it can change: the profile, the industry hub, the
-// service × industry pages and the sitemaps (revalidateAgency). Rejecting only records the
+// service × industry pages and the sitemaps (revalidateAgencyListings). Rejecting only records the
 // decision, so the script never suggests that pair again.
 
 type Result = { ok: true; done: number } | { ok: false; error: string };
@@ -53,7 +53,7 @@ async function decide(ctx: Ctx, ids: string[], decision: "approved" | "rejected"
     });
   if (decision === "approved")
     for (const slug of new Set(open.map((r) => r.agencies?.slug).filter((s): s is string => !!s)))
-      revalidateAgency(slug);
+      revalidateAgencyListings(slug);
   revalidatePath("/admin/industry-review");
   return { ok: true, done: open.length };
 }

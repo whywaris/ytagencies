@@ -4,7 +4,7 @@ import { directoryHeading } from "@/lib/directory";
 import { ogImage } from "@/lib/seo/og";
 
 // Social image for /[service]. Fixed path so buildMetadata can reference it.
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 hours; changes refresh on demand (lib/revalidate.ts)
 
 export async function GET(_request: Request, { params }: RouteContext<"/og/service/[service]">) {
   const service = await getServiceBySlug((await params).service);

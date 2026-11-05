@@ -7,7 +7,7 @@ import { applyProfile } from "@/lib/agency-profile";
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { logoSrc } from "@/lib/logo";
 import { checkLinkedImage } from "@/lib/media";
-import { revalidateAgency, revalidateDirectory, revalidateSitemap } from "@/lib/revalidate";
+import { revalidateAgency, revalidateAgencyListings, revalidateDirectory, revalidateSitemap } from "@/lib/revalidate";
 import { agencySchema, comboContentSchema, introSchema } from "@/lib/validation/admin";
 import { profileSchema } from "@/lib/validation/dashboard";
 import type { FormResult } from "@/lib/validation/lead";
@@ -157,7 +157,7 @@ export async function adminUpdateProfile(agencyId: string, raw: unknown): Promis
       await db.from("agencies").update({ hq_other: null }).eq("id", agencyId);
   }
   await log("agency.profile_update", "agency", agencyId);
-  revalidateAgency(agency.slug);
+  revalidateAgencyListings(agency.slug);
   return { ok: true, data: undefined };
 }
 

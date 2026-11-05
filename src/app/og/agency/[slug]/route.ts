@@ -3,7 +3,7 @@ import { getAgencyBySlug } from "@/lib/data/agencies";
 import { agencyOgImage } from "@/lib/seo/og";
 
 // Social image for /agency/[slug] (1200×630). Unpublished agencies 404 here too.
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 hours; changes refresh on demand (lib/revalidate.ts)
 
 const UNIT: Record<string, string> = {
   retainer: "/month",

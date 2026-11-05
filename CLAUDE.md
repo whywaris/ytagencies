@@ -68,7 +68,7 @@ docs/
 
 ## Rendering rules
 
-- Directory, profile, and guide pages: static generation with ISR (`revalidate = 3600`), plus on-demand `revalidatePath` when an agency updates its profile.
+- Directory pages: ISR with `revalidate = 21600`; profiles `86400`; guides `3600`. On demand: `revalidateAgency` (its own pages) or `revalidateAgencyListings` (everywhere it's listed, only when where it's listed or how it ranks changes). A cache a page reads (`unstable_cache`) must not be shorter than the page's `revalidate`: it silently lowers it.
 - Dashboard/admin: dynamic, auth-gated, `noindex`.
 - No client-side data fetching for indexable content.
 

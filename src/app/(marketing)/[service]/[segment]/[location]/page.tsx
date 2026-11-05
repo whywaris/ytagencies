@@ -19,7 +19,7 @@ import { BRAND_NAME, MIN_AGENCIES_TO_INDEX } from "@/lib/site";
 // /<service>/for-<industry>/in-<country>: service × industry × country. Unlike the other
 // directory pages, it only exists with 3+ agencies (404 below), so the combinations never pile up
 // as thin pages. Countries only (cities would be too thin).
-export const revalidate = 3600;
+export const revalidate = 21600; // 6 hours; changes refresh on demand (lib/revalidate.ts)
 
 export async function generateStaticParams() {
   const { paths } = await getDirectoryIndex();

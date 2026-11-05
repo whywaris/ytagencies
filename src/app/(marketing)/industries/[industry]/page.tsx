@@ -20,7 +20,7 @@ import { liveLinks } from "@/lib/sitemap-core";
 
 // /industries/<industry>: every agency working in an industry, any service. Indexed (and in the
 // sitemap) from 3 published agencies, like every directory page (docs/SEO.md).
-export const revalidate = 3600;
+export const revalidate = 21600; // 6 hours; changes refresh on demand (lib/revalidate.ts)
 
 export async function generateStaticParams() {
   const { paths } = await getDirectoryIndex();

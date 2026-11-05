@@ -11,7 +11,7 @@ import { removeCaseStudy, resolveCaseStudyChannels, writeCaseStudy } from "@/lib
 import { approveClaim } from "@/lib/claims";
 import { getMailer, oneLine } from "@/lib/email";
 import { getEntitlements } from "@/lib/data/entitlements";
-import { revalidateAgency, revalidateSitemap } from "@/lib/revalidate";
+import { revalidateAgency, revalidateAgencyListings, revalidateSitemap } from "@/lib/revalidate";
 import { absoluteUrl, BRAND_NAME } from "@/lib/site";
 import type { Json } from "@/lib/supabase/types";
 import { caseStudySchema } from "@/lib/validation/dashboard";
@@ -56,7 +56,7 @@ export async function setAgenciesStatus(
   }[s.data];
   for (const a of data) {
     await ctx.log(action, "agency", a.id, parsedIds.data.length > 1 ? { bulk: true } : {});
-    revalidateAgency(a.slug); // unpublishing must drop it from cached pages too
+    revalidateAgencyListings(a.slug); // unpublishing must drop it from cached pages too
   }
   revalidatePath("/admin/agencies");
   return { ok: true, data: { count: data.length } };
@@ -92,7 +92,7 @@ export async function deleteAgencies(
 
   for (const a of data) {
     await ctx.log("agency.delete", "agency", a.id, { name: a.name, slug: a.slug });
-    revalidateAgency(a.slug);
+    revalidateAgencyListings(a.slug);
   }
   // Storage after the commit: a failure here leaves orphaned files, never a half-deleted agency.
   await Promise.all(
@@ -163,7 +163,7 @@ export async function changePlan(agencyId: string, raw: unknown): Promise<FormRe
     if (error) return { ok: false, error: SAVE_FAILED };
   }
   await ctx.log("agency.change_plan", "agency", agencyId, { plan, ends_on: endsOn || null });
-  revalidateAgency(agency.slug);
+  revalidateAgencyListings(agency.slug);
   revalidatePath("/admin/agencies");
   revalidatePath(`/admin/agencies/${agencyId}`);
   return { ok: true, data: undefined };
@@ -281,7 +281,7 @@ export async function decideSubmission(
       .eq("id", agency.id);
     if (error) return { ok: false, error: SAVE_FAILED };
     await ctx.log("submission.approve", "agency", agency.id);
-    revalidateAgency(agency.slug);
+    revalidateAgencyListings(agency.slug);
     await emailListingLive(ctx, agency);
   }
   revalidatePath("/admin/submissions");
@@ -499,7 +499,7 @@ export async function saveVerification(agencyId: string, raw: unknown): Promise<
       reason: v.reason || null,
     },
   );
-  revalidateAgency(agency.slug);
+  revalidateAgencyListings(agency.slug);
   revalidatePath("/admin/verification");
   revalidatePath(`/admin/agencies/${agencyId}`);
   return { ok: true, data: undefined };
@@ -525,7 +525,7 @@ export async function revokeVerification(agencyId: string, reason = ""): Promise
     .eq("status", "approved");
   if (error) return { ok: false, error: SAVE_FAILED };
   await ctx.log("verification.revoke", "agency", agencyId, { reason: r.data || null });
-  revalidateAgency(agency.slug);
+  revalidateAgencyListings(agency.slug);
   revalidatePath("/admin/verification");
   revalidatePath(`/admin/agencies/${agencyId}`);
   return { ok: true, data: undefined };
