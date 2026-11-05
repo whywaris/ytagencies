@@ -1,4 +1,4 @@
-// AdSense: connected always, but no third-party script or wider CSP until it's switched on.
+// AdSense: connected and allowed by the CSP always, but no third-party script until it's switched on.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
@@ -23,12 +23,11 @@ test("the account ID matches ads.txt, and the script is on guide articles only",
   assert.doesNotMatch(read("src/app/(marketing)/layout.tsx"), /adsbygoogle/);
 });
 
-test("the CSP gains ad hosts only when ads are on", () => {
+test("the CSP allows the ad hosts", () => {
   const c = read("next.config.ts");
-  for (const name of ["ADS_SCRIPT", "ADS_IMG", "ADS_CONNECT", "ADS_FRAME"]) {
-    assert.match(c, new RegExp(`const ${name} = ads\\n\\s+\\? "[^"]+"\\n\\s+: "";`), name);
-    assert.ok(c.includes(`\${${name}}`), name);
-  }
+  for (const name of ["ADS_SCRIPT", "ADS_IMG", "ADS_CONNECT", "ADS_FRAME"]) assert.ok(c.includes(`\${${name}}`), name);
+  for (const host of ["pagead2.googlesyndication.com", "googleads.g.doubleclick.net", "tpc.googlesyndication.com", "fundingchoicesmessages.google.com"])
+    assert.ok(c.includes(`https://${host}`), host);
 });
 
 test("the policies say what the site does", () => {

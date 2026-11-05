@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
-import { adsEnabled } from "./src/lib/ads";
 import { gaId } from "./src/lib/analytics";
 import { lsEnvProblems } from "./src/lib/billing/lemonsqueezy-events";
 import { companyTodos } from "./src/lib/company";
@@ -30,20 +29,15 @@ const YT_PLAYER = "https://www.youtube-nocookie.com";
 const GA_SCRIPT = "https://www.googletagmanager.com";
 const GA_HITS =
   "https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com";
-// AdSense (lib/ads.ts): nothing is added until ads are switched on.
-const ads = adsEnabled();
-const ADS_SCRIPT = ads
-  ? " https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://partner.googleadservices.com https://www.googletagservices.com https://adservice.google.com https://fundingchoicesmessages.google.com https://ep2.adtrafficquality.google"
-  : "";
-const ADS_IMG = ads
-  ? " https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://www.google.com https://ep1.adtrafficquality.google"
-  : "";
-const ADS_CONNECT = ads
-  ? " https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://ep1.adtrafficquality.google https://csi.gstatic.com"
-  : "";
-const ADS_FRAME = ads
-  ? " https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://ep2.adtrafficquality.google"
-  : "";
+// AdSense (lib/ads.ts): allowed always, so it's ready for review. The script itself is switched on separately.
+const ADS_SCRIPT =
+  " https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://partner.googleadservices.com https://www.googletagservices.com https://adservice.google.com https://fundingchoicesmessages.google.com https://ep2.adtrafficquality.google";
+const ADS_IMG =
+  " https://pagead2.googlesyndication.com https://tpc.googlesyndication.com https://googleads.g.doubleclick.net https://www.google.com https://ep1.adtrafficquality.google";
+const ADS_CONNECT =
+  " https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://fundingchoicesmessages.google.com https://ep1.adtrafficquality.google https://csi.gstatic.com";
+const ADS_FRAME =
+  " https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://fundingchoicesmessages.google.com https://ep2.adtrafficquality.google";
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' ${GA_SCRIPT}${ADS_SCRIPT}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
