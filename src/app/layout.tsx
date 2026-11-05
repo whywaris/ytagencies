@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Instrument_Sans } from "next/font/google";
 
+import { ADSENSE_CLIENT } from "@/lib/ads";
 import { BRAND_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: BRAND_NAME, template: `%s | ${BRAND_NAME}` },
   applicationName: BRAND_NAME,
+  other: { "google-adsense-account": ADSENSE_CLIENT },
 };
 
 // DESIGN.md light --bg: light is the default whatever the OS says.

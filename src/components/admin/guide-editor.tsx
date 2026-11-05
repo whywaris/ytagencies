@@ -33,7 +33,7 @@ import {
   type GuideInput,
 } from "@/lib/actions/admin-guides";
 import { formatDateTime } from "@/lib/format";
-import { placeholdersIn } from "@/lib/guide-blocks";
+import { placeholdersIn, templateBlanksIn } from "@/lib/guide-blocks";
 import { docText, imagesWithoutAlt, type Doc } from "@/lib/guide-content";
 import { isAlternatives, prePublishChecks, type Panel } from "@/lib/guide-template";
 import { cn } from "@/lib/utils";
@@ -280,6 +280,7 @@ export function GuideEditor({
     hasText: !!text,
     imagesWithoutAlt: imagesWithoutAlt(values.body),
     placeholders: placeholdersIn(text).length,
+    templateBlanks: templateBlanksIn(text).length,
   });
   const blocking = checks.filter((c) => c.blocking);
 

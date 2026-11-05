@@ -9,7 +9,7 @@ import { CONSENT_KEY, shouldLoadGa } from "@/lib/track";
 
 // Google Analytics 4 with Consent Mode v2, for public pages only (mounted in the (marketing)
 // layout, and only when lib/analytics.ts gaId() allows it). Everything starts denied; analytics
-// storage is granted only after "Accept", and ad storage never is (we run no ads).
+// storage is granted only after "Accept", and ad storage never is (ads get consent through Google's own message: lib/ads.ts).
 // Never for signed-in visitors or on private routes (lib/track.ts shouldLoadGa): the check runs in
 // the browser after load, so pages stay static. If it stops holding later in the tab (signing in,
 // or moving into a private area), GA is switched off (ga-disable-<id>) and track() sends nothing.

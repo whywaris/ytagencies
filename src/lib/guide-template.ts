@@ -22,6 +22,8 @@ export type CheckInput = {
   imagesWithoutAlt: number;
   /** "[price]"-style placeholders still in the text. */
   placeholders: number;
+  /** Blanks left from the Alternatives template (lib/guide-blocks.ts). */
+  templateBlanks: number;
 };
 
 /**
@@ -34,6 +36,13 @@ export function prePublishChecks(i: CheckInput): CheckItem[] {
   if (!i.categoryId) items.push({ key: "category", label: "Choose a category", blocking: true, panel: "category" });
   if (isAlternatives(i.categorySlug) && !i.pricesCheckedOn)
     items.push({ key: "prices", label: "Add the date prices were checked", blocking: true, panel: "category" });
+  if (i.templateBlanks)
+    items.push({
+      key: "template-blanks",
+      label: `Fill in the template's ${i.templateBlanks === 1 ? "1 blank" : `${i.templateBlanks} blanks`}`,
+      blocking: true,
+      panel: "content",
+    });
   if (i.imagesWithoutAlt)
     items.push({
       key: "image-alt",

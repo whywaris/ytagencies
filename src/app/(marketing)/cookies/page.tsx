@@ -17,7 +17,7 @@ import { PAGE_UPDATED } from "@/lib/page-dates";
 const UPDATED = PAGE_UPDATED["/cookies"];
 const TITLE = "Cookie policy";
 const DESCRIPTION =
-  "The essential cookies YT Agencies sets for signing in and admin settings, the Google Analytics cookies set only if you accept them, and how long each lasts.";
+  "The essential cookies YT Agencies sets for signing in and admin settings, the Google Analytics cookies set only if you accept them, Google's ad cookies on guides, and how long each lasts.";
 
 export const metadata = buildMetadata({
   title: `Cookie policy | ${BRAND_NAME}`,
@@ -170,12 +170,25 @@ const sections: LegalSection[] = [
     ),
   },
   {
+    id: "advertising-cookies",
+    title: "Advertising cookies",
+    body: (
+      <p>
+        Our guides may show ads through Google AdSense. Google and its partners can set cookies to
+        show and measure those ads, including ads based on your earlier visits to this and other
+        sites. In the EEA, the UK and Switzerland, Google asks for your consent first. Elsewhere,
+        you can turn off personalized ads in{" "}
+        <a href="https://adssettings.google.com">Google&apos;s ad settings</a>. Ads never run in the
+        dashboard, the claim pages, sign-in or admin.
+      </p>
+    ),
+  },
+  {
     id: "no-tracking",
     title: "What we don't use",
     body: (
       <p>
-        No advertising cookies (Google ad storage stays denied: we run no ads), no social media
-        tracking pixels and no cross-site tracking. Share buttons on our guides are plain links:
+        No social media tracking pixels. Outside the ads above, no cross-site tracking. Share buttons on our guides are plain links:
         nothing loads from those networks until you click one.
       </p>
     ),
@@ -202,7 +215,7 @@ export default function CookiesPage() {
       updated={UPDATED}
       contactEmail={COMPANY.email}
       summary={[
-        "No advertising cookies.",
+        "Our guides may show Google ads, which can use cookies. In the EEA, the UK and Switzerland, Google asks for your consent first.",
         "Essential cookies keep you signed in, plus two admin-area preferences.",
         "Google Analytics cookies are set only if you accept them; change your choice any time in Cookie settings.",
       ]}

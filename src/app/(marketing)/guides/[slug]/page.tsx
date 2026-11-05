@@ -1,8 +1,10 @@
 import { notFound, permanentRedirect } from "next/navigation";
+import Script from "next/script";
 
 import { BudgetRange } from "@/components/guides/budget-range";
 import { GuideArticle } from "@/components/guides/guide-article";
 import { JsonLd } from "@/components/json-ld";
+import { ADSENSE_CLIENT, adsEnabled } from "@/lib/ads";
 import {
   getGuideBySlug,
   getGuideCategories,
@@ -101,6 +103,13 @@ export default async function GuidePage({ params }: PageProps<"/guides/[slug]">)
             g.title,
             compared.map((c) => ({ name: c.name, path: c.anchor ? `${path}#${c.anchor}` : path })),
           )}
+        />
+      )}
+      {adsEnabled() && (
+        <Script
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
         />
       )}
       <GuideArticle

@@ -406,3 +406,12 @@ export function comparisonItems(nodes: { type: string; attrs?: BlockAttrs }[]) {
 
 /** "[price]", "[fee]": placeholders still to fill in (the editor warns before publishing). */
 export const placeholdersIn = (text: string) => text.match(/\[[a-z][a-z ]{1,30}\]/gi) ?? [];
+
+/**
+ * The Alternatives template's own blanks: a guide can't go live with these. Other brackets stay a
+ * warning, because guides give readers fill-ins on purpose ("Video editor in [city]").
+ */
+export const templateBlanksIn = (text: string) =>
+  text.match(
+    /\[(?:price|best for|key difference|use case|strength|caveat|who this|good point|watch-out|buyer fee|check\]|one sentence|one or two|two or three|answer from)[^\]\n]{0,140}\]?/gi,
+  ) ?? [];

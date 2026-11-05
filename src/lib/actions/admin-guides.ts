@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
 import { getDirectoryStats } from "@/lib/data/guides";
-import { placeholdersIn } from "@/lib/guide-blocks";
+import { placeholdersIn, templateBlanksIn } from "@/lib/guide-blocks";
 import { prePublishChecks } from "@/lib/guide-template";
 import {
   docText,
@@ -267,6 +267,7 @@ export async function setGuideStatus(
       hasText: !!docText(doc),
       imagesWithoutAlt: imagesWithoutAlt(doc),
       placeholders: placeholdersIn(docText(doc)).length,
+      templateBlanks: templateBlanksIn(docText(doc)).length,
     }).filter((c) => c.blocking);
     if (blocking.length)
       return { ok: false, error: `Before publishing: ${blocking.map((c) => c.label.toLowerCase()).join(", ")}.` };

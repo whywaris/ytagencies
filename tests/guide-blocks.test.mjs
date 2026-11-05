@@ -16,6 +16,7 @@ import {
   faqItems,
   internalUrl,
   placeholdersIn,
+  templateBlanksIn,
   sanitizeBlock,
 } from "../src/lib/guide-blocks.ts";
 import { docText, docToHtml, guideBlocks, markdownToDoc, sanitizeDoc, wordCount } from "../src/lib/guide-content.ts";
@@ -185,6 +186,13 @@ test("publishing: blocked without a category, and Alternatives without the price
     ["seo-description", "seo", false],
     ["placeholders", "content", false],
   ]);
+  // The template's own blanks block publishing; a reader's fill-in only warns.
+  const blanks = prePublishChecks({ ...base, placeholders: 1, templateBlanks: 2 }).filter((c) => c.blocking);
+  assert.deepEqual(blanks.map((c) => c.key), ["template-blanks"]);
+  for (const t of ["Upwork [best for]", "[price]", "[One sentence on how we compared them.]", "[price or fee, from their public pricing page]", "Fees add up [check]"])
+    assert.equal(templateBlanksIn(t).length, 1, t);
+  for (const t of ["Video editor in [city]", "[Option A] vs [option B]", "[your service]", "[headline]", "[checked by you]"])
+    assert.equal(templateBlanksIn(t).length, 0, t);
   // The server runs the same check before publishing.
   assert.match(read("src/lib/actions/admin-guides.ts"), /const blocking = prePublishChecks\(\{/);
   assert.equal(shortTitle("5 Best Fiverr Alternatives for Hiring a YouTube Editor in 2026"), "Fiverr alternatives");
@@ -214,10 +222,23 @@ test("the example Alternatives guide uses every original block and passes the sa
   assert.match(sql, /'draft',\s*\n\s*\(select id from guide_categories where slug = 'alternatives'\)/);
   // No invented competitor numbers: placeholders instead.
   assert.ok(placeholdersIn(docText(doc)).length >= 10);
+  assert.ok(templateBlanksIn(docText(doc)).length >= 10);
   for (const n of doc.content.filter((x) => x.type === "productCard" && !x.attrs.ours))
     assert.match(n.attrs.price, /^\[/, n.attrs.title);
   // Every comparison row links to a product card on the page.
   const ids = guideBlocks(doc, noImages).blocks.filter((b) => b.kind === "block" && b.type === "productCard").map((b) => b.id);
   assert.deepEqual(comparisonItems(doc.content).map((c) => c.anchor), ids);
   assert.ok(blockText("faq", doc.content.find((n) => n.type === "faq").attrs).includes("Is YT Agencies free?"));
+});
+
+test("the filled Fiverr guide has no blanks and is valid guide content", () => {
+  const sql = read("supabase/migrations/20261108000100_fill_fiverr_alternatives.sql");
+  const doc = JSON.parse(sql.match(/\$guide\$(\{.*?\})\$guide\$::jsonb/s)[1]);
+  assert.deepEqual(sanitizeDoc(doc, noImages), doc);
+  assert.equal(docText(doc).match(/\[[^\]]+\]/g), null);
+  // Every outside price comes with its source.
+  for (const n of doc.content.filter((x) => x.type === "productCard" && !x.attrs.ours))
+    assert.match(n.attrs.priceSource, /^https:\/\//, n.attrs.title);
+  assert.match(sql, /prices_checked_on = '2026-11-05'/);
+  assert.match(sql, /like '%\[best for\]%';/);
 });

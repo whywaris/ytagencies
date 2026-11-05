@@ -125,8 +125,8 @@ const sections: LegalSection[] = [
           </li>
         </ul>
         <p>
-          We don&apos;t sell your data, show ads or build advertising profiles. We don&apos;t add
-          you to a mailing list.
+          We don&apos;t sell your data or give advertisers your details. We don&apos;t add you to a
+          mailing list.
         </p>
       </>
     ),
@@ -162,11 +162,35 @@ const sections: LegalSection[] = [
             Google: sign-in with Google, if you choose it, and the YouTube Data API, which receives
             channel links during verification
           </li>
+          <li>Google AdSense: ads on our guides (see Advertising below)</li>
         </ul>
         <p>
           Lemon Squeezy sells Pro as merchant of record: it processes payment details, your billing address
           and tax information, and sends receipts. We receive your email, Lemon Squeezy customer and
           subscription ids and the plan&apos;s status, never card numbers.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "advertising",
+    title: "Advertising",
+    body: (
+      <>
+        <p>
+          We may show ads on our guides through Google AdSense. Google and its partners can use
+          cookies to show and measure ads, including ads based on your earlier visits to this and
+          other sites. They receive your browser&apos;s data directly, never your inquiries or
+          anything you send us. Ads don&apos;t affect how agencies are listed or ranked.
+        </p>
+        <p>
+          In the EEA, the UK and Switzerland, Google asks for your consent first. Elsewhere, you can
+          turn off personalized ads in{" "}
+          <a href="https://adssettings.google.com">Google&apos;s ad settings</a>. Google explains{" "}
+          <a href="https://policies.google.com/technologies/partner-sites">
+            how it uses data from sites that use its services
+          </a>
+          .
         </p>
       </>
     ),
@@ -286,8 +310,9 @@ export default function PrivacyPage() {
       contactEmail={email}
       summary={[
         "We collect what's needed to connect businesses with agencies: your details when you send an inquiry, write to us or manage a listing.",
-        "Your contact details go only to Pro agencies you send a request to or are matched with; others see a preview without them. We don't sell your data or show ads.",
-        "No advertising cookies. Google Analytics cookies are set only if you accept them, and you can change your mind any time.",
+        "Your contact details go only to Pro agencies you send a request to or are matched with; others see a preview without them. We don't sell your data.",
+        "Google Analytics cookies are set only if you accept them, and you can change your mind any time.",
+        "Our guides may show Google ads, which can use cookies. In the EEA, the UK and Switzerland, Google asks for your consent first.",
         `You can ask for a copy of your data or have it deleted at any time: ${email}.`,
       ]}
       sections={sections}
