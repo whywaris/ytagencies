@@ -22,7 +22,7 @@ async function load({ params, searchParams }: Props) {
 }
 
 const describe = (c: { name: string; description: string | null }) =>
-  c.description ?? `Guides on ${c.name.toLowerCase()} when you hire a YouTube agency.`;
+  c.description ?? `Guides on ${c.name.toLowerCase()} for businesses and creators on YouTube.`;
 
 export async function generateMetadata(props: Props) {
   const { view, current } = await load(props);

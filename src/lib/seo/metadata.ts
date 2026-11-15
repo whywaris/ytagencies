@@ -43,3 +43,8 @@ export function buildMetadata({
     twitter: { card: "summary_large_image", title, description, images },
   };
 }
+
+/** The first candidate that fits in `max` characters, else the last (shortest) one. */
+export function firstThatFits(candidates: string[], max: number) {
+  return candidates.find((c) => c.length <= max) ?? candidates[candidates.length - 1];
+}

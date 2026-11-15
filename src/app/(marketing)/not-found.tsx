@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * notFound() inside public routes (unknown service, agency or guide). The (marketing) layout already
+ * notFound() inside public routes (an unknown guide or author). The (marketing) layout already
  * renders the nav and footer, so the root not-found (which brings its own) would show them twice.
  */
 export default function MarketingNotFound() {

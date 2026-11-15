@@ -43,14 +43,14 @@ const authCookie = `sb-${projectRef}-auth-token`;
 const COOKIES = [
   {
     name: authCookie,
-    who: "Everyone who signs in",
+    who: "Our administrators only",
     purpose:
-      "Keeps you signed in to your agency dashboard. Long values are split into numbered parts (.0, .1).",
+      "Keeps an administrator signed in. Long values are split into numbered parts (.0, .1).",
     duration: `Up to ${days(DEFAULT_COOKIE_OPTIONS.maxAge ?? 0)}, or until you sign out`,
   },
   {
     name: `${authCookie}-code-verifier`,
-    who: "Everyone who signs in",
+    who: "Our administrators only",
     purpose:
       "Links a sign-in link to the browser that asked for it. Removed once you're signed in.",
     duration: "Until sign-in completes",
@@ -145,7 +145,7 @@ const sections: LegalSection[] = [
           On our public pages, a banner asks whether we may use analytics cookies. Only if you
           choose Accept does Google Analytics set these cookies. Until then, and if you decline, it
           sets none (it runs in Google&apos;s Consent Mode with all storage denied). It never runs
-          for signed-in users, or in the dashboard, the claim pages, sign-in or admin.
+          for signed-in users, or in sign-in or admin.
         </p>
         <CookieTable rows={ANALYTICS_COOKIES} />
         <p>
@@ -164,8 +164,7 @@ const sections: LegalSection[] = [
     body: (
       <p>
         We also count visits with Vercel Web Analytics, which doesn&apos;t use cookies or identify
-        you. Agency profile statistics use a visitor code that changes every day and isn&apos;t
-        stored in your browser. Our <Link href="/privacy">privacy policy</Link> explains both.
+        you. Our <Link href="/privacy">privacy policy</Link> explains it.
       </p>
     ),
   },
@@ -178,8 +177,8 @@ const sections: LegalSection[] = [
         show and measure those ads, including ads based on your earlier visits to this and other
         sites. In the EEA, the UK and Switzerland, Google asks for your consent first. Elsewhere,
         you can turn off personalized ads in{" "}
-        <a href="https://adssettings.google.com">Google&apos;s ad settings</a>. Ads never run in the
-        dashboard, the claim pages, sign-in or admin.
+        <a href="https://adssettings.google.com">Google&apos;s ad settings</a>. Ads never run in
+        sign-in or admin.
       </p>
     ),
   },

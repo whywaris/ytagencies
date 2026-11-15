@@ -11,7 +11,6 @@ import {
 } from "@/components/guides/guide-parts";
 import { GuideSearch } from "@/components/guides/guide-search";
 import { JsonLd } from "@/components/json-ld";
-import { pageNumbers } from "@/lib/browse";
 import {
   getGuideCategories,
   getLiveGuides,
@@ -25,14 +24,15 @@ import {
   cleanGuideQuery,
   GUIDES_PER_PAGE,
   guideTabs,
+  pageNumbers,
   pickFeatured,
 } from "@/lib/guide-categories";
 import { breadcrumbJsonLd, collectionPageJsonLd } from "@/lib/seo/json-ld";
 import { cn } from "@/lib/utils";
 
 // /guides and /guides/category/[slug]: header with search, category tabs (real links, "More" as a
-// <details> so it works without JavaScript), the featured guide (All, no search), a paginated grid
-// and the closing band.
+// <details> so it works without JavaScript), the featured guide (All, no search) and a paginated
+// grid. The home page shows the same list (home: no breadcrumb JSON-LD of its own).
 
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -97,13 +97,22 @@ export const guidesPath = (category: string | null, page = 1, q = "") => {
 const updated = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
 
-export function GuidesIndex({ view, description }: { view: GuidesView; description: string }) {
+export function GuidesIndex({
+  view,
+  description,
+  home = false,
+}: {
+  view: GuidesView;
+  description: string;
+  /** The home page: its own path, and "Guides" isn't a breadcrumb step. */
+  home?: boolean;
+}) {
   const { categories, tabs, more, current, q, page, pages, total, featured, shown } = view;
   const byId = new Map<string, CardCategory>(categories.map((c) => [c.id, c]));
   const cat = (g: GuideSummary) => (g.categoryId ? (byId.get(g.categoryId) ?? null) : null);
   const crumbs = [
     { name: "Home", path: "/" },
-    { name: "Guides", path: "/guides" },
+    ...(home ? [] : [{ name: "Guides", path: "/guides" }]),
     ...(current ? [{ name: current.name, path: guidesPath(current.slug) }] : []),
   ];
   const listed = [...(featured ? [featured] : []), ...shown];
@@ -114,7 +123,7 @@ export function GuidesIndex({ view, description }: { view: GuidesView; descripti
       <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <JsonLd
         data={collectionPageJsonLd({
-          path: guidesPath(current?.slug ?? null, page),
+          path: home ? "/" : guidesPath(current?.slug ?? null, page),
           name: current ? `${current.name} guides` : "Guides",
           description,
           items: listed.map((g) => ({ path: `/guides/${g.slug}`, name: g.title })),
@@ -128,12 +137,12 @@ export function GuidesIndex({ view, description }: { view: GuidesView; descripti
               Guides
             </p>
             <h1 className="text-display">
-              {current ? current.name : "Know what you're buying before you hire."}
+              {current ? current.name : "YouTube for businesses and creators, explained."}
             </h1>
             <p className="text-[19px] text-text-2">
               {current
                 ? (current.description ?? `Guides on ${current.name.toLowerCase()}.`)
-                : "Plain answers on YouTube agency prices, contracts and results, for businesses and creators."}
+                : "Practical guides on ads, SEO, Shorts and growing a channel, and what it costs to get help."}
             </p>
           </div>
           <div className="w-full md:max-w-[360px]">
@@ -199,32 +208,6 @@ export function GuidesIndex({ view, description }: { view: GuidesView; descripti
             )}
           </nav>
         )}
-
-        <section aria-labelledby="guides-closing">
-          <div className="flex flex-col items-center gap-5 rounded-[28px] bg-[#16171a] px-6 py-14 text-center text-white md:py-16 site-dark:border site-dark:border-line site-dark:bg-raised">
-            <h2 id="guides-closing" className="text-h2">
-              Ready to compare agencies?
-            </h2>
-            <p className="text-[17px] text-white/75">
-              See starting prices and the niches each agency works in.
-            </p>
-            <div className="mt-2 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/agencies"
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 font-semibold text-[#16171a] transition-transform duration-150 hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              >
-                Browse agencies
-                <ArrowRight className="size-5 [stroke-width:2]" aria-hidden />
-              </Link>
-              <Link
-                href="/request-proposals"
-                className="inline-flex h-12 items-center rounded-full border border-white/40 px-6 font-semibold text-white transition-colors duration-150 hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              >
-                Request proposals
-              </Link>
-            </div>
-          </div>
-        </section>
       </div>
     </>
   );

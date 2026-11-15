@@ -5,14 +5,13 @@ import { COMPANY } from "@/lib/company";
 import { CONTACT_TOPICS, TOPIC_IDS, type ContactTopic } from "@/lib/contact-topics";
 import { breadcrumbJsonLd, webPageJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
-import { absoluteUrl, BRAND_NAME } from "@/lib/site";
+import { BRAND_NAME } from "@/lib/site";
 
-// /contact (?topic=… preselects a topic; ?agency=<slug> pre-fills "Report a listing").
+// /contact (?topic=… preselects a topic).
 // Reading the query makes this page render on request; the canonical is always /contact.
 
 const TITLE = "Contact us";
-const DESCRIPTION =
-  "Contact YT Agencies about a question, your agency or billing, a listing to report, press or a privacy request. Each topic goes straight to the right inbox.";
+const DESCRIPTION = "Contact YT Agencies about a guide, a correction, press or a privacy request.";
 
 export const metadata = buildMetadata({
   title: `Contact | ${BRAND_NAME}`,
@@ -34,13 +33,6 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
   const topic = (TOPIC_IDS as readonly string[]).includes(topicParam)
     ? (topicParam as ContactTopic)
     : "general";
-  const agency =
-    typeof sp.agency === "string" && /^[a-z0-9-]{1,80}$/.test(sp.agency) ? sp.agency : "";
-  // A work sample's Report link adds its video id (lib/work-samples.ts VIDEO_ID).
-  const sample =
-    agency && typeof sp.sample === "string" && /^[A-Za-z0-9_-]{11}$/.test(sp.sample)
-      ? sp.sample
-      : "";
 
   return (
     <>
@@ -64,15 +56,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
 
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16">
           <div className="max-w-reading">
-            <ContactForm
-              initialTopic={agency ? "report" : topic}
-              initialAgencyUrl={agency ? absoluteUrl(`/agency/${agency}`) : ""}
-              initialMessage={
-                sample
-                  ? `About the work sample https://www.youtube.com/watch?v=${sample} on this profile: `
-                  : ""
-              }
-            />
+            <ContactForm initialTopic={topic} />
           </div>
 
           <aside

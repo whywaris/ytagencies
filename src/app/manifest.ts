@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: BRAND_NAME,
     short_name: BRAND_NAME,
-    description: "Find the right YouTube agency by service, industry and location.",
+    description: "Practical YouTube guides for businesses and creators.",
     start_url: "/",
     display: "browser",
     background_color: "#ffffff",

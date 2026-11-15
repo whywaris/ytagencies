@@ -1,7 +1,7 @@
 "use client";
 
 import { Command } from "cmdk";
-import { Building2, CornerDownLeft, FileText, Plus, Search, User } from "lucide-react";
+import { CornerDownLeft, FileText, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Dialog } from "radix-ui";
@@ -9,31 +9,18 @@ import { Dialog } from "radix-ui";
 import { usePortalContainer } from "@/components/admin/portal";
 import { adminSearch, type AdminSearchResults } from "@/lib/actions/admin";
 
-// ⌘K / Ctrl K: jump to a page, find an agency (name, website, slug) or a lead (email), or run a
-// quick action. Pages and actions filter locally; agencies and leads come from the server.
+// ⌘K / Ctrl K: jump to a page, find a guide by title, or run a quick action. Pages and actions
+// filter locally; guides come from the server.
 
 const PAGES = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/agencies", label: "Agencies" },
-  { href: "/admin/submissions", label: "Submissions" },
-  { href: "/admin/claims", label: "Claims" },
-  { href: "/admin/reviews", label: "Reviews" },
-  { href: "/admin/verification", label: "Verification" },
-  { href: "/admin/leads", label: "Leads" },
-  { href: "/admin/seo-pages", label: "SEO pages" },
-  { href: "/admin/plans", label: "Plans" },
   { href: "/admin/guides", label: "Guides" },
-  { href: "/admin/sponsored", label: "Sponsored" },
-  { href: "/admin/inbox", label: "Inbox" },
+  { href: "/admin/guides/categories", label: "Guide categories" },
   { href: "/admin/authors", label: "Authors" },
-  { href: "/admin/taxonomy", label: "Taxonomy" },
+  { href: "/admin/inbox", label: "Inbox" },
   { href: "/admin/settings", label: "Settings" },
 ];
-const ACTIONS = [
-  { href: "/admin/agencies/new", label: "New agency" },
-  { href: "/admin/guides/new", label: "New guide" },
-];
-const NONE: AdminSearchResults = { agencies: [], leads: [], guides: [] };
+const ACTIONS = [{ href: "/admin/guides/new", label: "New guide" }];
+const NONE: AdminSearchResults = { guides: [] };
 type Results = AdminSearchResults & { for: string };
 
 const row =
@@ -45,12 +32,9 @@ const icon = "size-4 shrink-0 text-text-2 [stroke-width:1.5]";
 export function CommandPalette({
   open,
   onOpenChange,
-  hidden,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Pages switched off (Sponsored while SPONSORED_ENABLED is off). */
-  hidden: string[];
 }) {
   const router = useRouter();
   const container = usePortalContainer();
@@ -91,17 +75,11 @@ export function CommandPalette({
     router.push(href);
   };
   const q = query.trim().toLowerCase();
-  const pages = PAGES.filter((p) => !hidden.includes(p.href) && p.label.toLowerCase().includes(q));
+  const pages = PAGES.filter((p) => p.label.toLowerCase().includes(q));
   const actions = ACTIONS.filter((a) => a.label.toLowerCase().includes(q));
   // Results belong to the query they were fetched for, so stale ones never show as "nothing".
   const searching = q.length >= 2 && results.for.toLowerCase() !== q;
-  const nothing =
-    !searching &&
-    !pages.length &&
-    !actions.length &&
-    !results.agencies.length &&
-    !results.leads.length &&
-    !results.guides.length;
+  const nothing = !searching && !pages.length && !actions.length && !results.guides.length;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -118,7 +96,7 @@ export function CommandPalette({
               <Command.Input
                 value={query}
                 onValueChange={setQuery}
-                placeholder="Search pages, agencies, lead emails, guides"
+                placeholder="Search pages and guides"
                 className="h-full flex-1 bg-transparent outline-none placeholder:text-text-2"
               />
             </div>
@@ -142,40 +120,6 @@ export function CommandPalette({
                     >
                       <CornerDownLeft className={icon} aria-hidden />
                       {p.label}
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              )}
-              {results.agencies.length > 0 && (
-                <Command.Group heading="Agencies" className={groupHeading}>
-                  {results.agencies.map((a) => (
-                    <Command.Item
-                      key={a.id}
-                      value={`agency-${a.id}`}
-                      onSelect={() => go(`/admin/agencies/${a.id}`)}
-                      className={row}
-                    >
-                      <Building2 className={icon} aria-hidden />
-                      <span className="truncate">{a.name}</span>
-                      <span className="ml-auto truncate text-admin-meta">
-                        {a.website?.replace(/^https?:\/\/(www\.)?/, "") ?? `/${a.slug}`}
-                      </span>
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              )}
-              {results.leads.length > 0 && (
-                <Command.Group heading="Leads" className={groupHeading}>
-                  {results.leads.map((l) => (
-                    <Command.Item
-                      key={l.id}
-                      value={`lead-${l.id}`}
-                      onSelect={() => go(`/admin/leads#lead-${l.id}`)}
-                      className={row}
-                    >
-                      <User className={icon} aria-hidden />
-                      <span className="truncate">{l.email}</span>
-                      <span className="ml-auto truncate text-admin-meta">{l.name}</span>
                     </Command.Item>
                   ))}
                 </Command.Group>

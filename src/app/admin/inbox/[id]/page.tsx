@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { ArchiveListingButton, InboxActions } from "@/components/admin/inbox-actions";
+import { InboxActions } from "@/components/admin/inbox-actions";
 import { DetailList } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/auth";
 import { topicOf } from "@/lib/contact-topics";
@@ -91,7 +91,6 @@ export default async function InboxMessagePage({ params }: PageProps<"/admin/inb
         >
           Reply by email
         </a>
-        {m.topic === "removal" && m.agency_id && <ArchiveListingButton agencyId={m.agency_id} />}
       </div>
     </div>
   );

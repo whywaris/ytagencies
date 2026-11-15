@@ -68,9 +68,6 @@ export function AccountMenu({ account, admin }: { account: Account; admin: boole
             )}
           </DropdownMenu.Label>
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
-          <DropdownMenu.Item asChild className={item}>
-            <Link href="/dashboard">Dashboard</Link>
-          </DropdownMenu.Item>
           {admin && (
             <DropdownMenu.Item asChild className={item}>
               <Link href="/admin">Admin</Link>

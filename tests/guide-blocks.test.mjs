@@ -19,21 +19,43 @@ import {
   templateBlanksIn,
   sanitizeBlock,
 } from "../src/lib/guide-blocks.ts";
-import { docText, docToHtml, guideBlocks, markdownToDoc, sanitizeDoc, wordCount } from "../src/lib/guide-content.ts";
+import {
+  docText,
+  docToHtml,
+  guideBlocks,
+  markdownToDoc,
+  sanitizeDoc,
+  wordCount,
+} from "../src/lib/guide-content.ts";
 import { prePublishChecks, shortTitle } from "../src/lib/guide-template.ts";
 
 const read = (p) => readFileSync(p, "utf8").replace(/\r\n/g, "\n");
 const noImages = () => false;
-const media = (src) => src.startsWith("https://x.supabase.co/storage/v1/object/public/guide-media/");
+const media = (src) =>
+  src.startsWith("https://x.supabase.co/storage/v1/object/public/guide-media/");
 
 // A filled-in example of every block, as the editor saves it.
 const FILLED = {
-  comparisonTable: { rows: [{ name: "YT Agencies", bestFor: "YouTube teams", price: "Free", difference: "Agencies", anchor: "yt-agencies" }], highlightFirst: true },
+  comparisonTable: {
+    rows: [
+      {
+        name: "YT Agencies",
+        bestFor: "YouTube teams",
+        price: "Free",
+        difference: "Agencies",
+        anchor: "yt-agencies",
+      },
+    ],
+    highlightFirst: true,
+  },
   productCard: {
     badge: "BEST FOR YOUTUBE SPECIALISTS",
     title: "YT Agencies",
     description: "A directory.\n\nOurs.",
-    points: [{ kind: "good", text: "Free" }, { kind: "caveat", text: "Agencies only" }],
+    points: [
+      { kind: "good", text: "Free" },
+      { kind: "caveat", text: "Agencies only" },
+    ],
     image: "https://x.supabase.co/storage/v1/object/public/guide-media/g/shot-1200x800.webp",
     imageAlt: "The directory",
     caption: "Agencies side by side",
@@ -44,11 +66,23 @@ const FILLED = {
     chooseIf: "you want a team.",
     ours: true,
   },
-  abTable: { aLabel: "Fiverr", bLabel: "YT Agencies", rows: [{ label: "Who", a: "Freelancers", b: "Agencies" }], bBetter: "Ongoing work." },
+  abTable: {
+    aLabel: "Fiverr",
+    bLabel: "YT Agencies",
+    rows: [{ label: "Who", a: "Freelancers", b: "Agencies" }],
+    bBetter: "Ongoing work.",
+  },
   prosCons: { good: ["Fast"], watch: ["Varies"] },
   faq: { items: [{ q: "Is it free?", a: "Yes." }] },
-  ctaBox: { variant: "banner", heading: "Compare", lines: ["One", "Two"], primaryLabel: "Browse", primaryHref: "/agencies", secondaryLabel: "Ask", secondaryHref: "/request-proposals" },
-  directoryStats: { service: "youtube-ads-agencies" },
+  ctaBox: {
+    variant: "banner",
+    heading: "Compare",
+    lines: ["One", "Two"],
+    primaryLabel: "Browse",
+    primaryHref: "/agencies",
+    secondaryLabel: "Ask",
+    secondaryHref: "/request-proposals",
+  },
   statRow: {
     items: [
       { value: "73%", label: "of viewers", source: "https://example.com/study" },
@@ -57,7 +91,12 @@ const FILLED = {
   },
   button: { label: "Get proposals", href: "/request-proposals" },
   listLabel: { text: "In this order:" },
-  quote: { text: "They doubled our views.", name: "Sam Lee", role: "Founder, Acme", cite: "https://example.com/case" },
+  quote: {
+    text: "They doubled our views.",
+    name: "Sam Lee",
+    role: "Founder, Acme",
+    cite: "https://example.com/case",
+  },
 };
 
 test("every block type has a definition, an empty value and a filled example", () => {
@@ -100,22 +139,33 @@ test("the sanitizer keeps only each block's own fields, and refuses scripts and 
   assert.equal(clean.image, "");
   assert.deepEqual(clean.points, [{ kind: "good", text: "ok" }]);
   // Text stays text: the stored HTML escapes it, and the page renders it with React.
-  const html = docToHtml(sanitizeDoc({ type: "doc", content: [{ type: "productCard", attrs: dirty }] }, media), media);
+  const html = docToHtml(
+    sanitizeDoc({ type: "doc", content: [{ type: "productCard", attrs: dirty }] }, media),
+    media,
+  );
   assert.doesNotMatch(html, /<script|onclick|onerror|javascript:/i);
   assert.match(html, /&lt;script&gt;/);
   // Buttons only link within the site; sources only to http(s).
-  for (const bad of ["//evil.example", "https://evil.example", "javascript:x", " /ok", "/a b"]) assert.equal(internalUrl(bad), bad === " /ok" ? "/ok" : "", bad);
+  for (const bad of ["//evil.example", "https://evil.example", "javascript:x", " /ok", "/a b"])
+    assert.equal(internalUrl(bad), bad === " /ok" ? "/ok" : "", bad);
   assert.equal(internalUrl("/request-proposals?service=x#y"), "/request-proposals?service=x#y");
-  for (const bad of ["javascript:alert(1)", "mailto:a@b.c", "/relative", "https://u:p@x.com"]) assert.equal(externalUrl(bad), "", bad);
+  for (const bad of ["javascript:alert(1)", "mailto:a@b.c", "/relative", "https://u:p@x.com"])
+    assert.equal(externalUrl(bad), "", bad);
   // Unknown node types still go.
-  assert.deepEqual(sanitizeDoc({ type: "doc", content: [{ type: "iframe", attrs: { src: "x" } }] }, media).content, [{ type: "paragraph" }]);
+  assert.deepEqual(
+    sanitizeDoc({ type: "doc", content: [{ type: "iframe", attrs: { src: "x" } }] }, media).content,
+    [{ type: "paragraph" }],
+  );
 });
 
 test("the editor and the page render blocks with the same components and stylesheet", () => {
   const node = read("src/components/admin/guide-block-node.tsx");
   const body = read("src/components/guide-body.tsx");
-  assert.match(node, /import \{ GuideBlockView, type DirectoryStatsData \} from "@\/components\/guide-blocks";/);
-  assert.match(body, /import \{ GuideBlockView, OUTSIDE_REL, type DirectoryStatsData \} from "@\/components\/guide-blocks";/);
+  assert.match(node, /import \{ GuideBlockView \} from "@\/components\/guide-blocks";/);
+  assert.match(
+    body,
+    /import \{ GuideBlockView, OUTSIDE_REL \} from "@\/components\/guide-blocks";/,
+  );
   assert.match(node, /<GuideBlockView type=\{type\} attrs=\{attrs\}/);
   // One stylesheet: the editor canvas and the page body both use .guide-content.
   assert.match(read("src/components/admin/rich-editor.tsx"), /class: "guide-content /);
@@ -140,14 +190,31 @@ test("product cards get section ids the comparison table links to, numbered in o
   );
   const { blocks, outline } = guideBlocks(doc, media);
   const cards = blocks.filter((b) => b.kind === "block" && b.type === "productCard");
-  assert.deepEqual(cards.map((c) => [c.id, c.number]), [["yt-agencies", 1], ["upwork-2", 2]]);
-  assert.deepEqual(outline.map((o) => o.id), ["upwork", "yt-agencies", "upwork-2"]);
+  assert.deepEqual(
+    cards.map((c) => [c.id, c.number]),
+    [
+      ["yt-agencies", 1],
+      ["upwork-2", 2],
+    ],
+  );
+  assert.deepEqual(
+    outline.map((o) => o.id),
+    ["upwork", "yt-agencies", "upwork-2"],
+  );
   assert.equal(comparisonItems(doc.content)[0].anchor, "upwork-2");
 });
 
 test("FAQ schema: every FAQ block's questions, emitted once per page", () => {
   const nodes = [
-    { type: "faq", attrs: { items: [{ q: "A?", a: "1" }, { q: "", a: "ignored" }] } },
+    {
+      type: "faq",
+      attrs: {
+        items: [
+          { q: "A?", a: "1" },
+          { q: "", a: "ignored" },
+        ],
+      },
+    },
     { type: "paragraph" },
     { type: "faq", attrs: { items: [{ q: "B?", a: "2" }] } },
   ];
@@ -173,29 +240,64 @@ test("publishing: blocked without a category, and Alternatives without the price
     imagesWithoutAlt: 0,
     placeholders: 0,
   };
-  const blocking = (i) => prePublishChecks(i).filter((c) => c.blocking).map((c) => c.key);
+  const blocking = (i) =>
+    prePublishChecks(i)
+      .filter((c) => c.blocking)
+      .map((c) => c.key);
   assert.deepEqual(blocking(base), []);
   assert.deepEqual(blocking({ ...base, categoryId: null, categorySlug: null }), ["category"]);
   assert.deepEqual(blocking({ ...base, categorySlug: "alternatives" }), ["prices"]);
-  assert.deepEqual(blocking({ ...base, categorySlug: "alternatives", pricesCheckedOn: "2026-10-24" }), []);
+  assert.deepEqual(
+    blocking({ ...base, categorySlug: "alternatives", pricesCheckedOn: "2026-10-24" }),
+    [],
+  );
   // Warnings link to their panels and don't block.
-  const warnings = prePublishChecks({ ...base, excerpt: "", coverPath: "guides/x.webp", seoDescription: "", placeholders: 3 });
-  assert.deepEqual(warnings.map((c) => [c.key, c.panel, c.blocking]), [
-    ["excerpt", "excerpt", false],
-    ["cover-alt", "cover", false],
-    ["seo-description", "seo", false],
-    ["placeholders", "content", false],
-  ]);
+  const warnings = prePublishChecks({
+    ...base,
+    excerpt: "",
+    coverPath: "guides/x.webp",
+    seoDescription: "",
+    placeholders: 3,
+  });
+  assert.deepEqual(
+    warnings.map((c) => [c.key, c.panel, c.blocking]),
+    [
+      ["excerpt", "excerpt", false],
+      ["cover-alt", "cover", false],
+      ["seo-description", "seo", false],
+      ["placeholders", "content", false],
+    ],
+  );
   // The template's own blanks block publishing; a reader's fill-in only warns.
-  const blanks = prePublishChecks({ ...base, placeholders: 1, templateBlanks: 2 }).filter((c) => c.blocking);
-  assert.deepEqual(blanks.map((c) => c.key), ["template-blanks"]);
-  for (const t of ["Upwork [best for]", "[price]", "[One sentence on how we compared them.]", "[price or fee, from their public pricing page]", "Fees add up [check]"])
+  const blanks = prePublishChecks({ ...base, placeholders: 1, templateBlanks: 2 }).filter(
+    (c) => c.blocking,
+  );
+  assert.deepEqual(
+    blanks.map((c) => c.key),
+    ["template-blanks"],
+  );
+  for (const t of [
+    "Upwork [best for]",
+    "[price]",
+    "[One sentence on how we compared them.]",
+    "[price or fee, from their public pricing page]",
+    "Fees add up [check]",
+  ])
     assert.equal(templateBlanksIn(t).length, 1, t);
-  for (const t of ["Video editor in [city]", "[Option A] vs [option B]", "[your service]", "[headline]", "[checked by you]"])
+  for (const t of [
+    "Video editor in [city]",
+    "[Option A] vs [option B]",
+    "[your service]",
+    "[headline]",
+    "[checked by you]",
+  ])
     assert.equal(templateBlanksIn(t).length, 0, t);
   // The server runs the same check before publishing.
   assert.match(read("src/lib/actions/admin-guides.ts"), /const blocking = prePublishChecks\(\{/);
-  assert.equal(shortTitle("5 Best Fiverr Alternatives for Hiring a YouTube Editor in 2026"), "Fiverr alternatives");
+  assert.equal(
+    shortTitle("5 Best Fiverr Alternatives for Hiring a YouTube Editor in 2026"),
+    "Fiverr alternatives",
+  );
 });
 
 test("old guides render unchanged", () => {
@@ -205,34 +307,52 @@ test("old guides render unchanged", () => {
   assert.equal(docToHtml(doc, noImages), f.html);
   const { blocks, outline } = guideBlocks(doc, noImages);
   assert.deepEqual(outline, f.outline);
-  assert.deepEqual(blocks.map((b) => b.kind), f.blockKinds);
+  assert.deepEqual(
+    blocks.map((b) => b.kind),
+    f.blockKinds,
+  );
   assert.equal(wordCount(doc), f.words);
 });
 
 test("the example Alternatives guide uses every original block and passes the sanitizer as is", () => {
   const sql = read("supabase/migrations/20261103000100_guide_blocks_alternatives.sql");
   const doc = JSON.parse(sql.match(/\$doc\$(.*)\$doc\$::jsonb/s)[1]);
-  // Saved before the CTA box had a style: it reads back as the default box.
+  // Saved before the CTA box had a style: it reads back as the default box. The directory stats
+  // block went with the directory: the sanitizer drops it.
   const withVariant = structuredClone(doc);
-  for (const n of withVariant.content) if (n.type === "ctaBox") n.attrs = { variant: "box", ...n.attrs };
+  withVariant.content = withVariant.content.filter((n) => n.type !== "directoryStats");
+  for (const n of withVariant.content)
+    if (n.type === "ctaBox") n.attrs = { variant: "box", ...n.attrs };
   assert.deepEqual(sanitizeDoc(doc, noImages), withVariant);
   const types = new Set(doc.content.map((n) => n.type));
-  for (const t of ["comparisonTable", "productCard", "abTable", "prosCons", "faq", "ctaBox", "directoryStats"])
+  for (const t of ["comparisonTable", "productCard", "abTable", "prosCons", "faq", "ctaBox"])
     assert.ok(types.has(t), t);
-  assert.match(sql, /'draft',\s*\n\s*\(select id from guide_categories where slug = 'alternatives'\)/);
+  assert.match(
+    sql,
+    /'draft',\s*\n\s*\(select id from guide_categories where slug = 'alternatives'\)/,
+  );
   // No invented competitor numbers: placeholders instead.
   assert.ok(placeholdersIn(docText(doc)).length >= 10);
   assert.ok(templateBlanksIn(docText(doc)).length >= 10);
   for (const n of doc.content.filter((x) => x.type === "productCard" && !x.attrs.ours))
     assert.match(n.attrs.price, /^\[/, n.attrs.title);
   // Every comparison row links to a product card on the page.
-  const ids = guideBlocks(doc, noImages).blocks.filter((b) => b.kind === "block" && b.type === "productCard").map((b) => b.id);
-  assert.deepEqual(comparisonItems(doc.content).map((c) => c.anchor), ids);
-  assert.ok(blockText("faq", doc.content.find((n) => n.type === "faq").attrs).includes("Is YT Agencies free?"));
+  const ids = guideBlocks(doc, noImages)
+    .blocks.filter((b) => b.kind === "block" && b.type === "productCard")
+    .map((b) => b.id);
+  assert.deepEqual(
+    comparisonItems(doc.content).map((c) => c.anchor),
+    ids,
+  );
+  assert.ok(
+    blockText("faq", doc.content.find((n) => n.type === "faq").attrs).includes(
+      "Is YT Agencies free?",
+    ),
+  );
 });
 
-test("the filled Fiverr guide has no blanks and is valid guide content", () => {
-  const sql = read("supabase/migrations/20261108000100_fill_fiverr_alternatives.sql");
+test("the Fiverr guide, as the blog publishes it: no blanks, no directory, valid guide content", () => {
+  const sql = read("supabase/migrations/20261116000100_fiverr_alternatives_for_the_blog.sql");
   const doc = JSON.parse(sql.match(/\$guide\$(\{.*?\})\$guide\$::jsonb/s)[1]);
   assert.deepEqual(sanitizeDoc(doc, noImages), doc);
   assert.equal(docText(doc).match(/\[[^\]]+\]/g), null);
@@ -240,5 +360,10 @@ test("the filled Fiverr guide has no blanks and is valid guide content", () => {
   for (const n of doc.content.filter((x) => x.type === "productCard" && !x.attrs.ours))
     assert.match(n.attrs.priceSource, /^https:\/\//, n.attrs.title);
   assert.match(sql, /prices_checked_on = '2026-11-05'/);
-  assert.match(sql, /like '%\[best for\]%';/);
+  // Nothing from the directory: no "ours" card, no YT Agencies in the text, no links to it.
+  assert.ok(!doc.content.some((n) => n.type === "productCard" && n.attrs.ours));
+  assert.doesNotMatch(docText(doc), /YT Agencies/);
+  assert.doesNotMatch(JSON.stringify(doc), /"\/agencies|request-proposals|directoryStats/);
+  // Only a guide still in its template or directory state is changed.
+  assert.match(sql, /like '%\[best for\]%' or body_json::text like '%"ours": true%'\);/);
 });

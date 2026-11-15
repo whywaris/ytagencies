@@ -2,9 +2,6 @@ import { timingSafeEqual } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { type NextRequest } from "next/server";
 
-import { sendEndingNotices } from "@/lib/billing/notices";
-import { runLeadFallbacks } from "@/lib/lead-fallback";
-import { sendLeadReminders } from "@/lib/lead-reminders";
 import { purgeExpiredData } from "@/lib/retention";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidateSitemap } from "@/lib/revalidate";
@@ -14,10 +11,7 @@ import { revalidateSitemap } from "@/lib/revalidate";
 // guides that went live since yesterday, the /guides index, the home page (its daily guides) and
 // the sitemap. On Vercel Pro, change the
 // schedule to every 15 minutes ("*/15 * * * *") as the spec intends.
-// The same daily run sends lead reminders (lib/lead-reminders.ts), moves profile requests on to
-// similar agencies after 48 hours (lib/lead-fallback.tsx), "Pro ends in 3 days" emails
-// (lib/billing/notices.tsx) and deletes data past its
-// retention period (lib/retention.ts): Vercel Hobby allows two crons.
+// The same daily run deletes data past its retention period (lib/retention.ts).
 
 export const dynamic = "force-dynamic";
 const WINDOW_MS = 25 * 60 * 60 * 1000; // a little over a day, so nothing slips between runs
@@ -49,25 +43,6 @@ export async function GET(request: NextRequest) {
   revalidatePath("/");
   revalidateSitemap("guides", "authors", "pages");
 
-  let reminders: unknown;
-  try {
-    reminders = await sendLeadReminders();
-  } catch {
-    reminders = { error: "Couldn't send lead reminders" };
-  }
-  let fallbacks: unknown;
-  try {
-    fallbacks = await runLeadFallbacks(now);
-  } catch {
-    fallbacks = { error: "Couldn't run lead fallbacks" };
-    console.error("lead fallbacks failed");
-  }
-  let endingNotices: unknown;
-  try {
-    endingNotices = await sendEndingNotices();
-  } catch {
-    endingNotices = { error: "Couldn't send Pro ending notices" };
-  }
   let purged: unknown;
   try {
     purged = await purgeExpiredData();
@@ -76,5 +51,5 @@ export async function GET(request: NextRequest) {
     purged = { error: "Couldn't purge expired data" };
     console.error("retention purge failed");
   }
-  return Response.json({ revalidated: data.length, reminders, fallbacks, endingNotices, purged });
+  return Response.json({ revalidated: data.length, purged });
 }

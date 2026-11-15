@@ -4,7 +4,7 @@ import { OgBrand } from "@/lib/seo/og";
 import { BRAND_NAME } from "@/lib/site";
 
 // Default social image for every route. Routes can override with their own opengraph-image.tsx.
-export const alt = `${BRAND_NAME}: find the right YouTube agency`;
+export const alt = `${BRAND_NAME}: YouTube guides for businesses and creators`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -24,7 +24,7 @@ export default function OpengraphImage() {
     >
       <OgBrand size={40} />
       <div style={{ fontSize: 80, fontWeight: 600, letterSpacing: "-0.02em", marginTop: 24 }}>
-        Find the right YouTube agency
+        YouTube guides for businesses and creators
       </div>
       <div style={{ fontSize: 36, color: "#6e6e73", marginTop: 24 }}>
         By service, industry and location

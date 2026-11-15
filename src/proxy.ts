@@ -2,21 +2,31 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { publicPathExists } from "@/lib/public-slugs";
-import { newDashboardPath, privateGate, safeNext } from "@/lib/redirects";
+import { privateGate, safeNext } from "@/lib/redirects";
+import { isRemovedPath, removedPage } from "@/lib/removed-paths";
 import type { Database } from "@/lib/supabase/types";
 
-// 1. Unknown public slugs → full server-rendered 404 (see lib/public-slugs.ts for why).
-// 2. Private routes: refresh the Supabase session and gate /dashboard and /admin (SECURITY.md).
+// 1. The old directory's pages → 410 Gone (lib/removed-paths.ts).
+// 2. Unknown public slugs → full server-rendered 404 (see lib/public-slugs.ts for why).
+// 3. Private routes: refresh the Supabase session and gate /admin (SECURITY.md).
 //    That's the optimistic check; every page and server action re-checks on the server.
 
 // Any path this resolves to matches no route, so Next serves the root not-found with status 404.
 const NOT_FOUND_REWRITE = "/not-found/unknown/slug";
-const OLD_DASHBOARD =
-  /^\/dashboard\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(\/.*)?$/i;
-const PRIVATE = /^\/(dashboard|admin|login|auth|claim)(\/|$)|^\/list-your-agency\/new$/;
+const PRIVATE = /^\/(admin|login|auth)(\/|$)/;
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  if (isRemovedPath(path)) {
+    return new NextResponse(removedPage(request.nextUrl.origin), {
+      status: 410,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "public, max-age=86400",
+        "x-robots-tag": "noindex",
+      },
+    });
+  }
   if ((await publicPathExists(path)) === false) {
     return NextResponse.rewrite(new URL(NOT_FOUND_REWRITE, request.url));
   }
@@ -64,34 +74,15 @@ export async function proxy(request: NextRequest) {
 
   const gate = privateGate(path, !!user, isAdmin);
   if (gate.action === "login") {
-    // Back to the same page after signing in, query included (e.g. Get Pro's ?period=yearly).
+    // Back to the same page after signing in, query included.
     const next = safeNext(path + request.nextUrl.search);
     const to = next ? `/login?next=${encodeURIComponent(next)}` : gate.to;
     return redirectKeepingCookies(request, response, to);
   }
 
-  // Old dashboard links (/dashboard/<agency id>/…, in emails and bookmarks) → /dashboard/<slug>/…
-  // Only the owner's own agency resolves (RLS + owner_id); anything else falls through to a 404.
-  const old = user && path.match(OLD_DASHBOARD);
-  if (old) {
-    const { data: agency } = await supabase
-      .from("agencies")
-      .select("slug")
-      .eq("id", old[1])
-      .eq("owner_id", user.id)
-      .maybeSingle();
-    if (agency) {
-      const to = request.nextUrl.clone();
-      to.pathname = newDashboardPath(agency.slug, old[2] ?? "");
-      const moved = NextResponse.redirect(to, 308);
-      response.cookies.getAll().forEach((c) => moved.cookies.set(c));
-      moved.headers.set("X-Robots-Tag", "noindex, nofollow");
-      return moved;
-    }
-  }
   if (gate.action === "no-access") {
-    // Same URL, clear message (src/app/(marketing)/no-access) instead of a silent redirect.
-    const denied = NextResponse.rewrite(new URL("/no-access", request.url), { status: 403 });
+    // Signed in but not an admin: the same 404 as an unknown page.
+    const denied = NextResponse.rewrite(new URL(NOT_FOUND_REWRITE, request.url), { status: 404 });
     response.cookies.getAll().forEach((c) => denied.cookies.set(c));
     denied.headers.set("X-Robots-Tag", "noindex, nofollow");
     return denied;
@@ -112,5 +103,9 @@ function redirectKeepingCookies(request: NextRequest, from: NextResponse, to: st
 // Every page path. Static assets, files with an extension (icon.svg, logo.png, manifest…), icons,
 // social images, sitemaps and robots skip the proxy entirely. No page slug contains a dot.
 export const config = {
-  matcher: ["/((?!_next/|og/|sitemaps/|api/|apple-icon|opengraph-image|.*\\.).*)"],
+  matcher: [
+    "/((?!_next/|og/guide|sitemaps/|api/|apple-icon|opengraph-image|.*\\.).*)",
+    "/badge.svg",
+    "/badge-verified.svg",
+  ],
 };

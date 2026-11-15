@@ -31,7 +31,6 @@ export const BLOCK_TYPES = [
   "prosCons",
   "faq",
   "ctaBox",
-  "directoryStats",
   "statRow",
   "button",
   "listLabel",
@@ -72,7 +71,13 @@ export const BLOCKS: Record<BlockType, Def> = {
     label: "Product card",
     description: "A numbered option with its points, price, a call to action and who it's for.",
     fields: [
-      { key: "badge", label: "Badge", kind: "text", max: 60, placeholder: "BEST FOR YOUTUBE SPECIALISTS" },
+      {
+        key: "badge",
+        label: "Badge",
+        kind: "text",
+        max: 60,
+        placeholder: "BEST FOR YOUTUBE SPECIALISTS",
+      },
       { key: "title", label: "Title", kind: "text", max: 100 },
       { key: "description", label: "Description", kind: "textarea", max: 800 },
       {
@@ -98,11 +103,26 @@ export const BLOCKS: Record<BlockType, Def> = {
       { key: "imageAlt", label: "Screenshot alt text", kind: "text", max: 200 },
       { key: "caption", label: "Caption", kind: "text", max: 200 },
       { key: "price", label: "Price", kind: "text", max: 120, placeholder: "[price]" },
-      { key: "priceSource", label: "Price source (link)", kind: "externalUrl", placeholder: "https://…/pricing" },
+      {
+        key: "priceSource",
+        label: "Price source (link)",
+        kind: "externalUrl",
+        placeholder: "https://…/pricing",
+      },
       { key: "ctaLabel", label: "Button label", kind: "text", max: 40 },
-      { key: "ctaHref", label: "Button link (on this site)", kind: "internalUrl", placeholder: "/agencies" },
+      {
+        key: "ctaHref",
+        label: "Button link (on this site)",
+        kind: "internalUrl",
+        placeholder: "/agencies",
+      },
       { key: "chooseIf", label: "Choose this if…", kind: "text", max: 200 },
-      { key: "ours", label: "This is our product", kind: "boolean", hint: "Marks the YT Agencies card." },
+      {
+        key: "ours",
+        label: "This is our product",
+        kind: "boolean",
+        hint: "Marks the YT Agencies card.",
+      },
     ],
     empty: () => ({
       badge: "",
@@ -144,7 +164,7 @@ export const BLOCKS: Record<BlockType, Def> = {
   },
   prosCons: {
     label: "Pros & cons",
-    description: "\"Good\" and \"Watch out\" side by side.",
+    description: '"Good" and "Watch out" side by side.',
     fields: [
       { key: "good", label: "Good", kind: "list", max: 8, itemMax: 200 },
       { key: "watch", label: "Watch out", kind: "list", max: 8, itemMax: 200 },
@@ -185,9 +205,19 @@ export const BLOCKS: Record<BlockType, Def> = {
       { key: "heading", label: "Heading", kind: "text", max: 100 },
       { key: "lines", label: "Lines (up to 3)", kind: "list", max: 3, itemMax: 160 },
       { key: "primaryLabel", label: "Primary button", kind: "text", max: 40 },
-      { key: "primaryHref", label: "Primary link (on this site)", kind: "internalUrl", placeholder: "/agencies" },
+      {
+        key: "primaryHref",
+        label: "Primary link (on this site)",
+        kind: "internalUrl",
+        placeholder: "/agencies",
+      },
       { key: "secondaryLabel", label: "Secondary button (optional)", kind: "text", max: 40 },
-      { key: "secondaryHref", label: "Secondary link (on this site)", kind: "internalUrl", placeholder: "/request-proposals" },
+      {
+        key: "secondaryHref",
+        label: "Secondary link (on this site)",
+        kind: "internalUrl",
+        placeholder: "/request-proposals",
+      },
     ],
     empty: () => ({
       variant: "box",
@@ -198,12 +228,6 @@ export const BLOCKS: Record<BlockType, Def> = {
       secondaryLabel: "",
       secondaryHref: "",
     }),
-  },
-  directoryStats: {
-    label: "Directory stats",
-    description: "Live counts from the directory: agencies, Verified, and how many offer a service.",
-    fields: [{ key: "service", label: "Service", kind: "service" }],
-    empty: () => ({ service: "" }),
   },
   statRow: {
     label: "Stat row",
@@ -229,13 +253,18 @@ export const BLOCKS: Record<BlockType, Def> = {
     description: "One primary button to a page on this site.",
     fields: [
       { key: "label", label: "Label", kind: "text", max: 40 },
-      { key: "href", label: "Link (on this site)", kind: "internalUrl", placeholder: "/request-proposals" },
+      {
+        key: "href",
+        label: "Link (on this site)",
+        kind: "internalUrl",
+        placeholder: "/request-proposals",
+      },
     ],
     empty: () => ({ label: "", href: "" }),
   },
   listLabel: {
     label: "List label",
-    description: "A short coloured label above a list (\"In this order:\").",
+    description: 'A short coloured label above a list ("In this order:").',
     fields: [{ key: "text", label: "Label", kind: "text", max: 60 }],
     empty: () => ({ text: "" }),
   },
@@ -277,7 +306,9 @@ export function externalUrl(v: unknown) {
 }
 
 const str = (v: unknown, max: number) =>
-  typeof v === "string" ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").slice(0, max) : "";
+  typeof v === "string"
+    ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").slice(0, max)
+    : "";
 
 function cleanField(f: Field, v: unknown, imageAllowed: (src: string) => boolean): unknown {
   switch (f.kind) {
@@ -312,12 +343,18 @@ function cleanField(f: Field, v: unknown, imageAllowed: (src: string) => boolean
     case "rows":
       return (Array.isArray(v) ? v : [])
         .slice(0, f.max)
-        .filter((r): r is Record<string, unknown> => !!r && typeof r === "object" && !Array.isArray(r))
+        .filter(
+          (r): r is Record<string, unknown> => !!r && typeof r === "object" && !Array.isArray(r),
+        )
         .map((r) => cleanFields(f.fields, r, imageAllowed));
   }
 }
 
-function cleanFields(fields: Field[], attrs: Record<string, unknown>, imageAllowed: (src: string) => boolean) {
+function cleanFields(
+  fields: Field[],
+  attrs: Record<string, unknown>,
+  imageAllowed: (src: string) => boolean,
+) {
   const out: Record<string, unknown> = {};
   for (const f of fields) out[f.key] = cleanField(f, attrs[f.key], imageAllowed);
   return out;
@@ -333,13 +370,19 @@ export function sanitizeBlock(
   attrs: unknown,
   imageAllowed: (src: string) => boolean,
 ): BlockAttrs {
-  const a = attrs && typeof attrs === "object" && !Array.isArray(attrs) ? (attrs as Record<string, unknown>) : {};
+  const a =
+    attrs && typeof attrs === "object" && !Array.isArray(attrs)
+      ? (attrs as Record<string, unknown>)
+      : {};
   return cleanFields(BLOCKS[type].fields, a, imageAllowed);
 }
 
-const lines = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x.trim()) : []);
+const lines = (v: unknown) =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x.trim()) : [];
 const rows = (v: unknown) =>
-  Array.isArray(v) ? v.filter((r): r is Record<string, unknown> => !!r && typeof r === "object") : [];
+  Array.isArray(v)
+    ? v.filter((r): r is Record<string, unknown> => !!r && typeof r === "object")
+    : [];
 const s = (v: unknown) => (typeof v === "string" ? v : "");
 
 /** A block's readable text (search, word count, the stored HTML's text). */
@@ -347,7 +390,8 @@ export function blockText(type: BlockType, a: BlockAttrs): string {
   const parts: string[] = [];
   switch (type) {
     case "comparisonTable":
-      for (const r of rows(a.rows)) parts.push(s(r.name), s(r.bestFor), s(r.price), s(r.difference));
+      for (const r of rows(a.rows))
+        parts.push(s(r.name), s(r.bestFor), s(r.price), s(r.difference));
       break;
     case "productCard":
       parts.push(s(a.badge), s(a.title), s(a.description));
@@ -368,8 +412,6 @@ export function blockText(type: BlockType, a: BlockAttrs): string {
     case "ctaBox":
       parts.push(s(a.heading), ...lines(a.lines));
       break;
-    case "directoryStats":
-      break; // live numbers, not text
     case "statRow":
       for (const i of rows(a.items)) parts.push(s(i.value), s(i.label));
       break;

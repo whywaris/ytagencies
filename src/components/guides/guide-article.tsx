@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { AgencyCard } from "@/components/directory/agency-card";
 import { GuideBody } from "@/components/guide-body";
 import {
   AuthorAvatar,
@@ -14,8 +13,6 @@ import { alternativesDisclosure, bylineDate, longDateOf, shortTitle } from "@/li
 import { ShareBar } from "@/components/guides/share-bar";
 import { TableOfContents } from "@/components/guides/toc";
 import { TocPanel } from "@/components/toc-panel";
-import { Button } from "@/components/ui/button";
-import type { AgencyListItem } from "@/lib/data/agencies";
 import type { Author, GuideSummary } from "@/lib/data/guides";
 import { groupOutline, guideBlocks, type Doc } from "@/lib/guide-content";
 import { guideImageAllowed } from "@/lib/guide-media";
@@ -53,29 +50,19 @@ const dateText = (d: string) =>
 
 export function GuideArticle({
   guide,
-  related,
   relatedGuides,
-  agencies = [],
   shareUrl,
-  budgetRange,
   generatedCover = true,
   categories = [],
-  directoryStats,
   template = "default",
 }: {
   guide: ArticleGuide;
-  related: { href: string; label: string }[];
   relatedGuides: GuideSummary[];
-  /** "Agencies mentioned": live profiles the guide links to (the public page only). */
-  agencies?: AgencyListItem[];
   shareUrl: string;
-  budgetRange: (service: string) => React.ReactNode;
   /** false: draw the no-cover fallback in HTML instead of loading the generated image. */
   generatedCover?: boolean;
   /** Guide categories: the chip above the H1 and the "More guides" covers. */
   categories?: (CardCategory & { id: string })[];
-  /** Live directory counts for directory stats blocks (a server component). */
-  directoryStats?: (service: string) => React.ReactNode;
   /** "alternatives": the Alternatives hero, disclosure and nofollow outside links. */
   template?: "default" | "alternatives";
 }) {
@@ -143,57 +130,9 @@ export function GuideArticle({
 
           <GuideBody
             doc={guide.doc}
-            budgetRange={budgetRange}
-            directoryStats={directoryStats}
             nofollowOutside={alternatives}
             afterLead={alternatives ? undefined : takeaways}
           />
-
-          {agencies.length > 0 && (
-            <section aria-labelledby="agencies-mentioned" className="mt-16 flex flex-col gap-4">
-              <h2 id="agencies-mentioned" className="text-h3">
-                Agencies mentioned
-              </h2>
-              <ul className="flex flex-col gap-4">
-                {agencies.map((a) => (
-                  <li key={a.id}>
-                    <AgencyCard agency={a} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {related.length > 0 && (
-            <section
-              aria-labelledby="find-agency"
-              className="mt-16 flex flex-col gap-4 rounded-2xl bg-surface p-6 md:p-8"
-            >
-              <h2 id="find-agency" className="text-h3">
-                Find the right agency
-              </h2>
-              <p className="text-[17px] text-text-2">
-                Compare agencies that do this work, with their budgets, specialties and reviews.
-              </p>
-              <Button asChild className="self-start">
-                <Link href={related[0].href}>{related[0].label}</Link>
-              </Button>
-              {related.length > 1 && (
-                <ul className="flex flex-col text-[17px]">
-                  {related.slice(1).map((r) => (
-                    <li key={r.href}>
-                      <Link
-                        href={r.href}
-                        className="flex min-h-11 items-center text-accent hover:underline"
-                      >
-                        {r.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
 
           <ShareBar
             url={shareUrl}

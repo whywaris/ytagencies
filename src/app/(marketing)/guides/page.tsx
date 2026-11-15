@@ -9,9 +9,9 @@ import { BRAND_NAME } from "@/lib/site";
 // query makes this page render on request (the data reads are cached per request).
 // SEO.md: search results are noindex,follow and canonical to /guides; ?page=N is self-canonical.
 
-const TITLE = `Guides to choosing a YouTube agency | ${BRAND_NAME}`;
+const TITLE = `YouTube guides for businesses and creators | ${BRAND_NAME}`;
 const DESCRIPTION =
-  "Plain answers on YouTube agency prices, contracts and results: what agencies cost, what to ask before you sign, and how to judge results honestly.";
+  "Practical guides on YouTube for businesses and creators: ads, SEO, Shorts, channel growth and what it costs to get help.";
 
 export async function generateMetadata({ searchParams }: PageProps<"/guides">) {
   const { q, page } = await guidesView(null, await searchParams);

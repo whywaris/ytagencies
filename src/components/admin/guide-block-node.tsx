@@ -9,11 +9,11 @@ import {
 } from "@tiptap/react";
 import { Pencil, Trash2 } from "lucide-react";
 import { Dialog } from "radix-ui";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { BlockForm, type FormContext } from "@/components/admin/block-form";
 import { usePortalContainer } from "@/components/admin/portal";
-import { GuideBlockView, type DirectoryStatsData } from "@/components/guide-blocks";
+import { GuideBlockView } from "@/components/guide-blocks";
 import {
   BLOCK_TYPES,
   BLOCKS,
@@ -31,7 +31,6 @@ import { cn } from "@/lib/utils";
 export type BlockNodeOptions = {
   services: () => { slug: string; name: string }[];
   upload: (file: File) => Promise<string | null>;
-  stats: (service: string) => Promise<DirectoryStatsData | null>;
 };
 
 // The block just inserted from the inserter opens its form straight away.
@@ -48,7 +47,15 @@ const consumeOpenNext = () => {
 const tool =
   "flex h-8 items-center gap-1.5 rounded-md bg-bg px-2 text-[13px] font-medium text-text-2 shadow-sm ring-1 ring-line hover:text-text focus-visible:outline-2 focus-visible:outline-accent";
 
-function BlockNodeView({ node, updateAttributes, deleteNode, selected, editor, getPos, extension }: ReactNodeViewProps) {
+function BlockNodeView({
+  node,
+  updateAttributes,
+  deleteNode,
+  selected,
+  editor,
+  getPos,
+  extension,
+}: ReactNodeViewProps) {
   const type = node.type.name as BlockType;
   const def = BLOCKS[type];
   const options = extension.options as BlockNodeOptions;
@@ -72,12 +79,14 @@ function BlockNodeView({ node, updateAttributes, deleteNode, selected, editor, g
     },
   });
 
-  const stats = useStats(type === "directoryStats" ? String(attrs.service ?? "") : null, options.stats);
-  const empty = type !== "directoryStats" && !blockText(type, attrs).trim();
+  const empty = !blockText(type, attrs).trim();
 
   const context: FormContext = {
     anchors: open
-      ? guideBlocks(editor.getJSON() as Doc, guideImageAllowed).outline.map((o) => ({ id: o.id, label: o.text }))
+      ? guideBlocks(editor.getJSON() as Doc, guideImageAllowed).outline.map((o) => ({
+          id: o.id,
+          label: o.text,
+        }))
       : [],
     services: options.services(),
     upload: options.upload,
@@ -94,9 +103,11 @@ function BlockNodeView({ node, updateAttributes, deleteNode, selected, editor, g
     >
       <div
         data-drag-handle
-        className="absolute -top-4 right-2 z-10 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover/block:opacity-100 group-focus-within/block:opacity-100 [.ProseMirror-selectednode>&]:opacity-100"
+        className="absolute -top-4 right-2 z-10 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-focus-within/block:opacity-100 group-hover/block:opacity-100 [.ProseMirror-selectednode>&]:opacity-100"
       >
-        <span className="rounded-md bg-bg px-2 py-1 text-[12px] text-text-2 ring-1 ring-line">{def.label}</span>
+        <span className="rounded-md bg-bg px-2 py-1 text-[12px] text-text-2 ring-1 ring-line">
+          {def.label}
+        </span>
         <button
           type="button"
           className={tool}
@@ -108,7 +119,12 @@ function BlockNodeView({ node, updateAttributes, deleteNode, selected, editor, g
           <Pencil className="size-3.5" aria-hidden />
           Edit<span className="sr-only"> {def.label}</span>
         </button>
-        <button type="button" className={tool} onClick={deleteNode} aria-label={`Remove ${def.label}`}>
+        <button
+          type="button"
+          className={tool}
+          onClick={deleteNode}
+          aria-label={`Remove ${def.label}`}
+        >
           <Trash2 className="size-3.5" aria-hidden />
         </button>
       </div>
@@ -126,7 +142,7 @@ function BlockNodeView({ node, updateAttributes, deleteNode, selected, editor, g
           <span className="text-admin-meta">{def.description} Click to fill it in.</span>
         </button>
       ) : (
-        <GuideBlockView type={type} attrs={attrs} number={number} stats={stats} editing />
+        <GuideBlockView type={type} attrs={attrs} number={number} editing />
       )}
 
       <Dialog.Root
@@ -142,12 +158,16 @@ function BlockNodeView({ node, updateAttributes, deleteNode, selected, editor, g
             aria-describedby={undefined}
             className="fixed top-1/2 left-1/2 z-[70] flex max-h-[calc(100vh-48px)] w-[min(640px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-line bg-bg text-text shadow-lg outline-none"
           >
-            <Dialog.Title className="border-b border-line px-6 py-4 text-admin-section">Edit {def.label.toLowerCase()}</Dialog.Title>
+            <Dialog.Title className="border-b border-line px-6 py-4 text-admin-section">
+              Edit {def.label.toLowerCase()}
+            </Dialog.Title>
             <div className="overflow-y-auto px-6 py-5">
               <BlockForm fields={def.fields} value={draft} onChange={setDraft} context={context} />
             </div>
             <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
-              <Dialog.Close className="h-9 rounded-lg border border-line px-3 font-medium hover:bg-surface-2">Cancel</Dialog.Close>
+              <Dialog.Close className="h-9 rounded-lg border border-line px-3 font-medium hover:bg-surface-2">
+                Cancel
+              </Dialog.Close>
               <button
                 type="button"
                 onClick={() => {
@@ -166,22 +186,6 @@ function BlockNodeView({ node, updateAttributes, deleteNode, selected, editor, g
       </Dialog.Root>
     </NodeViewWrapper>
   );
-}
-
-/** The live counts for a directory stats block in the editor (the same numbers the page shows). */
-function useStats(service: string | null, load: BlockNodeOptions["stats"]) {
-  const [stats, setStats] = useState<DirectoryStatsData | null>(null);
-  useEffect(() => {
-    if (service === null) return;
-    let cancelled = false;
-    load(service).then((s) => {
-      if (!cancelled) setStats(s);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [service, load]);
-  return stats;
 }
 
 /** One Tiptap node per guide block; every field is an attribute, kept as plain JSON. */
@@ -212,7 +216,10 @@ export const guideBlockNodes = (options: BlockNodeOptions) =>
           },
         },
       ],
-      renderHTML: ({ node }) => ["div", { "data-guide-block": type, "data-attrs": JSON.stringify(node.attrs) }],
+      renderHTML: ({ node }) => [
+        "div",
+        { "data-guide-block": type, "data-attrs": JSON.stringify(node.attrs) },
+      ],
       addNodeView: () => ReactNodeViewRenderer(BlockNodeView),
     });
   });

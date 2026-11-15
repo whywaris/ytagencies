@@ -18,15 +18,7 @@ import { submitContact } from "@/lib/actions/contact";
 import { CONTACT_TOPICS, topicOf, type ContactTopic } from "@/lib/contact-topics";
 import { contactSchema, type ContactInput } from "@/lib/validation/contact";
 
-export function ContactForm({
-  initialTopic,
-  initialAgencyUrl,
-  initialMessage = "",
-}: {
-  initialTopic: ContactTopic;
-  initialAgencyUrl: string;
-  initialMessage?: string;
-}) {
+export function ContactForm({ initialTopic }: { initialTopic: ContactTopic }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ email: string; topic: ContactTopic } | null>(null);
   const successHeading = useRef<HTMLHeadingElement>(null);
@@ -43,8 +35,7 @@ export function ContactForm({
       topic: initialTopic,
       name: "",
       email: "",
-      message: initialMessage,
-      agencyUrl: initialAgencyUrl,
+      message: "",
       website: "",
     },
   });
@@ -125,18 +116,6 @@ export function ContactForm({
           />
         </Field>
       </div>
-
-      {topic.id === "report" && (
-        <Field id="ct-agency" label="Link to the listing" error={err("agencyUrl")}>
-          <Input
-            type="url"
-            inputMode="url"
-            placeholder="https://ytagencies.com/agency/…"
-            {...register("agencyUrl")}
-            {...a11yProps("ct-agency", err("agencyUrl"))}
-          />
-        </Field>
-      )}
 
       <Field id="ct-message" label="Message" error={err("message")}>
         <textarea

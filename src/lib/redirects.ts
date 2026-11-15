@@ -48,9 +48,9 @@ export function authOrigin(requestOrigin: string | null | undefined, siteUrl: st
   return local ? url.origin : site;
 }
 
-/** Where to go after signing in: a safe ?next=, else /admin for admins and /dashboard for everyone else. */
+/** Where to go after signing in: a safe ?next=, else /admin for admins and the home page for everyone else. */
 export function postLoginPath(next: string | null | undefined, isAdmin: boolean) {
-  return safeNext(next) ?? (isAdmin ? "/admin" : "/dashboard");
+  return safeNext(next) ?? (isAdmin ? "/admin" : "/");
 }
 
 /**
@@ -111,24 +111,12 @@ export async function confirmEmailLink(
 
 export type Gate = { action: "next" } | { action: "login"; to: string } | { action: "no-access" };
 
-/** The proxy's optimistic check for /dashboard and /admin. Pages and actions re-check on the server. */
+/** The proxy's optimistic check for /admin. Pages and actions re-check on the server. */
 export function privateGate(path: string, signedIn: boolean, isAdmin: boolean): Gate {
   const isAdminArea = path === "/admin" || path.startsWith("/admin/");
-  const isDashboard = path === "/dashboard" || path.startsWith("/dashboard/");
-  if ((isAdminArea || isDashboard) && !signedIn) {
+  if (isAdminArea && !signedIn) {
     return { action: "login", to: `/login?next=${encodeURIComponent(path)}` };
   }
   if (isAdminArea && !isAdmin) return { action: "no-access" };
   return { action: "next" };
-}
-
-/**
- * Where an old /dashboard/<agency id><rest> link goes: /dashboard/<slug><rest>, with sections that
- * were renamed since (leads → inquiries, plan → analytics).
- */
-export function newDashboardPath(slug: string, rest: string) {
-  const section = rest
-    .replace(/^\/leads(?=\/|$)/, "/inquiries")
-    .replace(/^\/plan(?=\/|$)/, "/analytics");
-  return `/dashboard/${slug}${section}`;
 }

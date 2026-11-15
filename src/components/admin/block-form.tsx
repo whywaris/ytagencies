@@ -93,7 +93,7 @@ function FieldInput({
           {bad && (
             <span className="text-admin-meta text-destructive">
               {f.kind === "internalUrl"
-                ? "Use a path on this site, like /agencies."
+                ? "Use a path on this site, like /guides."
                 : "Use a full link starting with https://"}
             </span>
           )}

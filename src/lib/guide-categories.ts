@@ -96,3 +96,16 @@ export function guideMatches(
 export function pickFeatured<T extends { isFeatured: boolean }>(liveNewestFirst: T[]) {
   return liveNewestFirst.find((g) => g.isFeatured) ?? liveNewestFirst[0] ?? null;
 }
+
+/** Numbered page links: first, last, and two either side of the current page, with gaps. */
+export function pageNumbers(page: number, pages: number): (number | "gap")[] {
+  const keep = new Set([1, pages, page - 2, page - 1, page, page + 1, page + 2]);
+  const out: (number | "gap")[] = [];
+  for (let n = 1; n <= pages; n++) {
+    if (!keep.has(n)) continue;
+    const prev = out[out.length - 1];
+    if (typeof prev === "number" && n - prev > 1) out.push("gap");
+    out.push(n);
+  }
+  return out;
+}

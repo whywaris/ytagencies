@@ -9,34 +9,18 @@ import { COMPANY, copyrightName } from "@/lib/company";
 import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-// Site-wide footer. Agency-facing links live here only (the header is for businesses and creators).
-// Disclosure is linked from /pricing and /how-we-rank, not here.
+// Site-wide footer.
 const GROUPS = [
   {
-    heading: "Explore",
-    links: [
-      { href: "/agencies", label: "All agencies" },
-      { href: "/#services", label: "Services" },
-      { href: "/#industries", label: "Industries" },
-      { href: "/guides", label: "Guides" },
-    ],
+    heading: "Read",
+    links: [{ href: "/guides", label: "All guides" }],
   },
   {
-    heading: "Company",
+    heading: "About",
     links: [
       { href: "/about", label: "About" },
-      { href: "/how-we-rank", label: "How we rank" },
       { href: "/editorial-policy", label: "Editorial policy" },
       { href: "/contact", label: "Contact" },
-    ],
-  },
-  {
-    heading: "For agencies",
-    links: [
-      { href: "/list-your-agency", label: "List your agency" },
-      { href: "/list-your-agency#claim", label: "Claim a listing" },
-      { href: "/pricing", label: "Pricing" },
-      { href: "/login", label: "Sign in" },
     ],
   },
   {
@@ -44,7 +28,6 @@ const GROUPS = [
     links: [
       { href: "/privacy", label: "Privacy" },
       { href: "/terms", label: "Terms" },
-      { href: "/refunds", label: "Refunds" },
       { href: "/cookies", label: "Cookies" },
     ],
   },
@@ -85,8 +68,7 @@ export function Footer() {
               <Logo className="h-6 w-auto" />
             </Link>
             <p className="text-[15px] text-text-2">
-              Compare YouTube agencies that already know your niche. Free for businesses and
-              creators.
+              Practical YouTube guides for businesses and creators.
             </p>
             <ul aria-label={`${BRAND_NAME} on social media`} className="flex flex-wrap gap-2">
               {SOCIAL.map((s) => (
@@ -156,7 +138,7 @@ export function Footer() {
               {CONTACT_EMAIL}
             </a>
           </p>
-          <p>Independent directory · Not affiliated with YouTube or Google</p>
+          <p>Independent · Not affiliated with YouTube or Google</p>
         </div>
       </div>
     </footer>

@@ -3,7 +3,6 @@ import { cache } from "react";
 
 import { guideMatches } from "@/lib/guide-categories";
 import { docReadMinutes, guideDoc, type Doc } from "@/lib/guide-content";
-import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 import { createStaticClient } from "@/lib/supabase/server";
 
 // Public guide and author reads. Anon client: RLS returns only live guides (published, or
@@ -13,7 +12,7 @@ import { createStaticClient } from "@/lib/supabase/server";
 const LIVE_STATUSES = ["published", "scheduled"];
 export const AUTHOR_COLUMNS =
   "slug, name, role, bio, avatar_path, linkedin_url, x_url, website_url";
-const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, category_id, is_featured, published_at, updated_at, content_updated_at, cover_path, body_md, body_json, related_combos, author:authors(${AUTHOR_COLUMNS})`;
+const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, category_id, is_featured, published_at, updated_at, content_updated_at, cover_path, body_md, body_json, author:authors(${AUTHOR_COLUMNS})`;
 
 export { mediaUrl } from "@/lib/guide-media";
 
@@ -53,10 +52,6 @@ export function toAuthor(a: AuthorRow | null): Author | null {
   };
 }
 
-export type RelatedCombo = { service_id: number; industry_id?: number; location_id?: number };
-
-const combosOf = (raw: unknown) => (Array.isArray(raw) ? (raw as RelatedCombo[]) : []);
-
 export type GuideSummary = {
   slug: string;
   title: string;
@@ -67,10 +62,6 @@ export type GuideSummary = {
   coverPath: string | null;
   readMinutes: number;
   author: Author | null;
-  /** Services of its related directory pages: for filters and related guides. */
-  serviceIds: number[];
-  /** Its related directory pages: directory pages link back to it. */
-  combos: RelatedCombo[];
   categoryId: string | null;
   isFeatured: boolean;
 };
@@ -88,7 +79,6 @@ type SummaryRow = {
   cover_path: string | null;
   body_md: string;
   body_json: unknown;
-  related_combos: unknown;
   author: AuthorRow | null;
 };
 
@@ -104,8 +94,6 @@ function summary(g: SummaryRow): GuideSummary {
     coverPath: g.cover_path,
     readMinutes: docReadMinutes(guideDoc(g.body_json, g.body_md)),
     author: toAuthor(g.author),
-    serviceIds: [...new Set(combosOf(g.related_combos).map((c) => c.service_id))],
-    combos: combosOf(g.related_combos),
     categoryId: g.category_id,
     isFeatured: g.is_featured,
   };
@@ -127,7 +115,9 @@ export const getLiveGuides = cache(async (): Promise<GuideSummary[]> => {
 export const getGuideBySlug = cache(async (slug: string) => {
   const { data, error } = await createStaticClient()
     .from("guides")
-    .select(`${SUMMARY_COLUMNS}, seo_title, key_takeaways, numbered_sections, cover_alt, prices_checked_on`)
+    .select(
+      `${SUMMARY_COLUMNS}, seo_title, key_takeaways, numbered_sections, cover_alt, prices_checked_on`,
+    )
     .eq("slug", slug)
     .in("status", LIVE_STATUSES)
     .lte("published_at", new Date().toISOString())
@@ -149,40 +139,15 @@ export const getGuideBySlug = cache(async (slug: string) => {
     numberedSections: row.numbered_sections,
     coverAlt: row.cover_alt,
     pricesCheckedOn: row.prices_checked_on,
-    related: await resolveCombos(row.related_combos),
   };
 });
 
-/** Up to `n` other guides: most shared services first (then newest), topped up with the latest. */
-export async function relatedGuides(slug: string, serviceIds: number[], n = 3) {
+/** Up to `n` other guides: the same category first (then newest), topped up with the latest. */
+export async function relatedGuides(slug: string, categoryId: string | null, n = 3) {
   const others = (await getLiveGuides()).filter((g) => g.slug !== slug);
-  const shared = (g: GuideSummary) => g.serviceIds.filter((id) => serviceIds.includes(id)).length;
-  return others
-    .map((g, i) => ({ g, score: shared(g), i }))
-    .sort((a, b) => b.score - a.score || a.i - b.i)
-    .slice(0, n)
-    .map((x) => x.g);
-}
-
-/**
- * Up to `n` guides for a directory page: those that list this exact page among their related
- * directory pages first, then guides for the same service. Newest first within each.
- */
-export async function guidesForPage(
-  page: { serviceId: number; industryId?: number; locationId?: number },
-  n = 3,
-) {
-  const exact = (g: GuideSummary) =>
-    g.combos.some(
-      (c) =>
-        c.service_id === page.serviceId &&
-        (c.industry_id ?? undefined) === page.industryId &&
-        (c.location_id ?? undefined) === page.locationId,
-    );
-  const guides = await getLiveGuides();
   return [
-    ...guides.filter(exact),
-    ...guides.filter((g) => !exact(g) && g.serviceIds.includes(page.serviceId)),
+    ...others.filter((g) => categoryId && g.categoryId === categoryId),
+    ...others.filter((g) => !categoryId || g.categoryId !== categoryId),
   ].slice(0, n);
 }
 
@@ -219,34 +184,6 @@ export const getAuthorBySlug = cache(async (slug: string) => {
   if (!guides.length) return null;
   return { ...toAuthor(data)!, updatedAt: data.updated_at, guides };
 });
-
-/** Related directory pages as links. Pages whose taxonomy entries were removed are skipped. */
-export async function resolveCombos(raw: unknown) {
-  const combos = combosOf(raw);
-  const [services, industries, locations] = await Promise.all([
-    getServices(),
-    getIndustries(),
-    getLocations(),
-  ]);
-  return combos.flatMap((c) => {
-    const s = services.find((x) => x.id === c.service_id);
-    if (!s) return [];
-    const service = { slug: s.slug, name: s.name };
-    if (c.industry_id) {
-      const i = industries.find((x) => x.id === c.industry_id);
-      return i
-        ? [{ href: `/${s.slug}/for-${i.slug}`, label: `${s.name} agencies for ${i.name}`, service }]
-        : [];
-    }
-    if (c.location_id) {
-      const l = locations.find((x) => x.id === c.location_id);
-      return l
-        ? [{ href: `/${s.slug}/in-${l.slug}`, label: `${s.name} agencies in ${l.name}`, service }]
-        : [];
-    }
-    return [{ href: `/${s.slug}`, label: `Compare ${s.name} agencies`, service }];
-  });
-}
 
 export type GuideCategory = {
   id: string;
@@ -291,40 +228,9 @@ export const searchLiveGuides = cache(async (q: string) => {
     (html ?? "").replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/gi, " ");
   return new Set(
     data
-      .filter((g) => guideMatches({ title: g.title, excerpt: g.excerpt, text: text(g.body_html) }, q))
+      .filter((g) =>
+        guideMatches({ title: g.title, excerpt: g.excerpt, text: text(g.body_html) }, q),
+      )
       .map((g) => g.slug),
   );
-});
-
-/**
- * Live counts for a directory stats block: published agencies, how many are Verified, and how
- * many offer the block's service. Read at render (ISR), never typed into the guide.
- */
-export const getDirectoryStats = cache(async (serviceSlug: string) => {
-  const db = createStaticClient();
-  const service = serviceSlug
-    ? (await getServices()).find((s) => s.slug === serviceSlug) ?? null
-    : null;
-  const [all, verified, offering] = await Promise.all([
-    db.from("agencies").select("id", { count: "exact", head: true }).eq("status", "published"),
-    db
-      .from("agencies")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .eq("is_verified", true),
-    service
-      ? db
-          .from("agencies")
-          .select("id, agency_services!inner(service_id)", { count: "exact", head: true })
-          .eq("status", "published")
-          .eq("agency_services.service_id", service.id)
-      : null,
-  ]);
-  if (all.error || verified.error || offering?.error) throw new Error("Couldn't count agencies");
-  return {
-    agencies: all.count ?? 0,
-    verified: verified.count ?? 0,
-    offering: offering?.count ?? 0,
-    serviceName: service?.name ?? null,
-  };
 });

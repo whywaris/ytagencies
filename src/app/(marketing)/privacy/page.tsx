@@ -7,14 +7,14 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
 import { PAGE_UPDATED } from "@/lib/page-dates";
 
-// Describes exactly what the code collects today. Keep it in sync with the code: forms
-// (lib/actions), the analytics beacon (api/events), Google Analytics (components/analytics.tsx,
-// after consent), sign-in (Supabase) and emails (Resend). LAUNCH: have it reviewed for your jurisdiction before launch.
+// Describes exactly what the code collects today. Keep it in sync with the code: the contact form
+// (lib/actions/contact.tsx), Google Analytics (components/analytics.tsx, after consent), ads
+// (lib/ads.ts), admin sign-in (Supabase) and emails (Resend). LAUNCH: have it reviewed for your jurisdiction before launch.
 
 const UPDATED = PAGE_UPDATED["/privacy"];
 const TITLE = "Privacy policy";
 const DESCRIPTION =
-  "What YT Agencies collects when you browse, send an inquiry or manage a listing, who receives it, how long we keep it, and how to get a copy or have it deleted.";
+  "What YT Agencies collects when you read the site or write to us, who receives it, how long we keep it, and how to get a copy or have it deleted.";
 
 export const metadata = buildMetadata({
   title: `Privacy policy | ${BRAND_NAME}`,
@@ -44,57 +44,30 @@ const sections: LegalSection[] = [
     title: "What we collect",
     body: (
       <>
-        <h3>When you browse</h3>
+        <h3>When you read the site</h3>
         <p>
-          You can read the directory and guides without an account. Vercel Web Analytics counts page
-          views without cookies and without identifying you.
+          You can read every guide without an account. Vercel Web Analytics counts page views
+          without cookies and without identifying you.
         </p>
         <p>
-          Only if you accept analytics cookies, Google Analytics records how the public pages are
-          used: the pages you view, roughly where you are (country and city from your IP address,
-          which Google doesn&apos;t store), your device and browser, how you arrived, and a few
-          actions such as sending an inquiry form, with no names, emails, messages or search text.
-          It sets the cookies listed in our <Link href="/cookies">cookie policy</Link>. Until you
-          accept, and if you decline, it stores nothing in your browser. It never runs in the agency
-          dashboard, the claim pages, sign-in or admin. We don&apos;t use Google Analytics for
-          signed-in users.
+          Only if you accept analytics cookies, Google Analytics records how the pages are used: the
+          pages you view, roughly where you are (country and city from your IP address, which Google
+          doesn&apos;t store), your device and browser and how you arrived, with no names, emails or
+          messages. It sets the cookies listed in our <Link href="/cookies">cookie policy</Link>.
+          Until you accept, and if you decline, it stores nothing in your browser. It never runs in
+          sign-in or admin.
         </p>
-        <p>
-          When you view an agency&apos;s profile, open its contact form or click its website link,
-          we record that event so the agency can see how its profile is doing. We store a visitor
-          code made from your IP address and browser with a key that changes every day, so we
-          can&apos;t recognise you from one day to the next. We don&apos;t store your IP address or
-          browser details.
-        </p>
-        <h3>When you request a quote or request proposals</h3>
-        <ul>
-          <li>Your name and email address</li>
-          <li>Your company name, if you give it</li>
-          <li>The service, niche, budget range, timeline, goal and country you choose</li>
-          <li>Your message</li>
-          <li>On a quote request, your agreement to the 48-hour fallback below</li>
-        </ul>
         <h3>When you write to us</h3>
-        <p>
-          The contact form collects your name, email address, the topic, your message and, if you
-          report a listing, the link to it.
-        </p>
-        <h3>When you manage a listing</h3>
-        <ul>
-          <li>
-            Your email address, which you use to sign in with an email link, or your Google account
-            name and email address if you sign in with Google
-          </li>
-          <li>The work email you use to claim a listing</li>
-          <li>The listing details, logo and case studies you add</li>
-          <li>YouTube channel links you give us for verification, and their public statistics</li>
-        </ul>
-        <p>Our sign-in provider keeps records of sign-ins, including IP addresses, for security.</p>
+        <p>The contact form collects your name, email address, the topic and your message.</p>
         <h3>To stop spam</h3>
         <p>
-          To limit abuse of our forms, we keep a one-way hash of your IP address and email address
-          for about an hour. It can&apos;t be turned back into
-          the original.
+          To limit abuse of the form, we keep a one-way hash of your IP address and email address
+          for about an hour. It can&apos;t be turned back into the original.
+        </p>
+        <h3>Our own team</h3>
+        <p>
+          Only our administrators sign in. Our sign-in provider keeps records of sign-ins, including
+          IP addresses, for security.
         </p>
       </>
     ),
@@ -106,28 +79,18 @@ const sections: LegalSection[] = [
       <>
         <ul>
           <li>
-            <strong>To deliver your request</strong> to the agency you chose, or to up to three
-            agencies that match it, and to email you a confirmation. If the agency you chose
-            doesn&apos;t reply within 48 hours, we send it to up to three similar agencies and tell
-            you who. We do this because you asked us to.
+            <strong>To answer messages</strong> you send through the contact form, and to email you
+            a copy.
           </li>
           <li>
-            <strong>To run your agency account</strong>: sign-in, your listing, your inquiries and
-            your profile statistics. This is needed to provide the service.
+            <strong>To understand which guides help</strong>, with the analytics above.
           </li>
           <li>
-            <strong>To answer messages</strong> you send through the contact form.
-          </li>
-          <li>
-            <strong>To keep the site safe</strong>: blocking bots, limiting repeated requests and
-            reviewing listings and reviews before they go live. This is in our legitimate interest
-            and yours.
+            <strong>To keep the site safe</strong>: blocking bots and limiting repeated messages.
+            This is in our legitimate interest and yours.
           </li>
         </ul>
-        <p>
-          We don&apos;t sell your data or give advertisers your details. We don&apos;t add you to a
-          mailing list.
-        </p>
+        <p>We don&apos;t sell your data, and we don&apos;t add you to a mailing list.</p>
       </>
     ),
   },
@@ -137,38 +100,20 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          <strong>Agencies.</strong> Agencies on a Pro plan that receive your request see your name,
-          email, company and message so they can reply to you; once they have it, they handle it
-          under their own privacy policy. Agencies not on Pro see only a preview: the service,
-          niche, budget range, timeline, goal, country and a short summary of your message with
-          names, emails, phone numbers and links removed. If the agency hasn&apos;t claimed its
-          listing, we email the address we hold for it that it has a request, with no details of
-          it.
-        </p>
-        <p>
           <strong>Service providers</strong> that process data for us, under their data processing
           terms:
         </p>
         <ul>
-          <li>Supabase: database, sign-in and file storage</li>
+          <li>Supabase: database and admin sign-in</li>
           <li>Vercel: hosting and analytics</li>
           <li>
             Google Analytics: website statistics, only after you accept analytics cookies. Google
             keeps this data for up to 14 months.
           </li>
+          <li>Google AdSense: ads (see Advertising below)</li>
           <li>Resend: sending emails</li>
           <li>Cloudflare: image hosting</li>
-          <li>
-            Google: sign-in with Google, if you choose it, and the YouTube Data API, which receives
-            channel links during verification
-          </li>
-          <li>Google AdSense: ads on our guides (see Advertising below)</li>
         </ul>
-        <p>
-          Lemon Squeezy sells Pro as merchant of record: it processes payment details, your billing address
-          and tax information, and sends receipts. We receive your email, Lemon Squeezy customer and
-          subscription ids and the plan&apos;s status, never card numbers.
-        </p>
       </>
     ),
   },
@@ -180,8 +125,8 @@ const sections: LegalSection[] = [
         <p>
           We may show ads on our guides through Google AdSense. Google and its partners can use
           cookies to show and measure ads, including ads based on your earlier visits to this and
-          other sites. They receive your browser&apos;s data directly, never your inquiries or
-          anything you send us. Ads don&apos;t affect how agencies are listed or ranked.
+          other sites. They receive your browser&apos;s data directly, never anything you send us
+          through the contact form. Ads never decide what we write.
         </p>
         <p>
           In the EEA, the UK and Switzerland, Google asks for your consent first. Elsewhere, you can
@@ -201,21 +146,9 @@ const sections: LegalSection[] = [
     body: (
       <ul>
         <li>
-          <strong>Inquiries:</strong> {COMPANY.retention.leadsMonths} months, then they&apos;re
-          deleted automatically, with the record of which agencies received them. You can ask us to
-          delete yours sooner.
-        </li>
-        <li>
           <strong>Contact messages:</strong> {COMPANY.retention.closedMessagesMonths} months after
           we close them, then they&apos;re deleted automatically. You can ask us to delete yours
           sooner.
-        </li>
-        <li>
-          <strong>Agency accounts and listings:</strong> until you ask us to close the account.
-        </li>
-        <li>
-          <strong>Profile events:</strong> individual events for 90 days; after that only daily
-          totals per agency, with no visitor codes.
         </li>
         <li>
           <strong>Spam-protection hashes:</strong> about an hour.
@@ -244,10 +177,7 @@ const sections: LegalSection[] = [
           (also in the footer): choose Decline, and clear the <code>_ga</code> cookies in your
           browser if you like.
         </p>
-        <p>
-          We may ask you to confirm the request from the email address it concerns. When we delete
-          an inquiry, we also ask the agencies that received it to delete their copy.
-        </p>
+        <p>We may ask you to confirm the request from the email address it concerns.</p>
         <p>
           If you&apos;re unhappy with how we handled your data, you can complain to your local data
           protection authority.
@@ -272,9 +202,8 @@ const sections: LegalSection[] = [
     body: (
       <p>
         The site only works over HTTPS. Database access is limited by row-level rules, so visitors
-        and agencies can only see what they should, and only our administrators can see inquiries
-        and messages. No system is perfect, so please tell us at{" "}
-        <a href={`mailto:${email}`}>{email}</a> if you find a problem.
+        can only see what they should, and only our administrators can see messages. No system is
+        perfect, so please tell us at <a href={`mailto:${email}`}>{email}</a> if you find a problem.
       </p>
     ),
   },
@@ -309,10 +238,9 @@ export default function PrivacyPage() {
       updated={UPDATED}
       contactEmail={email}
       summary={[
-        "We collect what's needed to connect businesses with agencies: your details when you send an inquiry, write to us or manage a listing.",
-        "Your contact details go only to Pro agencies you send a request to or are matched with; others see a preview without them. We don't sell your data.",
-        "Google Analytics cookies are set only if you accept them, and you can change your mind any time.",
-        "Our guides may show Google ads, which can use cookies. In the EEA, the UK and Switzerland, Google asks for your consent first.",
+        "We collect what's needed to answer you: your name, email and message when you write to us.",
+        "We don't sell your data. Google Analytics cookies are set only if you accept them, and you can change your mind any time.",
+        "Our pages may show Google ads, which can use cookies. In the EEA, the UK and Switzerland, Google asks for your consent first.",
         `You can ask for a copy of your data or have it deleted at any time: ${email}.`,
       ]}
       sections={sections}

@@ -40,7 +40,6 @@ export async function submitContact(raw: unknown): Promise<FormResult> {
   }
 
   const topic = topicOf(input.topic);
-  const agencyUrl = input.topic === "report" ? input.agencyUrl || null : null;
   const { data, error } = await createAdminClient()
     .from("contact_messages")
     .insert({
@@ -48,7 +47,6 @@ export async function submitContact(raw: unknown): Promise<FormResult> {
       name: input.name,
       email: input.email,
       message: input.message,
-      agency_url: agencyUrl,
     })
     .select("id")
     .single();
@@ -72,7 +70,7 @@ export async function submitContact(raw: unknown): Promise<FormResult> {
               name={input.name}
               email={input.email}
               message={input.message}
-              agencyUrl={agencyUrl}
+              agencyUrl={null}
               inboxUrl={absoluteUrl(`/admin/inbox/${data.id}`)}
             />
           ),

@@ -1,17 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { BudgetRange } from "@/components/guides/budget-range";
-import { DirectoryStatsLive } from "@/components/guides/directory-stats";
 import { GuideArticle } from "@/components/guides/guide-article";
 import { requireAdmin } from "@/lib/auth";
-import {
-  AUTHOR_COLUMNS,
-  getGuideCategories,
-  resolveCombos,
-  toAuthor,
-  type AuthorRow,
-} from "@/lib/data/guides";
+import { AUTHOR_COLUMNS, getGuideCategories, toAuthor, type AuthorRow } from "@/lib/data/guides";
 import { isAlternatives } from "@/lib/guide-template";
 import { docReadMinutes, guideDoc } from "@/lib/guide-content";
 import { absoluteUrl } from "@/lib/site";
@@ -37,10 +29,7 @@ export default async function GuidePreviewPage({
   // Unpublished changes if there are any, else the live guide.
   // ponytail: the author box shows the live author until "Update" if only the author changed.
   const g = { ...row, ...(row.draft_meta as Partial<typeof row> | null) };
-  const [related, categories] = await Promise.all([
-    resolveCombos(g.related_combos),
-    getGuideCategories(),
-  ]);
+  const categories = await getGuideCategories();
   const category = categories.find((c) => c.id === g.category_id);
   const previewDoc = guideDoc(g.draft_json ?? g.body_json, g.body_md);
 
@@ -71,11 +60,8 @@ export default async function GuidePreviewPage({
         }}
         categories={categories}
         template={isAlternatives(category?.slug) ? "alternatives" : "default"}
-        directoryStats={(service) => <DirectoryStatsLive service={service} />}
-        related={related}
         relatedGuides={[]}
         shareUrl={absoluteUrl(`/guides/${g.slug}`)}
-        budgetRange={(service) => <BudgetRange service={service} />}
         // The generated cover image only exists for live guides; drafts get the same look in HTML.
         generatedCover={false}
       />

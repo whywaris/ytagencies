@@ -4,12 +4,13 @@
 
 ## What this is
 
-**YT Agencies** (`https://ytagencies.com`, apex, no www). Brand name, domain and contact email live only in `src/lib/site.ts`; build absolute URLs with `absoluteUrl()`. Company facts (legal name, location, jurisdiction, inboxes, response times, founder, refund rules) live only in `src/lib/company.ts`: never invent them; `null` is a TODO that pages hide and `pnpm build` lists. Independent: never use YouTube's logo, play buttons or red in the brand.
+**YT Agencies** (`https://ytagencies.com`, apex, no www). Brand name, domain and contact email live only in `src/lib/site.ts`; build absolute URLs with `absoluteUrl()`. Company facts (legal name, location, jurisdiction, inboxes, response times, founder) live only in `src/lib/company.ts`: never invent them; `null` is a TODO that pages hide and `pnpm build` lists. Independent: never use YouTube's logo, play buttons or red in the brand.
 
-A directory that helps businesses find the right YouTube agency by **service** (Ads, SEO, channel management, production, Shorts, influencer marketing) and **industry** (crypto, doctors/healthcare, dentists, real estate, SaaS, e-commerce, coaches, law…) and **location**.
-Two sides: businesses search and send inquiries (free); agencies claim listings and pay for visibility and leads.
+A blog of practical guides on YouTube for businesses and creators: ads, SEO, Shorts, channel growth and what it costs to get help. Guides are written in the admin CMS (Admin → Guides). Some pages may show Google AdSense ads (`lib/ads.ts`).
 
-This is an SEO-first product. Every public page must be server-rendered, fast, and indexable on purpose.
+Until November 2026 the site was a directory of YouTube agencies with a paid Pro plan. That code is gone (git tag `saas-final` has it); its URLs answer **410 Gone** (`lib/removed-paths.ts`), and the database tables are still there, unused.
+
+This is an SEO-first site. Every public page must be server-rendered, fast, and indexable on purpose.
 
 ## Read before working
 
@@ -37,39 +38,36 @@ This is an SEO-first product. Every public page must be server-rendered, fast, a
 ```
 src/
   app/
-    (marketing)/page.tsx             # home
-    [service]/page.tsx               # /youtube-ads-agencies
-    [service]/[segment]/page.tsx     # /youtube-ads-agencies/for-doctors | /in-usa
-    [service]/[segment]/[location]/  # /youtube-ads-agencies/for-saas/in-usa (only with 3+ agencies)
-    industries/[industry]/page.tsx   # industry hub
-    locations/[country]/[city]/      # country and city hubs (404 with no agencies)
-    agency/[slug]/page.tsx           # agency profile
-    guides/[slug]/page.tsx           # guides, from the Guides CMS (guides table, admin/guides)
+    (marketing)/page.tsx             # home: the latest guides
+    guides/page.tsx                  # all guides, search, paging
+    guides/[slug]/page.tsx           # a guide, from the Guides CMS (guides table, admin/guides)
+    guides/category/[slug]/page.tsx  # a guide category
     authors/[slug]/page.tsx          # guide authors (authors table, admin/authors)
-    request-proposals/page.tsx       # lead form (/get-matched 301s here)
-    dashboard/...                    # agency dashboard (auth required, noindex)
-    admin/...                        # admin (role required, noindex)
-    sitemap.ts, robots.ts
+    about, contact, privacy, terms, cookies, editorial-policy
+    admin/...                        # guides, categories, authors, inbox, settings (role required, noindex)
+    (auth)/login, auth/...           # admin sign-in only
+    api/cron/guides                  # daily: scheduled guides, sitemap, retention purge
+    sitemap.xml, sitemaps/[file], robots.ts, llms.txt
+  proxy.ts                           # 410 for the old directory, 404 for unknown guides, admin gate
   components/ui/                     # shadcn primitives (restyled)
   components/                        # app components
   lib/supabase/{server,client,admin}.ts
   lib/seo/                           # metadata + JSON-LD builders
   lib/validation/                    # Zod schemas
-  emails/                            # React Email templates
+  emails/                            # React Email templates (contact form)
 supabase/schema.sql
 docs/
 ```
 
 ## Routing rules
 
-- Service slugs end in `-agencies` (e.g. `youtube-seo-agencies`).
-- Segment slugs: `for-<industry>` or `in-<location>`. Parse the prefix in `[segment]` and return `notFound()` for anything else.
-- All slugs are lowercase kebab-case and never change after publish. If one must change, add a 301 in `next.config`. Exception: guide slugs change in the CMS with "Change URL", which records the old slug in `guide_redirects` and redirects it permanently at request time (no deploy). Author slugs can be edited in Admin → Authors (meant for setting up an author before launch); the old `/authors` URL then returns 404, so don't rename a live author casually.
+- Public routes: `/`, `/guides`, `/guides/<slug>`, `/guides/category/<slug>`, `/authors/<slug>` and the site pages. Anything from the old directory (`/agency/*`, `/agencies`, `/<service>-agencies/…`, `/industries/*`, `/locations/*`, `/pricing`, `/dashboard`, …) answers 410 from the proxy; add to `lib/removed-paths.ts` if another one turns up. Guide bodies never link to them (links to removed pages render as plain text).
+- All slugs are lowercase kebab-case. Guide slugs change in the CMS with "Change URL", which records the old slug in `guide_redirects` and redirects it permanently at request time (no deploy). Author slugs can be edited in Admin → Authors; the old `/authors` URL then returns 404, so don't rename a live author casually.
 
 ## Rendering rules
 
-- Directory pages: ISR with `revalidate = 21600`; profiles `86400`; guides `3600`. On demand: `revalidateAgency` (its own pages) or `revalidateAgencyListings` (everywhere it's listed, only when where it's listed or how it ranks changes). A cache a page reads (`unstable_cache`) must not be shorter than the page's `revalidate`: it silently lowers it.
-- Dashboard/admin: dynamic, auth-gated, `noindex`.
+- Home, guides, categories, authors and site pages: static with ISR (`revalidate = 3600`), plus on-demand `revalidatePath` from the Guides CMS. A cache a page reads (`unstable_cache`) must not be shorter than the page's `revalidate`: it silently lowers it.
+- Admin: dynamic, auth-gated, `noindex`.
 - No client-side data fetching for indexable content.
 
 ## Coding conventions

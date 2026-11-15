@@ -1,7 +1,6 @@
 "use client";
 
 import { CircleAlert, Mail } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Honeypot } from "@/components/forms/field";
@@ -10,19 +9,10 @@ import { cn } from "@/lib/utils";
 import { loginSchema } from "@/lib/validation/auth";
 import type { FormResult } from "@/lib/validation/lead";
 
-// Sign in and create account are the same flow (magic link, or Google when it's switched on in
-// Supabase); the mode only changes the copy. Sending swaps the card to "Check your email" without
+// Sign in for our administrators (magic link, or Google when it's switched on in Supabase). Sending swaps the card to "Check your email" without
 // a reload. The card is a polite live region, and focus moves to the new title on each switch.
 
-type Mode = "signin" | "signup";
-
-const COPY = {
-  signin: { title: "Welcome back", subtitle: "Sign in to manage your agency." },
-  signup: {
-    title: "Create your account",
-    subtitle: "List your agency for free. It takes about two minutes.",
-  },
-} as const;
+const COPY = { title: "Sign in", subtitle: "For the YT Agencies team." } as const;
 
 const RESEND_SECONDS = 60;
 
@@ -31,16 +21,13 @@ const secondary =
 
 export function LoginCard({
   next,
-  initialMode,
   initialError,
   google,
 }: {
   next: string;
-  initialMode: Mode;
   initialError: string | null;
   google: boolean;
 }) {
-  const [mode, setMode] = useState<Mode>(initialMode);
   const [view, setView] = useState<"form" | "sent">("form");
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState("");
@@ -99,29 +86,6 @@ export function LoginCard({
     >
       {view === "form" ? (
         <div className="flex flex-col gap-6">
-          <div
-            role="group"
-            aria-label="Account"
-            className="grid grid-cols-2 gap-1 rounded-full bg-surface p-1"
-          >
-            {(["signin", "signup"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={mode === m}
-                onClick={() => setMode(m)}
-                className={cn(
-                  "h-10 rounded-full text-[15px] font-semibold transition-colors duration-150",
-                  mode === m
-                    ? "bg-raised text-text shadow-[0_1px_2px_rgba(20,25,40,.08),0_2px_6px_-2px_rgba(20,25,40,.12)]"
-                    : "text-text-2 hover:text-text",
-                )}
-              >
-                {m === "signin" ? "Sign in" : "Create account"}
-              </button>
-            ))}
-          </div>
-
           <div className="flex flex-col gap-1.5">
             <h2
               id="login-title"
@@ -129,9 +93,9 @@ export function LoginCard({
               tabIndex={-1}
               className="text-[26px] leading-tight font-[650] tracking-[-0.03em] outline-none"
             >
-              {COPY[mode].title}
+              {COPY.title}
             </h2>
-            <p className="text-text-2">{COPY[mode].subtitle}</p>
+            <p className="text-text-2">{COPY.subtitle}</p>
           </div>
 
           {google && (
@@ -166,7 +130,7 @@ export function LoginCard({
                 type="email"
                 autoComplete="email"
                 inputMode="email"
-                placeholder="you@youragency.com"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 aria-invalid={!!error}
@@ -190,20 +154,6 @@ export function LoginCard({
               {pending ? "Sending…" : "Email me a sign-in link"}
             </button>
           </form>
-
-          {mode === "signup" && (
-            <p className="text-[14px] text-text-2">
-              By creating an account you agree to our{" "}
-              <Link href="/terms" className="text-accent hover:underline">
-                Terms
-              </Link>{" "}
-              and{" "}
-              <Link href="/privacy" className="text-accent hover:underline">
-                Privacy Policy
-              </Link>
-              .
-            </p>
-          )}
         </div>
       ) : (
         <div className="flex flex-col gap-6">

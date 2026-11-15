@@ -22,7 +22,7 @@ export const COMPANY = {
   /** TODO: the law and courts for the terms, e.g. "England and Wales". */
   jurisdiction: null as string | null,
 
-  /** The one contact address for every topic (privacy, agencies, press…). */
+  /** The one contact address for every topic (questions, press, privacy). */
   email: CONTACT_EMAIL,
 
   /** Our social profiles: the footer icons and Organization JSON-LD sameAs, in that order. */
@@ -41,7 +41,6 @@ export const COMPANY = {
    */
   responseTimes: {
     general: null as string | null,
-    agencies: null as string | null,
     privacy: "within 30 days",
   },
 
@@ -68,20 +67,11 @@ export const COMPANY = {
    * privacy policy reads these, so changing a number here changes both.
    */
   retention: {
-    /** Inquiries (leads), with the record of which agencies received them. */
+    /** Old inquiries (leads) from the agency directory, still purged on schedule. */
     leadsMonths: 24,
     /** Contact-form messages, counted from when they were closed. Open ones are kept. */
     closedMessagesMonths: 12,
   },
-
-  /** Refund rules for Pro (/refunds). */
-  refunds: {
-    /** Yearly plans: full refund if asked within this many days of purchase. */
-    yearlyFullRefundDays: 14,
-  },
-
-  /** Payment provider that sells Pro as merchant of record (lib/billing/lemonsqueezy.ts). */
-  paymentProvider: "Lemon Squeezy" as string | null,
 } as const;
 
 /** The name to put after ©: the legal name once it's filled in. */
@@ -96,13 +86,11 @@ export function companyTodos() {
   need(COMPANY.city, "city");
   need(COMPANY.jurisdiction, "jurisdiction (governing law for the terms)");
   need(COMPANY.responseTimes.general, 'responseTimes.general (e.g. "within 2 business days")');
-  need(COMPANY.responseTimes.agencies, "responseTimes.agencies");
   need(COMPANY.founder.name, "founder.name");
   need(COMPANY.founder.role, "founder.role");
   need(COMPANY.founder.bio, "founder.bio");
   need(COMPANY.founder.photoPath, "founder.photoPath (optional)");
   need(COMPANY.founder.linkedinUrl, "founder.linkedinUrl (optional)");
   need(COMPANY.guideReviewCycle, 'guideReviewCycle (e.g. "at least once a year")');
-  need(COMPANY.paymentProvider, "paymentProvider (before payments go live)");
   return todos;
 }

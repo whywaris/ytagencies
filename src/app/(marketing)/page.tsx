@@ -1,47 +1,29 @@
-import {
-  AgenciesSection,
-  ClosingBand,
-  FaqSection,
-  GuidesSection,
-  HomeHero,
-  HowItWorksSection,
-  IndustriesSection,
-  ServicesSection,
-  WhySection,
-} from "@/components/home/sections";
+import { GuidesIndex, guidesView } from "@/components/guides/guides-index";
 import { JsonLd } from "@/components/json-ld";
-import { getAgencyCount } from "@/lib/data/agencies";
-import { breadcrumbJsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
 
+// The blog's front page: the latest guides, the same list as /guides page 1 (static here; search
+// and paging live on /guides).
 export const revalidate = 3600;
 
-export async function generateMetadata() {
-  const count = await getAgencyCount();
-  return buildMetadata({
-    title: `${BRAND_NAME}: Compare YouTube agencies that know your niche`,
-    description: `Compare ${count} YouTube agencies for ads, SEO, channel management and Shorts. Filter by industry and location, then contact agencies directly. Free for businesses and creators.`,
-    path: "/",
-  });
-}
+const DESCRIPTION =
+  "Practical guides on YouTube for businesses and creators: ads, SEO, Shorts, channel growth and what it costs to get help.";
 
-export default function HomePage() {
+export const metadata = buildMetadata({
+  title: `${BRAND_NAME}: YouTube guides for businesses and creators`,
+  description: DESCRIPTION,
+  path: "/",
+});
+
+export default async function HomePage() {
+  const view = await guidesView(null, {});
   return (
     <>
       <JsonLd data={websiteJsonLd()} />
       <JsonLd data={organizationJsonLd()} />
-      <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }])} />
-
-      <HomeHero />
-      <ServicesSection />
-      <AgenciesSection />
-      <HowItWorksSection />
-      <WhySection />
-      <IndustriesSection />
-      <GuidesSection />
-      <FaqSection />
-      <ClosingBand />
+      <GuidesIndex view={view} description={DESCRIPTION} home />
     </>
   );
 }

@@ -3,15 +3,9 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { AuthorAvatar, AuthorLinks, GuideCard } from "@/components/guides/guide-parts";
 import { JsonLd } from "@/components/json-ld";
-import {
-  getAuthorBySlug,
-  getGuideCategories,
-  getLiveAuthors,
-  mediaUrl,
-} from "@/lib/data/guides";
-import { firstThatFits } from "@/lib/directory";
+import { getAuthorBySlug, getGuideCategories, getLiveAuthors, mediaUrl } from "@/lib/data/guides";
 import { breadcrumbJsonLd, personJsonLd } from "@/lib/seo/json-ld";
-import { buildMetadata } from "@/lib/seo/metadata";
+import { buildMetadata, firstThatFits } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
 
 // Author pages: only for authors with at least one live guide (RLS hides the rest, so they 404).
@@ -41,7 +35,7 @@ export async function generateMetadata({ params }: PageProps<"/authors/[slug]">)
     ),
     description:
       a.bio ||
-      `${n} ${n === 1 ? "guide" : "guides"} by ${a.name} on choosing and working with YouTube agencies.`,
+      `${n} ${n === 1 ? "guide" : "guides"} by ${a.name} on YouTube for businesses and creators.`,
     path: `/authors/${a.slug}`,
   });
 }

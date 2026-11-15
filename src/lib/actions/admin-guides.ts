@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { adminContext, NOT_ADMIN } from "@/lib/admin-context";
-import { getDirectoryStats } from "@/lib/data/guides";
 import { placeholdersIn, templateBlanksIn } from "@/lib/guide-blocks";
 import { prePublishChecks } from "@/lib/guide-template";
 import {
@@ -254,7 +253,11 @@ export async function setGuideStatus(
     const doc = guideDoc(g.draft_json ?? g.body_json, g.body_md);
     const live = { ...g, ...((g.draft_meta ?? {}) as Partial<typeof g>) };
     const { data: category } = live.category_id
-      ? await ctx.db.from("guide_categories").select("slug").eq("id", live.category_id).maybeSingle()
+      ? await ctx.db
+          .from("guide_categories")
+          .select("slug")
+          .eq("id", live.category_id)
+          .maybeSingle()
       : { data: null };
     const blocking = prePublishChecks({
       categoryId: live.category_id,
@@ -270,7 +273,10 @@ export async function setGuideStatus(
       templateBlanks: templateBlanksIn(docText(doc)).length,
     }).filter((c) => c.blocking);
     if (blocking.length)
-      return { ok: false, error: `Before publishing: ${blocking.map((c) => c.label.toLowerCase()).join(", ")}.` };
+      return {
+        ok: false,
+        error: `Before publishing: ${blocking.map((c) => c.label.toLowerCase()).join(", ")}.`,
+      };
   }
 
   const now = new Date();
@@ -520,18 +526,4 @@ export async function setGuideFeatured(id: string, on: boolean): Promise<FormRes
   revalidatePath("/guides");
   revalidatePath("/admin/guides");
   return { ok: true, data: null };
-}
-
-/** Live directory counts for a directory stats block in the editor (the page reads the same). */
-export async function directoryStatsFor(service: string): Promise<
-  FormResult<{ agencies: number; verified: number; offering: number; serviceName: string | null }>
-> {
-  const ctx = await adminContext();
-  if (!ctx) return { ok: false, error: NOT_ADMIN };
-  const slug = typeof service === "string" && /^[a-z0-9-]{0,80}$/.test(service) ? service : "";
-  try {
-    return { ok: true, data: await getDirectoryStats(slug) };
-  } catch {
-    return { ok: false, error: "Couldn't count agencies." };
-  }
 }

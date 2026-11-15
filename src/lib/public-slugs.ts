@@ -5,22 +5,18 @@
 // "Status Codes"). Pages keep their own notFound() as the fallback.
 
 type Slugs = {
-  services: Set<string>;
-  industries: Set<string>;
-  locations: Set<string>;
-  agencies: Set<string>;
   /** Live guides plus old slugs that redirect to one (RLS hides drafts and future guides). */
   guides: Set<string>;
   /** Authors with a live guide (RLS hides the rest). */
   authors: Set<string>;
 };
 
-const TTL_MS = 60_000; // a newly published agency can 404 for up to a minute per instance
+const TTL_MS = 60_000; // a newly published guide can 404 for up to a minute per instance
 let cache: { at: number; slugs: Slugs } | null = null;
 
-async function slugsOf(table: string, query = "", column = "slug") {
+async function slugsOf(table: string, column = "slug") {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/${table}?select=${column}${query}`,
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/${table}?select=${column}`,
     {
       headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
       signal: AbortSignal.timeout(1500),
@@ -33,66 +29,17 @@ async function slugsOf(table: string, query = "", column = "slug") {
 async function getSlugs(): Promise<Slugs | null> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.slugs;
   try {
-    // Anon key: RLS already limits agencies to published ones.
-    const [services, industries, locations, agencies, guides, redirects, authors] =
-      await Promise.all([
-        slugsOf("services"),
-        slugsOf("industries"),
-        slugsOf("locations"),
-        slugsOf("agencies", "&status=eq.published"),
-        slugsOf("guides"),
-        slugsOf("guide_redirects", "", "from_slug"),
-        slugsOf("authors"),
-      ]);
-    cache = {
-      at: Date.now(),
-      slugs: {
-        services,
-        industries,
-        locations,
-        agencies,
-        guides: new Set([...guides, ...redirects]),
-        authors,
-      },
-    };
+    const [guides, redirects, authors] = await Promise.all([
+      slugsOf("guides"),
+      slugsOf("guide_redirects", "from_slug"),
+      slugsOf("authors"),
+    ]);
+    cache = { at: Date.now(), slugs: { guides: new Set([...guides, ...redirects]), authors } };
     return cache.slugs;
   } catch {
     return cache?.slugs ?? null; // database unreachable: use stale data, or don't block at all
   }
 }
-
-// First path segments that are real routes, not a [service] slug.
-const STATIC_ROOTS = new Set([
-  "agencies",
-  "industries",
-  "locations",
-  "guides",
-  "get-matched",
-  "request-proposals",
-  "list-your-agency",
-  "for-agencies",
-  "pricing",
-  "how-we-rank",
-  "no-access",
-  "login",
-  "privacy",
-  "terms",
-  "refunds",
-  "cookies",
-  "disclosure",
-  "editorial-policy",
-  "about",
-  "contact",
-  "report-listing",
-  "remove-listing",
-  "styleguide",
-  "dashboard",
-  "admin",
-  "auth",
-  "claim",
-  "sitemaps",
-  "og",
-]);
 
 /**
  * false when the path is a public dynamic route whose slug doesn't exist; true or null otherwise
@@ -100,11 +47,8 @@ const STATIC_ROOTS = new Set([
  */
 export async function publicPathExists(pathname: string): Promise<boolean | null> {
   const parts = pathname.split("/").filter(Boolean);
-  if (parts.length === 0) return true;
-  const [first, second, third] = parts;
-
-  if (first === "guides") {
-    if (parts.length !== 2) return true;
+  const [first, second] = parts;
+  if (first === "guides" && parts.length === 2) {
     const slugs = await getSlugs();
     return slugs ? slugs.guides.has(second) : null;
   }
@@ -113,21 +57,5 @@ export async function publicPathExists(pathname: string): Promise<boolean | null
     const slugs = await getSlugs();
     return slugs ? slugs.authors.has(second) : null;
   }
-  if (first === "agency") {
-    if (parts.length === 2 || (parts.length === 3 && third === "claim")) {
-      const slugs = await getSlugs();
-      return slugs ? slugs.agencies.has(second) : null;
-    }
-    return true; // let Next handle other shapes
-  }
-  if (STATIC_ROOTS.has(first) || parts.length > 2) return true; // 3+ segments already 404 fully
-
-  // /[service] and /[service]/[segment]
-  const slugs = await getSlugs();
-  if (!slugs) return null;
-  if (!slugs.services.has(first)) return false;
-  if (parts.length === 1) return true;
-  if (second.startsWith("for-")) return slugs.industries.has(second.slice(4));
-  if (second.startsWith("in-")) return slugs.locations.has(second.slice(3));
-  return false;
+  return true; // everything else is a fixed route: Next 404s what doesn't match
 }

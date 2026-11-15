@@ -1,28 +1,15 @@
 import { COMPANY } from "@/lib/company";
 
 // /contact topics: label, which inbox gets the message, and the note shown under the selector.
-// Shared by the form (client), the server action and the side column.
+// Shared by the form (client), the server action and the side column. Ids must stay in the
+// database's contact_messages_topic_check.
 
 export const CONTACT_TOPICS = [
   {
     id: "general",
     label: "General question",
     inbox: COMPANY.email,
-    note: "Questions about the directory, an inquiry you sent, or anything else.",
-    response: COMPANY.responseTimes.general,
-  },
-  {
-    id: "agencies",
-    label: "For agencies",
-    inbox: COMPANY.email,
-    note: "Listings, claims, verification, plans and billing.",
-    response: COMPANY.responseTimes.agencies,
-  },
-  {
-    id: "report",
-    label: "Report a listing",
-    inbox: COMPANY.email,
-    note: "Tell us which listing and what's wrong with it: wrong details, fake reviews or an agency that isn't real.",
+    note: "A question about a guide, a correction, or anything else.",
     response: COMPANY.responseTimes.general,
   },
   {
@@ -44,31 +31,15 @@ export const CONTACT_TOPICS = [
 export type ContactTopic = (typeof CONTACT_TOPICS)[number]["id"];
 export const TOPIC_IDS = CONTACT_TOPICS.map((t) => t.id) as [ContactTopic, ...ContactTopic[]];
 
-// Not on /contact: "Request Pro" on the pricing page and dashboard (lib/actions/pro.tsx) while
-// payments are off. Shown in Admin → Inbox with the other topics.
-export const PRO_TOPIC = {
-  id: "pro",
-  label: "Pro request",
-  inbox: COMPANY.email,
-  note: "An agency asked for Pro. Grant it in Agencies → Change plan.",
-  response: COMPANY.responseTimes.agencies,
-} as const;
-// No longer created (an owned listing now just says to email us); kept so access requests
-// already in the Inbox keep their label.
-export const ACCESS_TOPIC = {
-  id: "access",
-  label: "Access request",
-  inbox: COMPANY.email,
-  note: "Someone asks to manage a listing another account manages. Contact both, then decide.",
-  response: COMPANY.responseTimes.agencies,
-} as const;
-// Not on /contact: "Remove my listing" from an outreach email (/remove-listing).
-export const REMOVAL_TOPIC = {
-  id: "removal",
-  label: "Removal request",
-  inbox: COMPANY.email,
-  note: "An agency asked to be removed. Check the email is on its domain, then archive the listing.",
-  response: COMPANY.responseTimes.agencies,
-} as const;
-export const INBOX_TOPICS = [...CONTACT_TOPICS, PRO_TOPIC, ACCESS_TOPIC, REMOVAL_TOPIC] as const;
+// From when the site was an agency directory: no longer offered, kept so older messages in the
+// Inbox keep their label.
+const OLD_TOPICS = [
+  { id: "agencies", label: "For agencies" },
+  { id: "report", label: "Report a listing" },
+  { id: "pro", label: "Pro request" },
+  { id: "access", label: "Access request" },
+  { id: "removal", label: "Removal request" },
+].map((t) => ({ ...t, inbox: COMPANY.email, note: "", response: null }));
+
+export const INBOX_TOPICS = [...CONTACT_TOPICS, ...OLD_TOPICS] as const;
 export const topicOf = (id: string) => INBOX_TOPICS.find((t) => t.id === id) ?? CONTACT_TOPICS[0];

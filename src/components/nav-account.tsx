@@ -8,7 +8,6 @@ import { AccountMenu, AvatarPlaceholder } from "@/components/account-menu";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { accountFrom, type Account } from "@/lib/account";
-import { cn } from "@/lib/utils";
 
 // The Nav renders on static (ISR) pages, so it can't read cookies on the server: that would make
 // every page dynamic. The server HTML is the signed-out state; after hydration this checks for the
@@ -80,14 +79,11 @@ function closeOnSelect(e: React.MouseEvent<HTMLElement>) {
 }
 
 /**
- * Right side of the nav at desktop widths. Signed out: theme toggle, Sign in. Agency-facing links
- * (List your agency, Pricing) live in the footer only: the header is for businesses and creators.
- * Signed in: the theme toggle right next to the avatar menu (the signed-out links are removed, not
- * just hidden, so they don't leave a gap). The server HTML is the signed-out state.
+ * Right side of the nav at desktop widths: the theme toggle, plus the avatar menu when signed in
+ * (only admins sign in; /login has no public link). The server HTML is the signed-out state.
  */
 export function NavAccount() {
   const state = useAccount();
-  const onLogin = usePathname() === "/login";
   if (state.status !== "out")
     return (
       <div className="flex items-center gap-2">
@@ -95,18 +91,7 @@ export function NavAccount() {
         <AccountSlot state={state} />
       </div>
     );
-  return (
-    <div className="flex items-center gap-6">
-      <ThemeToggle />
-      <Link
-        href="/login"
-        aria-current={onLogin ? "page" : undefined}
-        className="flex min-h-11 items-center text-[14px] text-text-2 transition-colors duration-150 hover:text-text aria-[current=page]:font-semibold aria-[current=page]:text-text"
-      >
-        Sign in
-      </Link>
-    </div>
-  );
+  return <ThemeToggle />;
 }
 
 /** The avatar menu once the account is known; a same-size placeholder while it's read. */
@@ -124,25 +109,6 @@ function AccountSlot({ state }: { state: State }) {
 export function MobileAccount() {
   const state = useAccount();
   return state.status === "out" ? null : <AccountSlot state={state} />;
-}
-
-/** The account items inside the mobile menu. */
-export function NavAccountMenuItems() {
-  const state = useAccount();
-  const onLogin = usePathname() === "/login";
-  if (state.status === "out") {
-    return (
-      <Link
-        href="/login"
-        aria-current={onLogin ? "page" : undefined}
-        className={cn(menuItem, "aria-[current=page]:font-semibold")}
-      >
-        Sign in
-      </Link>
-    );
-  }
-  // Signed in: Dashboard, Admin and Sign out are in the avatar menu (MobileAccount).
-  return null;
 }
 
 /** Mobile menu: a native popover under the nav (the browser handles open state, Esc and outside clicks). */
@@ -171,7 +137,6 @@ export function MobileMenu({ links }: { links: { href: string; label: string }[]
           ))}
           <hr className="my-2 border-line" />
           <ThemeToggle className="mx-3 my-1" />
-          <NavAccountMenuItems />
         </nav>
       </div>
     </>

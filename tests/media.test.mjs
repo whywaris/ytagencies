@@ -2,7 +2,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { initials, logoSrc } from "../src/lib/logo.ts";
 import {
   checkLinkedImage,
   imageLinkError,
@@ -85,16 +84,4 @@ test("linked image: HEAD must be 200, image/*, at most 1 MB", async () => {
     /isn't allowed/,
   );
   assert.equal(called, false, "a blocked host is never requested");
-});
-
-test("logo: a link or a stored upload; initials when there's none", () => {
-  assert.equal(logoSrc("https://media.ytagencies.com/l.png"), "https://media.ytagencies.com/l.png");
-  assert.match(
-    logoSrc("agencies/1/logo.png"),
-    /\/storage\/v1\/object\/public\/agency-media\/agencies\/1\/logo\.png$/,
-  );
-  assert.equal(logoSrc(""), null);
-  assert.equal(logoSrc(null), null);
-  assert.equal(initials("acme video co"), "AV");
-  assert.equal(initials("Solo"), "S");
 });

@@ -2,11 +2,9 @@ import type { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 import { gaId } from "./src/lib/analytics";
-import { lsEnvProblems } from "./src/lib/billing/lemonsqueezy-events";
 import { companyTodos } from "./src/lib/company";
 import { indexingAllowed, noindexHeaders } from "./src/lib/indexing";
 import { mediaHosts } from "./src/lib/media";
-import { PRICING_REDIRECTS, PROPOSALS_REDIRECTS } from "./src/lib/moved-pages";
 
 const isDev = process.env.NODE_ENV === "development";
 // Our Cloudflare image host(s) for pasted cover links (MEDIA_HOSTS, see src/lib/media.ts).
@@ -23,7 +21,7 @@ const supabaseHost = supabaseUrl?.host ?? "*.supabase.co";
 // Google Analytics 4 (components/analytics.tsx): the gtag script, and where it sends hits.
 // Google profile photos in the account menu (lib/account.ts AVATAR_HOST).
 const AVATAR_HOST = "https://lh3.googleusercontent.com";
-// Work samples (lib/work-samples.ts): thumbnails, and the click-to-play player (no-cookie domain).
+// YouTube thumbnails, and the click-to-play player (no-cookie domain) for videos in guides.
 const YT_THUMBS = "https://i.ytimg.com";
 const YT_PLAYER = "https://www.youtube-nocookie.com";
 const GA_SCRIPT = "https://www.googletagmanager.com";
@@ -52,12 +50,6 @@ const csp = [
   "frame-ancestors 'none'",
   "upgrade-insecure-requests",
 ].join("; ");
-
-/**
- * Agency slugs never change once published (CLAUDE.md). If one must, add { from, to } here: the
- * profile, its claim page and the owner's dashboard (every section) all redirect permanently.
- */
-const AGENCY_SLUG_REDIRECTS: { from: string; to: string }[] = [];
 
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
@@ -94,25 +86,8 @@ const nextConfig: NextConfig = {
   // www → apex, 308. Keep the domain in sync with SITE_DOMAIN in src/lib/site.ts.
   async redirects() {
     return [
-      ...PRICING_REDIRECTS,
-      ...PROPOSALS_REDIRECTS,
-      // Short link for reports; agency profiles link to /contact?topic=report&agency=<slug>.
-      { source: "/report-listing", destination: "/contact?topic=report", permanent: true },
-      // Old child sitemap, split into services/combos/locations/pages under /sitemap.xml.
+      // Old child sitemap.
       { source: "/sitemaps/categories.xml", destination: "/sitemap.xml", permanent: true },
-      // Managing a listing moved from /agency/<slug>/claim to /claim/<slug>.
-      { source: "/agency/:slug/claim", destination: "/claim/:slug", permanent: true },
-      ...AGENCY_SLUG_REDIRECTS.flatMap(({ from, to }) => [
-        { source: `/agency/${from}`, destination: `/agency/${to}`, permanent: true },
-        { source: `/claim/${from}`, destination: `/claim/${to}`, permanent: true },
-        {
-          source: `/dashboard/${from}/:path*`,
-          destination: `/dashboard/${to}/:path*`,
-          permanent: true,
-        },
-      ]),
-      // Dashboard sections: Plan and analytics split into Plan (billing) and Analytics.
-      { source: "/dashboard/:id/plan", destination: "/dashboard/:id/analytics", permanent: true },
       {
         source: "/:path*",
         has: [{ type: "host", value: "www.ytagencies.com" }],
@@ -134,20 +109,6 @@ const nextConfig: NextConfig = {
 
 // Launch checklist: list company facts nobody has filled in yet (src/lib/company.ts).
 export default function config(phase: string): NextConfig {
-  // Lemon Squeezy: name anything missing for checkout or webhooks (names only, never values). Not
-  // fatal: Get Pro then says "temporarily unavailable" and emails the admin (lib/billing/checkout.ts).
-  if (phase === PHASE_PRODUCTION_BUILD && process.env.VERCEL_ENV === "production") {
-    const ls = lsEnvProblems(process.env);
-    if (!process.env.LEMONSQUEEZY_WEBHOOK_SECRET?.trim()) ls.push("LEMONSQUEEZY_WEBHOOK_SECRET");
-    if (ls.length)
-      console.warn(
-        `⚠ Lemon Squeezy isn't fully set up, so Get Pro can't check out: ${ls.join(", ")}.`,
-      );
-    if (process.env.LEMONSQUEEZY_TEST_MODE?.trim() === "true")
-      console.warn(
-        "⚠ LEMONSQUEEZY_TEST_MODE is true in Production: checkouts take test cards only.",
-      );
-  }
   // GA4 only runs with a Measurement ID (G-XXXXXXXX); say so when the value can't be used.
   if (
     phase === PHASE_PRODUCTION_BUILD &&

@@ -22,16 +22,28 @@ test("the hero: breadcrumb, H1 and byline on navy, no excerpt", () => {
   assert.match(hero, /<span aria-hidden>›<\/span>/);
   assert.doesNotMatch(hero, /aria-current/);
   // Rendered for every template but Alternatives.
-  assert.match(article, /\{!alternatives && <GuideHero guide=\{guide\} category=\{category\} \/>\}/);
+  assert.match(
+    article,
+    /\{!alternatives && <GuideHero guide=\{guide\} category=\{category\} \/>\}/,
+  );
 });
 
-test("byline: avatar, \"Written by\" and the date apart, never run together", () => {
+test('byline: avatar, "Written by" and the date apart, never run together', () => {
   const hero = fn("GuideHero");
   // The initials are decorative, so "WJ" never runs into the name.
-  assert.match(read("src/components/guides/guide-parts.tsx"), /<span aria-hidden>\{initials\(author\.name\)\}<\/span>/);
-  assert.match(hero, /Written by\{" "\}\s*<Link\s+href=\{`\/authors\/\$\{guide\.author\.slug\}`\}\s+className="[^"]*underline/);
+  assert.match(
+    read("src/components/guides/guide-parts.tsx"),
+    /<span aria-hidden>\{initials\(author\.name\)\}<\/span>/,
+  );
+  assert.match(
+    hero,
+    /Written by\{" "\}\s*<Link\s+href=\{`\/authors\/\$\{guide\.author\.slug\}`\}\s+className="[^"]*underline/,
+  );
   // The date is its own line, with no read time glued to it.
-  assert.match(hero, /<p>\s*Last updated on <time dateTime=\{guide\.updatedAt\}>\{bylineDate\(guide\.updatedAt\)\}<\/time>\s*<\/p>/);
+  assert.match(
+    hero,
+    /<p>\s*Last updated on <time dateTime=\{guide\.updatedAt\}>\{bylineDate\(guide\.updatedAt\)\}<\/time>\s*<\/p>/,
+  );
   assert.doesNotMatch(hero, /readMinutes/);
   assert.equal(bylineDate("2026-10-25T09:00:00Z"), "Oct. 25, 2026");
   assert.equal(bylineDate("2026-05-03T23:59:00Z"), "May 3, 2026");
@@ -44,10 +56,17 @@ test("cover: under the band, alt from cover_alt else the title", () => {
 });
 
 test("cover URLs are percent-encoded exactly once", () => {
-  const encoded = "https://media.ytagencies.com/Blogs/Talent%20Agencies%20for%20New%20YouTubers.png.webp";
+  const encoded =
+    "https://media.ytagencies.com/Blogs/Talent%20Agencies%20for%20New%20YouTubers.png.webp";
   assert.equal(mediaUrl(encoded), encoded);
-  assert.equal(mediaUrl("https://media.ytagencies.com/Blogs/Talent Agencies for New YouTubers.png.webp"), encoded);
-  assert.equal(mediaUrl("https://media.ytagencies.com/a/plain.webp?v=2"), "https://media.ytagencies.com/a/plain.webp?v=2");
+  assert.equal(
+    mediaUrl("https://media.ytagencies.com/Blogs/Talent Agencies for New YouTubers.png.webp"),
+    encoded,
+  );
+  assert.equal(
+    mediaUrl("https://media.ytagencies.com/a/plain.webp?v=2"),
+    "https://media.ytagencies.com/a/plain.webp?v=2",
+  );
   assert.doesNotMatch(mediaUrl("https://media.ytagencies.com/My Cover (1).webp"), /%25/);
   assert.match(mediaUrl("guides/my cover.webp"), /\/agency-media\/guides\/my%20cover\.webp$/);
   assert.match(mediaUrl("guides/my%20cover.webp"), /\/agency-media\/guides\/my%20cover\.webp$/);
@@ -85,9 +104,18 @@ test("only the article's sections are headings; one TOC and one share block at a
 test("content styles: the lead, headings, tables and bold", () => {
   const css = read("src/app/globals.css");
   assert.match(css, /\.guide-content > p:first-child \{\n {2}@apply [^;]*md:text-\[21px\]/);
-  assert.match(css, /\.guide-content h3:not\(\.guide-block \*\) \{\n {2}@apply [^;]*md:text-\[22px\]/);
-  assert.match(css, /\.guide-content strong:not\(\.guide-block \*\) \{\n {2}@apply font-semibold text-text;/);
-  assert.match(css, /\.guide-content th:not\(\.guide-block \*\) \{\n {2}@apply border border-line bg-surface/);
+  assert.match(
+    css,
+    /\.guide-content h3:not\(\.guide-block \*\) \{\n {2}@apply [^;]*md:text-\[22px\]/,
+  );
+  assert.match(
+    css,
+    /\.guide-content strong:not\(\.guide-block \*\) \{\n {2}@apply font-semibold text-text;/,
+  );
+  assert.match(
+    css,
+    /\.guide-content th:not\(\.guide-block \*\) \{\n {2}@apply border border-line bg-surface/,
+  );
   // Key takeaways go right after the lead, only when filled in.
   assert.match(article, /const takeaways = guide\.keyTakeaways\.length > 0 && \(/);
   assert.match(article, /afterLead=\{alternatives \? undefined : takeaways\}/);
@@ -97,11 +125,10 @@ test("guide blocks use theme tokens only (the CTA box and banner keep their own 
   const src = read("src/components/guide-blocks.tsx");
   const cta = src.match(/\nfunction CtaBox[\s\S]*?\n}\n/)[0];
   const rest = src.replace(cta, "");
-  assert.doesNotMatch(rest, /#[0-9a-f]{3,6}\b|\b(?:bg|text|border)-(?:white|black)\b|raised|accent-soft|text-text|bg-surface|border-line|bg-line/i);
+  assert.doesNotMatch(
+    rest,
+    /#[0-9a-f]{3,6}\b|\b(?:bg|text|border)-(?:white|black)\b|raised|accent-soft|text-text|bg-surface|border-line|bg-line/i,
+  );
   assert.match(rest, /"bg-primary\/10 text-foreground"/); // the highlighted comparison row
   assert.match(cta, /banner \? "bg-navy" : "bg-\[#16171a\]/);
-  // Directory stats: zero counts hidden on the site, the whole block when nothing is left.
-  assert.match(rest, /const shown = editing \? cells : cells\.filter\(\(\[, v\]\) => v !== null && v > 0\);\n {2}if \(!shown\.length\) return null;/);
-  assert.match(rest, /Hidden on the site while 0/);
-  assert.match(read("src/components/admin/guide-block-node.tsx"), /stats=\{stats\} editing \/>/);
 });

@@ -28,7 +28,7 @@ export function robotsRules(allowed: boolean, sitemap: string) {
   // logos stay fetchable. Social images live at query-free /og/… paths.
   const rule = {
     allow: ["/", "/_next/image"],
-    disallow: ["/dashboard", "/admin", "/api", "/auth", "/login", "/claim", "/*?"],
+    disallow: ["/admin", "/api", "/auth", "/login", "/*?"],
   };
   return {
     rules: [

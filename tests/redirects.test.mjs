@@ -7,7 +7,6 @@ import {
   authOrigin,
   callbackUrl,
   confirmEmailLink,
-  newDashboardPath,
   nextFromRedirectTo,
   postLoginPath,
   privateGate,
@@ -46,13 +45,13 @@ test("safeNext never loops back into the sign-in flow", () => {
   assert.equal(safeNext("/loginx"), "/loginx");
 });
 
-test("postLoginPath: a safe next wins, otherwise admins → /admin, everyone else → /dashboard", () => {
+test("postLoginPath: a safe next wins, otherwise admins → /admin, everyone else → home", () => {
   assert.equal(postLoginPath("/agency/acme/claim", false), "/agency/acme/claim");
   assert.equal(postLoginPath("/dashboard", true), "/dashboard");
   assert.equal(postLoginPath(null, true), "/admin");
-  assert.equal(postLoginPath(null, false), "/dashboard");
+  assert.equal(postLoginPath(null, false), "/");
   assert.equal(postLoginPath("//evil.com", true), "/admin");
-  assert.equal(postLoginPath("https://evil.com", false), "/dashboard");
+  assert.equal(postLoginPath("https://evil.com", false), "/");
 });
 
 test("callbackUrl carries next through the magic link only when safe", () => {
@@ -66,10 +65,7 @@ test("callbackUrl carries next through the magic link only when safe", () => {
 });
 
 test("privateGate: signed-out visitors go to login with next", () => {
-  assert.deepEqual(privateGate("/dashboard", false, false), {
-    action: "login",
-    to: "/login?next=%2Fdashboard",
-  });
+  assert.deepEqual(privateGate("/dashboard", false, false), { action: "next" }); // gone: 410
   assert.deepEqual(privateGate("/admin/claims", false, false), {
     action: "login",
     to: "/login?next=%2Fadmin%2Fclaims",
@@ -145,10 +141,10 @@ test("confirmEmailLink: a valid link signs in and goes to next", async () => {
   assert.deepEqual(deps.calls, [["abc", "email"]]);
 });
 
-test("confirmEmailLink: without next, admins land on /admin and others on /dashboard", async () => {
+test("confirmEmailLink: without next, admins land on /admin and others on the home page", async () => {
   const link = { tokenHash: "abc", type: "email", next: `${SITE}/auth/callback` };
   assert.equal(await confirmEmailLink(link, ORIGINS, fakeDeps({ admin: true })), "/admin");
-  assert.equal(await confirmEmailLink(link, ORIGINS, fakeDeps()), "/dashboard");
+  assert.equal(await confirmEmailLink(link, ORIGINS, fakeDeps()), "/");
 });
 
 test("confirmEmailLink: an expired or used link gets its own message, keeping next", async () => {
@@ -186,7 +182,7 @@ test("confirmEmailLink: an unsafe next is dropped, not followed", async () => {
   ]) {
     assert.equal(
       await confirmEmailLink({ tokenHash: "abc", type: "email", next }, ORIGINS, fakeDeps()),
-      "/dashboard",
+      "/",
       next,
     );
     assert.equal(
@@ -219,13 +215,4 @@ test("authOrigin keeps local dev ports and the site, else falls back to SITE_URL
   ]) {
     assert.equal(authOrigin(spoofed, prod), prod, spoofed);
   }
-});
-
-test("old /dashboard/<id> links map to /dashboard/<slug>, renamed sections included", () => {
-  assert.equal(newDashboardPath("goat-agency", ""), "/dashboard/goat-agency");
-  assert.equal(newDashboardPath("goat-agency", "/billing"), "/dashboard/goat-agency/billing");
-  assert.equal(newDashboardPath("goat-agency", "/leads"), "/dashboard/goat-agency/inquiries");
-  assert.equal(newDashboardPath("goat-agency", "/plan"), "/dashboard/goat-agency/analytics");
-  // Only whole segments are renamed.
-  assert.equal(newDashboardPath("goat-agency", "/leadsx"), "/dashboard/goat-agency/leadsx");
 });

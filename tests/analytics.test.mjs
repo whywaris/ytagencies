@@ -85,8 +85,10 @@ test("robots.txt: blocks everything with no sitemap until launch, normal rules a
   const [everyone, ai] = on.rules;
   assert.equal(everyone.userAgent, "*");
   assert.ok(everyone.allow.includes("/"));
-  for (const path of ["/dashboard", "/admin", "/api", "/auth", "/login", "/claim", "/*?"])
+  for (const path of ["/admin", "/api", "/auth", "/login", "/*?"])
     assert.ok(everyone.disallow.includes(path), path);
+  // The old directory's pages stay crawlable, so search engines see their 410 and drop them.
+  for (const path of ["/dashboard", "/claim"]) assert.ok(!everyone.disallow.includes(path), path);
   // AI crawlers named and allowed, with the same private paths kept out.
   for (const bot of [
     "GPTBot",

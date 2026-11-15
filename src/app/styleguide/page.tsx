@@ -66,7 +66,7 @@ function Panel({ theme }: { theme: "light" | "dark" }) {
           {types.map(([cls, label]) => (
             <div key={cls}>
               <p className="text-small">{label}</p>
-              <p className={cls}>Find the right YouTube agency</p>
+              <p className={cls}>YouTube guides for businesses and creators</p>
             </div>
           ))}
         </Section>
@@ -84,8 +84,8 @@ function Panel({ theme }: { theme: "light" | "dark" }) {
 
         <Section title="Buttons">
           <div className="flex flex-wrap items-center gap-4">
-            <Button>Find agencies</Button>
-            <Button variant="link">Claim this listing</Button>
+            <Button>Read the guides</Button>
+            <Button variant="link">All guides</Button>
             <Button disabled>Send inquiry</Button>
           </div>
         </Section>

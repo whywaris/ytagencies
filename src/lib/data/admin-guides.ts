@@ -1,39 +1,10 @@
 import "server-only";
 
-import type { AuthorOption, ComboOption, EditorGuide } from "@/components/admin/guide-editor";
-import type { ServiceOption } from "@/components/admin/rich-editor";
+import type { AuthorOption, EditorGuide } from "@/components/admin/guide-editor";
 import { emptyDoc, guideDoc } from "@/lib/guide-content";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getIndustries, getLocations, getServices } from "@/lib/data/taxonomy";
 
 // Editor helpers for the Guides CMS (ADMIN_V2_SPEC §8).
-
-/** Every directory page a guide can link to: service hubs, × industry, × location. */
-export async function comboOptions(): Promise<ComboOption[]> {
-  const [services, industries, locations] = await Promise.all([
-    getServices(),
-    getIndustries(),
-    getLocations(),
-  ]);
-  return services.flatMap((s) => [
-    { key: `${s.id}:0:0`, label: `${s.name} (all)`, combo: { service_id: s.id } },
-    ...industries.map((i) => ({
-      key: `${s.id}:${i.id}:0`,
-      label: `${s.name} for ${i.name}`,
-      combo: { service_id: s.id, industry_id: i.id },
-    })),
-    ...locations.map((l) => ({
-      key: `${s.id}:0:${l.id}`,
-      label: `${s.name} in ${l.name}`,
-      combo: { service_id: s.id, location_id: l.id },
-    })),
-  ]);
-}
-
-/** Services for the budget range block. */
-export async function serviceOptions(): Promise<ServiceOption[]> {
-  return (await getServices()).map((s) => ({ slug: s.slug, name: s.name }));
-}
 
 /** Authors for the editor's picker, by name. */
 export async function authorOptions(): Promise<AuthorOption[]> {

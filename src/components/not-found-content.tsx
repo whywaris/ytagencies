@@ -1,83 +1,27 @@
-import {
-  BookOpen,
-  Building2,
-  Maximize,
-  RotateCcw,
-  Search,
-  SkipForward,
-  UsersRound,
-  Video,
-} from "lucide-react";
+import { BookOpen, Maximize, RotateCcw, Search, SkipForward } from "lucide-react";
 import Link from "next/link";
 
 import { NotFoundTracker } from "@/components/not-found-tracker";
-import { getDirectoryIndex } from "@/lib/data/agencies";
 import { getLiveGuides } from "@/lib/data/guides";
-import { getIndustries } from "@/lib/data/taxonomy";
 import { CONTACT_EMAIL, SITE_DOMAIN } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 // The public 404 (app/not-found.tsx and (marketing)/not-found.tsx). A decorative "video player"
-// that's really three ways forward, then industries with a live page. The player is dark in both
+// whose "watch next" row is the three newest guides. The player is dark in both
 // themes, with fixed colours chosen for contrast on #0E1116 (white on its tiles passes AA).
 // No YouTube logo, red or branding.
 
-const MAX_INDUSTRIES = 8;
-/** The guide the third card points to when it exists. */
-const CHOOSING_GUIDE = /choos/i;
-
-/** Industries with an indexable service × industry page, each linked to its busiest one. */
-async function liveIndustries() {
-  const [industries, { combos }] = await Promise.all([getIndustries(), getDirectoryIndex()]);
-  return industries
-    .flatMap((i) => {
-      const best = combos
-        .filter((c) => c.segment === `for-${i.slug}`)
-        .sort((a, b) => b.count - a.count)[0];
-      return best
-        ? [{ name: i.name, href: `/${best.serviceSlug}/${best.segment}`, count: best.count }]
-        : [];
-    })
-    .sort((a, b) => b.count - a.count)
-    .slice(0, MAX_INDUSTRIES);
-}
-
-const TILES = [
-  "bg-(--accent-soft) text-(--accent-on-soft)",
-  "bg-(--violet-soft) text-(--violet-on-soft)",
-  "bg-(--mint-soft) text-(--mint)",
-  "bg-(--amber-soft) text-(--amber-on-soft)",
-  "bg-(--coral-soft) text-(--coral-on-soft)",
-];
+const TILE_BG = ["bg-[#1F5EFF]", "bg-[#C2410C]", "bg-[#0B7A5A]"];
 
 export async function NotFoundContent() {
-  const [industries, guides] = await Promise.all([liveIndustries(), getLiveGuides()]);
-  const guide = guides.find((g) => CHOOSING_GUIDE.test(g.slug) || CHOOSING_GUIDE.test(g.title));
-
-  const cards = [
-    {
-      href: "/request-proposals?ref=notfound",
-      tile: "bg-[#1F5EFF]",
-      icon: UsersRound,
-      tag: "Free",
-      title: "Request proposals from agencies",
-      text: "Share your goal and budget. We suggest who fits.",
-    },
-    {
-      href: "/agencies",
-      tile: "bg-[#C2410C]",
-      icon: Video,
-      title: "Browse all YouTube agencies",
-      text: "Filter by service, industry and location.",
-    },
-    {
-      href: guide ? `/guides/${guide.slug}` : "/guides",
-      tile: "bg-[#0B7A5A]",
-      icon: BookOpen,
-      title: "How to choose a YouTube agency",
-      text: "A guide for businesses and creators choosing an agency for the first time.",
-    },
-  ];
+  const cards = (await getLiveGuides()).slice(0, 3).map((g, i) => ({
+    href: `/guides/${g.slug}`,
+    tile: TILE_BG[i],
+    icon: BookOpen,
+    tag: undefined as string | undefined,
+    title: g.title,
+    text: g.excerpt ?? "",
+  }));
 
   return (
     <>
@@ -89,33 +33,28 @@ export async function NotFoundContent() {
           </p>
           <h1 className="mt-5 text-[clamp(36px,5.4vw,64px)] leading-[1.05] font-[650] tracking-[-0.035em] text-balance">
             This link went nowhere.
-            <span className="block text-(--accent-on-soft)">
-              Your agency search doesn&apos;t have to.
-            </span>
+            <span className="block text-(--accent-on-soft)">The guides are still here.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-[36em] text-[17px] text-text-2">
-            The page was moved, or the agency is no longer listed. Tell us what you need and
-            we&apos;ll show you agencies that do it.
+            The page was moved or removed. Search the guides, or start with the newest ones below.
           </p>
-          {/* No site search: the text goes to Request proposals, prefilled (?need=). */}
           <form
-            action="/request-proposals"
+            action="/guides"
             method="get"
             role="search"
             className="mx-auto mt-8 flex max-w-[640px] flex-col gap-2 rounded-[20px] border border-line bg-raised p-1.5 text-left shadow-[0_1px_2px_rgba(20,25,40,.05),0_12px_32px_-12px_rgba(20,25,40,.16)] focus-within:border-accent sm:flex-row sm:rounded-full"
           >
-            <input type="hidden" name="ref" value="notfound" />
             <label htmlFor="nf-need" className="sr-only">
-              What do you need help with?
+              Search the guides
             </label>
             <div className="flex min-w-0 flex-1 items-center gap-2.5 pl-4">
               <Search className="size-[18px] shrink-0 text-text-2" aria-hidden />
               <input
                 id="nf-need"
-                name="need"
+                name="q"
                 type="search"
                 maxLength={200}
-                placeholder="e.g. YouTube ads for a dental clinic"
+                placeholder="e.g. YouTube ads cost"
                 className="h-12 min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-text-2"
               />
             </div>
@@ -123,7 +62,7 @@ export async function NotFoundContent() {
               type="submit"
               className="inline-flex h-12 items-center justify-center rounded-full bg-accent px-6 text-[15.5px] font-semibold whitespace-nowrap text-on-accent"
             >
-              Find agencies
+              Search
             </button>
           </form>
         </div>
@@ -221,56 +160,9 @@ export async function NotFoundContent() {
         </div>
       </section>
 
-      <section
-        aria-labelledby={industries.length ? "nf-industries" : undefined}
-        className="bg-surface px-4 py-14 md:px-6"
-      >
+      <section className="bg-surface px-4 py-14 md:px-6">
         <div className="mx-auto max-w-[1200px]">
-          {/* Only industries with a live page; the header and grid hide when there are none. */}
-          {industries.length > 0 && (
-            <>
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h2
-                    id="nf-industries"
-                    className="text-[clamp(24px,3vw,32px)] font-[650] tracking-[-0.025em]"
-                  >
-                    Or start from your industry
-                  </h2>
-                  <p className="mt-1 text-[16px] text-text-2">
-                    Agencies that already know your customers.
-                  </p>
-                </div>
-                <Link href="/#industries" className="font-semibold text-accent hover:underline">
-                  All industries →
-                </Link>
-              </div>
-              <ul className="mt-6 grid [grid-template-columns:repeat(auto-fill,minmax(250px,1fr))] gap-3">
-                {industries.map((ind, i) => (
-                  <li key={ind.href}>
-                    <Link
-                      href={ind.href}
-                      className="flex min-h-11 items-center gap-3 rounded-2xl border border-line bg-raised p-3 font-medium transition-colors duration-150 hover:border-text-2"
-                    >
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "grid size-10 shrink-0 place-items-center rounded-xl",
-                          TILES[i % TILES.length],
-                        )}
-                      >
-                        <Building2 className="size-5" />
-                      </span>
-                      {ind.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          <p
-            className={cn("text-center text-[15px] text-text-2", industries.length > 0 && "mt-10")}
-          >
+          <p className="text-center text-[15px] text-text-2">
             Still stuck? Email{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}`}

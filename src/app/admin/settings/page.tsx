@@ -1,14 +1,8 @@
-import Link from "next/link";
-
 import { GuideTabsSetting } from "@/components/admin/guide-tabs-setting";
 import { RefreshSitemap } from "@/components/admin/refresh-sitemap";
 import { requireAdmin } from "@/lib/auth";
-import { lsConfig, paymentsEnabled } from "@/lib/billing";
-import { envValue } from "@/lib/billing/events";
-import { lsEnvProblems } from "@/lib/billing/lemonsqueezy-events";
 import { getGuideTabsMax } from "@/lib/data/settings";
 import { sitemapEntries, SITEMAP_FILES } from "@/lib/sitemap";
-import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Settings" };
 
@@ -32,14 +26,9 @@ function Section({
   );
 }
 
-/** ADMIN_V2_SPEC §5.10: admin profile and payments status (read-only). */
+/** ADMIN_V2_SPEC §5.10: admin profile, guide tabs and the sitemap. */
 export default async function AdminSettingsPage() {
   const admin = await requireAdmin("/admin/settings");
-  const ls = lsConfig();
-  const webhook = !!envValue(process.env, "LEMONSQUEEZY_WEBHOOK_SECRET");
-  const payments = paymentsEnabled() && !!ls;
-  // Variable names only, never values (SECURITY.md).
-  const problems = lsEnvProblems(process.env);
   const guideTabsMax = await getGuideTabsMax();
   const sitemapCounts = Object.fromEntries(
     await Promise.all(
@@ -62,49 +51,6 @@ export default async function AdminSettingsPage() {
         </Section>
 
         <Section
-          title="Payments"
-          description="Read-only. Set by PAYMENTS_ENABLED and the LEMONSQUEEZY_* variables in the Vercel environment."
-        >
-          <p className="flex items-center gap-2 font-medium">
-            <span
-              aria-hidden
-              className={cn("size-1.5 rounded-full", payments ? "bg-success" : "bg-text-2")}
-            />
-            {payments ? "On" : "Off"}
-          </p>
-          <p className="mt-1 text-text-2">
-            {payments
-              ? `Agencies can buy Pro through Lemon Squeezy${ls?.testMode ? " (test mode: no real charges)" : ""}.`
-              : "Get Pro shows “Checkout is temporarily unavailable”. Plans are granted by hand on "}
-            {!payments && (
-              <Link href="/admin/plans" className="text-accent hover:underline">
-                Plans
-              </Link>
-            )}
-            {!payments && "."}
-          </p>
-          {problems.length > 0 && (
-            <div className="mt-3 text-text-2">
-              <p>Fix in Vercel (Production), then redeploy:</p>
-              <ul className="mt-1 list-disc pl-5">
-                {problems.map((p) => (
-                  <li key={p}>
-                    <code>{p}</code>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <p className="mt-1 text-text-2">
-            Lemon Squeezy webhook:{" "}
-            {webhook
-              ? "secret set"
-              : "LEMONSQUEEZY_WEBHOOK_SECRET missing, so payments won't update plans"}
-            .
-          </p>
-        </Section>
-
-        <Section
           title="Guides"
           description="How many category tabs /guides shows; the other categories with guides go under More."
         >
@@ -113,7 +59,7 @@ export default async function AdminSettingsPage() {
 
         <Section
           title="Sitemap"
-          description="Updates by itself when agencies, guides, authors or taxonomy change, and hourly as a fallback. Refresh it after editing the database directly."
+          description="Updates by itself when guides or authors change, and hourly as a fallback. Refresh it after editing the database directly."
         >
           <RefreshSitemap initial={sitemapCounts} />
         </Section>

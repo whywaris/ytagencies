@@ -7,14 +7,14 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
 import { PAGE_UPDATED } from "@/lib/page-dates";
 
-// How guides are written, checked and corrected, and where agency data comes from. The author
+// How guides are written, checked and corrected, and how ads fit in. The author
 // list is live (authors with a published guide).
 export const revalidate = 3600;
 
 const UPDATED = PAGE_UPDATED["/editorial-policy"];
 const TITLE = "Editorial policy";
 const DESCRIPTION =
-  "Who writes the YT Agencies guides, how facts are checked and corrected, where our agency data comes from, and why paying agencies have no say in what we publish.";
+  "Who writes the YT Agencies guides, how facts are checked and corrected, and why ads and companies we mention have no say in what we publish.";
 
 export const metadata = buildMetadata({
   title: `Editorial policy | ${BRAND_NAME}`,
@@ -47,7 +47,7 @@ export default async function EditorialPolicyPage() {
               ))}
             </ul>
           )}
-          <p>Agencies can&apos;t pay to be written about or mentioned in a guide.</p>
+          <p>No one can pay to be written about or mentioned in a guide.</p>
         </>
       ),
     },
@@ -57,13 +57,12 @@ export default async function EditorialPolicyPage() {
       body: (
         <>
           <p>
-            We use primary sources wherever we can: platform documentation, the agencies themselves,
-            and what we see in the directory. Figures that come from our directory, such as typical
-            starting budgets, are calculated live from current listings and say so.
+            We use primary sources wherever we can: platform documentation, official pricing pages
+            and the companies themselves, and we link to them.
           </p>
           <p>
-            When a guide gives a price range or a rule, it&apos;s based on what agencies publish or
-            tell us at the time. Prices change, so each guide shows when it was last updated.
+            When a guide gives a price range or a rule, it&apos;s based on what the provider
+            publishes at the time. Prices change, so each guide shows when it was last updated.
           </p>
         </>
       ),
@@ -92,37 +91,13 @@ export default async function EditorialPolicyPage() {
       ),
     },
     {
-      id: "agency-data",
-      title: "Where agency data comes from",
-      body: (
-        <>
-          <ul>
-            <li>
-              <strong>Listings</strong> are submitted or claimed by the agencies themselves, and we
-              review each new listing before it goes live.
-            </li>
-            <li>
-              <strong>Verified badges</strong> are given after we check the agency&apos;s YouTube
-              channels through the YouTube Data API and review its details.
-            </li>
-            <li>
-              <strong>Reviews</strong> are checked by us before they&apos;re published.
-            </li>
-          </ul>
-          <p>
-            If a listing looks wrong, please <Link href="/contact?topic=report">report it</Link>.
-          </p>
-        </>
-      ),
-    },
-    {
       id: "independence",
-      title: "Independence from paying agencies",
+      title: "Ads and independence",
       body: (
         <p>
-          Agencies on Pro pay us for client details and placement ahead of free listings, always
-          marked with a Pro badge, as our <Link href="/disclosure">disclosure</Link> explains. That
-          never affects what we write in our guides.
+          Some pages may show ads from Google AdSense. We don&apos;t choose the ads, and no
+          advertiser or company we mention has a say in what we write. We&apos;re not affiliated
+          with YouTube or Google.
         </p>
       ),
     },
@@ -148,8 +123,8 @@ export default async function EditorialPolicyPage() {
       contactEmail={email}
       summary={[
         "Every guide names its author and shows when it was last updated.",
-        "We check facts against primary sources and our own directory data.",
-        "Agencies can't pay to be mentioned in a guide, and paying agencies have no say in what we write.",
+        "We check facts against primary sources and link to them.",
+        "No one can pay to be mentioned in a guide, and advertisers have no say in what we write.",
         "If you find a mistake, tell us and we'll fix it.",
       ]}
       sections={sections}

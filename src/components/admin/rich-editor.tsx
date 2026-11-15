@@ -18,7 +18,6 @@ import {
 import { StarterKit } from "@tiptap/starter-kit";
 import { Suggestion } from "@tiptap/suggestion";
 import {
-  BarChart3,
   Bold,
   CircleHelp,
   Columns2,
@@ -53,8 +52,7 @@ import { toast } from "sonner";
 
 import { guideBlockNodes, openNextBlock } from "@/components/admin/guide-block-node";
 import { usePortalContainer } from "@/components/admin/portal";
-import type { DirectoryStatsData } from "@/components/guide-blocks";
-import { directoryStatsFor, importRemoteImage, uploadGuideImage } from "@/lib/actions/admin-guides";
+import { importRemoteImage, uploadGuideImage } from "@/lib/actions/admin-guides";
 import { BLOCKS, type BlockType } from "@/lib/guide-blocks";
 import {
   cleanPastedHtml,
@@ -258,13 +256,20 @@ function place(e: Editor, range: Range | null, content: object | object[]) {
     const top = $from.node(1);
     const start = $from.before(1);
     if (top.type.name === "paragraph" && top.content.size === 0)
-      return e.chain().focus().insertContentAt({ from: start, to: start + top.nodeSize }, content).run();
+      return e
+        .chain()
+        .focus()
+        .insertContentAt({ from: start, to: start + top.nodeSize }, content)
+        .run();
     return e.chain().focus().insertContentAt($from.after(1), content).run();
   }
   return e.chain().focus().insertContentAt(e.state.selection.from, content).run();
 }
 
-const para = (text = "") => ({ type: "paragraph", ...(text ? { content: [{ type: "text", text }] } : {}) });
+const para = (text = "") => ({
+  type: "paragraph",
+  ...(text ? { content: [{ type: "text", text }] } : {}),
+});
 const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   comparisonTable: Rows3,
   productCard: LayoutList,
@@ -272,14 +277,13 @@ const BLOCK_ICONS: Record<BlockType, LucideIcon> = {
   prosCons: SquareCheckBig,
   faq: CircleHelp,
   ctaBox: Megaphone,
-  directoryStats: BarChart3,
   statRow: Hash,
   button: MousePointerClick,
   listLabel: Tag,
   quote: Quote,
 };
 
-function insertItems(pickImage: () => void, firstService: () => string | undefined): InsertItem[] {
+function insertItems(pickImage: () => void): InsertItem[] {
   const heading = (level: 2 | 3, icon: LucideIcon): InsertItem => ({
     label: `Heading ${level}`,
     group: "Basic",
@@ -288,7 +292,13 @@ function insertItems(pickImage: () => void, firstService: () => string | undefin
     run: (e, r) => place(e, r, { type: "heading", attrs: { level } }),
   });
   return [
-    { label: "Paragraph", group: "Basic", icon: Pilcrow, keywords: "text", run: (e, r) => place(e, r, para()) },
+    {
+      label: "Paragraph",
+      group: "Basic",
+      icon: Pilcrow,
+      keywords: "text",
+      run: (e, r) => place(e, r, para()),
+    },
     heading(2, Heading2),
     heading(3, Heading3),
     {
@@ -296,22 +306,30 @@ function insertItems(pickImage: () => void, firstService: () => string | undefin
       group: "Basic",
       icon: List,
       keywords: "list ul",
-      run: (e, r) => place(e, r, { type: "bulletList", content: [{ type: "listItem", content: [para()] }] }),
+      run: (e, r) =>
+        place(e, r, { type: "bulletList", content: [{ type: "listItem", content: [para()] }] }),
     },
     {
       label: "Numbered list",
       group: "Basic",
       icon: ListOrdered,
       keywords: "list ol steps",
-      run: (e, r) => place(e, r, { type: "orderedList", content: [{ type: "listItem", content: [para()] }] }),
+      run: (e, r) =>
+        place(e, r, { type: "orderedList", content: [{ type: "listItem", content: [para()] }] }),
     },
     {
       label: "Table",
       group: "Basic",
       icon: Table2,
       run: (e, r) => {
-        const cell = (header: boolean) => ({ type: header ? "tableHeader" : "tableCell", content: [para()] });
-        const row = (header: boolean) => ({ type: "tableRow", content: [cell(header), cell(header), cell(header)] });
+        const cell = (header: boolean) => ({
+          type: header ? "tableHeader" : "tableCell",
+          content: [para()],
+        });
+        const row = (header: boolean) => ({
+          type: "tableRow",
+          content: [cell(header), cell(header), cell(header)],
+        });
         place(e, r, { type: "table", content: [row(true), row(false), row(false)] });
       },
     },
@@ -325,34 +343,23 @@ function insertItems(pickImage: () => void, firstService: () => string | undefin
         pickImage();
       },
     },
-    ...(Object.keys(BLOCKS) as BlockType[]).map(
-      (type): InsertItem => ({
-        label: BLOCKS[type].label,
-        group: "Guide blocks",
-        icon: BLOCK_ICONS[type],
-        keywords: BLOCKS[type].description,
-        run: (e, r) => {
-          openNextBlock();
-          place(e, r, { type, attrs: BLOCKS[type].empty() });
-        },
-      }),
-    ),
-    {
-      label: "Budget range",
+    ...(Object.keys(BLOCKS) as BlockType[]).map((type): InsertItem => ({
+      label: BLOCKS[type].label,
       group: "Guide blocks",
-      icon: Wallet,
-      keywords: "price budget live",
+      icon: BLOCK_ICONS[type],
+      keywords: BLOCKS[type].description,
       run: (e, r) => {
-        const service = firstService();
-        if (!service) return void toast.error("Add a service first.");
-        place(e, r, { type: "embed", attrs: { kind: "budget-range", service } });
+        openNextBlock();
+        place(e, r, { type, attrs: BLOCKS[type].empty() });
       },
-    },
+    })),
   ];
 }
 
 const matches = (item: InsertItem, q: string) =>
-  `${item.label} ${item.keywords ?? ""} ${item.group}`.toLowerCase().includes(q.trim().toLowerCase());
+  `${item.label} ${item.keywords ?? ""} ${item.group}`
+    .toLowerCase()
+    .includes(q.trim().toLowerCase());
 
 // ───────── Editor ─────────
 
@@ -423,7 +430,6 @@ export function RichEditor({
           }
           return upload(guideId, file);
         },
-        stats: loadStats,
       }),
       Placeholder.configure({ placeholder: "Write, or type / for blocks" }),
       Extension.create({
@@ -442,10 +448,7 @@ export function RichEditor({
       Extension.create({
         name: "slashMenu",
         addProseMirrorPlugins() {
-          const items = insertItems(
-            () => fileInput.current?.click(),
-            () => live.current.services[0]?.slug,
-          );
+          const items = insertItems(() => fileInput.current?.click());
           return [
             Suggestion<InsertItem, InsertItem>({
               editor: this.editor,
@@ -514,7 +517,8 @@ export function RichEditor({
         spellcheck: "true",
       },
       // Copies from this editor keep their blocks; anything else is cleaned (Docs, Word, web).
-      transformPastedHTML: (html) => (html.includes("data-pm-slice") ? html : cleanPastedHtml(html)),
+      transformPastedHTML: (html) =>
+        html.includes("data-pm-slice") ? html : cleanPastedHtml(html),
       handleKeyDown: (_view, e) => {
         // Ctrl+Shift+V: ProseMirror pastes plain text; don't turn it into Markdown either.
         plainPaste.current = e.shiftKey && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v";
@@ -645,10 +649,7 @@ export function RichEditor({
   const words = useMemo(() => wordCount(doc), [doc]);
   /* eslint-disable react-hooks/refs -- the items read these refs when one is picked (a click),
      never during render. */
-  const items = useMemo(
-    () => insertItems(() => fileInput.current?.click(), () => live.current.services[0]?.slug),
-    [],
-  );
+  const items = useMemo(() => insertItems(() => fileInput.current?.click()), []);
   /* eslint-enable react-hooks/refs */
 
   if (!editor) return <div className="min-h-[50vh]" aria-busy />;
@@ -721,7 +722,10 @@ export function RichEditor({
           </ul>
         )}
 
-        <p className="sticky bottom-0 flex flex-wrap items-center gap-x-2 border-t border-line bg-bg py-2 text-admin-meta" aria-live="polite">
+        <p
+          className="sticky bottom-0 flex flex-wrap items-center gap-x-2 border-t border-line bg-bg py-2 text-admin-meta"
+          aria-live="polite"
+        >
           <span className="num">
             {words.toLocaleString("en-US")} {words === 1 ? "word" : "words"}
           </span>
@@ -739,7 +743,10 @@ function Inserter({ editor, items }: { editor: Editor; items: InsertItem[] }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const shown = items.filter((i) => matches(i, q));
-  const groups = (["Basic", "Guide blocks"] as const).map((g) => ({ g, list: shown.filter((i) => i.group === g) }));
+  const groups = (["Basic", "Guide blocks"] as const).map((g) => ({
+    g,
+    list: shown.filter((i) => i.group === g),
+  }));
   return (
     <Popover.Root
       open={open}
@@ -748,11 +755,19 @@ function Inserter({ editor, items }: { editor: Editor; items: InsertItem[] }) {
         if (o) setQ("");
       }}
     >
-      <Popover.Trigger title="Add a block (or type / in an empty line)" aria-label="Add a block" className={cn(btn, "bg-accent text-on-accent hover:bg-accent hover:text-on-accent")}>
+      <Popover.Trigger
+        title="Add a block (or type / in an empty line)"
+        aria-label="Add a block"
+        className={cn(btn, "bg-accent text-on-accent hover:bg-accent hover:text-on-accent")}
+      >
         <Plus className={icon} aria-hidden />
       </Popover.Trigger>
       <Popover.Portal container={container}>
-        <Popover.Content align="start" sideOffset={6} className={cn(menu, "z-[70] flex w-80 flex-col gap-1 p-2")}>
+        <Popover.Content
+          align="start"
+          sideOffset={6}
+          className={cn(menu, "z-[70] flex w-80 flex-col gap-1 p-2")}
+        >
           <input
             autoFocus
             type="search"
@@ -800,12 +815,6 @@ function Inserter({ editor, items }: { editor: Editor; items: InsertItem[] }) {
   );
 }
 
-/** Directory counts for the editor's directory stats blocks (admin action; same numbers as the page). */
-async function loadStats(service: string): Promise<DirectoryStatsData | null> {
-  const res = await reach(directoryStatsFor(service));
-  return res.ok ? res.data : null;
-}
-
 /** Mounted once the editor exists, so its state is read from the start. */
 function Toolbar({
   editor,
@@ -850,7 +859,10 @@ function Toolbar({
         onChange={(e) => {
           const v = e.target.value;
           if (v === "p") chain().setParagraph().run();
-          else if (v === "2" || v === "3") chain().setHeading({ level: Number(v) as 2 | 3 }).run();
+          else if (v === "2" || v === "3")
+            chain()
+              .setHeading({ level: Number(v) as 2 | 3 })
+              .run();
         }}
         className="h-8 rounded-md border border-line bg-bg px-2"
       >
@@ -858,7 +870,9 @@ function Toolbar({
         <option value="2">Heading 2</option>
         <option value="3">Heading 3</option>
         {/* Older guides can have smaller headings; they're kept, just not offered. */}
-        {!["p", "2", "3"].includes(state.block) && <option value="other">Heading {state.block}</option>}
+        {!["p", "2", "3"].includes(state.block) && (
+          <option value="other">Heading {state.block}</option>
+        )}
       </select>
       <ToolButton
         label="Heading 2"

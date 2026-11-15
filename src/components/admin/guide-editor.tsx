@@ -9,7 +9,6 @@ import {
   ImagePlus,
   PanelRightClose,
   PanelRightOpen,
-  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,6 +20,10 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { SeoFields } from "@/components/admin/seo-fields";
 import { usePortalContainer } from "@/components/admin/portal";
 import { reach, RichEditor, type ServiceOption } from "@/components/admin/rich-editor";
+
+// ponytail: old guides' related directory pages and budget embeds are kept as saved, but nothing
+// new can be added (the directory is gone). Drop the fields when no guide has them.
+const NO_SERVICES: ServiceOption[] = [];
 import {
   changeGuideSlug,
   checkCoverLink,
@@ -45,7 +48,6 @@ import { cn } from "@/lib/utils";
 // same pre-publish check as the server (lib/guide-template.ts).
 
 export type Combo = { service_id: number; industry_id?: number; location_id?: number };
-export type ComboOption = { key: string; label: string; combo: Combo };
 export type AuthorOption = { id: string; name: string };
 export type CategoryOption = { id: string; name: string; slug: string };
 
@@ -83,7 +85,6 @@ const AUTOSAVE_MS = 2500;
 const SEO_TITLE_MAX = 60;
 const SEO_DESC_MAX = 160;
 const STORAGE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/agency-media/`;
-const comboKey = (c: Combo) => `${c.service_id}:${c.industry_id ?? 0}:${c.location_id ?? 0}`;
 const slugPreview = (s: string) =>
   s
     .toLowerCase()
@@ -140,19 +141,14 @@ function FeaturedToggle({ id, initial }: { id: string; initial: boolean }) {
 
 export function GuideEditor({
   guide,
-  comboOptions,
   authors,
   categories,
   siteHost,
-  services,
 }: {
   guide: EditorGuide;
-  comboOptions: ComboOption[];
   authors: AuthorOption[];
   categories: CategoryOption[];
   siteHost: string;
-  /** For the budget range and directory stats blocks. */
-  services: ServiceOption[];
 }) {
   const router = useRouter();
   const [id, setId] = useState(guide.id);
@@ -288,7 +284,9 @@ export function GuideEditor({
     setSidebar(true);
     setOpen((o) => new Set(o).add(panel));
     requestAnimationFrame(() =>
-      document.getElementById(`panel-${panel}`)?.scrollIntoView({ block: "start", behavior: "smooth" }),
+      document
+        .getElementById(`panel-${panel}`)
+        ?.scrollIntoView({ block: "start", behavior: "smooth" }),
     );
   };
 
@@ -298,7 +296,9 @@ export function GuideEditor({
     startTransition(async () => {
       if (raw.action !== "unpublish" && blocking.length) {
         show("status");
-        return void toast.error(`Before publishing: ${blocking.map((c) => c.label.toLowerCase()).join(", ")}.`);
+        return void toast.error(
+          `Before publishing: ${blocking.map((c) => c.label.toLowerCase()).join(", ")}.`,
+        );
       }
       const guideId = await save();
       if (!guideId) return void toast.error(lastError.current ?? "Save the guide first.");
@@ -344,8 +344,22 @@ export function GuideEditor({
       else next.add(panel);
       return next;
     });
-  const panel = (key: Panel, title: string, summary: string, warn: boolean, children: React.ReactNode) => (
-    <SidePanel key={key} id={key} title={title} summary={summary} warn={warn} open={open.has(key)} onToggle={() => toggle(key)}>
+  const panel = (
+    key: Panel,
+    title: string,
+    summary: string,
+    warn: boolean,
+    children: React.ReactNode,
+  ) => (
+    <SidePanel
+      key={key}
+      id={key}
+      title={title}
+      summary={summary}
+      warn={warn}
+      open={open.has(key)}
+      onToggle={() => toggle(key)}
+    >
       {children}
     </SidePanel>
   );
@@ -368,7 +382,11 @@ export function GuideEditor({
           <ArrowLeft className="size-4 [stroke-width:1.5]" aria-hidden />
           Guides
         </Link>
-        <p role="status" className="min-w-0 flex-1 truncate text-center text-admin-meta" title={saveState === "error" ? (saveError ?? undefined) : undefined}>
+        <p
+          role="status"
+          className="min-w-0 flex-1 truncate text-center text-admin-meta"
+          title={saveState === "error" ? (saveError ?? undefined) : undefined}
+        >
           <span className="font-medium text-text">{stateLabel}</span>
           {" · "}
           <span className={cn(saveState === "error" && "text-destructive")}>{saveLabel}</span>
@@ -376,7 +394,12 @@ export function GuideEditor({
         </p>
         <div className="flex items-center gap-2">
           {id ? (
-            <a href={`/admin/guides/${id}/preview`} target="_blank" rel="noopener" className={cn(secondary, "inline-flex items-center gap-1")}>
+            <a
+              href={`/admin/guides/${id}/preview`}
+              target="_blank"
+              rel="noopener"
+              className={cn(secondary, "inline-flex items-center gap-1")}
+            >
               Preview
               <ArrowUpRight className="size-4 [stroke-width:1.5]" aria-hidden />
             </a>
@@ -385,7 +408,12 @@ export function GuideEditor({
               Preview
             </button>
           )}
-          <button type="button" onClick={saveNow} disabled={pending || saveState === "saving"} className={secondary}>
+          <button
+            type="button"
+            onClick={saveNow}
+            disabled={pending || saveState === "saving"}
+            className={secondary}
+          >
             {live ? "Save changes" : "Save draft"}
           </button>
           <button
@@ -419,7 +447,7 @@ export function GuideEditor({
           <div className="mx-auto w-full max-w-[760px] px-6 pt-10">
             <RichEditor
               initial={guide.body}
-              services={services}
+              services={NO_SERVICES}
               ensureGuideId={async () => id ?? (await save())}
               onChange={(doc) => set("body", doc)}
               onSave={saveNow}
@@ -451,7 +479,11 @@ export function GuideEditor({
                         />
                       </>
                     ) : (
-                      <SlugEdit value={values.slug} placeholder={shownSlug} onChange={(v) => set("slug", v)} />
+                      <SlugEdit
+                        value={values.slug}
+                        placeholder={shownSlug}
+                        onChange={(v) => set("slug", v)}
+                      />
                     )}
                   </div>
                 </div>
@@ -462,7 +494,10 @@ export function GuideEditor({
 
         {/* ───────── Sidebar ───────── */}
         {sidebar && (
-          <aside aria-label="Guide settings" className="flex w-[340px] shrink-0 flex-col gap-2 overflow-y-auto border-l border-line bg-surface/40 p-3 max-lg:absolute max-lg:inset-y-14 max-lg:right-0 max-lg:z-30 max-lg:bg-bg max-lg:shadow-lg">
+          <aside
+            aria-label="Guide settings"
+            className="flex w-[340px] shrink-0 flex-col gap-2 overflow-y-auto border-l border-line bg-surface/40 p-3 max-lg:absolute max-lg:inset-y-14 max-lg:right-0 max-lg:z-30 max-lg:bg-bg max-lg:shadow-lg"
+          >
             {panel(
               "status",
               "Status",
@@ -472,13 +507,19 @@ export function GuideEditor({
                 {status === "scheduled" && !live && publishedAt && (
                   <p className="text-admin-meta num">Goes live {formatDateTime(publishedAt)}</p>
                 )}
-                {live && publishedAt && <p className="text-admin-meta num">Live since {formatDateTime(publishedAt)}</p>}
+                {live && publishedAt && (
+                  <p className="text-admin-meta num">Live since {formatDateTime(publishedAt)}</p>
+                )}
                 {live && hasDraft && id && (
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2">
                     <span className="text-warning">Unpublished changes</span>
                     <ConfirmDialog
                       trigger={
-                        <button type="button" disabled={pending} className="text-accent hover:underline">
+                        <button
+                          type="button"
+                          disabled={pending}
+                          className="text-accent hover:underline"
+                        >
                           Discard changes
                         </button>
                       }
@@ -510,7 +551,9 @@ export function GuideEditor({
                     <button
                       type="button"
                       disabled={pending || !scheduleAt}
-                      onClick={() => changeStatus({ action: "schedule", at: new Date(scheduleAt).toISOString() })}
+                      onClick={() =>
+                        changeStatus({ action: "schedule", at: new Date(scheduleAt).toISOString() })
+                      }
                       className={secondary}
                     >
                       Schedule
@@ -521,7 +564,9 @@ export function GuideEditor({
 
                 <div className="flex flex-col gap-1.5 border-t border-line pt-3">
                   <p className="font-medium">
-                    {checks.length ? `Pre-publish check: ${checks.length} ${checks.length === 1 ? "thing" : "things"} left` : "Pre-publish check: all done"}
+                    {checks.length
+                      ? `Pre-publish check: ${checks.length} ${checks.length === 1 ? "thing" : "things"} left`
+                      : "Pre-publish check: all done"}
                   </p>
                   {checks.length > 0 && (
                     <ul className="flex flex-col gap-1">
@@ -529,12 +574,24 @@ export function GuideEditor({
                         <li key={c.key}>
                           <button
                             type="button"
-                            onClick={() => (c.panel === "content" ? document.querySelector<HTMLElement>(".ProseMirror")?.focus() : show(c.panel))}
+                            onClick={() =>
+                              c.panel === "content"
+                                ? document.querySelector<HTMLElement>(".ProseMirror")?.focus()
+                                : show(c.panel)
+                            }
                             className="flex w-full items-start gap-2 rounded-md px-1 py-1 text-left hover:bg-surface-2"
                           >
-                            <CircleAlert className={cn("mt-0.5 size-4 shrink-0 [stroke-width:1.5]", c.blocking ? "text-destructive" : "text-warning")} aria-hidden />
+                            <CircleAlert
+                              className={cn(
+                                "mt-0.5 size-4 shrink-0 [stroke-width:1.5]",
+                                c.blocking ? "text-destructive" : "text-warning",
+                              )}
+                              aria-hidden
+                            />
                             <span className="flex-1">{c.label}</span>
-                            <span className="text-admin-meta">{c.blocking ? "Required" : "Recommended"}</span>
+                            <span className="text-admin-meta">
+                              {c.blocking ? "Required" : "Recommended"}
+                            </span>
                           </button>
                         </li>
                       ))}
@@ -551,14 +608,26 @@ export function GuideEditor({
                 {(live || status !== "draft") && (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                     {live && (
-                      <a href={`/guides/${slug}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 hover:underline">
+                      <a
+                        href={`/guides/${slug}`}
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex items-center gap-1 hover:underline"
+                      >
                         View live
-                        <ArrowUpRight className="size-4 [stroke-width:1.5] text-text-2" aria-hidden />
+                        <ArrowUpRight
+                          className="size-4 [stroke-width:1.5] text-text-2"
+                          aria-hidden
+                        />
                       </a>
                     )}
                     <ConfirmDialog
                       trigger={
-                        <button type="button" disabled={pending} className="ml-auto text-text-2 hover:text-text hover:underline">
+                        <button
+                          type="button"
+                          disabled={pending}
+                          className="ml-auto text-text-2 hover:text-text hover:underline"
+                        >
                           {live ? "Unpublish…" : "Cancel schedule…"}
                         </button>
                       }
@@ -582,13 +651,20 @@ export function GuideEditor({
             {panel(
               "category",
               "Category & author",
-              [category?.name ?? "Category missing", authors.find((a) => a.id === values.authorId)?.name ?? "No author"].join(" · ") +
+              [
+                category?.name ?? "Category missing",
+                authors.find((a) => a.id === values.authorId)?.name ?? "No author",
+              ].join(" · ") +
                 (alternatives && !values.pricesCheckedOn ? " · Prices date missing" : ""),
               !category || (alternatives && !values.pricesCheckedOn),
               <>
                 <label className={label}>
                   <span className="font-medium">Category</span>
-                  <select value={values.categoryId ?? ""} onChange={(e) => set("categoryId", e.target.value || null)} className={input}>
+                  <select
+                    value={values.categoryId ?? ""}
+                    onChange={(e) => set("categoryId", e.target.value || null)}
+                    className={input}
+                  >
                     <option value="">Choose a category</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -599,7 +675,12 @@ export function GuideEditor({
                   <span className="text-admin-meta">
                     Needed to publish.{" "}
                     {/* New tab: leaving here mid-edit would skip the unsaved-changes warning. */}
-                    <Link href="/admin/guides/categories" target="_blank" rel="noopener" className="text-accent hover:underline">
+                    <Link
+                      href="/admin/guides/categories"
+                      target="_blank"
+                      rel="noopener"
+                      className="text-accent hover:underline"
+                    >
                       Manage categories
                     </Link>
                   </span>
@@ -614,13 +695,18 @@ export function GuideEditor({
                       className={cn(input, "num")}
                     />
                     <span className="text-admin-meta">
-                      Shown in the disclosure: when you last checked the other platforms&apos; public pricing pages. Needed to publish.
+                      Shown in the disclosure: when you last checked the other platforms&apos;
+                      public pricing pages. Needed to publish.
                     </span>
                   </label>
                 )}
                 <label className={label}>
                   <span className="font-medium">Author</span>
-                  <select value={values.authorId ?? ""} onChange={(e) => set("authorId", e.target.value || null)} className={input}>
+                  <select
+                    value={values.authorId ?? ""}
+                    onChange={(e) => set("authorId", e.target.value || null)}
+                    className={input}
+                  >
                     <option value="">No author</option>
                     {authors.map((a) => (
                       <option key={a.id} value={a.id}>
@@ -630,7 +716,12 @@ export function GuideEditor({
                   </select>
                   <span className="text-admin-meta">
                     Shown in the byline and the author box.{" "}
-                    <Link href="/admin/authors" target="_blank" rel="noopener" className="text-accent hover:underline">
+                    <Link
+                      href="/admin/authors"
+                      target="_blank"
+                      rel="noopener"
+                      className="text-accent hover:underline"
+                    >
                       Manage authors
                     </Link>
                   </span>
@@ -641,12 +732,25 @@ export function GuideEditor({
             {panel(
               "cover",
               "Cover image",
-              !values.coverPath ? "None: made from the title" : values.coverAlt.trim() ? "Set" : "Alt text missing",
+              !values.coverPath
+                ? "None: made from the title"
+                : values.coverAlt.trim()
+                  ? "Set"
+                  : "Alt text missing",
               !!values.coverPath && !values.coverAlt.trim(),
               <>
-                <CoverField value={values.coverPath} onChange={(v) => set("coverPath", v)} ensureGuideId={async () => id ?? (await save())} />
+                <CoverField
+                  value={values.coverPath}
+                  onChange={(v) => set("coverPath", v)}
+                  ensureGuideId={async () => id ?? (await save())}
+                />
                 {values.coverPath && (
-                  <Counted label="Alt text (required)" value={values.coverAlt} max={200} hint="Describe the image for people who can't see it.">
+                  <Counted
+                    label="Alt text (required)"
+                    value={values.coverAlt}
+                    max={200}
+                    hint="Describe the image for people who can't see it."
+                  >
                     <input
                       value={values.coverAlt}
                       onChange={(e) => set("coverAlt", e.target.value)}
@@ -667,7 +771,12 @@ export function GuideEditor({
                 : "Excerpt missing",
               !values.excerpt.trim(),
               <>
-                <Counted label="Excerpt" value={values.excerpt} max={300} hint="Shown on the guides page and as the subtitle.">
+                <Counted
+                  label="Excerpt"
+                  value={values.excerpt}
+                  max={300}
+                  hint="Shown on the guides page and as the subtitle."
+                >
                   <textarea
                     value={values.excerpt}
                     onChange={(e) => set("excerpt", e.target.value)}
@@ -679,7 +788,11 @@ export function GuideEditor({
                 <label className={label}>
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="font-medium">Key takeaways</span>
-                    <span className={cn("text-admin-meta num", takeaways > 5 && "text-destructive")}>{takeaways} / 5</span>
+                    <span
+                      className={cn("text-admin-meta num", takeaways > 5 && "text-destructive")}
+                    >
+                      {takeaways} / 5
+                    </span>
                   </span>
                   <textarea
                     value={values.keyTakeaways.join("\n")}
@@ -687,7 +800,9 @@ export function GuideEditor({
                     rows={4}
                     className="w-full rounded-lg border border-line bg-bg px-3 py-2"
                   />
-                  <span className="text-admin-meta">One per line. Shown in a box above the article.</span>
+                  <span className="text-admin-meta">
+                    One per line. Shown in a box above the article.
+                  </span>
                 </label>
                 <label className="flex items-start gap-3">
                   <input
@@ -698,7 +813,9 @@ export function GuideEditor({
                   />
                   <span className="flex flex-col">
                     <span className="font-medium">Numbered sections</span>
-                    <span className="text-admin-meta">For lists and step-by-step guides: numbers each main heading.</span>
+                    <span className="text-admin-meta">
+                      For lists and step-by-step guides: numbers each main heading.
+                    </span>
                   </span>
                 </label>
               </>,
@@ -724,18 +841,13 @@ export function GuideEditor({
               />,
             )}
 
-            {panel(
-              "related",
-              "Related directory pages",
-              values.related.length ? `${values.related.length} ${values.related.length === 1 ? "page" : "pages"}` : "None yet",
-              false,
-              <RelatedPicker options={comboOptions} value={values.related} onChange={(related) => set("related", related)} />,
-            )}
-
             {id && (
               <ConfirmDialog
                 trigger={
-                  <button type="button" className="mt-2 self-start px-1 text-destructive hover:underline">
+                  <button
+                    type="button"
+                    className="mt-2 self-start px-1 text-destructive hover:underline"
+                  >
                     Delete guide…
                   </button>
                 }
@@ -793,10 +905,17 @@ function SidePanel({
         >
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="font-medium">{title}</span>
-            {!open && <span className={cn("truncate text-admin-meta", warn && "text-warning")}>{summary}</span>}
+            {!open && (
+              <span className={cn("truncate text-admin-meta", warn && "text-warning")}>
+                {summary}
+              </span>
+            )}
           </span>
           <ChevronDown
-            className={cn("size-4 shrink-0 [stroke-width:1.5] text-text-2 transition-transform duration-150", open && "rotate-180")}
+            className={cn(
+              "size-4 shrink-0 [stroke-width:1.5] text-text-2 transition-transform duration-150",
+              open && "rotate-180",
+            )}
             aria-hidden
           />
         </button>
@@ -811,13 +930,25 @@ function SidePanel({
 }
 
 /** The URL line under the title: shown as text with an Edit button, edited inline. */
-function SlugEdit({ value, placeholder, onChange }: { value: string; placeholder: string; onChange: (v: string) => void }) {
+function SlugEdit({
+  value,
+  placeholder,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  onChange: (v: string) => void;
+}) {
   const [editing, setEditing] = useState(false);
   if (!editing)
     return (
       <>
         <span className="text-text">{value || placeholder}</span>
-        <button type="button" onClick={() => setEditing(true)} className="ml-1 text-accent hover:underline">
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="ml-1 text-accent hover:underline"
+        >
           Edit
         </button>
       </>
@@ -866,76 +997,6 @@ function Counted({
         {hint}
       </span>
     </label>
-  );
-}
-
-function RelatedPicker({
-  options,
-  value,
-  onChange,
-}: {
-  options: ComboOption[];
-  value: Combo[];
-  onChange: (v: Combo[]) => void;
-}) {
-  const [q, setQ] = useState("");
-  const chosen = new Set(value.map(comboKey));
-  const byKey = new Map(options.map((o) => [o.key, o]));
-  const matches = q.trim()
-    ? options
-        .filter((o) => !chosen.has(o.key) && o.label.toLowerCase().includes(q.trim().toLowerCase()))
-        .slice(0, 8)
-    : [];
-  return (
-    <>
-      {value.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {value.map((c) => (
-            <li key={comboKey(c)} className="flex items-center gap-2">
-              <span className="min-w-0 flex-1 truncate">
-                {byKey.get(comboKey(c))?.label ?? "Removed page"}
-              </span>
-              <button
-                type="button"
-                aria-label={`Remove ${byKey.get(comboKey(c))?.label ?? "page"}`}
-                onClick={() => onChange(value.filter((x) => comboKey(x) !== comboKey(c)))}
-                className="flex size-7 items-center justify-center rounded-md text-text-2 hover:bg-surface-2 hover:text-text"
-              >
-                <X className="size-4 [stroke-width:1.5]" aria-hidden />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <input
-        type="search"
-        aria-label="Find a directory page"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Find a page, e.g. Ads for doctors"
-        className={input}
-        disabled={value.length >= 10}
-      />
-      {matches.length > 0 && (
-        <ul className="flex flex-col rounded-lg border border-line p-1">
-          {matches.map((o) => (
-            <li key={o.key}>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange([...value, o.combo]);
-                  setQ("");
-                }}
-                className="flex h-8 w-full items-center rounded-md px-2 text-left hover:bg-surface-2"
-              >
-                {o.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="text-admin-meta">Linked at the end of the guide. Pick 2 or 3.</p>
-    </>
   );
 }
 
