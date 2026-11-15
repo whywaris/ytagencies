@@ -6,6 +6,7 @@ import { BRAND_NAME } from "@/lib/site";
 
 const links = [
   { href: "/guides", label: "Guides" },
+  { href: "/guides/category/youtube-for-business", label: "YouTube for Business" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];

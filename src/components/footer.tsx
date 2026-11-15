@@ -6,10 +6,11 @@ import { CookieSettingsButton } from "@/components/analytics";
 import { Logo } from "@/components/logo";
 import { gaId } from "@/lib/analytics";
 import { COMPANY, copyrightName } from "@/lib/company";
+import { getGuideCategories, getLiveGuides } from "@/lib/data/guides";
 import { BRAND_NAME, CONTACT_EMAIL } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-// Site-wide footer.
+// Site-wide footer. "Read" lists every guide category that has a live guide.
 const GROUPS = [
   {
     heading: "Read",
@@ -54,7 +55,21 @@ const small = cn(
   focusRing,
 );
 
-export function Footer() {
+export async function Footer() {
+  const [guides, categories] = await Promise.all([getLiveGuides(), getGuideCategories()]);
+  const groups = GROUPS.map((g) =>
+    g.heading === "Read"
+      ? {
+          ...g,
+          links: [
+            ...g.links,
+            ...categories
+              .filter((c) => guides.some((x) => x.categoryId === c.id))
+              .map((c) => ({ href: `/guides/category/${c.slug}`, label: c.name })),
+          ],
+        }
+      : g,
+  );
   return (
     <footer className="border-t border-line bg-surface print:hidden">
       <div className="mx-auto flex max-w-content flex-col gap-10 px-4 pt-12 md:px-6">
@@ -98,7 +113,7 @@ export function Footer() {
           </div>
 
           <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] lg:max-w-[720px]">
-            {GROUPS.map((g) => (
+            {groups.map((g) => (
               <nav key={g.heading} aria-label={g.heading} className="flex flex-col gap-4">
                 <h2 className="text-[13px] font-bold tracking-[0.06em] text-text uppercase">
                   {g.heading}
