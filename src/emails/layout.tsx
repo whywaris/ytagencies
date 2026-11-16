@@ -82,7 +82,7 @@ export function EmailLayout({ preview, children }: { preview: string; children: 
                             Terms
                           </a>
                           <br />
-                          {BRAND_NAME} is an independent directory and is not affiliated with
+                          {BRAND_NAME} is an independent publication and is not affiliated with
                           YouTube or Google.
                         </p>
                       </td>

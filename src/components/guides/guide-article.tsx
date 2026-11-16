@@ -12,7 +12,6 @@ import { colorHex } from "@/lib/guide-categories";
 import { alternativesDisclosure, bylineDate, longDateOf, shortTitle } from "@/lib/guide-template";
 import { ShareBar } from "@/components/guides/share-bar";
 import { TableOfContents } from "@/components/guides/toc";
-import { TocPanel } from "@/components/toc-panel";
 import type { Author, GuideSummary } from "@/lib/data/guides";
 import { groupOutline, guideBlocks, type Doc } from "@/lib/guide-content";
 import { guideImageAllowed } from "@/lib/guide-media";
@@ -28,6 +27,8 @@ export type ArticleGuide = {
   title: string;
   doc: Doc;
   coverPath: string | null;
+  /** First published (yyyy-mm-ddThh…); the preview passes the saved date or null. */
+  publishedAt?: string | null;
   updatedAt: string;
   readMinutes: number;
   author: Author | null;
@@ -47,6 +48,36 @@ const dateText = (d: string) =>
     year: "numeric",
     timeZone: "UTC",
   });
+
+/** "Published Nov. 5, 2026 · Last updated Nov. 16, 2026"; one date when they're the same day. */
+function GuideDates({
+  guide,
+  format,
+  inline = false,
+}: {
+  guide: Pick<ArticleGuide, "publishedAt" | "updatedAt">;
+  format: (iso: string) => string;
+  inline?: boolean;
+}) {
+  const day = (iso: string) => iso.slice(0, 10);
+  const published = guide.publishedAt;
+  const dates = (
+    <>
+      {published && (
+        <>
+          Published <time dateTime={published}>{format(published)}</time>
+        </>
+      )}
+      {(!published || day(published) !== day(guide.updatedAt)) && (
+        <>
+          {published && " · "}
+          Last updated <time dateTime={guide.updatedAt}>{format(guide.updatedAt)}</time>
+        </>
+      )}
+    </>
+  );
+  return inline ? dates : <p>{dates}</p>;
+}
 
 export function GuideArticle({
   guide,
@@ -110,14 +141,13 @@ export function GuideArticle({
         )}
 
         {groups.length > 0 && (
-          <>
-            <aside className="hidden min-[1100px]:col-start-1 min-[1100px]:row-start-2 min-[1100px]:block print:hidden">
-              <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pt-12">
-                <TableOfContents groups={groups} numbered={numbered} />
-              </div>
-            </aside>
-            <TocPanel groups={groups} numbered={numbered} className="mt-8" />
-          </>
+          // One table of contents: a box above the article on small screens, the sticky
+          // sidebar on wide ones.
+          <aside className="mt-8 max-w-reading rounded-2xl border border-line p-5 min-[1100px]:col-start-1 min-[1100px]:row-start-2 min-[1100px]:mt-0 min-[1100px]:rounded-none min-[1100px]:border-0 min-[1100px]:p-0 print:hidden">
+            <div className="min-[1100px]:sticky min-[1100px]:top-20 min-[1100px]:max-h-[calc(100vh-6rem)] min-[1100px]:overflow-y-auto min-[1100px]:pt-12">
+              <TableOfContents groups={groups} numbered={numbered} />
+            </div>
+          </aside>
         )}
 
         <article
@@ -134,12 +164,6 @@ export function GuideArticle({
             afterLead={alternatives ? undefined : takeaways}
           />
 
-          <ShareBar
-            url={shareUrl}
-            title={guide.title}
-            variant="row"
-            className="mt-12 min-[1100px]:hidden"
-          />
 
           {guide.author && (
             <div className="mt-12">
@@ -148,11 +172,11 @@ export function GuideArticle({
           )}
         </article>
 
-        <aside className="hidden min-[1100px]:col-start-3 min-[1100px]:row-start-2 min-[1100px]:block">
-          <div className="sticky top-20 pt-12">
-            <ShareBar url={shareUrl} title={guide.title} variant="rail" />
+        <div className="mt-12 max-w-reading min-[1100px]:col-start-3 min-[1100px]:row-start-2 min-[1100px]:mt-0 print:hidden">
+          <div className="min-[1100px]:sticky min-[1100px]:top-20 min-[1100px]:pt-12">
+            <ShareBar url={shareUrl} title={guide.title} />
           </div>
-        </aside>
+        </div>
 
         {relatedGuides.length > 0 && (
           <section
@@ -217,9 +241,7 @@ function GuideHero({ guide, category }: { guide: ArticleGuide; category: CardCat
               </span>
             </p>
           )}
-          <p>
-            Last updated on <time dateTime={guide.updatedAt}>{bylineDate(guide.updatedAt)}</time>
-          </p>
+          <GuideDates guide={guide} format={bylineDate} />
         </div>
       </div>
     </header>
@@ -287,7 +309,7 @@ function AlternativesHeader({
             </p>
           )}
           <p>
-            Updated <time dateTime={guide.updatedAt}>{dateText(guide.updatedAt)}</time> · {guide.readMinutes} min read
+            <GuideDates guide={guide} format={dateText} inline /> · {guide.readMinutes} min read
           </p>
         </div>
         <p className="rounded-xl bg-surface px-4 py-3 text-[14.5px] text-text-2">

@@ -71,7 +71,44 @@ export default async function AboutPage() {
             correct them in our <Link href="/editorial-policy">editorial policy</Link>.
           </p>
 
-          <h2 className="mt-8 mb-3 text-h3">Who we are</h2>
+          <h2 className="mt-8 mb-3 text-h3">Who runs {BRAND_NAME}</h2>
+          {COMPANY.founder.photoPath && (
+            // ponytail: plain <img> for one fixed-size photo in /public; next/image if it moves to a CDN.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={COMPANY.founder.photoPath}
+              alt={COMPANY.founder.name ?? ""}
+              width={96}
+              height={96}
+              className="mb-4 size-24 rounded-full object-cover"
+            />
+          )}
+          <p>
+            {BRAND_NAME} is written by Waris Jamil, a freelancer based in Multan, Pakistan, who works
+            with YouTube creators. He also built{" "}
+            <a href="https://ytcrew.com" rel="noopener">
+              ytcrew.com
+            </a>
+            , a free YouTube creator toolkit.
+            {COMPANY.founder.linkedinUrl && (
+              <>
+                {" "}
+                You can find him on <a href={COMPANY.founder.linkedinUrl}>LinkedIn</a>.
+              </>
+            )}
+          </p>
+          {/* TODO(owner): why you started the site, in your own words, if you want it here. */}
+          <p>
+            The site exists to give plain answers to the questions people ask before they spend
+            money on YouTube: what ads or channel management cost, which help is worth paying for,
+            and what you can do yourself.
+          </p>
+          <p>
+            Each guide is researched from primary sources: platform documentation, official pricing
+            pages and published studies, and the sources are linked in the guide.
+          </p>
+
+          <h2 className="mt-8 mb-3 text-h3">When we started</h2>
           <p>
             {BRAND_NAME} started in {COMPANY.foundedYear}
             {COMPANY.city && COMPANY.country && (

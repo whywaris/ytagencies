@@ -6,12 +6,12 @@ import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME, SITE_DOMAIN } from "@/lib/site";
 import { PAGE_UPDATED } from "@/lib/page-dates";
 
-// LAUNCH: plain-language terms. Fill in the legal name and jurisdiction in lib/company.ts and
-// have them reviewed before launch.
+// Plain-language terms for the blog. LAUNCH: fill in the legal name in lib/company.ts and have
+// them reviewed.
 
 const UPDATED = PAGE_UPDATED["/terms"];
 const TITLE = "Terms of use";
-const DESCRIPTION = `Terms for using ${BRAND_NAME}: what our guides are, how you can use them, ads and outside links, and our limits.`;
+const DESCRIPTION = `The terms for using ${BRAND_NAME}, a free blog of YouTube guides: how you can use our content, estimates and outside links, ads, and our limits.`;
 
 export const metadata = buildMetadata({
   title: `Terms of use | ${BRAND_NAME}`,
@@ -24,75 +24,83 @@ const email = COMPANY.email;
 
 const sections: LegalSection[] = [
   {
-    id: "about-these-terms",
-    title: "About these terms",
+    id: "acceptance",
+    title: "Acceptance",
     body: (
       <p>
         {SITE_DOMAIN} is run by {operator} (&ldquo;we&rdquo;). By using the site you agree to these
-        terms.
+        terms. If you don&apos;t agree, please don&apos;t use it.
       </p>
     ),
   },
   {
-    id: "what-we-are",
-    title: `What ${BRAND_NAME} is`,
+    id: "about-this-site",
+    title: "About this site",
     body: (
       <p>
-        {BRAND_NAME} publishes guides on YouTube for businesses and creators. Reading them is free.
-        Guides are general information, not professional advice for your situation: check prices,
-        platform rules and terms with the provider before you rely on them.
+        {BRAND_NAME} is a free, informational blog of guides on YouTube for businesses and creators.
+        We don&apos;t sell services, and we&apos;re independent: not affiliated with, endorsed by or
+        sponsored by YouTube or Google. YouTube is a trademark of Google LLC.
       </p>
     ),
   },
   {
-    id: "acceptable-use",
-    title: "Acceptable use",
-    body: (
-      <>
-        <p>Don&apos;t:</p>
-        <ul>
-          <li>send spam, or messages you don&apos;t mean, through our contact form</li>
-          <li>copy or scrape the site in bulk</li>
-          <li>try to get around our security checks or access accounts that aren&apos;t yours</li>
-          <li>use the site to break the law or someone else&apos;s rights</li>
-        </ul>
-      </>
-    ),
-  },
-  {
-    id: "intellectual-property",
-    title: "Intellectual property",
+    id: "content-and-ip",
+    title: "Use of content and intellectual property",
     body: (
       <>
         <p>
-          The site&apos;s design, text and guides belong to us. You can quote and link to them, but
-          don&apos;t copy them wholesale.
+          The site&apos;s design, text, images and guides belong to us unless we say otherwise. You
+          can quote short passages and link to any page, with credit to {BRAND_NAME}. Don&apos;t
+          copy, republish or sell our guides, in full or in large parts, without our written
+          permission.
         </p>
         <p>
-          YouTube is a trademark of Google LLC. {BRAND_NAME} is independent and isn&apos;t
-          affiliated with YouTube or Google.
+          Don&apos;t scrape the site in bulk, or use it to break the law or anyone&apos;s rights.
         </p>
       </>
     ),
   },
   {
-    id: "ads-and-links",
-    title: "Ads and outside links",
+    id: "no-professional-advice",
+    title: "No professional advice",
     body: (
       <p>
-        Some pages may show ads from Google AdSense, and guides link to other websites. We
-        don&apos;t control those sites or ads and aren&apos;t responsible for them. Our{" "}
-        <Link href="/privacy">privacy policy</Link> explains how ads use data.
+        Our guides are general information. They aren&apos;t financial, legal, tax or marketing
+        advice for your situation. For decisions that matter, check with a qualified professional.
       </p>
     ),
   },
   {
-    id: "disclaimers",
-    title: "Disclaimers",
+    id: "accuracy-and-estimates",
+    title: "Accuracy and estimates",
     body: (
       <p>
-        We provide the site as it is. We don&apos;t guarantee that it will always be available or
-        error-free, or that what a guide describes will get you a particular result.
+        We work to keep guides accurate and say when we last updated them. Prices, costs, fees and
+        platform rules are estimates from the sources we cite at the time of writing, and they
+        change. Check the current figures with the provider before you rely on them. Our{" "}
+        <Link href="/disclaimer">disclaimer</Link> says more.
+      </p>
+    ),
+  },
+  {
+    id: "third-party-links",
+    title: "Third-party links",
+    body: (
+      <p>
+        Guides link to other websites. We don&apos;t control them and aren&apos;t responsible for
+        their content, products or privacy practices. A link isn&apos;t an endorsement.
+      </p>
+    ),
+  },
+  {
+    id: "advertising",
+    title: "Advertising",
+    body: (
+      <p>
+        Some pages show ads served by Google AdSense. We don&apos;t choose the individual ads, and
+        ads don&apos;t influence what we write. Our <Link href="/privacy">privacy policy</Link>{" "}
+        explains how ads use cookies and how to opt out.
       </p>
     ),
   },
@@ -102,8 +110,9 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          As far as the law allows, we aren&apos;t liable for indirect losses or lost profits from
-          using the site or acting on a guide.
+          We provide the site as it is, without guarantees that it will always be available or
+          error-free. As far as the law allows, we aren&apos;t liable for any loss from using the
+          site or acting on a guide, including indirect losses or lost profits.
         </p>
         <p>Nothing in these terms limits liability that can&apos;t be limited by law.</p>
       </>
@@ -112,17 +121,31 @@ const sections: LegalSection[] = [
   {
     id: "changes",
     title: "Changes to these terms",
-    body: <p>We may update these terms. When we do, we change the date at the top of this page.</p>,
+    body: (
+      <p>
+        We may update these terms. When we do, we change the date at the top of this page. Using the
+        site after a change means you accept the new terms.
+      </p>
+    ),
   },
   {
     id: "governing-law",
     title: "Governing law",
     body: (
       <p>
-        {COMPANY.jurisdiction
-          ? `These terms are governed by the law of ${COMPANY.jurisdiction}, and its courts deal with any dispute.`
-          : "These terms are governed by the law of the place where we are established, and its courts deal with any dispute."}{" "}
-        If you&apos;re a consumer, you keep the protections of the law where you live.
+        These terms are governed by the laws of {COMPANY.jurisdiction ?? "Pakistan"}, and its courts
+        deal with any dispute. If you&apos;re a consumer, you keep the protections of the law where
+        you live.
+      </p>
+    ),
+  },
+  {
+    id: "contact",
+    title: "Contact",
+    body: (
+      <p>
+        Questions about these terms: <a href={`mailto:${email}`}>{email}</a>, or use the{" "}
+        <Link href="/contact">contact form</Link>.
       </p>
     ),
   },
@@ -137,10 +160,10 @@ export default function TermsPage() {
       updated={UPDATED}
       contactEmail={email}
       summary={[
-        `${BRAND_NAME} publishes free guides on YouTube for businesses and creators.`,
-        "Guides are general information, not professional advice.",
-        "You can quote and link to our guides, but don't copy them wholesale.",
-        "Some pages may show Google ads; we aren't responsible for outside sites and ads.",
+        `${BRAND_NAME} is a free, independent blog of YouTube guides, not affiliated with YouTube or Google.`,
+        "Guides are general information, not professional advice. Prices and costs are estimates that change.",
+        "Quote and link to our guides with credit; don't copy them wholesale.",
+        "Some pages show Google ads; we aren't responsible for outside sites and ads.",
       ]}
       sections={sections}
     />

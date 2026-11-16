@@ -27,7 +27,8 @@ export function robotsRules(allowed: boolean, sitemap: string) {
   // "/*?" also matches optimized images (/_next/image?url=…); the longer allow rule wins, so
   // logos stay fetchable. Social images live at query-free /og/… paths.
   const rule = {
-    allow: ["/", "/_next/image"],
+    // /guides?page=N is self-canonical and indexable (docs/SEO.md); other query URLs aren't.
+    allow: ["/", "/_next/image", "/guides?page="],
     disallow: ["/admin", "/api", "/auth", "/login", "/*?"],
   };
   return {

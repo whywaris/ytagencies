@@ -39,11 +39,13 @@ test('byline: avatar, "Written by" and the date apart, never run together', () =
     hero,
     /Written by\{" "\}\s*<Link\s+href=\{`\/authors\/\$\{guide\.author\.slug\}`\}\s+className="[^"]*underline/,
   );
-  // The date is its own line, with no read time glued to it.
-  assert.match(
-    hero,
-    /<p>\s*Last updated on <time dateTime=\{guide\.updatedAt\}>\{bylineDate\(guide\.updatedAt\)\}<\/time>\s*<\/p>/,
-  );
+  // The dates are their own line (Published, then Last updated when it's a later day), with no
+  // read time glued to them.
+  assert.match(hero, /<GuideDates guide=\{guide\} format=\{bylineDate\} \/>/);
+  const dates = article.match(/\nfunction GuideDates\b[\s\S]*?\n}\n/)[0];
+  assert.match(dates, /Published <time dateTime=\{published\}>/);
+  assert.match(dates, /Last updated <time dateTime=\{guide\.updatedAt\}>/);
+  assert.match(dates, /day\(published\) !== day\(guide\.updatedAt\)/);
   assert.doesNotMatch(hero, /readMinutes/);
   assert.equal(bylineDate("2026-10-25T09:00:00Z"), "Oct. 25, 2026");
   assert.equal(bylineDate("2026-05-03T23:59:00Z"), "May 3, 2026");
@@ -74,19 +76,19 @@ test("cover URLs are percent-encoded exactly once", () => {
   assert.match(read("src/lib/data/guides.ts"), /export \{ mediaUrl \} from "@\/lib\/guide-media";/);
 });
 
-test("the Alternatives hero is unchanged", () => {
+test("the Alternatives hero is unchanged (both dates since the blog)", () => {
   const sha = createHash("sha256").update(fn("AlternativesHeader").slice(1)).digest("hex");
-  assert.equal(sha, "4f63b4707fb567201938244ca0b1f753305284c3bed3743895b93e7814299318");
+  assert.equal(sha, "7147e9afd39231f3e36ad8bb41293ab774e2557a254033ead7897d6493a3eb7f");
 });
 
 test("table of contents (left) and share rail (right) stay where they were", () => {
   const snapshot = [
-    `<aside className="hidden min-[1100px]:col-start-1 min-[1100px]:row-start-2 min-[1100px]:block print:hidden">`,
-    `<div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pt-12">`,
-    `<TocPanel groups={groups} numbered={numbered} className="mt-8" />`,
-    `<aside className="hidden min-[1100px]:col-start-3 min-[1100px]:row-start-2 min-[1100px]:block">`,
-    `<div className="sticky top-20 pt-12">`,
-    `<ShareBar url={shareUrl} title={guide.title} variant="rail" />`,
+    `<aside className="mt-8 max-w-reading rounded-2xl border border-line p-5 min-[1100px]:col-start-1 min-[1100px]:row-start-2 min-[1100px]:mt-0 min-[1100px]:rounded-none min-[1100px]:border-0 min-[1100px]:p-0 print:hidden">`,
+    `<div className="min-[1100px]:sticky min-[1100px]:top-20 min-[1100px]:max-h-[calc(100vh-6rem)] min-[1100px]:overflow-y-auto min-[1100px]:pt-12">`,
+    `<TableOfContents groups={groups} numbered={numbered} />`,
+    `<div className="mt-12 max-w-reading min-[1100px]:col-start-3 min-[1100px]:row-start-2 min-[1100px]:mt-0 print:hidden">`,
+    `<div className="min-[1100px]:sticky min-[1100px]:top-20 min-[1100px]:pt-12">`,
+    `<ShareBar url={shareUrl} title={guide.title} />`,
     `className="mx-auto grid max-w-content grid-cols-1 px-4 pt-8 pb-20 min-[1100px]:grid-cols-[200px_minmax(0,680px)_40px] min-[1100px]:justify-center min-[1100px]:gap-x-12 md:px-6 md:pt-12"`,
   ];
   for (const line of snapshot) assert.ok(article.includes(line), line);
@@ -96,9 +98,10 @@ test("only the article's sections are headings; one TOC and one share block at a
   assert.doesNotMatch(read("src/components/guides/guide-parts.tsx"), /id="about-author"|<h2/);
   const share = read("src/components/guides/share-bar.tsx");
   assert.doesNotMatch(share, /<h[1-6]/);
-  // display: none removes the hidden copy from the accessibility tree.
-  assert.match(article, /variant="row"\s+className="mt-12 min-\[1100px\]:hidden"/);
-  assert.match(read("src/components/toc-panel.tsx"), /min-\[1100px\]:hidden/);
+  // One table of contents and one share block in the HTML, at every screen size.
+  assert.equal(article.match(/<TableOfContents /g).length, 1);
+  assert.equal(article.match(/<ShareBar /g).length, 1);
+  assert.doesNotMatch(article, /TocPanel/);
 });
 
 test("content styles: the lead, headings, tables and bold", () => {

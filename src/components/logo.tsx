@@ -1,6 +1,6 @@
 import { BRAND_NAME } from "@/lib/site";
 
-// The mark: a rounded square holding a short list, i.e. a directory. Deliberately nothing like a play
+// The mark: a rounded square holding a short list. Deliberately nothing like a play
 // button, and no red: YT Agencies must not look affiliated with YouTube.
 // Plain shapes, returned as an array and called as a function: Satori (next/og) only accepts
 // intrinsic elements inside <svg>, and the same shapes draw the icons and social images.

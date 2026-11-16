@@ -66,8 +66,8 @@ export function ContactForm({ initialTopic }: { initialTopic: ContactTopic }) {
           Thanks. We&apos;ve sent a confirmation to <strong>{sent.email}</strong>
           {t.response ? ` and we'll reply ${t.response}.` : " and we'll reply as soon as we can."}
         </p>
-        <Link href="/" className="self-start text-accent hover:underline">
-          Back to the directory
+        <Link href="/guides" className="self-start text-accent hover:underline">
+          Back to the guides
         </Link>
       </div>
     );

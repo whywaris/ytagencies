@@ -102,6 +102,36 @@ export default async function EditorialPolicyPage() {
       ),
     },
     {
+      id: "ai-use",
+      title: "AI use",
+      body: (
+        <p>
+          AI tools may help with research and drafting. Every guide is reviewed, edited and
+          fact-checked by Waris Jamil before it&apos;s published.
+        </p>
+      ),
+    },
+    {
+      id: "affiliate-links",
+      title: "Affiliate links",
+      body: (
+        <p>
+          We currently have no affiliate relationships. If that changes, affected pages will say
+          so at the top.
+        </p>
+      ),
+    },
+    {
+      id: "prices-and-examples",
+      title: "Prices and agency examples",
+      body: (
+        <p>
+          Prices and the agencies or platforms we use as examples are taken from public sources,
+          and we link to them. No agency pays to be mentioned.
+        </p>
+      ),
+    },
+    {
       id: "guest-contributions",
       title: "Guest contributions",
       body: (

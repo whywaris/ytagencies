@@ -54,7 +54,7 @@ export function FooterBottom({
       </div>
       {disclaimer && (
         <p className="text-[12.5px] text-text-2">
-          {BRAND_NAME} is an independent directory and isn&apos;t affiliated with YouTube or Google.
+          {BRAND_NAME} is an independent publication and isn&apos;t affiliated with YouTube or Google.
         </p>
       )}
     </div>

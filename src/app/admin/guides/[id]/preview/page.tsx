@@ -48,6 +48,7 @@ export default async function GuidePreviewPage({
           title: g.title,
           doc: previewDoc,
           coverPath: g.cover_path,
+          publishedAt: g.published_at,
           updatedAt: g.draft_updated_at ?? g.content_updated_at ?? g.updated_at,
           readMinutes: docReadMinutes(previewDoc),
           author: toAuthor(g.author as AuthorRow | null),

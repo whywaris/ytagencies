@@ -19,8 +19,8 @@ export const COMPANY = {
   foundedYear: 2026,
   /** Optional: a postal address, shown only if you want it public. Not a launch TODO. */
   address: null as string | null,
-  /** TODO: the law and courts for the terms, e.g. "England and Wales". */
-  jurisdiction: null as string | null,
+  /** The law and courts for the terms. */
+  jurisdiction: "Pakistan" as string | null,
 
   /** The one contact address for every topic (questions, press, privacy). */
   email: CONTACT_EMAIL,
@@ -47,13 +47,13 @@ export const COMPANY = {
   /** TODO: the founder card on /about (shown once name, role and bio are filled). */
   founder: {
     name: "Waris Jamil" as string | null,
-    role: null as string | null,
+    role: "Founder" as string | null,
     /** Two or three plain sentences. */
-    bio: null as string | null,
+    bio: "Waris Jamil is a freelancer from Multan, Pakistan, who works with YouTube creators and built ytcrew.com, a free YouTube creator toolkit. He writes YT Agencies' guides on YouTube marketing costs, growth and hiring." as string | null,
     /** Optional: a square photo in /public, e.g. "/team/founder.jpg". */
     photoPath: null as string | null,
     /** Optional: https://www.linkedin.com/in/… */
-    linkedinUrl: null as string | null,
+    linkedinUrl: "https://www.linkedin.com/in/whywaris/" as string | null,
   },
 
   /**

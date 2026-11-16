@@ -130,7 +130,7 @@ const sections: LegalSection[] = [
       <>
         <p>
           All of these are essential: the site can&apos;t do what you ask without them, so they
-          don&apos;t need consent. None are set when you only browse the directory.
+          don&apos;t need consent. None are set when you only read the site.
         </p>
         <CookieTable rows={COOKIES} />
       </>

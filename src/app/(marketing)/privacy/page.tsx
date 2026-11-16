@@ -123,15 +123,17 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          We may show ads on our guides through Google AdSense. Google and its partners can use
-          cookies to show and measure ads, including ads based on your earlier visits to this and
-          other sites. They receive your browser&apos;s data directly, never anything you send us
+          We may show ads on our guides through Google AdSense. Third-party vendors, including
+          Google, use cookies (including the DoubleClick cookie) to serve ads based on your earlier
+          visits to this and other websites, and to measure them. They receive your browser&apos;s data directly, never anything you send us
           through the contact form. Ads never decide what we write.
         </p>
         <p>
           In the EEA, the UK and Switzerland, Google asks for your consent first. Elsewhere, you can
           turn off personalized ads in{" "}
-          <a href="https://adssettings.google.com">Google&apos;s ad settings</a>. Google explains{" "}
+          <a href="https://adssettings.google.com">Google&apos;s ad settings</a>, and opt out of
+          many third-party vendors&apos; personalized ads at{" "}
+          <a href="https://www.aboutads.info">www.aboutads.info</a>. Google explains{" "}
           <a href="https://policies.google.com/technologies/partner-sites">
             how it uses data from sites that use its services
           </a>
@@ -181,6 +183,25 @@ const sections: LegalSection[] = [
         <p>
           If you&apos;re unhappy with how we handled your data, you can complain to your local data
           protection authority.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "california",
+    title: "If you live in California",
+    body: (
+      <>
+        <p>Under the California Consumer Privacy Act (CCPA), you have the right to:</p>
+        <ul>
+          <li>know what personal information we collect about you and how we use it</li>
+          <li>ask us to delete it</li>
+          <li>opt out of its sale or sharing</li>
+        </ul>
+        <p>
+          We do not sell personal information. To opt out of personalized ads, use the ad settings
+          above. To make a request, write to <a href={`mailto:${email}`}>{email}</a>; we
+          won&apos;t treat you differently for using these rights.
         </p>
       </>
     ),
