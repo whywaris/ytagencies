@@ -41,7 +41,12 @@ type Params = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
 /** Everything both routes need, for the page and its metadata. `category` is a slug or null. */
-export async function guidesView(category: string | null, sp: Params) {
+export async function guidesView(
+  category: string | null,
+  sp: Params,
+  /** The home page: every guide on one page, so the count matches the cards. */
+  { all = false }: { all?: boolean } = {},
+) {
   const [guides, categories, max] = await Promise.all([
     getLiveGuides(),
     getGuideCategories(),
@@ -64,8 +69,9 @@ export async function guidesView(category: string | null, sp: Params) {
   }
   const featured = !category && !q ? pickFeatured(guides) : null;
   const rest = featured ? list.filter((g) => g.slug !== featured.slug) : list;
-  const pages = Math.max(1, Math.ceil(rest.length / GUIDES_PER_PAGE));
-  const shown = rest.slice((page - 1) * GUIDES_PER_PAGE, page * GUIDES_PER_PAGE);
+  const perPage = all ? Math.max(1, rest.length) : GUIDES_PER_PAGE;
+  const pages = Math.max(1, Math.ceil(rest.length / perPage));
+  const shown = rest.slice((page - 1) * perPage, page * perPage);
 
   return {
     categories,
@@ -295,6 +301,7 @@ export function FeaturedGuide({
         <GuideCover
           slug={guide.slug}
           coverPath={guide.coverPath}
+          alt={guide.coverAlt?.trim() || guide.title}
           sizes="(min-width: 1120px) 640px, (min-width: 768px) 58vw, 100vw"
           priority={priority}
         />

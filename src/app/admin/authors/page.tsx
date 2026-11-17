@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { requireAdmin } from "@/lib/auth";
 import { formatCount, formatDate } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { mediaUrl } from "@/lib/guide-media";
 
 export const metadata = { title: "Authors" };
 
-const STORAGE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/agency-media/`;
 
 export default async function AdminAuthorsPage() {
   await requireAdmin("/admin/authors");
@@ -68,7 +68,7 @@ export default async function AdminAuthorsPage() {
                         {a.avatar_path ? (
                           // eslint-disable-next-line @next/next/no-img-element -- admin thumbnail
                           <img
-                            src={STORAGE + a.avatar_path}
+                            src={mediaUrl(a.avatar_path)}
                             alt=""
                             className="size-full object-cover"
                           />

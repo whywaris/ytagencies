@@ -4,8 +4,8 @@ import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/json-ld";
 import { buildMetadata } from "@/lib/seo/metadata";
 import { BRAND_NAME } from "@/lib/site";
 
-// The blog's front page: the latest guides, the same list as /guides page 1 (static here; search
-// and paging live on /guides).
+// The blog's front page: every live guide, newest first (static here; search and paging live on
+// /guides).
 export const revalidate = 3600;
 
 const DESCRIPTION =
@@ -18,7 +18,7 @@ export const metadata = buildMetadata({
 });
 
 export default async function HomePage() {
-  const view = await guidesView(null, {});
+  const view = await guidesView(null, {}, { all: true });
   return (
     <>
       <JsonLd data={websiteJsonLd()} />

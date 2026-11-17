@@ -56,7 +56,7 @@ export function GuideCover({
           className="object-cover"
         />
       ) : (
-        <GeneratedCover slug={slug} sizes={sizes} priority={priority} />
+        <GeneratedCover slug={slug} sizes={sizes} priority={priority} alt={alt} />
       )}
     </div>
   );
@@ -70,7 +70,9 @@ function GeneratedCover({
   slug,
   sizes,
   priority,
+  alt,
 }: {
+  alt: string;
   slug: string;
   sizes: string;
   priority: boolean;
@@ -80,14 +82,14 @@ function GeneratedCover({
   return (
     <>
       <Image
-        alt=""
+        alt={alt}
         {...common}
         src={`/og/guide/${slug}/cover`}
         preload={priority}
         className={cn(cover, "site-dark:hidden")}
       />
       <Image
-        alt=""
+        alt={alt}
         {...common}
         src={`/og/guide/${slug}/cover/dark`}
         loading="lazy"
@@ -114,7 +116,7 @@ export function AuthorAvatar({ author, size }: { author: Author; size: number })
       {author.avatarPath ? (
         <Image
           src={mediaUrl(author.avatarPath)}
-          alt=""
+          alt={author.name}
           fill
           sizes={`${size}px`}
           className="object-cover"
@@ -266,6 +268,7 @@ export function GuideCard({
         <GuideCover
           slug={guide.slug}
           coverPath={guide.coverPath}
+          alt={guide.coverAlt?.trim() || guide.title}
           sizes="(min-width: 1100px) 340px, (min-width: 640px) 50vw, 100vw"
         />
       )}

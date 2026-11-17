@@ -12,7 +12,7 @@ import { createStaticClient } from "@/lib/supabase/server";
 const LIVE_STATUSES = ["published", "scheduled"];
 export const AUTHOR_COLUMNS =
   "slug, name, role, bio, avatar_path, linkedin_url, x_url, website_url";
-const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, category_id, is_featured, published_at, updated_at, content_updated_at, cover_path, body_md, body_json, author:authors(${AUTHOR_COLUMNS})`;
+const SUMMARY_COLUMNS = `slug, title, excerpt, seo_description, category_id, is_featured, published_at, updated_at, content_updated_at, cover_path, cover_alt, body_md, body_json, author:authors(${AUTHOR_COLUMNS})`;
 
 export { mediaUrl } from "@/lib/guide-media";
 
@@ -60,6 +60,8 @@ export type GuideSummary = {
   publishedAt: string;
   updatedAt: string;
   coverPath: string | null;
+  /** The cover's alt text, set in the editor (empty: cards use the title). */
+  coverAlt: string | null;
   readMinutes: number;
   author: Author | null;
   categoryId: string | null;
@@ -77,6 +79,7 @@ type SummaryRow = {
   updated_at: string;
   content_updated_at: string | null;
   cover_path: string | null;
+  cover_alt: string | null;
   body_md: string;
   body_json: unknown;
   author: AuthorRow | null;
@@ -92,6 +95,7 @@ function summary(g: SummaryRow): GuideSummary {
     // The last published change to the content (not every save of a draft).
     updatedAt: g.content_updated_at ?? g.published_at ?? g.updated_at,
     coverPath: g.cover_path,
+    coverAlt: g.cover_alt,
     readMinutes: docReadMinutes(guideDoc(g.body_json, g.body_md)),
     author: toAuthor(g.author),
     categoryId: g.category_id,
@@ -116,7 +120,7 @@ export const getGuideBySlug = cache(async (slug: string) => {
   const { data, error } = await createStaticClient()
     .from("guides")
     .select(
-      `${SUMMARY_COLUMNS}, seo_title, key_takeaways, numbered_sections, cover_alt, prices_checked_on`,
+      `${SUMMARY_COLUMNS}, seo_title, key_takeaways, numbered_sections, prices_checked_on`,
     )
     .eq("slug", slug)
     .in("status", LIVE_STATUSES)

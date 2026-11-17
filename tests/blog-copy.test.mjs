@@ -76,3 +76,57 @@ test("the author bio and site pages read as a blog", () => {
   );
   assert.match(read("src/lib/indexing.ts"), /allow: \["\/", "\/_next\/image", "\/guides\?page="\]/);
 });
+
+test("price sources link on the existing words, and the author photo is set", () => {
+  const ps = read("supabase/migrations/20261118000100_price_sources.sql");
+  const docs2 = Object.fromEntries(
+    [
+      ...ps.matchAll(
+        /-- ([a-z0-9-]+)\nupdate guides set\n  body_json = \$g\$(\{.*?\})\$g\$::jsonb/gs,
+      ),
+    ].map((m) => [m[1], JSON.parse(m[2])]),
+  );
+  const links = (doc) =>
+    JSON.stringify(doc).match(
+      /"text":"[^"]+","marks":\[\{"type":"link","attrs":\{"href":"[^"]+"/g,
+    ) ?? [];
+  assert.ok(
+    links(docs2["youtube-agency"]).some(
+      (l) =>
+        l.includes('"text":"published agency pricing guides"') && l.includes("humbleandbrag.com"),
+    ),
+  );
+  assert.ok(
+    links(docs2["youtube-channel-management-agency-cost"]).some((l) =>
+      l.includes('"text":"Humble & Brag"'),
+    ),
+  );
+  assert.ok(
+    links(docs2["youtube-ads-agency-cost"]).some((l) => l.includes('"text":"MarketerHire"')),
+  );
+  for (const [slug, doc] of Object.entries(docs2))
+    assert.deepEqual(
+      sanitizeDoc(doc, () => false),
+      doc,
+      slug,
+    );
+  assert.match(
+    ps,
+    /update authors set avatar_path = '\/team\/waris-jamil\.png'\nwhere slug = 'whywaris' and avatar_path is null;/,
+  );
+  assert.match(
+    read("src/lib/guide-media.ts"),
+    /if \(path\.startsWith\("\/"\) && !path\.startsWith\("\/\/"\)\) return path;/,
+  );
+});
+
+test("cards and covers have alt text, and the home page lists every guide", () => {
+  const parts = read("src/components/guides/guide-parts.tsx");
+  assert.doesNotMatch(parts, /<Image\s+alt=""/);
+  assert.match(parts, /alt=\{guide\.coverAlt\?\.trim\(\) \|\| guide\.title\}/);
+  assert.match(
+    read("src/components/guides/guides-index.tsx"),
+    /alt=\{guide\.coverAlt\?\.trim\(\) \|\| guide\.title\}/,
+  );
+  assert.match(read("src/app/(marketing)/page.tsx"), /guidesView\(null, \{\}, \{ all: true \}\)/);
+});

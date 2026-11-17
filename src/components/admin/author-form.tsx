@@ -11,6 +11,7 @@ import {
   type AuthorInput,
 } from "@/lib/actions/admin-authors";
 import { cn } from "@/lib/utils";
+import { mediaUrl } from "@/lib/guide-media";
 
 export type EditorAuthor = AuthorInput & {
   id: string | null;
@@ -19,7 +20,6 @@ export type EditorAuthor = AuthorInput & {
   live: boolean;
 };
 
-const STORAGE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/agency-media/`;
 const input = "h-9 w-full rounded-lg border border-line bg-bg px-3";
 const secondary =
   "h-9 rounded-lg border border-line px-3 font-medium transition-colors duration-150 hover:bg-surface-2 disabled:opacity-50";
@@ -176,7 +176,7 @@ export function AuthorForm({ author }: { author: EditorAuthor }) {
         <span className="relative flex size-24 items-center justify-center overflow-hidden rounded-full bg-surface text-text-2">
           {avatarPath ? (
             // eslint-disable-next-line @next/next/no-img-element -- admin preview of an upload
-            <img src={STORAGE + avatarPath} alt="" className="size-full object-cover" />
+            <img src={mediaUrl(avatarPath)} alt="" className="size-full object-cover" />
           ) : (
             <span className="text-admin-meta">No photo</span>
           )}

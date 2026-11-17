@@ -51,7 +51,7 @@ export const COMPANY = {
     /** Two or three plain sentences. */
     bio: "Waris Jamil is a freelancer from Multan, Pakistan, who works with YouTube creators and built ytcrew.com, a free YouTube creator toolkit. He writes YT Agencies' guides on YouTube marketing costs, growth and hiring." as string | null,
     /** Optional: a square photo in /public, e.g. "/team/founder.jpg". */
-    photoPath: null as string | null,
+    photoPath: "/team/waris-jamil.png" as string | null,
     /** Optional: https://www.linkedin.com/in/… */
     linkedinUrl: "https://www.linkedin.com/in/whywaris/" as string | null,
   },
